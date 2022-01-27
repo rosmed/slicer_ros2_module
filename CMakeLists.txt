@@ -1,0 +1,89 @@
+find_package(Slicer COMPONENTS ConfigurePrerequisites)
+cmake_minimum_required(VERSION 3.5)
+project(EmptyExtensionTemplate)
+
+#---------------------------------------------------------------------------
+find_package(orocos_kdl REQUIRED)
+IF (orocos_kdl_FOUND)
+	message(STATUS "orocos_kdl found. Version: ${orocos_kdl_VERSION}")
+  message(STATUS "kdl lib dir: ${orocos_kdl_LIBRARY_DIR}")
+	include_directories(BEFORE SYSTEM ${orocos_kdl_INCLUDE_DIRS})
+	add_definitions(${orocos_kdl_CFLAGS})
+	link_directories(${orocos_kdl_LIBRARY_DIR})
+ENDIF()
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(kdl_parser REQUIRED)
+find_package(urdf REQUIRED)
+#-----------------------------------------------------------------------------
+set(MODULE_NAME SlicerRos2)
+set(MODULE_TITLE ${MODULE_NAME})
+
+string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
+
+find_package(Slicer REQUIRED)
+include(${Slicer_USE_FILE})
+
+#---------------------------------------------------------------------------
+
+add_subdirectory(Logic)
+add_subdirectory(Widgets)
+
+#-----------------------------------------------------------------------------
+set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")
+
+# Current_{source,binary} and Slicer_{Libs,Base} already included
+set(MODULE_INCLUDE_DIRECTORIES
+  ${CMAKE_CURRENT_SOURCE_DIR}/Logic
+  ${CMAKE_CURRENT_BINARY_DIR}/Logic
+  ${CMAKE_CURRENT_SOURCE_DIR}/Widgets
+  ${CMAKE_CURRENT_BINARY_DIR}/Widgets
+  )
+
+set(MODULE_SRCS
+  qSlicer${MODULE_NAME}Module.cxx
+  qSlicer${MODULE_NAME}Module.h
+  qSlicer${MODULE_NAME}ModuleWidget.cxx
+  qSlicer${MODULE_NAME}ModuleWidget.h
+  )
+
+set(MODULE_MOC_SRCS
+  qSlicer${MODULE_NAME}Module.h
+  qSlicer${MODULE_NAME}ModuleWidget.h
+  )
+
+set(MODULE_UI_SRCS
+  Resources/UI/qSlicer${MODULE_NAME}ModuleWidget.ui
+  )
+
+set(MODULE_TARGET_LIBRARIES
+  vtkSlicer${MODULE_NAME}ModuleLogic
+  qSlicer${MODULE_NAME}ModuleWidgets
+  )
+
+set(MODULE_RESOURCES
+  Resources/qSlicer${MODULE_NAME}Module.qrc
+  )
+
+#-----------------------------------------------------------------------------
+slicerMacroBuildLoadableModule(
+  NAME ${MODULE_NAME}
+  TITLE ${MODULE_TITLE}
+  EXPORT_DIRECTIVE ${MODULE_EXPORT_DIRECTIVE}
+  INCLUDE_DIRECTORIES ${MODULE_INCLUDE_DIRECTORIES}
+  SRCS ${MODULE_SRCS}
+  MOC_SRCS ${MODULE_MOC_SRCS}
+  UI_SRCS ${MODULE_UI_SRCS}
+  TARGET_LIBRARIES ${MODULE_TARGET_LIBRARIES} ${kdl_parser_LIBRARIES} ${urdf_LIBRARIES}
+  RESOURCES ${MODULE_RESOURCES}
+  WITH_GENERIC_TESTS
+  )
+
+# ament_target_dependencies(${MODULE_NAME} kdl_parser urdf)
+
+#-----------------------------------------------------------------------------
+if(BUILD_TESTING)
+  add_subdirectory(Testing)
+endif()

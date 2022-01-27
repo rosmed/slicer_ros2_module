@@ -1,0 +1,90 @@
+/*==============================================================================
+
+  Program: 3D Slicer
+
+  Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
+
+  See COPYRIGHT.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+==============================================================================*/
+
+// Qt includes
+#include <QDebug>
+
+// Slicer includes
+#include "qSlicerSlicerRos2ModuleWidget.h"
+#include "ui_qSlicerSlicerRos2ModuleWidget.h"
+
+// KDL include_directories
+#include "kdl_parser/kdl_parser.hpp"
+#include<iostream>
+#include <kdl/chain.hpp>
+#include <kdl/chainfksolver.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/frames_io.hpp>
+using namespace std;
+using namespace KDL;
+
+//-----------------------------------------------------------------------------
+/// \ingroup Slicer_QtModules_ExtensionTemplate
+class qSlicerSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerSlicerRos2ModuleWidget
+{
+public:
+  qSlicerSlicerRos2ModuleWidgetPrivate();
+};
+
+//-----------------------------------------------------------------------------
+// qSlicerSlicerRos2ModuleWidgetPrivate methods
+
+//-----------------------------------------------------------------------------
+qSlicerSlicerRos2ModuleWidgetPrivate::qSlicerSlicerRos2ModuleWidgetPrivate()
+{
+}
+
+//-----------------------------------------------------------------------------
+// qSlicerSlicerRos2ModuleWidget methods
+
+//-----------------------------------------------------------------------------
+qSlicerSlicerRos2ModuleWidget::qSlicerSlicerRos2ModuleWidget(QWidget* _parent)
+  : Superclass( _parent )
+  , d_ptr( new qSlicerSlicerRos2ModuleWidgetPrivate )
+{
+}
+
+//-----------------------------------------------------------------------------
+qSlicerSlicerRos2ModuleWidget::~qSlicerSlicerRos2ModuleWidget()
+{
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSlicerRos2ModuleWidget::setup()
+{
+  Q_D(qSlicerSlicerRos2ModuleWidget);
+  d->setupUi(this);
+  this->Superclass::setup();
+  qCritical() << Q_FUNC_INFO << "Hello world";
+  KDL::Chain chain;
+  chain.addSegment(Segment(Joint(Joint::RotZ),Frame(Vector(0.0,0.0,1.020))));
+  chain.addSegment(Segment(Joint(Joint::RotX),Frame(Vector(0.0,0.0,0.480))));
+  chain.addSegment(Segment(Joint(Joint::RotX),Frame(Vector(0.0,0.0,0.645))));
+  std::cout << chain.getNrOfSegments() <<::endl;
+  //KDL::Tree my_tree;
+  //kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree);
+  // if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
+  //   qCritical() << Q_FUNC_INFO << "Hello world";
+  // }
+  connect(d->PrintTreeButton, SIGNAL(clicked()), this, SLOT(onAddSegment()) );
+}
+
+void qSlicerSlicerRos2ModuleWidget::onAddSegment()
+{
+  Q_D(qSlicerSlicerRos2ModuleWidget);
+  qCritical() << Q_FUNC_INFO << "Hello world";
+}
