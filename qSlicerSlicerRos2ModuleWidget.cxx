@@ -75,8 +75,8 @@ void qSlicerSlicerRos2ModuleWidget::setup()
   chain.addSegment(Segment(Joint(Joint::RotX),Frame(Vector(0.0,0.0,0.480))));
   chain.addSegment(Segment(Joint(Joint::RotX),Frame(Vector(0.0,0.0,0.645))));
   std::cout << chain.getNrOfSegments() <<::endl;
-  //KDL::Tree my_tree;
-  //kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree);
+  KDL::Tree my_tree;
+  kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree);
   // if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
   //   qCritical() << Q_FUNC_INFO << "Hello world";
   // }
