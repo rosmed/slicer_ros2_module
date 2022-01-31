@@ -45,7 +45,9 @@ protected:
   QScopedPointer<qSlicerSlicerRos2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
-  void onAddSegment();
+
+protected slots:
+  void onPrintTreeButton();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerSlicerRos2ModuleWidget);

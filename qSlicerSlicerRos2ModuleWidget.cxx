@@ -69,22 +69,18 @@ void qSlicerSlicerRos2ModuleWidget::setup()
   Q_D(qSlicerSlicerRos2ModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
-  qCritical() << Q_FUNC_INFO << "Hello world";
-  KDL::Chain chain;
-  chain.addSegment(Segment(Joint(Joint::RotZ),Frame(Vector(0.0,0.0,1.020))));
-  chain.addSegment(Segment(Joint(Joint::RotX),Frame(Vector(0.0,0.0,0.480))));
-  chain.addSegment(Segment(Joint(Joint::RotX),Frame(Vector(0.0,0.0,0.645))));
-  std::cout << chain.getNrOfSegments() <<::endl;
-  KDL::Tree my_tree;
-  kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree);
-  // if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
-  //   qCritical() << Q_FUNC_INFO << "Hello world";
-  // }
-  connect(d->PrintTreeButton, SIGNAL(clicked()), this, SLOT(onAddSegment()) );
+
+  // Setup connection for the button
+  this->connect(d->PrintTreeButton, SIGNAL(clicked(bool)), this, SLOT(onPrintTreeButton()));
 }
 
-void qSlicerSlicerRos2ModuleWidget::onAddSegment()
+void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
 {
   Q_D(qSlicerSlicerRos2ModuleWidget);
-  qCritical() << Q_FUNC_INFO << "Hello world";
+  // qCritical() << Q_FUNC_INFO << "Hello world";
+
+  KDL::Tree my_tree;
+  if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
+    qCritical() << Q_FUNC_INFO << "No urdf file to load.";
+  }
 }

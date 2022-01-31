@@ -15,18 +15,6 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="ctkCollapsibleButton" name="CTKCollapsibleButton" native="true">
-     <property name="text" stdset="0">
-      <string>Display</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
-      <item>
-       <widget class="qSlicerSlicerRos2FooBarWidget" name="FooBar" native="true"/>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <widget class="QPushButton" name="PrintTreeButton">
      <property name="text">
       <string>Print KDL tree</string>
@@ -53,18 +41,6 @@
    <class>qSlicerWidget</class>
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ctkCollapsibleButton</class>
-   <extends>QWidget</extends>
-   <header>ctkCollapsibleButton.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>qSlicerSlicerRos2FooBarWidget</class>
-   <extends>QWidget</extends>
-   <header>qSlicerSlicerRos2FooBarWidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
