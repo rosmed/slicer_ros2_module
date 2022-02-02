@@ -98,13 +98,8 @@ void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
     qCritical() << Q_FUNC_INFO << "No urdf file to load.";
   }
 
-  // Check if the mrml scene exists/ is valid
-  // if (this->mrmlScene() == NULL){
-  //   qCritical() << "Invalid scene!";
-  //   return;
-  // }
-
-  //this->logic()->loadRobotSTLModels();
+  //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
+  // have to do the SafeDownCast
   vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
 	if (!logic)
   {
