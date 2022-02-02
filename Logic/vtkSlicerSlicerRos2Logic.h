@@ -27,6 +27,7 @@
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
 
+
 // MRML includes
 
 // STD includes
@@ -44,7 +45,7 @@ public:
   static vtkSlicerSlicerRos2Logic *New();
   vtkTypeMacro(vtkSlicerSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-
+  void loadRobotSTLModels(const std::string& filename);
 protected:
   vtkSlicerSlicerRos2Logic();
   ~vtkSlicerSlicerRos2Logic() override;
@@ -55,7 +56,8 @@ protected:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
-  void loadRobotSTLModels();
+
+
 private:
 
   vtkSlicerSlicerRos2Logic(const vtkSlicerSlicerRos2Logic&); // Not implemented

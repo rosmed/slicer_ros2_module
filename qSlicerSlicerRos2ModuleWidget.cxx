@@ -99,9 +99,18 @@ void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
   }
 
   // Check if the mrml scene exists/ is valid
-  if (this->mrmlScene() == NULL){
-    qCritical() << "Invalid scene!";
-    return;
-  }
+  // if (this->mrmlScene() == NULL){
+  //   qCritical() << "Invalid scene!";
+  //   return;
+  // }
+
+  //this->logic()->loadRobotSTLModels();
+  vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
+	if (!logic)
+  {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+ 	   return;
+	 }
+  logic->loadRobotSTLModels("blah");
 
 }

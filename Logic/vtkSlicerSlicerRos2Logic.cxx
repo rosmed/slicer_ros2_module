@@ -85,10 +85,10 @@ void vtkSlicerSlicerRos2Logic
 
 //----------------------------------------------------------------------------
 void vtkSlicerSlicerRos2Logic
-::loadRobotSTLModels()
+::loadRobotSTLModels(const std::string& filename)
 {
   vtkMRMLScene *scene = this->GetMRMLScene();
-  vtkMRMLModelNode *modelNode;
+  vtkMRMLModelNode *modelNode  = nullptr;
   scene->AddNode(modelNode);
-
+  std::cerr << "hello" << filename << std::endl;
 }
