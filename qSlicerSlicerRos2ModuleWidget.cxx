@@ -17,10 +17,24 @@
 
 // Qt includes
 #include <QDebug>
+#include <QtGui>
+#include <QButtonGroup>
 
 // Slicer includes
 #include "qSlicerSlicerRos2ModuleWidget.h"
 #include "ui_qSlicerSlicerRos2ModuleWidget.h"
+
+// reference to Logic
+#include "vtkSlicerSlicerRos2Logic.h"
+
+// Slicer includes
+#include "vtkMRMLModelDisplayNode.h"
+#include "vtkMRMLMarkupsDisplayNode.h"
+#include "vtkMRMLDisplayNode.h"
+#include "vtkMRMLModelNode.h"
+#include "vtkMRMLMarkupsFiducialNode.h"
+#include "vtkMRMLInteractionNode.h"
+#include "vtkMRMLScene.h"
 
 // KDL include_directories
 #include "kdl_parser/kdl_parser.hpp"
@@ -36,12 +50,12 @@ using namespace KDL;
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerSlicerRos2ModuleWidget
 {
+
 public:
   qSlicerSlicerRos2ModuleWidgetPrivate();
+  vtkSlicerSlicerRos2Logic* logic() const;
 };
 
-//-----------------------------------------------------------------------------
-// qSlicerSlicerRos2ModuleWidgetPrivate methods
 
 //-----------------------------------------------------------------------------
 qSlicerSlicerRos2ModuleWidgetPrivate::qSlicerSlicerRos2ModuleWidgetPrivate()
@@ -77,10 +91,17 @@ void qSlicerSlicerRos2ModuleWidget::setup()
 void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
 {
   Q_D(qSlicerSlicerRos2ModuleWidget);
-  // qCritical() << Q_FUNC_INFO << "Hello world";
-
+  this->Superclass::setup();
+  // Load the urdf file into a KDL tree
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
     qCritical() << Q_FUNC_INFO << "No urdf file to load.";
   }
+
+  // Check if the mrml scene exists/ is valid
+  if (this->mrmlScene() == NULL){
+    qCritical() << "Invalid scene!";
+    return;
+  }
+
 }

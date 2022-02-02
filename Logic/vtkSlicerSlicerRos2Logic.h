@@ -55,6 +55,7 @@ protected:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
+  void loadRobotSTLModels();
 private:
 
   vtkSlicerSlicerRos2Logic(const vtkSlicerSlicerRos2Logic&); // Not implemented

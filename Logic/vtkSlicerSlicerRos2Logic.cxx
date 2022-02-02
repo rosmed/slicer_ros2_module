@@ -20,6 +20,7 @@
 
 // MRML includes
 #include <vtkMRMLScene.h>
+#include <vtkMRMLModelNode.h>
 
 // VTK includes
 #include <vtkIntArray.h>
@@ -80,4 +81,14 @@ void vtkSlicerSlicerRos2Logic
 void vtkSlicerSlicerRos2Logic
 ::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
 {
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerSlicerRos2Logic
+::loadRobotSTLModels()
+{
+  vtkMRMLScene *scene = this->GetMRMLScene();
+  vtkMRMLModelNode *modelNode;
+  scene->AddNode(modelNode);
+
 }

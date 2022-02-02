@@ -40,14 +40,23 @@ public:
 
 public slots:
 
+  //void setMRMLScene(vtkMRMLScene* scene);
 
 protected:
   QScopedPointer<qSlicerSlicerRos2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
 
+  /// Create and return the widget representation associated to this module
+  //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
+
+  /// Create and return the logic associated to this module
+  //virtual vtkMRMLAbstractLogic* createLogic();
+
+
 protected slots:
   void onPrintTreeButton();
+
 
 private:
   Q_DECLARE_PRIVATE(qSlicerSlicerRos2ModuleWidget);
