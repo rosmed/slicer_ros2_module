@@ -104,10 +104,10 @@ void vtkSlicerSlicerRos2Logic
 {
   // TODO: this should be moved over from widget class (Figure out library linking issue)
   // Parser the urdf file into a KDL tree -
-  // KDL::Tree my_tree;
-  // if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
-  //   return; //std::cerr << "No urdf file to load." << filename << std::endl;
-  // }
+  KDL::Tree my_tree;
+  if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
+    return; //std::cerr << "No urdf file to load." << filename << std::endl;
+  }
   // Keeping this as an example of how to pass to the function
   std::cerr << "hello" << filename << std::endl;
 
@@ -158,4 +158,5 @@ void vtkSlicerSlicerRos2Logic
   // Other TODO: initialize the model node with something so it doesn't add a null (see if I can change the position of it/ set visibility)
 
   modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+  // Note you don't need to attach it to a transform -> you can just set the
 }

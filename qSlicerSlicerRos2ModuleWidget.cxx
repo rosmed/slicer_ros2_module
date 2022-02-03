@@ -36,16 +36,6 @@
 #include "vtkMRMLInteractionNode.h"
 #include "vtkMRMLScene.h"
 
-// KDL include_directories
-#include "kdl_parser/kdl_parser.hpp"
-#include<iostream>
-#include <kdl/chain.hpp>
-#include <kdl/chainfksolver.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/frames_io.hpp>
-using namespace std;
-using namespace KDL;
-
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerSlicerRos2ModuleWidget
@@ -92,11 +82,6 @@ void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
 {
   Q_D(qSlicerSlicerRos2ModuleWidget);
   this->Superclass::setup();
-  // Load the urdf file into a KDL tree
-  KDL::Tree my_tree;
-  if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
-    qCritical() << Q_FUNC_INFO << "No urdf file to load.";
-  }
 
   //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
   // have to do the SafeDownCast
