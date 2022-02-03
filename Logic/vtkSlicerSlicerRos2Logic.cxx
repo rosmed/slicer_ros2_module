@@ -174,7 +174,11 @@ void vtkSlicerSlicerRos2Logic
     PythonQtObjectPtr context = PythonQt::self()->getMainModule();
     context.evalScript(QString(
     "import slicer \n"
-    "slicer.util.loadModel(r'/home/laura/Base.stl')")); // this won't work for some reason (in console or here)
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n")); // this won't work for some reason (in console or here)
     //QVariant x = context.getVariable("x");
     //slicer.util.loadModel("home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl")
   #endif
