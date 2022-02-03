@@ -21,6 +21,7 @@
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLModelNode.h>
+#include <vtkMRMLModelDisplayNode.h>
 
 // VTK includes
 #include <vtkIntArray.h>
@@ -118,10 +119,20 @@ void vtkSlicerSlicerRos2Logic
   modelNode->SetName( "CubeModel" );
   modelNodeToUpdate = modelNode.GetPointer();
   modelNodeToUpdate->SetAndObservePolyData( cube->GetOutput() );
-  // vtkMRMLScene *scene = this->GetMRMLScene();
-  // vtkMRMLModelNode *modelNode  = nullptr;
-  // modelNode->SetAndObservePolyData(cube->GetOutput());
-  // scene->AddNode(modelNode);
+  // This crashes the module
+  if (modelNodeToUpdate->GetDisplayNode() == NULL)
+  {
+    vtkNew< vtkMRMLModelDisplayNode > modelDisplayNode;
+    this->GetMRMLScene()->AddNode( modelDisplayNode.GetPointer() );
+    modelDisplayNode->SetName( "NeedleModelDisplay" );
+    modelDisplayNode->SetColor( 0.0, 1.0, 1.0 );
+
+    modelNodeToUpdate->SetAndObserveDisplayNodeID( modelDisplayNode->GetID() );
+    modelDisplayNode->SetAmbient( 0.2 );
+    modelDisplayNode->SetScalarVisibility(1);
+
+  }
+  //modelNodeToUpdate->GetDisplayNode()->SetVisibility(true);
   std::cerr << "hello" << filename << std::endl;
 
   // Other TODO: initialize the model node with something so it doesn't add a null (see if I can change the position of it/ set visibility)
