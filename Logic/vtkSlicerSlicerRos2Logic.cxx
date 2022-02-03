@@ -32,6 +32,8 @@
 #include <vtkObjectFactory.h>
 #include "vtkCubeSource.h"
 
+#include <qSlicerCoreIOManager.h>
+
 // STD includes
 #include <cassert>
 
@@ -44,6 +46,12 @@
 #include <kdl/frames_io.hpp>
 using namespace std;
 using namespace KDL;
+
+// Python includes
+#include "vtkSlicerConfigure.h"
+#ifdef Slicer_USE_PYTHONQT
+#include "PythonQt.h"
+#endif
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerSlicerRos2Logic);
@@ -158,5 +166,20 @@ void vtkSlicerSlicerRos2Logic
   // Other TODO: initialize the model node with something so it doesn't add a null (see if I can change the position of it/ set visibility)
 
   modelNode->SetAndObserveTransformNodeID(tnode->GetID());
-  // Note you don't need to attach it to a transform -> you can just set the
+  // Note you don't need to attach it to a transform -> you can just set the RAS bounds (I think more confusing than it's worth)
+
+  //Initialize python so you can call load modules
+  #ifdef Slicer_USE_PYTHONQT
+    PythonQt::init();
+    PythonQtObjectPtr context = PythonQt::self()->getMainModule();
+    context.evalScript(QString(
+    "import slicer \n"
+    "slicer.util.loadModel(r'/home/laura/Base.stl')")); // this won't work for some reason (in console or here)
+    //QVariant x = context.getVariable("x");
+    //slicer.util.loadModel("home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl")
+  #endif
+
+  // qSlicerCoreIOManager *ioManager;
+  // ioManager
+
 }
