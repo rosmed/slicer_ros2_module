@@ -132,14 +132,6 @@ void vtkSlicerSlicerRos2Logic
   unsigned int nj = kdl_chain.getNrOfJoints();
   KDL::JntArray jointpositions = JntArray(nj);
 
-  // Assign some values to the joint positions
-  // for(unsigned int i=0;i<nj;i++){
-  //     float myinput;
-  //     printf ("Enter the position of joint %i: ",i);
-  //     scanf ("%e",&myinput);
-  //     jointpositions(i)=(double)myinput;
-  // }
-
   // Create the frame that will contain the results
   KDL::Frame cartpos;
   float x = 0;
@@ -150,22 +142,8 @@ void vtkSlicerSlicerRos2Logic
       std::cout << cartpos <<std::endl;
 
       x = cartpos.operator()(2,3);
-      // std::cout << cartpos.operator()(0,0) <<std::endl;
-      // std::cout << cartpos.operator()(0,1) <<std::endl;
-      // std::cout << cartpos.operator()(0,2) <<std::endl;
-      // std::cout << cartpos.operator()(0,3) <<std::endl;
-      // std::cout << cartpos.operator()(1,0) <<std::endl;
-      // std::cout << cartpos.operator()(1,1) <<std::endl;
-      // std::cout << cartpos.operator()(1,2) <<std::endl;
-      // std::cout << cartpos.operator()(1,3) <<std::endl;
-      // std::cout << cartpos.operator()(2,0) <<std::endl;
-      // std::cout << cartpos.operator()(2,1) <<std::endl;
-      // std::cout << cartpos.operator()(2,2) <<std::endl;
       std::cout << cartpos.operator()(2,3) <<std::endl;
-      // std::cout << cartpos.operator()(3,0) <<std::endl;
-      // std::cout << cartpos.operator()(3,1) <<std::endl;
-      // std::cout << cartpos.operator()(3,2) <<std::endl;
-      // std::cout << cartpos.operator()(3,3) <<std::endl;
+
       std::cout << "Thanks KDL!" <<std::endl;
   }else{
       printf("%s \n","Error: could not calculate forward kinematics :(");
@@ -235,7 +213,7 @@ void vtkSlicerSlicerRos2Logic
     "import slicer \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"
-    "base = slicer.mrmlScene.GetFirstNodeByName('base') \n"
+    "base = slicer.mrmlScene.GetFirstNodeByName('torso') \n"
     "transform = slicer.mrmlScene.GetFirstNodeByName('TransformNode') \n"
     "base.SetAndObserveTransformNodeID(transform.GetID()) \n"
     "matrix = transform.GetMatrixTransformToParent() \n"
