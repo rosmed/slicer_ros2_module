@@ -142,12 +142,30 @@ void vtkSlicerSlicerRos2Logic
 
   // Create the frame that will contain the results
   KDL::Frame cartpos;
-
+  float x = 0;
   // Calculate forward position kinematics
   bool kinematics_status;
   kinematics_status = fksolver.JntToCart(jointpositions,cartpos);
   if(kinematics_status>=0){
       std::cout << cartpos <<std::endl;
+
+      x = cartpos.operator()(2,3);
+      // std::cout << cartpos.operator()(0,0) <<std::endl;
+      // std::cout << cartpos.operator()(0,1) <<std::endl;
+      // std::cout << cartpos.operator()(0,2) <<std::endl;
+      // std::cout << cartpos.operator()(0,3) <<std::endl;
+      // std::cout << cartpos.operator()(1,0) <<std::endl;
+      // std::cout << cartpos.operator()(1,1) <<std::endl;
+      // std::cout << cartpos.operator()(1,2) <<std::endl;
+      // std::cout << cartpos.operator()(1,3) <<std::endl;
+      // std::cout << cartpos.operator()(2,0) <<std::endl;
+      // std::cout << cartpos.operator()(2,1) <<std::endl;
+      // std::cout << cartpos.operator()(2,2) <<std::endl;
+      std::cout << cartpos.operator()(2,3) <<std::endl;
+      // std::cout << cartpos.operator()(3,0) <<std::endl;
+      // std::cout << cartpos.operator()(3,1) <<std::endl;
+      // std::cout << cartpos.operator()(3,2) <<std::endl;
+      // std::cout << cartpos.operator()(3,3) <<std::endl;
       std::cout << "Thanks KDL!" <<std::endl;
   }else{
       printf("%s \n","Error: could not calculate forward kinematics :(");
@@ -158,32 +176,32 @@ void vtkSlicerSlicerRos2Logic
 
 
   // Instantiate the vtkCubeSource as a place holder while I figure out how to load an stl model
-  vtkNew< vtkCubeSource > cube;
-  cube->SetXLength(10);
-  cube->SetYLength(10);
-  cube->SetZLength(10);
-  cube->Update();
-
-  // Add a model node to the scene
-  vtkMRMLModelNode *modelNodeToUpdate  = nullptr;
-  vtkNew< vtkMRMLModelNode > modelNode;
-  this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
-  modelNode->SetName( "CubeModel" );
-  modelNodeToUpdate = modelNode.GetPointer();
-  modelNodeToUpdate->SetAndObservePolyData( cube->GetOutput() );
-
-  // Set the model display node to visible
-  if (modelNodeToUpdate->GetDisplayNode() == NULL)
-  {
-    vtkNew< vtkMRMLModelDisplayNode > modelDisplayNode;
-    this->GetMRMLScene()->AddNode( modelDisplayNode.GetPointer() );
-    modelDisplayNode->SetName( "NeedleModelDisplay" );
-    modelDisplayNode->SetColor( 0.0, 1.0, 1.0 );
-    modelNodeToUpdate->SetAndObserveDisplayNodeID( modelDisplayNode->GetID() );
-    modelDisplayNode->SetAmbient( 0.2 );
-    modelDisplayNode->SetScalarVisibility(1);
-
-  }
+  // vtkNew< vtkCubeSource > cube;
+  // cube->SetXLength(10);
+  // cube->SetYLength(10);
+  // cube->SetZLength(10);
+  // cube->Update();
+  //
+  // // Add a model node to the scene
+  // vtkMRMLModelNode *modelNodeToUpdate  = nullptr;
+  // vtkNew< vtkMRMLModelNode > modelNode;
+  // this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
+  // modelNode->SetName( "CubeModel" );
+  // modelNodeToUpdate = modelNode.GetPointer();
+  // modelNodeToUpdate->SetAndObservePolyData( cube->GetOutput() );
+  //
+  // // Set the model display node to visible
+  // if (modelNodeToUpdate->GetDisplayNode() == NULL)
+  // {
+  //   vtkNew< vtkMRMLModelDisplayNode > modelDisplayNode;
+  //   this->GetMRMLScene()->AddNode( modelDisplayNode.GetPointer() );
+  //   modelDisplayNode->SetName( "NeedleModelDisplay" );
+  //   modelDisplayNode->SetColor( 0.0, 1.0, 1.0 );
+  //   modelNodeToUpdate->SetAndObserveDisplayNodeID( modelDisplayNode->GetID() );
+  //   modelDisplayNode->SetAmbient( 0.2 );
+  //   modelDisplayNode->SetScalarVisibility(1);
+  //
+  // }
 
   // Create a transform node to add the model to so we can move it around
   vtkNew<vtkMRMLTransformStorageNode> storageNode;
@@ -202,21 +220,37 @@ void vtkSlicerSlicerRos2Logic
   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
   // Other TODO: initialize the model node with something so it doesn't add a null (see if I can change the position of it/ set visibility)
 
-  modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+  //modelNode->SetAndObserveTransformNodeID(tnode->GetID());
   // Note you don't need to attach it to a transform -> you can just set the RAS bounds (I think more confusing than it's worth)
 
   //Initialize python so you can call load modules
+  QList<QVariant> cartesian_pos;
+  cartesian_pos.append(x);
+
   #ifdef Slicer_USE_PYTHONQT
     PythonQt::init();
     PythonQtObjectPtr context = PythonQt::self()->getMainModule();
+    context.addVariable("cartpos", cartesian_pos);
     context.evalScript(QString(
     "import slicer \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n"));
+    "base = slicer.mrmlScene.GetFirstNodeByName('base') \n"
+    "transform = slicer.mrmlScene.GetFirstNodeByName('TransformNode') \n"
+    "base.SetAndObserveTransformNodeID(transform.GetID()) \n"
+    "matrix = transform.GetMatrixTransformToParent() \n"
+    "matrix.SetElement(2, 3, cartpos[0]) \n"
+    "transform.SetMatrixTransformToParent(matrix) \n"));
+    // "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"
+    // "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
+    // "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n"));
   #endif
+
+  // vtkMRMLNode *baseModelNode  = nullptr;
+  // baseModelNode = this->GetMRMLScene()->GetFirstNodeByName("base");
+  // baseModelNode->SetAndObserveTransformNodeID(tnode->GetID());
+
+
 
 
 
