@@ -116,6 +116,43 @@ void vtkSlicerSlicerRos2Logic
   if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
+
+  // Solve the forward kinematics of the KDL tree
+  KDL::Chain kdl_chain;
+  std::string base_frame("base");
+  std::string tip_frame("torso");
+  if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
+  {
+    std::cerr << "not working" << filename << std::endl;
+    return;
+  }
+
+  ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
+  // Create joint array
+  unsigned int nj = kdl_chain.getNrOfJoints();
+  KDL::JntArray jointpositions = JntArray(nj);
+
+  // Assign some values to the joint positions
+  // for(unsigned int i=0;i<nj;i++){
+  //     float myinput;
+  //     printf ("Enter the position of joint %i: ",i);
+  //     scanf ("%e",&myinput);
+  //     jointpositions(i)=(double)myinput;
+  // }
+
+  // Create the frame that will contain the results
+  KDL::Frame cartpos;
+
+  // Calculate forward position kinematics
+  bool kinematics_status;
+  kinematics_status = fksolver.JntToCart(jointpositions,cartpos);
+  if(kinematics_status>=0){
+      std::cout << cartpos <<std::endl;
+      std::cout << "Thanks KDL!" <<std::endl;
+  }else{
+      printf("%s \n","Error: could not calculate forward kinematics :(");
+  }
+
   // Keeping this as an example of how to pass to the function
   std::cerr << "hello" << filename << std::endl;
 
@@ -178,12 +215,9 @@ void vtkSlicerSlicerRos2Logic
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n")); // this won't work for some reason (in console or here)
-    //QVariant x = context.getVariable("x");
-    //slicer.util.loadModel("home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl")
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n"));
   #endif
 
-  // qSlicerCoreIOManager *ioManager;
-  // ioManager
+
 
 }

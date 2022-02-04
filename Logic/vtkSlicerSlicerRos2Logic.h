@@ -46,6 +46,7 @@ public:
   vtkTypeMacro(vtkSlicerSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   void loadRobotSTLModels(const std::string& filename); // Could also be protected friend ** ask Anton
+
 protected:
   vtkSlicerSlicerRos2Logic();
   ~vtkSlicerSlicerRos2Logic() override;
