@@ -109,7 +109,7 @@ void vtkSlicerSlicerRos2Logic
 
 //----------------------------------------------------------------------------
 void vtkSlicerSlicerRos2Logic
-::loadRobotSTLModels(const std::string& filename)
+::loadRobotSTLModels()
 {
   // TODO: this should be moved over from widget class (Figure out library linking issue)
   // Parser the urdf file into a KDL tree -
@@ -118,15 +118,23 @@ void vtkSlicerSlicerRos2Logic
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
+
   // Solve the forward kinematics of the KDL tree
   KDL::Chain kdl_chain;
-  std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  std::string tip_frame("torso");
+  std::string base_frame("upper_arm"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
+  std::string tip_frame("lower_arm");
   if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
   {
-    std::cerr << "not working" << filename << std::endl;
+    std::cerr << "not working" << std::endl;
     return;
   }
+
+  KDL::Joint kdl_joint = kdl_chain.getSegment(0).getJoint();
+  KDL::Segment kdl_segment = kdl_chain.getSegment(0);
+  std::string segmentName(kdl_segment.getName());
+  std::string jointName(kdl_joint.getName());
+  std::cerr << jointName << std::endl; // this gives you the joint names (lower_arm, upper_arm) - need to figure out how to get base, torso 
+  std::cerr << segmentName << std::endl;
 
   ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
 
@@ -149,9 +157,6 @@ void vtkSlicerSlicerRos2Logic
   }else{
       printf("%s \n","Error: could not calculate forward kinematics :(");
   }
-
-  // Keeping this as an example of how to pass to the function
-  std::cerr << "hello" << filename << std::endl;
 
   // Create a transform node to add the model to so we can move it around
   vtkNew<vtkMRMLTransformStorageNode> storageNode;
@@ -177,20 +182,21 @@ void vtkSlicerSlicerRos2Logic
     context.addVariable("cartpos", cartesian_pos);
     context.evalScript(QString(
     "import slicer \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"));
-    // "transform = slicer.mrmlScene.GetFirstNodeByName('TransformNode') \n"
-    // "base.SetAndObserveTransformNodeID(transform.GetID()) \n"
-    // "matrix = transform.GetMatrixTransformToParent() \n"
-    // "matrix.SetElement(2, 3, cartpos[0]) \n"
-    // "transform.SetMatrixTransformToParent(matrix) \n"));
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"));
   #endif
 
-
-  vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName("torso"));
-  // Get the modelNode to observe that transform
+  // Add model for the joint to transform hiearchy - so it moves with the transform
+  vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName("lower_arm"));
   modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+
+  // Get the matrix and update it based on the forward kinematics
   vtkMatrix4x4 *matrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
-  matrix->SetElement(2,3, cartpos.operator()(2,3));
+  for (int i = 0; i < 4; i++) {
+    for (int j=0; j <4; j ++){
+      matrix->SetElement(i,j, cartpos.operator()(i,j));
+    }
+  }
+  // Update the matrix for the transform
   tnode->SetMatrixTransformToParent(matrix);
 }

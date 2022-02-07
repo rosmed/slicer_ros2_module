@@ -91,6 +91,6 @@ void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
  	   return;
 	 }
-  logic->loadRobotSTLModels("blah");
+  logic->loadRobotSTLModels();
 
 }
