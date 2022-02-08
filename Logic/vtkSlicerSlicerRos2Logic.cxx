@@ -32,6 +32,7 @@
 #include <vtkObjectFactory.h>
 #include <vtkMatrix4x4.h>
 #include "vtkCubeSource.h"
+#include <vtkTransform.h>
 
 #include <qSlicerCoreIOManager.h>
 
@@ -129,11 +130,16 @@ void vtkSlicerSlicerRos2Logic
     return;
   }
 
+  // TODO: replace the hard coded link names with something like this
   KDL::Joint kdl_joint = kdl_chain.getSegment(0).getJoint();
   KDL::Segment kdl_segment = kdl_chain.getSegment(0);
   std::string segmentName(kdl_segment.getName());
   std::string jointName(kdl_joint.getName());
-  std::cerr << jointName << std::endl; // this gives you the joint names (lower_arm, upper_arm) - need to figure out how to get base, torso 
+  KDL::Vector vect = kdl_joint.JointOrigin();
+  KDL::Vector rot = kdl_joint.JointAxis(); // this doesn't seem to be the RPY (figure out how to get that)
+  std::cout << vect.operator()(0) <<std::endl;
+  std::cout << rot.operator()(0) <<std::endl;
+  std::cerr << jointName << std::endl; // this gives you the joint names (lower_arm, upper_arm) - need to figure out how to get base, torso
   std::cerr << segmentName << std::endl;
 
   ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
@@ -168,10 +174,35 @@ void vtkSlicerSlicerRos2Logic
  	generalTransform->SetScene(this->GetMRMLScene());
   tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
  	storageNode->ReadData(tnode.GetPointer());
-  tnode->SetName("TransformNode");
+  tnode->SetName("ForwardKinematics");
   this->GetMRMLScene()->AddNode(storageNode.GetPointer());
  	this->GetMRMLScene()->AddNode(tnode);
   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
+
+  // Create a second transform for position (translation and rotation)
+
+  vtkNew<vtkMRMLTransformStorageNode> positionStorageNode;
+  vtkSmartPointer<vtkMRMLTransformNode> ptnode;
+
+	positionStorageNode->SetScene(this->GetMRMLScene());
+  vtkNew<vtkMRMLTransformNode> positionTransform;
+ 	positionTransform->SetScene(this->GetMRMLScene());
+  ptnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+ 	positionStorageNode->ReadData(ptnode.GetPointer());
+  ptnode->SetName("InitialPosition");
+  this->GetMRMLScene()->AddNode(positionStorageNode.GetPointer());
+ 	this->GetMRMLScene()->AddNode(ptnode);
+  ptnode->SetAndObserveStorageNodeID(positionStorageNode->GetID());
+
+  vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(ptnode->GetTransformToParent());
+  modifiedTransform->Translate(0, 0, 0);
+  modifiedTransform->RotateX(90);
+  ptnode->SetAndObserveTransformToParent(modifiedTransform);
+  ptnode->Modified();
+
+  //Stack the transforms
+  tnode->SetAndObserveTransformNodeID(ptnode->GetID());
+
 
   //Initialize python so you can call load modules
   QList<QVariant> cartesian_pos;
