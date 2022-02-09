@@ -46,8 +46,10 @@
 #include <kdl/chainfksolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/frames_io.hpp>
+#include <urdf/model.h>
 using namespace std;
 using namespace KDL;
+using namespace urdf;
 
 // Python includes
 #include "vtkSlicerConfigure.h"
@@ -114,6 +116,14 @@ void vtkSlicerSlicerRos2Logic
 {
   // TODO: this should be moved over from widget class (Figure out library linking issue)
   // Parser the urdf file into a KDL tree -
+  urdf::Model my_model;
+  if (!my_model.initFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf")){
+      return;
+  }
+
+  std::cerr << my_model.getName() << std::endl;
+
+
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
@@ -131,19 +141,22 @@ void vtkSlicerSlicerRos2Logic
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"));
   #endif
 
+  KDL::SegmentMap my_tree_elements;
+  my_tree_elements = my_tree.getSegments();
+  //std::cerr << my_tree_elements << std::endl;
 
-  const char *link_names[4] = { "base", "torso", "upper_arm", "lower_arm" };
+  const char *link_names[4] = { "base", "torso", "upper_arm", "lower_arm"};
   double link_translation_x[4] = {0, 0, 0.0075, 0};
   double link_translation_y[4] = {-0.02, 0, 0, 0};
   double link_translation_z[4] = { 0, 0.036, 0, 0};
   double link_rotation_x[4] = {0,-90, 0, 90};
-  double link_rotation_y[4] = {0,0, 0, 0};
+  double link_rotation_y[4] = {0, 0, 0, 0};
   double link_rotation_z[4] = {0, 0, 0, 0};
 
   // Solve the forward kinematics of the KDL tree
   for (int k = 0; k < 3; k++){
     KDL::Chain kdl_chain;
-    std::string base_frame(link_names[k]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
+    std::string base_frame(link_names[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
     std::string tip_frame(link_names[k + 1]);
     if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
     {
@@ -151,7 +164,7 @@ void vtkSlicerSlicerRos2Logic
       return;
     }
 
-    // TODO: replace the hard coded link names with something like this
+    //TODO: replace the hard coded link names with something like this
     KDL::Joint kdl_joint = kdl_chain.getSegment(0).getJoint();
     KDL::Segment kdl_segment = kdl_chain.getSegment(0);
     std::string segmentName(kdl_segment.getName());
