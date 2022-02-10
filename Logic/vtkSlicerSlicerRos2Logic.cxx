@@ -138,21 +138,22 @@ void vtkSlicerSlicerRos2Logic
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/tip.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"));
   #endif
 
   // Hard coded for now
-  const char *link_names[5] = { "base", "torso", "upper_arm", "lower_arm", "wrist"};
-  double link_translation_x[5] = {0, 0, 0.0075, 0, 0};
-  double link_translation_y[5] = {-0.02, 0, 0, 0, 0};
-  double link_translation_z[5] = { 0, 0.036, 0, 0, 0};
-  double link_rotation_x[5] = {0,-90, 0, 90, 180};
-  double link_rotation_y[5] = {0, 0, 0, 0, 0};
-  double link_rotation_z[5] = {0, 0, 0, 0, 0};
+  const char *link_names[6] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip"};
+  double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
+  double link_translation_y[6] = {-0.02, 0, 0, 0, 0, 0};
+  double link_translation_z[6] = { 0, 0.036, 0, 0, 0, 0};
+  double link_rotation_x[6] = {0,-90, 0, 90, 180, -90};
+  double link_rotation_y[6] = {0, 0, 0, 0, 0, 0};
+  double link_rotation_z[6] = {0, 0, 0, 0, 0, 0};
   // Apply these to the STL models (Rotation, then Translation - save in one frame)
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
-  for (int k = 0; k < 4; k ++){
+  for (int k = 0; k < 6; k ++){
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -166,21 +167,23 @@ void vtkSlicerSlicerRos2Logic
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
     vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
-    modifiedTransform->RotateX(link_rotation_x[k]);
-    modifiedTransform->RotateY(link_rotation_y[k]);
+
+    //TODO: this needs to be different (FK * (STL_r * STL_tr)) - I think the order is messing stuff up 
     modifiedTransform->RotateZ(link_rotation_z[k]);
+    modifiedTransform->RotateY(link_rotation_y[k]);
+    modifiedTransform->RotateX(link_rotation_x[k]);
     modifiedTransform->Translate(link_translation_x[k], link_translation_y[k], link_translation_z[k]);
     tnode->SetAndObserveTransformToParent(modifiedTransform);
     tnode->Modified();
 
-    vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
-    modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+    // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
+    // modelNode->SetAndObserveTransformNodeID(tnode->GetID());
 
   }
 
   KDL::Chain kdl_chain;
   std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  std::string tip_frame("wrist");
+  std::string tip_frame("tip");
   if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
   {
     std::cerr << "not working" << std::endl;
@@ -204,7 +207,6 @@ void vtkSlicerSlicerRos2Logic
   //   std::cout << jointpositions.operator()(q) << std::endl;
   // }
 
-
   // Initialize the fk solver
   ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
 
@@ -217,11 +219,13 @@ void vtkSlicerSlicerRos2Logic
       printf("%s \n","Error: could not calculate forward kinematics :(");
   }
 
+  // Now we have an std vector of KDL frames with the correct kinematics
   std::cout << "After FK Solver" <<std::endl;
   for (KDL::Frame i: FK_frames)
     std::cout << i << ' ';
 
-  for (int l; l < 4; l++){
+  // Create a vtkMRMLTransform Node for each of these frames
+  for (int l = 0; l < 5; l++){
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -245,107 +249,9 @@ void vtkSlicerSlicerRos2Logic
     }
     // Update the matrix for the transform
     tnode->SetMatrixTransformToParent(matrix);
+
+    vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[l + 1]));
+    modelNode->SetAndObserveTransformNodeID(tnode->GetID());
   }
 
-
-
-  // Solve the forward kinematics of the KDL tree
-  // for (int k = 0; k < 4; k++){
-  //   KDL::Chain kdl_chain;
-  //   std::string base_frame(link_names[k]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  //   std::string tip_frame(link_names[k + 1]);
-  //   if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
-  //   {
-  //     std::cerr << "not working" << std::endl;
-  //     return;
-  //   }
-  //
-  //   //TODO: replace the hard coded link names with something like this
-  //   KDL::Joint kdl_joint = kdl_chain.getSegment(0).getJoint();
-  //   KDL::Segment kdl_segment = kdl_chain.getSegment(0);
-  //   std::string segmentName(kdl_segment.getName());
-  //   std::cerr << segmentName << std::endl;
-  //
-  //   ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
-  //
-  //   // Create joint array
-  //   unsigned int nj = kdl_chain.getNrOfJoints();
-  //   KDL::JntArray jointpositions = JntArray(nj);
-  //
-  //   // Create the frame that will contain the results
-  //   KDL::Frame cartpos;
-  //   float x = 0;
-  //
-  //   // Calculate forward position kinematics
-  //   bool kinematics_status;
-  //   kinematics_status = fksolver.JntToCart(jointpositions,cartpos);
-  //   if(kinematics_status>=0){
-  //       std::cout << cartpos <<std::endl;
-  //       x = cartpos.operator()(2,3);
-  //       std::cout << cartpos.operator()(2,3) <<std::endl;
-  //       std::cout << "Thanks KDL!" <<std::endl;
-  //   }else{
-  //       printf("%s \n","Error: could not calculate forward kinematics :(");
-  //   }
-  //
-  //   // Create a transform node to add the model to so we can move it around
-  //   vtkNew<vtkMRMLTransformStorageNode> storageNode;
-  //   vtkSmartPointer<vtkMRMLTransformNode> tnode;
-  //
-  // 	storageNode->SetScene(this->GetMRMLScene());
-  //
-  //  	vtkNew<vtkMRMLTransformNode> generalTransform;
-  //  	generalTransform->SetScene(this->GetMRMLScene());
-  //   tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-  //  	storageNode->ReadData(tnode.GetPointer());
-  //   tnode->SetName("ForwardKinematics");
-  //   this->GetMRMLScene()->AddNode(storageNode.GetPointer());
-  //  	this->GetMRMLScene()->AddNode(tnode);
-  //   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
-  //
-  //   // Create a second transform for position (translation and rotation)
-  //
-  //   vtkNew<vtkMRMLTransformStorageNode> positionStorageNode;
-  //   vtkSmartPointer<vtkMRMLTransformNode> ptnode;
-  //
-  // 	positionStorageNode->SetScene(this->GetMRMLScene());
-  //   vtkNew<vtkMRMLTransformNode> positionTransform;
-  //  	positionTransform->SetScene(this->GetMRMLScene());
-  //   ptnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-  //  	positionStorageNode->ReadData(ptnode.GetPointer());
-  //   ptnode->SetName("InitialPosition");
-  //   this->GetMRMLScene()->AddNode(positionStorageNode.GetPointer());
-  //  	this->GetMRMLScene()->AddNode(ptnode);
-  //   ptnode->SetAndObserveStorageNodeID(positionStorageNode->GetID());
-  //
-  //   vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(ptnode->GetTransformToParent());
-  //   modifiedTransform->RotateX(link_rotation_x[k + 1]);
-  //   modifiedTransform->RotateY(link_rotation_y[k + 1]);
-  //   modifiedTransform->RotateZ(link_rotation_z[k + 1]);
-  //   modifiedTransform->Translate(link_translation_x[k + 1], link_translation_y[k + 1], link_translation_z[k + 1]);
-  //   ptnode->SetAndObserveTransformToParent(modifiedTransform);
-  //   ptnode->Modified();
-  //
-  //   //Stack the transforms
-  //   tnode->SetAndObserveTransformNodeID(ptnode->GetID());
-  //
-  //   // Add model for the joint to transform hiearchy - so it moves with the transform
-  //   vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k + 1]));
-  //   modelNode->SetAndObserveTransformNodeID(tnode->GetID());
-  //
-  //   // Get the matrix and update it based on the forward kinematics
-  //   vtkMatrix4x4 *matrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
-  //   for (int i = 0; i < 4; i++) {
-  //     for (int j=0; j <4; j ++){
-  //       matrix->SetElement(i,j, cartpos.operator()(i,j));
-  //     }
-  //   }
-  //   // Update the matrix for the transform
-  //   tnode->SetMatrixTransformToParent(matrix);
-
-    //TODO: look at python code to see the tree structure - make sure I'm right
-    // COR -> where do I get that from the URDF?? Is that the joint axis??  - check other code
-    // ask anton how to get the links_ from the urdf model - translate COR/ rotate / translate COR back
-
-  //}
 }
