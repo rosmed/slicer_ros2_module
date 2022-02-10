@@ -144,13 +144,19 @@ void vtkSlicerSlicerRos2Logic
 
   // Hard coded for now
   const char *link_names[6] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip"};
+  const char *link_names_init[6] = { "base_init", "torso_init", "upper_arm_init", "lower_arm_init", "wrist_init", "tip_init"};
   double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
   double link_translation_y[6] = {-0.02, 0, 0, 0, 0, 0};
   double link_translation_z[6] = { 0, 0.036, 0, 0, 0, 0};
-  double link_rotation_x[6] = {0,-90, 0, 90, 180, -90};
+  double link_rotation_r[6] = {0,-90, 0, 90, 180, -90};
+  double link_rotation_p[6] = {0, 0, 0, 0, 0, 0};
   double link_rotation_y[6] = {0, 0, 0, 0, 0, 0};
-  double link_rotation_z[6] = {0, 0, 0, 0, 0, 0};
   // Apply these to the STL models (Rotation, then Translation - save in one frame)
+
+  double link_COR_x[6] = {0, 0, 0.005, 0.007, -0.001, 0};
+  double link_COR_y[6] = {0, -0.042, -0.001, 0, 0, 0};
+  double link_COR_z[6] = {0, 0.001, -0.004, 0, 0, 0.01};
+
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
   for (int k = 0; k < 6; k ++){
@@ -161,17 +167,21 @@ void vtkSlicerSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
-    tnode->SetName("InitialPosition");
+    tnode->SetName(link_names_init[k]);
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
     vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
 
-    //TODO: this needs to be different (FK * (STL_r * STL_tr)) - I think the order is messing stuff up 
-    modifiedTransform->RotateZ(link_rotation_z[k]);
-    modifiedTransform->RotateY(link_rotation_y[k]);
-    modifiedTransform->RotateX(link_rotation_x[k]);
+    //TODO: this needs to be different (FK * (STL_r * STL_tr)) - I think the order is messing stuff up
+    // Slicer uses RAS - we are using RPY - Roll = A, pitch = Right, yaw = S (RPY = ARS) - this web page for ref: https://discourse.slicer.org/t/yaw-pitch-roll-measurements-with-q3dc/14712
+    //modifiedTransform->RotateWXYZ(0.707, 0.707, 0, 0); (quaternion)         (xyz = ARS) (yxz) - rpy - ARS
+    // modifiedTransform->Translate(link_COR_x[k], link_COR_y[k], link_COR_z[k]);
+    modifiedTransform->RotateZ(link_rotation_y[k]);
+    modifiedTransform->RotateY(link_rotation_p[k]); // I think this is right - need to do the center of rotation trick tho (have to find the COR of each component
+    modifiedTransform->RotateX(link_rotation_r[k]);
+    // modifiedTransform->Translate(-link_COR_x[k], -link_COR_y[k], -link_COR_z[k]);
     modifiedTransform->Translate(link_translation_x[k], link_translation_y[k], link_translation_z[k]);
     tnode->SetAndObserveTransformToParent(modifiedTransform);
     tnode->Modified();
@@ -233,6 +243,7 @@ void vtkSlicerSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
+    std::string s = std::to_string(l);
     tnode->SetName("ForwardKinematics");
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
@@ -249,6 +260,10 @@ void vtkSlicerSlicerRos2Logic
     }
     // Update the matrix for the transform
     tnode->SetMatrixTransformToParent(matrix);
+
+    // Get this transform to observe the last init transform
+    vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_init[l+1]));
+    tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
     vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[l + 1]));
     modelNode->SetAndObserveTransformNodeID(tnode->GetID());
