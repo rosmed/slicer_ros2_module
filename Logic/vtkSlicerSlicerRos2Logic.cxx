@@ -177,7 +177,78 @@ void vtkSlicerSlicerRos2Logic
     modelNode->SetAndObserveTransformNodeID(tnode->GetID());
 
   }
-  
+
+  KDL::Chain kdl_chain;
+  std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
+  std::string tip_frame("wrist");
+  if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
+  {
+    std::cerr << "not working" << std::endl;
+    return;
+  }
+  unsigned int nj = kdl_chain.getNrOfSegments();
+  std::cerr << "The chain has this many segments" << std::endl;
+  std::cerr << nj << std::endl;
+
+  // Set up an std vector of frames
+  std::vector<KDL::Frame> FK_frames;
+  FK_frames.resize(nj);
+  for (KDL::Frame i: FK_frames)
+    std::cout << i << ' ';
+
+
+  std::cerr << "This is the joint position array" << std::endl;
+  KDL::JntArray jointpositions = JntArray(nj);
+  // How to print it
+  // for (int q = 0; q < nj; q++){
+  //   std::cout << jointpositions.operator()(q) << std::endl;
+  // }
+
+
+  // Initialize the fk solver
+  ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
+
+  // Calculate forward position kinematics
+  bool kinematics_status;
+  kinematics_status = fksolver.JntToCart(jointpositions,FK_frames);
+  if(kinematics_status>=0){
+      std::cout << "Thanks KDL!" <<std::endl;
+  }else{
+      printf("%s \n","Error: could not calculate forward kinematics :(");
+  }
+
+  std::cout << "After FK Solver" <<std::endl;
+  for (KDL::Frame i: FK_frames)
+    std::cout << i << ' ';
+
+  for (int l; l < 4; l++){
+    vtkNew<vtkMRMLTransformStorageNode> storageNode;
+    vtkSmartPointer<vtkMRMLTransformNode> tnode;
+    storageNode->SetScene(this->GetMRMLScene());
+    vtkNew<vtkMRMLTransformNode> generalTransform;
+    generalTransform->SetScene(this->GetMRMLScene());
+    tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+    storageNode->ReadData(tnode.GetPointer());
+    tnode->SetName("ForwardKinematics");
+    this->GetMRMLScene()->AddNode(storageNode.GetPointer());
+    this->GetMRMLScene()->AddNode(tnode);
+    tnode->SetAndObserveStorageNodeID(storageNode->GetID());
+
+    //Get the matrix and update it based on the forward kinematics
+    KDL::Frame cartpos;
+    cartpos = FK_frames[l];
+    vtkMatrix4x4 *matrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
+    for (int i = 0; i < 4; i++) {
+      for (int j=0; j <4; j ++){
+        matrix->SetElement(i,j, cartpos.operator()(i,j));
+      }
+    }
+    // Update the matrix for the transform
+    tnode->SetMatrixTransformToParent(matrix);
+  }
+
+
+
   // Solve the forward kinematics of the KDL tree
   // for (int k = 0; k < 4; k++){
   //   KDL::Chain kdl_chain;
