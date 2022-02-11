@@ -146,9 +146,9 @@ void vtkSlicerSlicerRos2Logic
   const char *link_names[6] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip"};
   const char *link_names_FK[5] = { "forwardKin_torso", "forwardKin_upperarm", "forwardKin_lower_arm", "forwardKin_wrist", "forwardKin_tip"};
   double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
-  double link_translation_y[6] = {-0.02, 0, 0, 0, 0, 0}; // these two are kinda hacked
-  double link_translation_z[6] = { 0, 0.036, 0, 0, 0, 0};
-  double link_rotation_x[6] = {0, -90, 0, 90, 180, -90}; // need to find out why angle values are wrong and direction changes
+  double link_translation_y[6] = {-0.02, 0, 0, 0.02, 0.02, 0.15}; // these two are kinda hacked
+  double link_translation_z[6] = { 0, 0.036, 0, -0.27, -0.27, -0.23};
+  double link_rotation_x[6] = {0, -90, 0, -90, 0, 90}; // need to find out why angle values are wrong and direction changes
   double link_rotation_y[6] = {0, 0, 0, 0, 0, 0};
   double link_rotation_z[6] = {0, 0, 0, 0, 0, 0};
   // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
@@ -180,7 +180,7 @@ void vtkSlicerSlicerRos2Logic
   for (int q = 0; q < nj; q++){
     std::cout << jointpositions.operator()(q) << std::endl;
     if (q == 1){
-      jointpositions.operator()(q) = 0;
+      jointpositions.operator()(q) = -1.1; // Upper arm angle in radians
     }
     std::cout << jointpositions.operator()(q) << std::endl;
   }
