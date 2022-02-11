@@ -180,7 +180,7 @@ void vtkSlicerSlicerRos2Logic
   for (int q = 0; q < nj; q++){
     std::cout << jointpositions.operator()(q) << std::endl;
     if (q == 1){
-      jointpositions.operator()(q) = 1.57;
+      jointpositions.operator()(q) = -1.0;
     }
     std::cout << jointpositions.operator()(q) << std::endl;
   }
