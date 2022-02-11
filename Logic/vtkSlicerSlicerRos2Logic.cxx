@@ -144,6 +144,7 @@ void vtkSlicerSlicerRos2Logic
 
   // Hard coded for now
   const char *link_names[6] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip"};
+<<<<<<< HEAD
   const char *link_names_FK[5] = { "forwardKin_torso", "forwardKin_upperarm", "forwardKin_lower_arm", "forwardKin_wrist", "forwardKin_tip"};
   double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
   double link_translation_y[6] = {0.02, 0.036, 0, 0, 0, 0}; // these two are kinda hacked
@@ -154,6 +155,44 @@ void vtkSlicerSlicerRos2Logic
   // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
 
 
+=======
+  double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
+  double link_translation_y[6] = {-0.02, 0, 0, 0, 0, 0};
+  double link_translation_z[6] = { 0, 0.036, 0, 0, 0, 0};
+  double link_rotation_x[6] = {0,-90, 0, 90, 180, -90};
+  double link_rotation_y[6] = {0, 0, 0, 0, 0, 0};
+  double link_rotation_z[6] = {0, 0, 0, 0, 0, 0};
+  // Apply these to the STL models (Rotation, then Translation - save in one frame)
+
+  // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
+  for (int k = 0; k < 6; k ++){
+    vtkNew<vtkMRMLTransformStorageNode> storageNode;
+    vtkSmartPointer<vtkMRMLTransformNode> tnode;
+    storageNode->SetScene(this->GetMRMLScene());
+    vtkNew<vtkMRMLTransformNode> generalTransform;
+    generalTransform->SetScene(this->GetMRMLScene());
+    tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+    storageNode->ReadData(tnode.GetPointer());
+    tnode->SetName("InitialPosition");
+    this->GetMRMLScene()->AddNode(storageNode.GetPointer());
+    this->GetMRMLScene()->AddNode(tnode);
+    tnode->SetAndObserveStorageNodeID(storageNode->GetID());
+
+    vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
+
+    //TODO: this needs to be different (FK * (STL_r * STL_tr)) - I think the order is messing stuff up 
+    modifiedTransform->RotateZ(link_rotation_z[k]);
+    modifiedTransform->RotateY(link_rotation_y[k]);
+    modifiedTransform->RotateX(link_rotation_x[k]);
+    modifiedTransform->Translate(link_translation_x[k], link_translation_y[k], link_translation_z[k]);
+    tnode->SetAndObserveTransformToParent(modifiedTransform);
+    tnode->Modified();
+
+    // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
+    // modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+
+  }
+>>>>>>> parent of 8116c3f... Set up MRML transformation hierarchy for initial position and forward kinematics.
 
   KDL::Chain kdl_chain;
   std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
@@ -211,7 +250,11 @@ void vtkSlicerSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
+<<<<<<< HEAD
     tnode->SetName(link_names_FK[l]);
+=======
+    tnode->SetName("ForwardKinematics");
+>>>>>>> parent of 8116c3f... Set up MRML transformation hierarchy for initial position and forward kinematics.
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
@@ -228,8 +271,13 @@ void vtkSlicerSlicerRos2Logic
     // Update the matrix for the transform
     tnode->SetMatrixTransformToParent(matrix);
 
+<<<<<<< HEAD
     // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[l + 1]));
     // modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+=======
+    vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[l + 1]));
+    modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+>>>>>>> parent of 8116c3f... Set up MRML transformation hierarchy for initial position and forward kinematics.
   }
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
