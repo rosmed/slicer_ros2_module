@@ -146,9 +146,9 @@ void vtkSlicerSlicerRos2Logic
   const char *link_names[6] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip"};
   const char *link_names_FK[5] = { "forwardKin_torso", "forwardKin_upperarm", "forwardKin_lower_arm", "forwardKin_wrist", "forwardKin_tip"};
   double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
-  double link_translation_y[6] = {-0.02, 0, 0, 0.02, 0.02, 0.15}; // these two are kinda hacked
-  double link_translation_z[6] = { 0, 0.036, 0, -0.27, -0.27, -0.23};
-  double link_rotation_x[6] = {0, -90, 0, -90, 0, 90}; // need to find out why angle values are wrong and direction changes
+  double link_translation_y[6] = {-0.02, 0, 0, 0, 0, 0}; // these two are kinda hacked
+  double link_translation_z[6] = { 0, 0.036, 0, 0, 0, 0};
+  double link_rotation_x[6] = {0, -90, 0, 90, 180, -90}; // need to find out why angle values are wrong and direction changes
   double link_rotation_y[6] = {0, 0, 0, 0, 0, 0};
   double link_rotation_z[6] = {0, 0, 0, 0, 0, 0};
   // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
@@ -249,26 +249,49 @@ void vtkSlicerSlicerRos2Logic
     vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
 
     //TODO: this needs to be different (FK * (STL_r * STL_tr)) - I think the order is messing stuff up
-    modifiedTransform->Translate(link_translation_x[k], -link_translation_y[k], link_translation_z[k]);
+    modifiedTransform->Translate(link_translation_x[k], link_translation_y[k], link_translation_z[k]);
     tnode->SetAndObserveTransformToParent(modifiedTransform);
     tnode->Modified();
     vtkTransform *modifiedTransform2 = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
     modifiedTransform2->RotateZ(link_rotation_z[k]);
     modifiedTransform2->RotateY(link_rotation_y[k]);
-    modifiedTransform2->RotateX(-link_rotation_x[k]);
+    modifiedTransform2->RotateX(link_rotation_x[k]);
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
 
+    // Initialize the LPStoRAS transform
+    vtkNew<vtkMRMLTransformStorageNode> storageNode3;
+    vtkSmartPointer<vtkMRMLTransformNode> LPSToRAS;
+    storageNode->SetScene(this->GetMRMLScene());
+    vtkNew<vtkMRMLTransformNode> generalTransform3;
+    generalTransform3->SetScene(this->GetMRMLScene());
+    LPSToRAS = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+    storageNode3->ReadData(LPSToRAS.GetPointer());
+    LPSToRAS->SetName("LPSToRAS");
+    this->GetMRMLScene()->AddNode(storageNode3.GetPointer());
+    this->GetMRMLScene()->AddNode(LPSToRAS);
+    LPSToRAS->SetAndObserveStorageNodeID(storageNode3->GetID());
+
+    vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
+    LPSToRAS_matrix->SetElement(0,0,-1);
+    LPSToRAS_matrix->SetElement(1,1,-1);
+    LPSToRAS->SetMatrixTransformToParent(LPSToRAS_matrix);
+    LPSToRAS->Modified();
+
+
     if (k == 0){
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
-      modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+      LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
+      modelNode->SetAndObserveTransformNodeID(LPSToRAS->GetID());
     }
     else{
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK[k-1]));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
+      LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
+
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
-      modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+      modelNode->SetAndObserveTransformNodeID(LPSToRAS->GetID());
     }
   }
 }
