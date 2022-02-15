@@ -139,25 +139,26 @@ void vtkSlicerSlicerRos2Logic
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/tip.stl') \n"
+    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/stylus.stl') \n"
     "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"));
   #endif
 
   // Hard coded for now
-  const char *link_names[6] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip"};
-  const char *link_names_FK[5] = { "forwardKin_torso", "forwardKin_upperarm", "forwardKin_lower_arm", "forwardKin_wrist", "forwardKin_tip"};
-  double link_translation_x[6] = {0, 0, 0.0075, 0, 0, 0};
-  double link_translation_y[6] = {-0.02, 0, 0, 0, 0, 0}; // these two are kinda hacked
-  double link_translation_z[6] = { 0, 0.036, 0, 0, 0, 0};
-  double link_rotation_x[6] = {0, -90, 0, 90, 180, -90}; // need to find out why angle values are wrong and direction changes
-  double link_rotation_y[6] = {0, 0, 0, 0, 0, 0};
-  double link_rotation_z[6] = {0, 0, 0, 0, 0, 0};
+  const char *link_names[7] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip", "stylus"};
+  const char *link_names_FK[6] = { "forwardKin_torso", "forwardKin_upperarm", "forwardKin_lower_arm", "forwardKin_wrist", "forwardKin_tip", "forwardKin_stylus"};
+  double link_translation_x[7] = {0, 0, 0.0075, 0, 0, 0, 0};
+  double link_translation_y[7] = {-0.02, 0, 0, 0, 0, 0, -0.039}; // these two are kinda hacked
+  double link_translation_z[7] = { 0, 0.036, 0, 0, 0, 0, 0};
+  double link_rotation_x[7] = {0, -90, 0, 90, 180, -90, 90}; // need to find out why angle values are wrong and direction changes
+  double link_rotation_y[7] = {0, 0, 0, 0, 0, 0, 90};
+  double link_rotation_z[7] = {0, 0, 0, 0, 0, 0, 0};
   // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
 
 
 
   KDL::Chain kdl_chain;
   std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  std::string tip_frame("tip");
+  std::string tip_frame("stylus");
   if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
   {
     std::cerr << "not working" << std::endl;
@@ -203,7 +204,7 @@ void vtkSlicerSlicerRos2Logic
     std::cout << i << ' ';
 
   // Create a vtkMRMLTransform Node for each of these frames
-  for (int l = 0; l < 5; l++){
+  for (int l = 0; l < 6; l++){
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -228,12 +229,10 @@ void vtkSlicerSlicerRos2Logic
     // Update the matrix for the transform
     tnode->SetMatrixTransformToParent(matrix);
 
-    // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[l + 1]));
-    // modelNode->SetAndObserveTransformNodeID(tnode->GetID());
   }
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
-  for (int k = 0; k < 6; k ++){
+  for (int k = 0; k < 7; k ++){
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
