@@ -180,7 +180,7 @@ void vtkSlicerSlicerRos2Logic
   for (int q = 0; q < nj; q++){
     std::cout << jointpositions.operator()(q) << std::endl;
     if (q == 1){
-      jointpositions.operator()(q) = -1.1; // Upper arm angle in radians
+      jointpositions.operator()(q) = 1.0; // Upper arm angle in radians
     }
     std::cout << jointpositions.operator()(q) << std::endl;
   }
