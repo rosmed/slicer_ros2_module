@@ -1,6 +1,6 @@
-find_package(Slicer COMPONENTS ConfigurePrerequisites)
+find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
-project(EmptyExtensionTemplate)
+project(SlicerRos2)
 
 #---------------------------------------------------------------------------
 find_package(orocos_kdl REQUIRED)
