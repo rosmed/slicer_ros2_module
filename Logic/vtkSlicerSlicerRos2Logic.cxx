@@ -48,9 +48,8 @@
 #include <kdl/frames_io.hpp>
 #include <urdf/model.h>
 #include <boost/function.hpp>
-using namespace std;
-using namespace KDL;
-using namespace urdf;
+
+#include <stdlib.h>     /* getenv, to be removed later */
 
 // Python includes
 #include "vtkSlicerConfigure.h"
@@ -115,16 +114,19 @@ void vtkSlicerSlicerRos2Logic
 void vtkSlicerSlicerRos2Logic
 ::loadRobotSTLModels()
 {
-
+  char * pHome = getenv ("HOME");
+  const std::string home(pHome);
+  
+  
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
-  if (!my_model.initFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf")){
+  if (!my_model.initFile(home + "/ros2_ws/src/SlicerRos2/models/omni.urdf")){
       return;
   }
 
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
-  if (!kdl_parser::treeFromFile("/home/laura/ros2_ws/src/slicer_ros/models/omni.urdf", my_tree)){
+  if (!kdl_parser::treeFromFile(home + "/ros2_ws/src/SlicerRos2/models/omni.urdf", my_tree)){
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
@@ -134,13 +136,15 @@ void vtkSlicerSlicerRos2Logic
     PythonQtObjectPtr context = PythonQt::self()->getMainModule();
     context.evalScript(QString(
     "import slicer \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/base.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/torso.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/tip.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/stylus.stl') \n"
-    "slicer.util.loadModel(r'/home/laura/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl') \n"));
+    "from pathlib import Path \n"
+    "mesh_dir = str(Path.home()) + '/ros2_ws/src/SlicerRos2/models/meshes/' \n"
+    "slicer.util.loadModel(mesh_dir + 'base.stl') \n"
+    "slicer.util.loadModel(mesh_dir + 'torso.stl') \n"
+    "slicer.util.loadModel(mesh_dir + 'wrist.stl') \n"
+    "slicer.util.loadModel(mesh_dir + 'upper_arm.stl') \n"
+    "slicer.util.loadModel(mesh_dir + 'tip.stl') \n"
+    "slicer.util.loadModel(mesh_dir + 'stylus.stl') \n"
+    "slicer.util.loadModel(mesh_dir + 'lower_arm.stl') \n"));
   #endif
 
   // Hard coded for now
@@ -176,9 +180,9 @@ void vtkSlicerSlicerRos2Logic
 
 
   std::cerr << "This is the joint position array" << std::endl;
-  KDL::JntArray jointpositions = JntArray(nj);
+  auto jointpositions = KDL::JntArray(nj);
   //How to print it
-  for (int q = 0; q < nj; q++){
+  for (size_t q = 0; q < nj; q++){
     std::cout << jointpositions.operator()(q) << std::endl;
     if (q == 1){
       jointpositions.operator()(q) = 1.0; // Upper arm angle in radians
@@ -187,14 +191,14 @@ void vtkSlicerSlicerRos2Logic
   }
 
   // Initialize the fk solver
-  ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(kdl_chain);
+  auto fksolver = KDL::ChainFkSolverPos_recursive(kdl_chain);
 
   // Calculate forward position kinematics
   bool kinematics_status;
   kinematics_status = fksolver.JntToCart(jointpositions,FK_frames);
-  if(kinematics_status>=0){
+  if (kinematics_status) {
       std::cout << "Thanks KDL!" <<std::endl;
-  }else{
+  } else {
       printf("%s \n","Error: could not calculate forward kinematics :(");
   }
 
