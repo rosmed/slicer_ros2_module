@@ -131,17 +131,32 @@ void vtkSlicerSlicerRos2Logic
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
-  // Get the model names from the KDL tree instead of hard coding
-  // Get the parent link
-  //std::shared_ptr<const urdf::Joint> joint;
-  //std::shared_ptr<const urdf::Link> link = my_model.getLink("torso");
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
   std::string root_name = root->name.c_str();
-  std::vector< std::shared_ptr< urdf::Link > > child_links =  root->child_links;
-  // get the name of the child link - one the next consecutive one - will need to do this for all of them 
-  for (std::shared_ptr< urdf::Link > i: child_links)
-    std::cerr << i->name.c_str() << std::endl;
-  //std::cerr << root->child_links << std::endl;
+  std::vector<std::string> link_names_vector;
+  link_names_vector.push_back(root_name);
+
+
+  for (int j= 0; j < 50; j ++){
+
+    std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
+    std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
+    if (child_link.size() == 0){
+      break;
+    }
+    else{
+      for (std::shared_ptr< urdf::Link > i: child_link){
+          std::string child_name = i->name.c_str();
+          link_names_vector.push_back(child_name);
+        }
+      }
+  }
+
+  // Print out the list of link names
+  for (std::string i: link_names_vector)
+    std::cout << i << ' ';
+
+
 
   //Call load STL model functions with python - can't find C++ implementation
   #ifdef Slicer_USE_PYTHONQT
