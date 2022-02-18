@@ -116,8 +116,8 @@ void vtkSlicerSlicerRos2Logic
 {
   char * pHome = getenv ("HOME");
   const std::string home(pHome);
-  
-  
+
+
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
   if (!my_model.initFile(home + "/ros2_ws/src/SlicerRos2/models/omni.urdf")){
@@ -126,7 +126,7 @@ void vtkSlicerSlicerRos2Logic
 
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
-  if (!kdl_parser::treeFromFile(home + "/ros2_ws/src/SlicerRos2/models/omni.urdf", my_tree)){
+  if (!kdl_parser::treeFromUrdfModel(my_model, my_tree)){
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
@@ -158,7 +158,7 @@ void vtkSlicerSlicerRos2Logic
   double link_rotation_z[7] = {0, 0, 0, 0, 0, 0, 0};
   // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
 
-
+  std::cerr << "pull worked" << std::endl;
 
   KDL::Chain kdl_chain;
   std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
