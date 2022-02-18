@@ -50,6 +50,7 @@
 #include <boost/function.hpp>
 
 #include <stdlib.h>     /* getenv, to be removed later */
+#include <boost/shared_ptr.hpp>
 
 // Python includes
 #include "vtkSlicerConfigure.h"
@@ -130,6 +131,18 @@ void vtkSlicerSlicerRos2Logic
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
+  // Get the model names from the KDL tree instead of hard coding
+  // Get the parent link
+  //std::shared_ptr<const urdf::Joint> joint;
+  //std::shared_ptr<const urdf::Link> link = my_model.getLink("torso");
+  std::shared_ptr<const urdf::Link> root = my_model.getRoot();
+  std::string root_name = root->name.c_str();
+  std::vector< std::shared_ptr< urdf::Link > > child_links =  root->child_links;
+  // get the name of the child link - one the next consecutive one - will need to do this for all of them 
+  for (std::shared_ptr< urdf::Link > i: child_links)
+    std::cerr << i->name.c_str() << std::endl;
+  //std::cerr << root->child_links << std::endl;
+
   //Call load STL model functions with python - can't find C++ implementation
   #ifdef Slicer_USE_PYTHONQT
     PythonQt::init();
@@ -158,7 +171,6 @@ void vtkSlicerSlicerRos2Logic
   double link_rotation_z[7] = {0, 0, 0, 0, 0, 0, 0};
   // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
 
-  std::cerr << "pull worked" << std::endl;
 
   KDL::Chain kdl_chain;
   std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
