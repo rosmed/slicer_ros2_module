@@ -131,13 +131,13 @@ void vtkSlicerSlicerRos2Logic
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
+  // Start by getting the name of the root link and add it to the vector of strings
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
   std::string root_name = root->name.c_str();
   std::vector<std::string> link_names_vector;
   link_names_vector.push_back(root_name);
 
-
-  for (int j= 0; j < 50; j ++){
+  for (int j= 0; j < 50; j ++){ // 50 is an arbitrary choice because we don't know how many links
 
     std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
@@ -157,22 +157,26 @@ void vtkSlicerSlicerRos2Logic
     std::cout << i << ' ';
 
 
-
   //Call load STL model functions with python - can't find C++ implementation
+  QList<QVariant> link_names_for_loading;
+  // Link names need to be converted to QList of QVariants to be passed to python script
+  for (int j = 0; j < link_names_vector.size(); j ++){
+    QVariant link_to_be_added;
+    link_to_be_added = QString::fromStdString(link_names_vector[j]);
+    link_names_for_loading.append(link_to_be_added);
+  }
+  //link_names_for_loading.append(link_names_vector);
   #ifdef Slicer_USE_PYTHONQT
     PythonQt::init();
     PythonQtObjectPtr context = PythonQt::self()->getMainModule();
+    context.addVariable("linkNamesList", link_names_for_loading);
     context.evalScript(QString(
     "import slicer \n"
     "from pathlib import Path \n"
+    "print(linkNamesList) \n"
     "mesh_dir = str(Path.home()) + '/ros2_ws/src/SlicerRos2/models/meshes/' \n"
-    "slicer.util.loadModel(mesh_dir + 'base.stl') \n"
-    "slicer.util.loadModel(mesh_dir + 'torso.stl') \n"
-    "slicer.util.loadModel(mesh_dir + 'wrist.stl') \n"
-    "slicer.util.loadModel(mesh_dir + 'upper_arm.stl') \n"
-    "slicer.util.loadModel(mesh_dir + 'tip.stl') \n"
-    "slicer.util.loadModel(mesh_dir + 'stylus.stl') \n"
-    "slicer.util.loadModel(mesh_dir + 'lower_arm.stl') \n"));
+    "for j in range(len(linkNamesList)): \n"
+    " slicer.util.loadModel(mesh_dir + linkNamesList[j] + '.stl') \n" ));
   #endif
 
   // Hard coded for now
