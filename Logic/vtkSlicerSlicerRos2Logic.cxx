@@ -156,6 +156,15 @@ void vtkSlicerSlicerRos2Logic
   for (std::string i: link_names_vector)
     std::cout << i << ' ';
 
+  // Do some type conversion and name changes to make FK transform
+  std::vector<std::string> link_names_FK_vector;
+  std::string forwardKinematics = "_ForwardKin";
+  for (int j = 0; j < link_names_vector.size(); j++)
+    link_names_FK_vector.push_back(link_names_vector[j]);
+  for (int j = 0; j < link_names_FK_vector.size(); j++)
+    link_names_FK_vector[j].append(forwardKinematics);
+
+
 
   //Call load STL model functions with python - can't find C++ implementation
   QList<QVariant> link_names_for_loading;
@@ -180,8 +189,6 @@ void vtkSlicerSlicerRos2Logic
   #endif
 
   // Hard coded for now
-  const char *link_names[7] = { "base", "torso", "upper_arm", "lower_arm", "wrist", "tip", "stylus"};
-  const char *link_names_FK[6] = { "forwardKin_torso", "forwardKin_upperarm", "forwardKin_lower_arm", "forwardKin_wrist", "forwardKin_tip", "forwardKin_stylus"};
   double link_translation_x[7] = {0, 0, 0.0075, 0, 0, 0, 0};
   double link_translation_y[7] = {-0.02, 0, 0, 0, 0, 0, -0.039}; // these two are kinda hacked
   double link_translation_z[7] = { 0, 0.036, 0, 0, 0, 0, 0};
@@ -192,8 +199,8 @@ void vtkSlicerSlicerRos2Logic
 
 
   KDL::Chain kdl_chain;
-  std::string base_frame("base"); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  std::string tip_frame("stylus");
+  std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
+  std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
   if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
   {
     std::cerr << "not working" << std::endl;
@@ -247,7 +254,7 @@ void vtkSlicerSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
-    tnode->SetName(link_names_FK[l]);
+    tnode->SetName(link_names_FK_vector[l + 1].c_str());
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
@@ -314,17 +321,17 @@ void vtkSlicerSlicerRos2Logic
 
 
     if (k == 0){
-      vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
+      vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
       modelNode->SetAndObserveTransformNodeID(LPSToRAS->GetID());
     }
     else{
-      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK[k-1]));
+      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK_vector[k].c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
       LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
 
-      vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names[k]));
+      vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(LPSToRAS->GetID());
     }
   }
