@@ -56,6 +56,7 @@ protected:
 
 protected slots:
   void onPrintTreeButton();
+  void onFileSelected();
 
 
 private:

@@ -22,6 +22,9 @@
     </widget>
    </item>
    <item>
+    <widget class="QComboBox" name="fileSelector"/>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

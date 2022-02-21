@@ -115,7 +115,7 @@ void vtkSlicerSlicerRos2Logic
 
 //----------------------------------------------------------------------------
 void vtkSlicerSlicerRos2Logic
-::loadRobotSTLModels()
+::loadRobotSTLModels(const std::string& filename)
 {
   char * pHome = getenv ("HOME");
   const std::string home(pHome);
@@ -123,7 +123,7 @@ void vtkSlicerSlicerRos2Logic
 
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
-  if (!my_model.initFile(home + "/ros2_ws/src/SlicerRos2/models/omni.urdf")){
+  if (!my_model.initFile(filename)){
       return;
   }
 
@@ -305,7 +305,7 @@ void vtkSlicerSlicerRos2Logic
     double p = 0.0;
     double y = 0.0;
     origin.rotation.getRPY(r, p, y);
-    modifiedTransform2->RotateZ(y*57.2958);
+    modifiedTransform2->RotateZ(y*57.2958); // RAD to degree conversion
     modifiedTransform2->RotateY(p*57.2958);
     modifiedTransform2->RotateX(r*57.2958);
     tnode->SetAndObserveTransformToParent(modifiedTransform2);

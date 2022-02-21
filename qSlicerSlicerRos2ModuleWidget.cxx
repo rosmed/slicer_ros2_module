@@ -76,6 +76,12 @@ void qSlicerSlicerRos2ModuleWidget::setup()
 
   // Setup connection for the button
   this->connect(d->PrintTreeButton, SIGNAL(clicked(bool)), this, SLOT(onPrintTreeButton()));
+  char * pHome = getenv ("HOME");
+  const std::string home(pHome);
+  const std::string path = home + "/ros2_ws/src/SlicerRos2/models/omni.urdf";
+  d->fileSelector->addItem("Not selected");
+  d->fileSelector->addItem(path.c_str());
+  this->connect(d->fileSelector, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onFileSelected()) );
 }
 
 void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
@@ -91,6 +97,26 @@ void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
  	   return;
 	 }
-  logic->loadRobotSTLModels();
+  //logic->loadRobotSTLModels();
+
+}
+
+void qSlicerSlicerRos2ModuleWidget::onFileSelected()
+{
+  Q_D(qSlicerSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+
+  //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
+  // have to do the SafeDownCast
+  vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
+	if (!logic)
+  {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+ 	   return;
+	}
+  char * pHome = getenv ("HOME");
+  const std::string home(pHome);
+  const std::string path = home + "/ros2_ws/src/SlicerRos2/models/omni.urdf";
+  logic->loadRobotSTLModels(path);
 
 }
