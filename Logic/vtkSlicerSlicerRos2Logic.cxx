@@ -43,6 +43,8 @@
 #include "kdl_parser/kdl_parser.hpp"
 #include<iostream>
 #include <kdl/chain.hpp>
+#include <kdl/segment.hpp>
+#include <kdl/joint.hpp>
 #include <kdl/chainfksolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/frames_io.hpp>
@@ -136,11 +138,15 @@ void vtkSlicerSlicerRos2Logic
   std::string root_name = root->name.c_str();
   std::vector<std::string> link_names_vector;
   link_names_vector.push_back(root_name);
+  std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
+  visual_vector.push_back(root->visual);
+
 
   for (int j= 0; j < 50; j ++){ // 50 is an arbitrary choice because we don't know how many links
 
     std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
+
     if (child_link.size() == 0){
       break;
     }
@@ -148,6 +154,7 @@ void vtkSlicerSlicerRos2Logic
       for (std::shared_ptr< urdf::Link > i: child_link){
           std::string child_name = i->name.c_str();
           link_names_vector.push_back(child_name);
+          visual_vector.push_back(i->visual); // need to get the origin from the visual
         }
       }
   }
@@ -188,16 +195,6 @@ void vtkSlicerSlicerRos2Logic
     " slicer.util.loadModel(mesh_dir + linkNamesList[j] + '.stl') \n" ));
   #endif
 
-  // Hard coded for now
-  double link_translation_x[7] = {0, 0, 0.0075, 0, 0, 0, 0};
-  double link_translation_y[7] = {-0.02, 0, 0, 0, 0, 0, -0.039}; // these two are kinda hacked
-  double link_translation_z[7] = { 0, 0.036, 0, 0, 0, 0, 0};
-  double link_rotation_x[7] = {0, -90, 0, 90, 180, -90, 90}; // need to find out why angle values are wrong and direction changes
-  double link_rotation_y[7] = {0, 0, 0, 0, 0, 0, 90};
-  double link_rotation_z[7] = {0, 0, 0, 0, 0, 0, 0};
-  // Note the order of trasnforms for each stl model is whats screwing stuff up (/ might need to translate the lower )
-
-
   KDL::Chain kdl_chain;
   std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
   std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
@@ -223,7 +220,7 @@ void vtkSlicerSlicerRos2Logic
   for (size_t q = 0; q < nj; q++){
     std::cout << jointpositions.operator()(q) << std::endl;
     if (q == 1){
-      jointpositions.operator()(q) = 1.0; // Upper arm angle in radians
+      jointpositions.operator()(q) = 0; // Upper arm angle in radians
     }
     std::cout << jointpositions.operator()(q) << std::endl;
   }
@@ -244,6 +241,16 @@ void vtkSlicerSlicerRos2Logic
   std::cout << "After FK Solver" <<std::endl;
   for (KDL::Frame i: FK_frames)
     std::cout << i << ' ';
+
+  // Get the origin and rpy
+
+  std::vector<urdf::Pose> origins;
+  for (std::shared_ptr< urdf::Visual > i: visual_vector){
+    urdf::Pose origin;
+    origin =  i->origin;
+    origins.push_back(origin);
+  }
+
 
   // Create a vtkMRMLTransform Node for each of these frames
   for (int l = 0; l < 6; l++){
@@ -273,6 +280,7 @@ void vtkSlicerSlicerRos2Logic
 
   }
 
+  std::cout << "Adding loop" <<std::endl;
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
   for (int k = 0; k < 7; k ++){
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
@@ -288,15 +296,18 @@ void vtkSlicerSlicerRos2Logic
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
     vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
-
-    //TODO: this needs to be different (FK * (STL_r * STL_tr)) - I think the order is messing stuff up
-    modifiedTransform->Translate(link_translation_x[k], link_translation_y[k], link_translation_z[k]);
+    urdf::Pose origin = origins[k];
+    modifiedTransform->Translate(origin.position.x, origin.position.y, origin.position.z);
     tnode->SetAndObserveTransformToParent(modifiedTransform);
     tnode->Modified();
     vtkTransform *modifiedTransform2 = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
-    modifiedTransform2->RotateZ(link_rotation_z[k]);
-    modifiedTransform2->RotateY(link_rotation_y[k]);
-    modifiedTransform2->RotateX(link_rotation_x[k]);
+    double r = 0.0;
+    double p = 0.0;
+    double y = 0.0;
+    origin.rotation.getRPY(r, p, y);
+    modifiedTransform2->RotateZ(y*57.2958);
+    modifiedTransform2->RotateY(p*57.2958);
+    modifiedTransform2->RotateX(r*57.2958);
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
 
