@@ -280,7 +280,6 @@ void vtkSlicerSlicerRos2Logic
 
   }
 
-  std::cout << "Adding loop" <<std::endl;
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
   for (int k = 0; k < 7; k ++){
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
@@ -310,40 +309,31 @@ void vtkSlicerSlicerRos2Logic
     modifiedTransform2->RotateX(r*57.2958);
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
+    vtkMatrix4x4 *initialPositionMatrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
 
-    // Initialize the LPStoRAS transform
-    vtkNew<vtkMRMLTransformStorageNode> storageNode3;
-    vtkSmartPointer<vtkMRMLTransformNode> LPSToRAS;
-    storageNode->SetScene(this->GetMRMLScene());
-    vtkNew<vtkMRMLTransformNode> generalTransform3;
-    generalTransform3->SetScene(this->GetMRMLScene());
-    LPSToRAS = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-    storageNode3->ReadData(LPSToRAS.GetPointer());
-    LPSToRAS->SetName("LPSToRAS");
-    this->GetMRMLScene()->AddNode(storageNode3.GetPointer());
-    this->GetMRMLScene()->AddNode(LPSToRAS);
-    LPSToRAS->SetAndObserveStorageNodeID(storageNode3->GetID());
-
+    // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
     LPSToRAS_matrix->SetElement(0,0,-1);
     LPSToRAS_matrix->SetElement(1,1,-1);
-    LPSToRAS->SetMatrixTransformToParent(LPSToRAS_matrix);
-    LPSToRAS->Modified();
+
+    LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, LPSToRAS_matrix);
+    tnode->SetMatrixTransformToParent(LPSToRAS_matrix);
+    tnode->Modified();
 
 
     if (k == 0){
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
-      LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
-      modelNode->SetAndObserveTransformNodeID(LPSToRAS->GetID());
+      //LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
+      modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     }
     else{
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK_vector[k].c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
-      LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
+      //LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
-      modelNode->SetAndObserveTransformNodeID(LPSToRAS->GetID());
+      modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     }
   }
 }
