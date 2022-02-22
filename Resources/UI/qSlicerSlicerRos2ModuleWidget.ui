@@ -15,13 +15,6 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QPushButton" name="PrintTreeButton">
-     <property name="text">
-      <string>Print KDL tree</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QComboBox" name="fileSelector"/>
    </item>
    <item>

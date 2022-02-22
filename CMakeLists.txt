@@ -30,6 +30,7 @@ include(${Slicer_USE_FILE})
 
 add_subdirectory(Logic)
 add_subdirectory(Widgets)
+link_libraries(stdc++fs)
 
 #-----------------------------------------------------------------------------
 set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")

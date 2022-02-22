@@ -35,6 +35,8 @@
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLInteractionNode.h"
 #include "vtkMRMLScene.h"
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -74,34 +76,22 @@ void qSlicerSlicerRos2ModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
-  // Setup connection for the button
-  this->connect(d->PrintTreeButton, SIGNAL(clicked(bool)), this, SLOT(onPrintTreeButton()));
+  // Start the QComboBox with a generic string
+  d->fileSelector->addItem("Not selected");
+
+  // Get the home directory path
   char * pHome = getenv ("HOME");
   const std::string home(pHome);
-  const std::string path = home + "/ros2_ws/src/SlicerRos2/models/omni.urdf";
-  d->fileSelector->addItem("Not selected");
-  d->fileSelector->addItem(path.c_str());
-  this->connect(d->fileSelector, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(onFileSelected()) );
+
+  // Add the subsequent folders where the urdf file should be found
+  const std::string paths = home + "/ros2_ws/src/SlicerRos2/models/urdf/";
+  for (const auto & file : fs::directory_iterator(paths))
+    d->fileSelector->addItem(file.path().c_str());
+  
+  this->connect(d->fileSelector, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onFileSelected(const QString&)));
 }
 
-void qSlicerSlicerRos2ModuleWidget::onPrintTreeButton()
-{
-  Q_D(qSlicerSlicerRos2ModuleWidget);
-  this->Superclass::setup();
-
-  //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
-  // have to do the SafeDownCast
-  vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
-	if (!logic)
-  {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
- 	   return;
-	 }
-  //logic->loadRobotSTLModels();
-
-}
-
-void qSlicerSlicerRos2ModuleWidget::onFileSelected()
+void qSlicerSlicerRos2ModuleWidget::onFileSelected(const QString& text)
 {
   Q_D(qSlicerSlicerRos2ModuleWidget);
   this->Superclass::setup();
@@ -114,9 +104,9 @@ void qSlicerSlicerRos2ModuleWidget::onFileSelected()
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
  	   return;
 	}
-  char * pHome = getenv ("HOME");
-  const std::string home(pHome);
-  const std::string path = home + "/ros2_ws/src/SlicerRos2/models/omni.urdf";
-  logic->loadRobotSTLModels(path);
+
+  // Convert input QString to std::string to pass to logic
+  const std::string model_path = text.toStdString();;
+  logic->loadRobotSTLModels(model_path);
 
 }

@@ -305,7 +305,7 @@ void vtkSlicerSlicerRos2Logic
     double p = 0.0;
     double y = 0.0;
     origin.rotation.getRPY(r, p, y);
-    modifiedTransform2->RotateZ(y*57.2958); // RAD to degree conversion
+    modifiedTransform2->RotateZ(y*57.2958); // RAD to degree conversion - use math.pi instead
     modifiedTransform2->RotateY(p*57.2958);
     modifiedTransform2->RotateX(r*57.2958);
     tnode->SetAndObserveTransformToParent(modifiedTransform2);

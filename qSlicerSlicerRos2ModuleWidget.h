@@ -55,8 +55,7 @@ protected:
 
 
 protected slots:
-  void onPrintTreeButton();
-  void onFileSelected();
+  void onFileSelected(const QString&);
 
 
 private:
