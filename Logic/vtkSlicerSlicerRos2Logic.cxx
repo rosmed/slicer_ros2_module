@@ -320,17 +320,14 @@ void vtkSlicerSlicerRos2Logic
     tnode->SetMatrixTransformToParent(LPSToRAS_matrix);
     tnode->Modified();
 
-
     if (k == 0){
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
-      //LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
+
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     }
     else{
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK_vector[k].c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
-
-      //LPSToRAS->SetAndObserveTransformNodeID(tnode->GetID());
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
