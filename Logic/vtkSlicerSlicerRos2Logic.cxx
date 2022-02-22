@@ -220,7 +220,7 @@ void vtkSlicerSlicerRos2Logic
   for (size_t q = 0; q < nj; q++){
     std::cout << jointpositions.operator()(q) << std::endl;
     if (q == 1){
-      jointpositions.operator()(q) = 0; // Upper arm angle in radians
+      jointpositions.operator()(q) = 0.8; // Upper arm angle in radians
     }
     std::cout << jointpositions.operator()(q) << std::endl;
   }
@@ -304,9 +304,9 @@ void vtkSlicerSlicerRos2Logic
     double p = 0.0;
     double y = 0.0;
     origin.rotation.getRPY(r, p, y);
-    modifiedTransform2->RotateZ(y*57.2958); // RAD to degree conversion - use math.pi instead
-    modifiedTransform2->RotateY(p*57.2958);
-    modifiedTransform2->RotateX(r*57.2958);
+    modifiedTransform2->RotateZ(y*(180/M_PI)); // RAD to degree conversion - use math.pi instead
+    modifiedTransform2->RotateY(p*(180/M_PI));
+    modifiedTransform2->RotateX(r*(180/M_PI));
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
     vtkMatrix4x4 *initialPositionMatrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
