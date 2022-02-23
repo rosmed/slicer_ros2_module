@@ -27,14 +27,7 @@
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
 
-
-// MRML includes
-
-// STD includes
-#include <cstdlib>
-
 #include "vtkSlicerSlicerRos2ModuleLogicExport.h"
-
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_SLICERROS2_MODULE_LOGIC_EXPORT vtkSlicerSlicerRos2Logic :

@@ -21,27 +21,19 @@
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLModelNode.h>
-#include <vtkMRMLModelDisplayNode.h>
 #include <vtkMRMLTransformStorageNode.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLLinearTransformNode.h>
 
 // VTK includes
-#include <vtkIntArray.h>
-#include <vtkNew.h>
-#include <vtkObjectFactory.h>
 #include <vtkMatrix4x4.h>
-#include "vtkCubeSource.h"
 #include <vtkTransform.h>
 
 #include <qSlicerCoreIOManager.h>
 
-// STD includes
-#include <cassert>
-
 // KDL include_directories
 #include "kdl_parser/kdl_parser.hpp"
-#include<iostream>
+// #include <iostream>
 #include <kdl/chain.hpp>
 #include <kdl/segment.hpp>
 #include <kdl/joint.hpp>
@@ -49,10 +41,6 @@
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/frames_io.hpp>
 #include <urdf/model.h>
-#include <boost/function.hpp>
-
-#include <stdlib.h>     /* getenv, to be removed later */
-#include <boost/shared_ptr.hpp>
 
 // Python includes
 #include "vtkSlicerConfigure.h"
@@ -117,10 +105,6 @@ void vtkSlicerSlicerRos2Logic
 void vtkSlicerSlicerRos2Logic
 ::loadRobotSTLModels(const std::string& filename)
 {
-  char * pHome = getenv ("HOME");
-  const std::string home(pHome);
-
-
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
   if (!my_model.initFile(filename)){
@@ -129,7 +113,7 @@ void vtkSlicerSlicerRos2Logic
 
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
-  if (!kdl_parser::treeFromUrdfModel(my_model, my_tree)){
+  if (!kdl_parser::treeFromUrdfModel(my_model, my_tree)) {
     return; //std::cerr << "No urdf file to load." << filename << std::endl;
   }
 
@@ -142,41 +126,41 @@ void vtkSlicerSlicerRos2Logic
   visual_vector.push_back(root->visual);
 
 
-  for (int j= 0; j < 50; j ++){ // 50 is an arbitrary choice because we don't know how many links
+  for (size_t j= 0; j < 50; j ++) { // 50 is an arbitrary choice because we don't know how many links
 
     std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
 
-    if (child_link.size() == 0){
+    if (child_link.size() == 0) {
       break;
-    }
-    else{
-      for (std::shared_ptr< urdf::Link > i: child_link){
-          std::string child_name = i->name.c_str();
-          link_names_vector.push_back(child_name);
-          visual_vector.push_back(i->visual); // need to get the origin from the visual
-        }
+    } else {
+      for (std::shared_ptr<urdf::Link> i: child_link) {
+	std::string child_name = i->name.c_str();
+	link_names_vector.push_back(child_name);
+	visual_vector.push_back(i->visual); // need to get the origin from the visual
       }
+    }
   }
 
   // Print out the list of link names
-  for (std::string i: link_names_vector)
+  for (std::string i: link_names_vector) {
     std::cout << i << ' ';
+  }
 
   // Do some type conversion and name changes to make FK transform
   std::vector<std::string> link_names_FK_vector;
   std::string forwardKinematics = "_ForwardKin";
-  for (int j = 0; j < link_names_vector.size(); j++)
+  for (size_t j = 0; j < link_names_vector.size(); j++) {
     link_names_FK_vector.push_back(link_names_vector[j]);
-  for (int j = 0; j < link_names_FK_vector.size(); j++)
+  }
+  for (size_t j = 0; j < link_names_FK_vector.size(); j++) {
     link_names_FK_vector[j].append(forwardKinematics);
-
-
+  }
 
   //Call load STL model functions with python - can't find C++ implementation
   QList<QVariant> link_names_for_loading;
   // Link names need to be converted to QList of QVariants to be passed to python script
-  for (int j = 0; j < link_names_vector.size(); j ++){
+  for (size_t j = 0; j < link_names_vector.size(); j ++) {
     QVariant link_to_be_added;
     link_to_be_added = QString::fromStdString(link_names_vector[j]);
     link_names_for_loading.append(link_to_be_added);
@@ -198,28 +182,27 @@ void vtkSlicerSlicerRos2Logic
   KDL::Chain kdl_chain;
   std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
   std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
-  if (!my_tree.getChain(base_frame, tip_frame, kdl_chain))
-  {
+  if (!my_tree.getChain(base_frame, tip_frame, kdl_chain)) {
     std::cerr << "not working" << std::endl;
     return;
   }
-  unsigned int nj = kdl_chain.getNrOfSegments();
+  size_t nj = kdl_chain.getNrOfSegments();
   std::cerr << "The chain has this many segments" << std::endl;
   std::cerr << nj << std::endl;
 
   // Set up an std vector of frames
   std::vector<KDL::Frame> FK_frames;
   FK_frames.resize(nj);
-  for (KDL::Frame i: FK_frames)
+  for (KDL::Frame i: FK_frames) {
     std::cout << i << ' ';
-
+  }
 
   std::cerr << "This is the joint position array" << std::endl;
   auto jointpositions = KDL::JntArray(nj);
   //How to print it
-  for (size_t q = 0; q < nj; q++){
-    std::cout << jointpositions.operator()(q) << std::endl;
-    if (q == 1){
+  for (size_t q = 0; q < nj; q++) {
+    std::cout << jointpositions(q) << std::endl;
+    if (q == 1) {
       jointpositions.operator()(q) = 0.8; // Upper arm angle in radians
     }
     std::cout << jointpositions.operator()(q) << std::endl;
@@ -239,21 +222,22 @@ void vtkSlicerSlicerRos2Logic
 
   // Now we have an std vector of KDL frames with the correct kinematics
   std::cout << "After FK Solver" <<std::endl;
-  for (KDL::Frame i: FK_frames)
+  for (KDL::Frame i: FK_frames) {
     std::cout << i << ' ';
+  }
 
   // Get the origin and rpy
 
   std::vector<urdf::Pose> origins;
-  for (std::shared_ptr< urdf::Visual > i: visual_vector){
+  for (std::shared_ptr<urdf::Visual> i: visual_vector) {
     urdf::Pose origin;
-    origin =  i->origin;
+    origin = i->origin;
     origins.push_back(origin);
   }
 
 
   // Create a vtkMRMLTransform Node for each of these frames
-  for (int l = 0; l < 6; l++){
+  for (size_t l = 0; l < 6; l++) {
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -270,18 +254,17 @@ void vtkSlicerSlicerRos2Logic
     KDL::Frame cartpos;
     cartpos = FK_frames[l];
     vtkMatrix4x4 *matrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
-    for (int i = 0; i < 4; i++) {
-      for (int j=0; j <4; j ++){
-        matrix->SetElement(i,j, cartpos.operator()(i,j));
+    for (size_t i = 0; i < 4; i++) {
+      for (size_t j=0; j <4; j ++) {
+        matrix->SetElement(i,j, cartpos(i,j));
       }
     }
     // Update the matrix for the transform
     tnode->SetMatrixTransformToParent(matrix);
-
   }
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
-  for (int k = 0; k < 7; k ++){
+  for (size_t k = 0; k < 7; k ++) {
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -294,38 +277,37 @@ void vtkSlicerSlicerRos2Logic
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
-    vtkTransform *modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
+    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
     urdf::Pose origin = origins[k];
     modifiedTransform->Translate(origin.position.x, origin.position.y, origin.position.z);
     tnode->SetAndObserveTransformToParent(modifiedTransform);
     tnode->Modified();
-    vtkTransform *modifiedTransform2 = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
+    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
     double r = 0.0;
     double p = 0.0;
     double y = 0.0;
     origin.rotation.getRPY(r, p, y);
-    modifiedTransform2->RotateZ(y*(180/M_PI)); // RAD to degree conversion - use math.pi instead
-    modifiedTransform2->RotateY(p*(180/M_PI));
-    modifiedTransform2->RotateX(r*(180/M_PI));
+    modifiedTransform2->RotateZ(y*(180.0/M_PI)); // RAD to degree conversion - use math.pi instead
+    modifiedTransform2->RotateY(p*(180.0/M_PI));
+    modifiedTransform2->RotateX(r*(180.0/M_PI));
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
     vtkMatrix4x4 *initialPositionMatrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
 
     // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
-    LPSToRAS_matrix->SetElement(0,0,-1);
-    LPSToRAS_matrix->SetElement(1,1,-1);
+    LPSToRAS_matrix->SetElement(0, 0, -1.0);
+    LPSToRAS_matrix->SetElement(1, 1, -1.0);
 
     LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, LPSToRAS_matrix);
     tnode->SetMatrixTransformToParent(LPSToRAS_matrix);
     tnode->Modified();
 
-    if (k == 0){
+    if (k == 0) {
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
 
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
-    }
-    else{
+    } else {
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK_vector[k].c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
