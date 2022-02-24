@@ -33,6 +33,8 @@ class vtkMRMLTransformNode;
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
 
+#include <vtkSmartPointer.h>
+
 #include "vtkSlicerSlicerRos2ModuleLogicExport.h"
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
