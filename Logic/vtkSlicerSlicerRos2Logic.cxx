@@ -107,27 +107,26 @@ void vtkSlicerSlicerRos2Logic
 {
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
-  if (!my_model.initFile(filename)){
+  if (!my_model.initFile(filename)) {
       return;
   }
 
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromUrdfModel(my_model, my_tree)) {
-    return; //std::cerr << "No urdf file to load." << filename << std::endl;
+    return; //std::cout << "No urdf file to load." << filename << std::endl;
   }
 
   // Start by getting the name of the root link and add it to the vector of strings
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
-  std::string root_name = root->name.c_str();
+  std::string root_name = root->name;
   std::vector<std::string> link_names_vector;
   link_names_vector.push_back(root_name);
   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
   visual_vector.push_back(root->visual);
 
 
-  for (size_t j= 0; j < 50; j ++) { // 50 is an arbitrary choice because we don't know how many links
-
+  while (true) {
     std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
 
@@ -135,8 +134,7 @@ void vtkSlicerSlicerRos2Logic
       break;
     } else {
       for (std::shared_ptr<urdf::Link> i: child_link) {
-	std::string child_name = i->name.c_str();
-	link_names_vector.push_back(child_name);
+	link_names_vector.push_back(i->name);
 	visual_vector.push_back(i->visual); // need to get the origin from the visual
       }
     }
@@ -144,18 +142,9 @@ void vtkSlicerSlicerRos2Logic
 
   // Print out the list of link names
   for (std::string i: link_names_vector) {
-    std::cout << i << ' ';
+    std::cout << "[" << i << "] ";
   }
-
-  // Do some type conversion and name changes to make FK transform
-  std::vector<std::string> link_names_FK_vector;
-  std::string forwardKinematics = "_ForwardKin";
-  for (size_t j = 0; j < link_names_vector.size(); j++) {
-    link_names_FK_vector.push_back(link_names_vector[j]);
-  }
-  for (size_t j = 0; j < link_names_FK_vector.size(); j++) {
-    link_names_FK_vector[j].append(forwardKinematics);
-  }
+  std::cout << std::endl;
 
   //Call load STL model functions with python - can't find C++ implementation
   QList<QVariant> link_names_for_loading;
@@ -186,38 +175,39 @@ void vtkSlicerSlicerRos2Logic
     std::cerr << "not working" << std::endl;
     return;
   }
-  size_t nj = kdl_chain.getNrOfSegments();
-  std::cerr << "The chain has this many segments" << std::endl;
-  std::cerr << nj << std::endl;
+  mKDLChainSize = kdl_chain.getNrOfSegments();
+  std::cout << "The chain has " << mKDLChainSize
+	    << " segments" << std::endl
+	    << "Found " << link_names_vector.size()
+	    << " links" << std::endl; 
 
   // Set up an std vector of frames
   std::vector<KDL::Frame> FK_frames;
-  FK_frames.resize(nj);
+  FK_frames.resize(mKDLChainSize);
   for (KDL::Frame i: FK_frames) {
     std::cout << i << ' ';
   }
 
-  std::cerr << "This is the joint position array" << std::endl;
-  auto jointpositions = KDL::JntArray(nj);
-  //How to print it
-  for (size_t q = 0; q < nj; q++) {
-    std::cout << jointpositions(q) << std::endl;
+  std::cout << "This is the joint position array" << std::endl;
+  auto jointpositions = KDL::JntArray(mKDLChainSize);
+  for (size_t q = 0; q < mKDLChainSize; q++) {
     if (q == 1) {
-      jointpositions.operator()(q) = 0.8; // Upper arm angle in radians
+      jointpositions(q) = 0.8; // Upper arm angle in radians
     }
-    std::cout << jointpositions.operator()(q) << std::endl;
+    std::cout << jointpositions(q) << " ";
   }
+  std::cout << std::endl;
 
   // Initialize the fk solver
-  auto fksolver = KDL::ChainFkSolverPos_recursive(kdl_chain);
+  mKDLSolver = new KDL::ChainFkSolverPos_recursive(kdl_chain);
 
   // Calculate forward position kinematics
   bool kinematics_status;
-  kinematics_status = fksolver.JntToCart(jointpositions,FK_frames);
+  kinematics_status = mKDLSolver->JntToCart(jointpositions, FK_frames);
   if (kinematics_status) {
-      std::cout << "Thanks KDL!" <<std::endl;
+    std::cout << "Thanks KDL!" << std::endl;
   } else {
-      printf("%s \n","Error: could not calculate forward kinematics :(");
+    std::cout << "Error: could not calculate forward kinematics :(" << std::endl;
   }
 
   // Now we have an std vector of KDL frames with the correct kinematics
@@ -227,7 +217,6 @@ void vtkSlicerSlicerRos2Logic
   }
 
   // Get the origin and rpy
-
   std::vector<urdf::Pose> origins;
   for (std::shared_ptr<urdf::Visual> i: visual_vector) {
     urdf::Pose origin;
@@ -237,7 +226,7 @@ void vtkSlicerSlicerRos2Logic
 
 
   // Create a vtkMRMLTransform Node for each of these frames
-  for (size_t l = 0; l < 6; l++) {
+  for (size_t l = 0; l < mKDLChainSize; l++) {
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -245,7 +234,7 @@ void vtkSlicerSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
-    tnode->SetName(link_names_FK_vector[l + 1].c_str());
+    tnode->SetName((link_names_vector[l + 1] + "_transform").c_str());
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
@@ -264,7 +253,7 @@ void vtkSlicerSlicerRos2Logic
   }
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
-  for (size_t k = 0; k < 7; k ++) {
+  for (size_t k = 0; k < (mKDLChainSize + 1); k ++) {
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
@@ -287,9 +276,9 @@ void vtkSlicerSlicerRos2Logic
     double p = 0.0;
     double y = 0.0;
     origin.rotation.getRPY(r, p, y);
-    modifiedTransform2->RotateZ(y*(180.0/M_PI)); // RAD to degree conversion - use math.pi instead
-    modifiedTransform2->RotateY(p*(180.0/M_PI));
-    modifiedTransform2->RotateX(r*(180.0/M_PI));
+    modifiedTransform2->RotateZ(y * (180.0/M_PI)); // RAD to degree conversion - use math.pi instead
+    modifiedTransform2->RotateY(p * (180.0/M_PI));
+    modifiedTransform2->RotateX(r * (180.0/M_PI));
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
     vtkMatrix4x4 *initialPositionMatrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
@@ -308,11 +297,27 @@ void vtkSlicerSlicerRos2Logic
 
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     } else {
-      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_FK_vector[k].c_str()));
+      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     }
+  }
+}
+
+void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
+{
+  // make sure the solver exists
+  if (!mKDLSolver) {
+    std::cout << "FK solver not initialized" << std::endl;
+    return;
+  }
+  // make sure number of joint values is correct
+  if (jointValues.size() != mKDLChainSize) {
+    std::cout << "FK solver expects " << mKDLChainSize
+	      << " values but UpdateFK was called with a vector of size "
+	      << jointValues.size() << std::endl;
+    return;
   }
 }

@@ -24,6 +24,12 @@
 #ifndef __vtkSlicerSlicerRos2Logic_h
 #define __vtkSlicerSlicerRos2Logic_h
 
+// Forward declarations
+namespace KDL {
+  class ChainFkSolverPos_recursive;
+}
+class vtkMRMLTransformNode;
+
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
 
@@ -38,7 +44,8 @@ public:
   static vtkSlicerSlicerRos2Logic *New();
   vtkTypeMacro(vtkSlicerSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-  void loadRobotSTLModels(const std::string& filename); // Could also be protected friend ** ask Anton
+  void loadRobotSTLModels(const std::string & filename); // Could also be protected friend ** ask Anton
+  void UpdateFK(const std::vector<double> & joinValues);
 
 protected:
   vtkSlicerSlicerRos2Logic();
@@ -56,6 +63,10 @@ private:
 
   vtkSlicerSlicerRos2Logic(const vtkSlicerSlicerRos2Logic&); // Not implemented
   void operator=(const vtkSlicerSlicerRos2Logic&); // Not implemented
+
+  KDL::ChainFkSolverPos_recursive * mKDLSolver = 0;
+  size_t mKDLChainSize = 0;
+  std::vector<vtkSmartPointer<vtkMRMLTransformNode> > mChainNodeTransforms;
 };
 
 #endif
