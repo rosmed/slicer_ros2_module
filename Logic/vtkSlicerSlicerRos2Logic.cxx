@@ -179,42 +179,34 @@ void vtkSlicerSlicerRos2Logic
   std::cout << "The chain has " << mKDLChainSize
 	    << " segments" << std::endl
 	    << "Found " << link_names_vector.size()
-	    << " links" << std::endl; 
-
-  // Set up an std vector of frames
-  std::vector<KDL::Frame> FK_frames;
-  FK_frames.resize(mKDLChainSize);
-  for (KDL::Frame i: FK_frames) {
-    std::cout << i << ' ';
-  }
+	    << " links" << std::endl;
 
   std::cout << "This is the joint position array" << std::endl;
-  auto jointpositions = KDL::JntArray(mKDLChainSize);
-  for (size_t q = 0; q < mKDLChainSize; q++) {
-    if (q == 1) {
-      jointpositions(q) = 0.8; // Upper arm angle in radians
-    }
-    std::cout << jointpositions(q) << " ";
-  }
-  std::cout << std::endl;
+
 
   // Initialize the fk solver
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(kdl_chain);
 
-  // Calculate forward position kinematics
-  bool kinematics_status;
-  kinematics_status = mKDLSolver->JntToCart(jointpositions, FK_frames);
-  if (kinematics_status) {
-    std::cout << "Thanks KDL!" << std::endl;
-  } else {
-    std::cout << "Error: could not calculate forward kinematics :(" << std::endl;
+  // Allocate array for links transformation nodes
+  mChainNodeTransforms.resize(mKDLChainSize);
+
+  // Create a vtkMRMLTransform Node for each of these frames
+  for (size_t l = 0; l < mKDLChainSize; l++) {
+    vtkNew<vtkMRMLTransformStorageNode> storageNode;
+    storageNode->SetScene(this->GetMRMLScene());
+    vtkNew<vtkMRMLTransformNode> generalTransform;
+    generalTransform->SetScene(this->GetMRMLScene());
+    mChainNodeTransforms[l] = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+    storageNode->ReadData(mChainNodeTransforms[l].GetPointer());
+    mChainNodeTransforms[l]->SetName((link_names_vector[l + 1] + "_transform").c_str());
+    this->GetMRMLScene()->AddNode(storageNode.GetPointer());
+    this->GetMRMLScene()->AddNode(mChainNodeTransforms[l]);
+    mChainNodeTransforms[l]->SetAndObserveStorageNodeID(storageNode->GetID());
   }
 
-  // Now we have an std vector of KDL frames with the correct kinematics
-  std::cout << "After FK Solver" <<std::endl;
-  for (KDL::Frame i: FK_frames) {
-    std::cout << i << ' ';
-  }
+  std::vector<double> initialJointValues(mKDLChainSize, 0.0);
+  initialJointValues[1] = 0.8; // for testing
+  UpdateFK(initialJointValues);
 
   // Get the origin and rpy
   std::vector<urdf::Pose> origins;
@@ -222,34 +214,6 @@ void vtkSlicerSlicerRos2Logic
     urdf::Pose origin;
     origin = i->origin;
     origins.push_back(origin);
-  }
-
-
-  // Create a vtkMRMLTransform Node for each of these frames
-  for (size_t l = 0; l < mKDLChainSize; l++) {
-    vtkNew<vtkMRMLTransformStorageNode> storageNode;
-    vtkSmartPointer<vtkMRMLTransformNode> tnode;
-    storageNode->SetScene(this->GetMRMLScene());
-    vtkNew<vtkMRMLTransformNode> generalTransform;
-    generalTransform->SetScene(this->GetMRMLScene());
-    tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-    storageNode->ReadData(tnode.GetPointer());
-    tnode->SetName((link_names_vector[l + 1] + "_transform").c_str());
-    this->GetMRMLScene()->AddNode(storageNode.GetPointer());
-    this->GetMRMLScene()->AddNode(tnode);
-    tnode->SetAndObserveStorageNodeID(storageNode->GetID());
-
-    //Get the matrix and update it based on the forward kinematics
-    KDL::Frame cartpos;
-    cartpos = FK_frames[l];
-    vtkMatrix4x4 *matrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
-    for (size_t i = 0; i < 4; i++) {
-      for (size_t j=0; j <4; j ++) {
-        matrix->SetElement(i,j, cartpos(i,j));
-      }
-    }
-    // Update the matrix for the transform
-    tnode->SetMatrixTransformToParent(matrix);
   }
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
@@ -281,7 +245,9 @@ void vtkSlicerSlicerRos2Logic
     modifiedTransform2->RotateX(r * (180.0/M_PI));
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
-    vtkMatrix4x4 *initialPositionMatrix = vtkMatrix4x4::SafeDownCast(tnode->GetMatrixTransformToParent());
+
+    vtkNew<vtkMatrix4x4> initialPositionMatrix;
+    tnode->GetMatrixTransformToParent(initialPositionMatrix);
 
     // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
@@ -294,7 +260,7 @@ void vtkSlicerSlicerRos2Logic
 
     if (k == 0) {
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
-
+      assert(modelNode);
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     } else {
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
@@ -319,5 +285,33 @@ void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 	      << " values but UpdateFK was called with a vector of size "
 	      << jointValues.size() << std::endl;
     return;
+  }
+
+  // Set up an std vector of frames
+  std::vector<KDL::Frame> FK_frames;
+  FK_frames.resize(mKDLChainSize);
+
+  // Convert std::vector to KDL joint array
+  auto jointArray = KDL::JntArray(mKDLChainSize);
+  for (size_t index; index < mKDLChainSize; ++index) {
+    jointArray(index) = jointValues[index];
+  }
+
+  // Calculate forward position kinematics
+  mKDLSolver->JntToCart(jointArray, FK_frames);
+
+  //Get the matrix and update it based on the forward kinematics
+  for (size_t l = 0; l < mKDLChainSize; l++) {
+    KDL::Frame cartpos;
+    cartpos = FK_frames[l];
+    vtkNew<vtkMatrix4x4> matrix;
+    for (size_t i = 0; i < 4; i++) {
+      for (size_t j=0; j <4; j ++) {
+        matrix->SetElement(i,j, cartpos(i,j));
+      }
+    }
+    // Update the matrix for the transform
+    mChainNodeTransforms[l]->SetMatrixTransformToParent(matrix);
+    mChainNodeTransforms[l]->Modified();
   }
 }
