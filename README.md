@@ -3,7 +3,7 @@ This module is designed to enable direct communication between ROS2 and 3D Slice
 ## Pre-requisites
 
 * ROS 2 (tested using ubuntu 20.04 and ROS2 Foxy), see www.ros.org.
-* Slicer built from source (required to build an extension).  Remember the build path for Slicer, it will be needed to compile the module.
+* Slicer built from source (required to build an extension).  Remember the build path for Slicer, it will be needed to compile the module.  Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
 
 ## Compilation
 
@@ -26,10 +26,11 @@ Note: the `-DSlicer_DIR...` option is only needed for the first `colcon build`
 In a terminal navigate to your Slicer inner build folder (`cd`).  Then:
 ```sh
 source ~/ros2_ws/install/setup.bash # or whatever your ROS 2 workspace is
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/foxy/lib # change for your ROS 2 distribution
 ./Slicer
 ```
 
-Note: the module should be in the application settings so that it can be loaded.  To do so, open Slicer and navigate through the menus: `Edit` -> `Application Settings` -> `Modules` -> `Additional module paths` ->  `Add`:
+Note: the module directory should be in the application settings so that it can be loaded.  To do so, open Slicer and navigate through the menus: `Edit` -> `Application Settings` -> `Modules` -> `Additional module paths` ->  `Add`:
 ```sh
 ~ros2_ws/build/SlicerRos2/lib/Slicer-4.13/qt-loadable-modules
 ```

@@ -28,13 +28,16 @@
 namespace KDL {
   class ChainFkSolverPos_recursive;
 }
+
+namespace rclcpp {
+  class Node;
+}
+
 class vtkMRMLTransformNode;
 
 // Slicer includes
-#include "vtkSlicerModuleLogic.h"
-
+#include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
-
 #include "vtkSlicerSlicerRos2ModuleLogicExport.h"
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -69,6 +72,8 @@ private:
   KDL::ChainFkSolverPos_recursive * mKDLSolver = 0;
   size_t mKDLChainSize = 0;
   std::vector<vtkSmartPointer<vtkMRMLTransformNode> > mChainNodeTransforms;
+
+  std::shared_ptr<rclcpp::Node> mNodePointer;
 };
 
 #endif

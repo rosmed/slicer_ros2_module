@@ -2,6 +2,10 @@ find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
 project(SlicerRos2)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 #---------------------------------------------------------------------------
 find_package(orocos_kdl REQUIRED)
 IF (orocos_kdl_FOUND)

@@ -15,6 +15,9 @@
 
 ==============================================================================*/
 
+// ROS includes
+#include <rclcpp/rclcpp.hpp>
+
 // SlicerRos2 Logic includes
 #include "vtkSlicerSlicerRos2Logic.h"
 
@@ -31,9 +34,8 @@
 
 #include <qSlicerCoreIOManager.h>
 
-// KDL include_directories
+// KDL includes
 #include "kdl_parser/kdl_parser.hpp"
-// #include <iostream>
 #include <kdl/chain.hpp>
 #include <kdl/segment.hpp>
 #include <kdl/joint.hpp>
@@ -54,6 +56,15 @@ vtkStandardNewMacro(vtkSlicerSlicerRos2Logic);
 //----------------------------------------------------------------------------
 vtkSlicerSlicerRos2Logic::vtkSlicerSlicerRos2Logic()
 {
+  // create the ROS node
+  typedef char * char_pointer;
+  char_pointer * argv = new char_pointer[1];
+  const std::string nodeName = GetClassName();
+  argv[0]= new char[nodeName.size() + 1];
+  strcpy(argv[0], nodeName.c_str());
+  int argc = 1; 
+  rclcpp::init(argc, argv);
+  mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
 //----------------------------------------------------------------------------
