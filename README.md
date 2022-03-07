@@ -3,7 +3,9 @@ This module is designed to enable direct communication between ROS2 and 3D Slice
 ## Pre-requisites
 
 * ROS 2 (tested using ubuntu 20.04 and ROS2 Foxy), see www.ros.org.
-* Slicer built from source (required to build an extension).  Remember the build path for Slicer, it will be needed to compile the module.  Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
+* Slicer built from source (required to build an extension).  Remember the build path for Slicer, it will be needed to compile the module.
+* Make sure we use the system OpenSSL libraries otherwise you'll get some errors when compiling the ROS 2 part.  After you ran CMake, in the build tree, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON`.
+* **Older Slicer** Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
 
 ## Compilation
 

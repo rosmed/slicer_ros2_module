@@ -1,10 +1,8 @@
+# SlicerConfig.cmake does god knows what to the build tree but it
+# needs to be the first thing we do
 find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
 project(SlicerRos2)
-
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 #---------------------------------------------------------------------------
 find_package(orocos_kdl REQUIRED)
@@ -27,8 +25,19 @@ set(MODULE_TITLE ${MODULE_NAME})
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 
+# Now, we really find Slicer package but we need to make sure we unset
+# PYTHON_EXECUTABLE (likely set by ROS 2) so Slicer doesn't complain
+# (note that most Ubuntu and ROS 2 python packages will not be usable in
+# Slicer)
+unset(PYTHON_EXECUTABLE CACHE)
 find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
+
+# Set after including Slicer to avoid errors during CMake step.  This
+# is for ROS Galactic, Foxy uses CXX 14...
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 #---------------------------------------------------------------------------
 
