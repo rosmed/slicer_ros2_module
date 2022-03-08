@@ -16,6 +16,7 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QTimer>
 #include <QDebug>
 #include <QtGui>
 #include <QButtonGroup>
@@ -62,11 +63,16 @@ qSlicerSlicerRos2ModuleWidget::qSlicerSlicerRos2ModuleWidget(QWidget* _parent)
   : Superclass( _parent )
   , d_ptr( new qSlicerSlicerRos2ModuleWidgetPrivate )
 {
+  this->mTimer = new QTimer();
+  mTimer->setSingleShot(false);
+  mTimer->setInterval(1000); // 1 sec
+  this->mTimerPeriodCount = 0;
 }
 
 //-----------------------------------------------------------------------------
 qSlicerSlicerRos2ModuleWidget::~qSlicerSlicerRos2ModuleWidget()
 {
+  delete this->mTimer;
 }
 
 //-----------------------------------------------------------------------------
@@ -87,8 +93,12 @@ void qSlicerSlicerRos2ModuleWidget::setup()
   const std::string paths = home + "/ros2_ws/src/SlicerRos2/models/urdf/";
   for (const auto & file : fs::directory_iterator(paths))
     d->fileSelector->addItem(file.path().c_str());
-  
+
   this->connect(d->fileSelector, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onFileSelected(const QString&)));
+
+  // Set up timer connections
+  connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
+  this->connect(d->activeCheckBox, SIGNAL(toggled(bool)), this, SLOT(onTimerStarted(bool)));
 }
 
 void qSlicerSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -108,5 +118,33 @@ void qSlicerSlicerRos2ModuleWidget::onFileSelected(const QString& text)
   // Convert input QString to std::string to pass to logic
   const std::string model_path = text.toStdString();;
   logic->loadRobotSTLModels(model_path);
+
+}
+
+void qSlicerSlicerRos2ModuleWidget::onTimerStarted(bool state)
+{
+  Q_D(qSlicerSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+
+  if (state == true){
+    mTimer->start();
+  }
+  else{
+    mTimer->stop();
+  }
+}
+
+void qSlicerSlicerRos2ModuleWidget::onTimerTimeOut()
+{
+  Q_D(qSlicerSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+
+  vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
+	if (!logic)
+  {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+ 	   return;
+	}
+  qWarning() << Q_FUNC_INFO << "Timer going";
 
 }

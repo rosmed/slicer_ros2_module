@@ -46,6 +46,9 @@ protected:
   QScopedPointer<qSlicerSlicerRos2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
+  QTimer* mTimer;
+  int mTimerPeriodCount;
+  float joint_angle;
 
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
@@ -56,6 +59,8 @@ protected:
 
 protected slots:
   void onFileSelected(const QString&);
+  void onTimerStarted(bool state);
+  void onTimerTimeOut();
 
 
 private:
