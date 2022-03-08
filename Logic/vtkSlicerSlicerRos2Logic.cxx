@@ -56,20 +56,32 @@ vtkStandardNewMacro(vtkSlicerSlicerRos2Logic);
 //----------------------------------------------------------------------------
 vtkSlicerSlicerRos2Logic::vtkSlicerSlicerRos2Logic()
 {
-  // create the ROS node
   typedef char * char_pointer;
   char_pointer * argv = new char_pointer[1];
   const std::string nodeName = GetClassName();
   argv[0]= new char[nodeName.size() + 1];
   strcpy(argv[0], nodeName.c_str());
-  int argc = 1; 
+  int argc = 1;
   rclcpp::init(argc, argv);
   mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
+  mParameterClient
+    = std::make_shared<rclcpp::AsyncParametersClient>
+    (mNodePointer,
+     "/robot_state_publisher");
+  mParameterClient->wait_for_service();
+  auto parameters_future
+    = mParameterClient->get_parameters
+    ({"robot_description"},
+     std::bind(&vtkSlicerSlicerRos2Logic::ParameterCallback,
+               this, std::placeholders::_1));
+  rclcpp::spin_some(mNodePointer);
 }
+
 
 //----------------------------------------------------------------------------
 vtkSlicerSlicerRos2Logic::~vtkSlicerSlicerRos2Logic()
 {
+  rclcpp::shutdown();
 }
 
 //----------------------------------------------------------------------------
@@ -325,4 +337,11 @@ void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
     mChainNodeTransforms[l]->SetMatrixTransformToParent(matrix);
     mChainNodeTransforms[l]->Modified();
   }
+}
+void vtkSlicerSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
+{
+  auto result = future.get();
+  auto param = result.at(0);
+  robot_description_string = param.as_string().c_str();
+  RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
 }

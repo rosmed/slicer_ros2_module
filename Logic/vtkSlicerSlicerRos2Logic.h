@@ -40,6 +40,9 @@ class vtkMRMLTransformNode;
 #include <vtkSmartPointer.h>
 #include "vtkSlicerSlicerRos2ModuleLogicExport.h"
 
+// ROS includes
+#include <rclcpp/rclcpp.hpp>
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_SLICERROS2_MODULE_LOGIC_EXPORT vtkSlicerSlicerRos2Logic :
   public vtkSlicerModuleLogic
@@ -73,7 +76,10 @@ private:
   size_t mKDLChainSize = 0;
   std::vector<vtkSmartPointer<vtkMRMLTransformNode> > mChainNodeTransforms;
 
+  void ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
+  std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
+  std::string robot_description_string;
 };
 
 #endif
