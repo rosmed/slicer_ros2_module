@@ -15,19 +15,19 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerSlicerRos2ModuleWidget_h
-#define __qSlicerSlicerRos2ModuleWidget_h
+#ifndef __qSlicerRos2ModuleWidget_h
+#define __qSlicerRos2ModuleWidget_h
 
 // Slicer includes
 #include "qSlicerAbstractModuleWidget.h"
 
-#include "qSlicerSlicerRos2ModuleExport.h"
+#include "qSlicerRos2ModuleExport.h"
 
-class qSlicerSlicerRos2ModuleWidgetPrivate;
+class qSlicerRos2ModuleWidgetPrivate;
 class vtkMRMLNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class Q_SLICER_QTMODULES_SLICERROS2_EXPORT qSlicerSlicerRos2ModuleWidget :
+class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerRos2ModuleWidget :
   public qSlicerAbstractModuleWidget
 {
   Q_OBJECT
@@ -35,20 +35,18 @@ class Q_SLICER_QTMODULES_SLICERROS2_EXPORT qSlicerSlicerRos2ModuleWidget :
 public:
 
   typedef qSlicerAbstractModuleWidget Superclass;
-  qSlicerSlicerRos2ModuleWidget(QWidget *parent=0);
-  virtual ~qSlicerSlicerRos2ModuleWidget();
+  qSlicerRos2ModuleWidget(QWidget *parent=0);
+  virtual ~qSlicerRos2ModuleWidget();
 
 public slots:
 
   //void setMRMLScene(vtkMRMLScene* scene);
 
 protected:
-  QScopedPointer<qSlicerSlicerRos2ModuleWidgetPrivate> d_ptr;
+  QScopedPointer<qSlicerRos2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
   QTimer* mTimer;
-  int mTimerPeriodCount;
-  float joint_angle;
 
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
@@ -64,8 +62,8 @@ protected slots:
 
 
 private:
-  Q_DECLARE_PRIVATE(qSlicerSlicerRos2ModuleWidget);
-  Q_DISABLE_COPY(qSlicerSlicerRos2ModuleWidget);
+  Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
+  Q_DISABLE_COPY(qSlicerRos2ModuleWidget);
 };
 
 #endif

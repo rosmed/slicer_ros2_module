@@ -15,14 +15,14 @@
 
 ==============================================================================*/
 
-// .NAME vtkSlicerSlicerRos2Logic - slicer logic class for volumes manipulation
+// .NAME vtkSlicerRos2Logic - slicer logic class for volumes manipulation
 // .SECTION Description
 // This class manages the logic associated with reading, saving,
 // and changing propertied of the volumes
 
 
-#ifndef __vtkSlicerSlicerRos2Logic_h
-#define __vtkSlicerSlicerRos2Logic_h
+#ifndef __vtkSlicerRos2Logic_h
+#define __vtkSlicerRos2Logic_h
 
 // Forward declarations
 namespace KDL {
@@ -38,26 +38,28 @@ class vtkMRMLTransformNode;
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
-#include "vtkSlicerSlicerRos2ModuleLogicExport.h"
+#include "vtkSlicerRos2ModuleLogicExport.h"
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_SLICERROS2_MODULE_LOGIC_EXPORT vtkSlicerSlicerRos2Logic :
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
   public vtkSlicerModuleLogic
 {
 public:
 
-  static vtkSlicerSlicerRos2Logic *New();
-  vtkTypeMacro(vtkSlicerSlicerRos2Logic, vtkSlicerModuleLogic);
+  static vtkSlicerRos2Logic *New();
+  vtkTypeMacro(vtkSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   void loadRobotSTLModels(const std::string & filename); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
+  void Spin(void);
 
 protected:
-  vtkSlicerSlicerRos2Logic();
-  ~vtkSlicerSlicerRos2Logic() override;
+  vtkSlicerRos2Logic();
+  ~vtkSlicerRos2Logic() override;
 
   void SetMRMLSceneInternal(vtkMRMLScene* newScene) override;
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
@@ -69,8 +71,8 @@ protected:
 
 private:
 
-  vtkSlicerSlicerRos2Logic(const vtkSlicerSlicerRos2Logic&); // Not implemented
-  void operator=(const vtkSlicerSlicerRos2Logic&); // Not implemented
+  vtkSlicerRos2Logic(const vtkSlicerRos2Logic&); // Not implemented
+  void operator=(const vtkSlicerRos2Logic&); // Not implemented
 
   KDL::ChainFkSolverPos_recursive * mKDLSolver = 0;
   size_t mKDLChainSize = 0;
@@ -79,7 +81,11 @@ private:
   void ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
+
   std::string robot_description_string;
+
+  std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
+  void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
 };
 
 #endif

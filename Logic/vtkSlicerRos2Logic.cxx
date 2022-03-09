@@ -19,7 +19,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 // SlicerRos2 Logic includes
-#include "vtkSlicerSlicerRos2Logic.h"
+#include "vtkSlicerRos2Logic.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -51,10 +51,10 @@
 #endif
 
 //----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkSlicerSlicerRos2Logic);
+vtkStandardNewMacro(vtkSlicerRos2Logic);
 
 //----------------------------------------------------------------------------
-vtkSlicerSlicerRos2Logic::vtkSlicerSlicerRos2Logic()
+vtkSlicerRos2Logic::vtkSlicerRos2Logic()
 {
   typedef char * char_pointer;
   char_pointer * argv = new char_pointer[1];
@@ -63,35 +63,41 @@ vtkSlicerSlicerRos2Logic::vtkSlicerSlicerRos2Logic()
   strcpy(argv[0], nodeName.c_str());
   int argc = 1;
   rclcpp::init(argc, argv);
+
+  // parameter
   mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
   mParameterClient
     = std::make_shared<rclcpp::AsyncParametersClient>
     (mNodePointer,
      "/robot_state_publisher");
-  mParameterClient->wait_for_service();
   auto parameters_future
     = mParameterClient->get_parameters
     ({"robot_description"},
-     std::bind(&vtkSlicerSlicerRos2Logic::ParameterCallback,
+     std::bind(&vtkSlicerRos2Logic::ParameterCallback,
                this, std::placeholders::_1));
-  rclcpp::spin_some(mNodePointer);
+
+  // subscription
+  mJointStateSubscription
+    = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
+    ("measured_js", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
+				  this, std::placeholders::_1));
 }
 
 
 //----------------------------------------------------------------------------
-vtkSlicerSlicerRos2Logic::~vtkSlicerSlicerRos2Logic()
+vtkSlicerRos2Logic::~vtkSlicerRos2Logic()
 {
   rclcpp::shutdown();
 }
 
 //----------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic::PrintSelf(ostream& os, vtkIndent indent)
+void vtkSlicerRos2Logic::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
+void vtkSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
   vtkNew<vtkIntArray> events;
   events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
@@ -101,31 +107,31 @@ void vtkSlicerSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 }
 
 //-----------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic::RegisterNodes()
+void vtkSlicerRos2Logic::RegisterNodes()
 {
   assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic::UpdateFromMRMLScene()
+void vtkSlicerRos2Logic::UpdateFromMRMLScene()
 {
   assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic
+void vtkSlicerRos2Logic
 ::OnMRMLSceneNodeAdded(vtkMRMLNode* vtkNotUsed(node))
 {
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic
+void vtkSlicerRos2Logic
 ::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
 {
 }
 
 //----------------------------------------------------------------------------
-void vtkSlicerSlicerRos2Logic
+void vtkSlicerRos2Logic
 ::loadRobotSTLModels(const std::string& filename)
 {
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
@@ -295,7 +301,7 @@ void vtkSlicerSlicerRos2Logic
   }
 }
 
-void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
+void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 {
   // make sure the solver exists
   if (!mKDLSolver) {
@@ -316,7 +322,7 @@ void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 
   // Convert std::vector to KDL joint array
   auto jointArray = KDL::JntArray(mKDLChainSize);
-  for (size_t index; index < mKDLChainSize; ++index) {
+  for (size_t index = 0; index < mKDLChainSize; ++index) {
     jointArray(index) = jointValues[index];
   }
 
@@ -329,8 +335,8 @@ void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
     cartpos = FK_frames[l];
     vtkNew<vtkMatrix4x4> matrix;
     for (size_t i = 0; i < 4; i++) {
-      for (size_t j=0; j <4; j ++) {
-        matrix->SetElement(i,j, cartpos(i,j));
+      for (size_t j = 0; j < 4; j ++) {
+        matrix->SetElement(i, j, cartpos(i, j));
       }
     }
     // Update the matrix for the transform
@@ -338,10 +344,25 @@ void vtkSlicerSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
     mChainNodeTransforms[l]->Modified();
   }
 }
-void vtkSlicerSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
+
+void vtkSlicerRos2Logic::Spin(void)
+{
+  // Spin ROS loop
+  rclcpp::spin_some(mNodePointer);
+}
+
+void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
 {
   auto result = future.get();
   auto param = result.at(0);
   robot_description_string = param.as_string().c_str();
   RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
+}
+
+void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
+{
+  std::cerr << "got message of size " << msg->position.size() << std::endl;
+  if (msg->position.size() == 6) {
+    UpdateFK(msg->position);
+  }
 }

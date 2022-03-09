@@ -17,10 +17,12 @@ ENDIF()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(kdl_parser REQUIRED)
 find_package(urdf REQUIRED)
 #-----------------------------------------------------------------------------
-set(MODULE_NAME SlicerRos2)
+
+set(MODULE_NAME Ros2)
 set(MODULE_TITLE ${MODULE_NAME})
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
@@ -42,7 +44,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #---------------------------------------------------------------------------
 
 add_subdirectory(Logic)
-add_subdirectory(Widgets)
 link_libraries(stdc++fs)
 
 #-----------------------------------------------------------------------------
@@ -74,7 +75,6 @@ set(MODULE_UI_SRCS
 
 set(MODULE_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleLogic
-  qSlicer${MODULE_NAME}ModuleWidgets
   )
 
 set(MODULE_RESOURCES
@@ -94,8 +94,6 @@ slicerMacroBuildLoadableModule(
   RESOURCES ${MODULE_RESOURCES}
   WITH_GENERIC_TESTS
   )
-
-# ament_target_dependencies(${MODULE_NAME} kdl_parser urdf)
 
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)

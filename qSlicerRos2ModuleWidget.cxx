@@ -22,11 +22,11 @@
 #include <QButtonGroup>
 
 // Slicer includes
-#include "qSlicerSlicerRos2ModuleWidget.h"
-#include "ui_qSlicerSlicerRos2ModuleWidget.h"
+#include "qSlicerRos2ModuleWidget.h"
+#include "ui_qSlicerRos2ModuleWidget.h"
 
 // reference to Logic
-#include "vtkSlicerSlicerRos2Logic.h"
+#include "vtkSlicerRos2Logic.h"
 
 // Slicer includes
 #include "vtkMRMLModelDisplayNode.h"
@@ -41,44 +41,43 @@ namespace fs = std::experimental::filesystem;
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class qSlicerSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerSlicerRos2ModuleWidget
+class qSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerRos2ModuleWidget
 {
 
 public:
-  qSlicerSlicerRos2ModuleWidgetPrivate();
-  vtkSlicerSlicerRos2Logic* logic() const;
+  qSlicerRos2ModuleWidgetPrivate();
+  vtkSlicerRos2Logic* logic() const;
 };
 
 
 //-----------------------------------------------------------------------------
-qSlicerSlicerRos2ModuleWidgetPrivate::qSlicerSlicerRos2ModuleWidgetPrivate()
+qSlicerRos2ModuleWidgetPrivate::qSlicerRos2ModuleWidgetPrivate()
 {
 }
 
 //-----------------------------------------------------------------------------
-// qSlicerSlicerRos2ModuleWidget methods
+// qSlicerRos2ModuleWidget methods
 
 //-----------------------------------------------------------------------------
-qSlicerSlicerRos2ModuleWidget::qSlicerSlicerRos2ModuleWidget(QWidget* _parent)
+qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
   : Superclass( _parent )
-  , d_ptr( new qSlicerSlicerRos2ModuleWidgetPrivate )
+  , d_ptr( new qSlicerRos2ModuleWidgetPrivate )
 {
   this->mTimer = new QTimer();
   mTimer->setSingleShot(false);
-  mTimer->setInterval(1000); // 1 sec
-  this->mTimerPeriodCount = 0;
+  mTimer->setInterval(20); // 20 ms, 50Hz
 }
 
 //-----------------------------------------------------------------------------
-qSlicerSlicerRos2ModuleWidget::~qSlicerSlicerRos2ModuleWidget()
+qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
 {
   delete this->mTimer;
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSlicerRos2ModuleWidget::setup()
+void qSlicerRos2ModuleWidget::setup()
 {
-  Q_D(qSlicerSlicerRos2ModuleWidget);
+  Q_D(qSlicerRos2ModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
 
@@ -101,14 +100,14 @@ void qSlicerSlicerRos2ModuleWidget::setup()
   this->connect(d->activeCheckBox, SIGNAL(toggled(bool)), this, SLOT(onTimerStarted(bool)));
 }
 
-void qSlicerSlicerRos2ModuleWidget::onFileSelected(const QString& text)
+void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
 {
-  Q_D(qSlicerSlicerRos2ModuleWidget);
+  Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
 
   //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
   // have to do the SafeDownCast
-  vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
 	if (!logic)
   {
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
@@ -121,9 +120,9 @@ void qSlicerSlicerRos2ModuleWidget::onFileSelected(const QString& text)
 
 }
 
-void qSlicerSlicerRos2ModuleWidget::onTimerStarted(bool state)
+void qSlicerRos2ModuleWidget::onTimerStarted(bool state)
 {
-  Q_D(qSlicerSlicerRos2ModuleWidget);
+  Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
 
   if (state == true){
@@ -134,17 +133,15 @@ void qSlicerSlicerRos2ModuleWidget::onTimerStarted(bool state)
   }
 }
 
-void qSlicerSlicerRos2ModuleWidget::onTimerTimeOut()
+void qSlicerRos2ModuleWidget::onTimerTimeOut()
 {
-  Q_D(qSlicerSlicerRos2ModuleWidget);
+  Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
 
-  vtkSlicerSlicerRos2Logic* logic = vtkSlicerSlicerRos2Logic::SafeDownCast(this->logic());
-	if (!logic)
-  {
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
- 	   return;
-	}
-  qWarning() << Q_FUNC_INFO << "Timer going";
-
+    return;
+  }
+  logic->Spin();
 }

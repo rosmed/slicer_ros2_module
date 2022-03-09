@@ -16,57 +16,57 @@
 ==============================================================================*/
 
 // SlicerRos2 Logic includes
-#include <vtkSlicerSlicerRos2Logic.h>
+#include <vtkSlicerRos2Logic.h>
 
 // SlicerRos2 includes
-#include "qSlicerSlicerRos2Module.h"
-#include "qSlicerSlicerRos2ModuleWidget.h"
+#include "qSlicerRos2Module.h"
+#include "qSlicerRos2ModuleWidget.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class qSlicerSlicerRos2ModulePrivate
+class qSlicerRos2ModulePrivate
 {
 public:
-  qSlicerSlicerRos2ModulePrivate();
+  qSlicerRos2ModulePrivate();
 };
 
 //-----------------------------------------------------------------------------
-// qSlicerSlicerRos2ModulePrivate methods
+// qSlicerRos2ModulePrivate methods
 
 //-----------------------------------------------------------------------------
-qSlicerSlicerRos2ModulePrivate::qSlicerSlicerRos2ModulePrivate()
+qSlicerRos2ModulePrivate::qSlicerRos2ModulePrivate()
 {
 }
 
 //-----------------------------------------------------------------------------
-// qSlicerSlicerRos2Module methods
+// qSlicerRos2Module methods
 
 //-----------------------------------------------------------------------------
-qSlicerSlicerRos2Module::qSlicerSlicerRos2Module(QObject* _parent)
+qSlicerRos2Module::qSlicerRos2Module(QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerSlicerRos2ModulePrivate)
+  , d_ptr(new qSlicerRos2ModulePrivate)
 {
 }
 
 //-----------------------------------------------------------------------------
-qSlicerSlicerRos2Module::~qSlicerSlicerRos2Module()
+qSlicerRos2Module::~qSlicerRos2Module()
 {
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerSlicerRos2Module::helpText() const
+QString qSlicerRos2Module::helpText() const
 {
   return "This is a loadable module that can be bundled in an extension";
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerSlicerRos2Module::acknowledgementText() const
+QString qSlicerRos2Module::acknowledgementText() const
 {
   return "This work was partially funded by NIH grant NXNNXXNNNNNN-NNXN";
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerSlicerRos2Module::contributors() const
+QStringList qSlicerRos2Module::contributors() const
 {
   QStringList moduleContributors;
   moduleContributors << QString("John Doe (AnyWare Corp.)");
@@ -74,38 +74,38 @@ QStringList qSlicerSlicerRos2Module::contributors() const
 }
 
 //-----------------------------------------------------------------------------
-QIcon qSlicerSlicerRos2Module::icon() const
+QIcon qSlicerRos2Module::icon() const
 {
   return QIcon(":/Icons/SlicerRos2.png");
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerSlicerRos2Module::categories() const
+QStringList qSlicerRos2Module::categories() const
 {
   return QStringList() << "Examples";
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerSlicerRos2Module::dependencies() const
+QStringList qSlicerRos2Module::dependencies() const
 {
   return QStringList();
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSlicerRos2Module::setup()
+void qSlicerRos2Module::setup()
 {
   this->Superclass::setup();
 }
 
 //-----------------------------------------------------------------------------
-qSlicerAbstractModuleRepresentation* qSlicerSlicerRos2Module
+qSlicerAbstractModuleRepresentation* qSlicerRos2Module
 ::createWidgetRepresentation()
 {
-  return new qSlicerSlicerRos2ModuleWidget;
+  return new qSlicerRos2ModuleWidget;
 }
 
 //-----------------------------------------------------------------------------
-vtkMRMLAbstractLogic* qSlicerSlicerRos2Module::createLogic()
+vtkMRMLAbstractLogic* qSlicerRos2Module::createLogic()
 {
-  return vtkSlicerSlicerRos2Logic::New();
+  return vtkSlicerRos2Logic::New();
 }
