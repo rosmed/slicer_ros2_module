@@ -70,6 +70,7 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = std::make_shared<rclcpp::AsyncParametersClient>
     (mNodePointer,
      "/robot_state_publisher");
+  mParameterClient->wait_for_service(); // We need this wait for service to get the parameter - may cause issues with hanging
   auto parameters_future
     = mParameterClient->get_parameters
     ({"robot_description"},
@@ -134,15 +135,17 @@ void vtkSlicerRos2Logic
 void vtkSlicerRos2Logic
 ::loadRobotSTLModels(const std::string& filename)
 {
+  // Print out the urdf from param
+  std::cout << robot_description_string << std::endl;
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
-  if (!my_model.initFile(filename)) {
+  if (!my_model.initString(robot_description_string)) {
       return;
   }
 
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
-  if (!kdl_parser::treeFromUrdfModel(my_model, my_tree)) {
+  if (!kdl_parser::treeFromString(robot_description_string, my_tree)) {
     return; //std::cout << "No urdf file to load." << filename << std::endl;
   }
 
@@ -197,14 +200,14 @@ void vtkSlicerRos2Logic
     " slicer.util.loadModel(mesh_dir + linkNamesList[j] + '.stl') \n" ));
   #endif
 
-  KDL::Chain kdl_chain;
+  auto kdl_chain = new KDL::Chain();
   std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
   std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
-  if (!my_tree.getChain(base_frame, tip_frame, kdl_chain)) {
+  if (!my_tree.getChain(base_frame, tip_frame, *kdl_chain)) {
     std::cerr << "not working" << std::endl;
     return;
   }
-  mKDLChainSize = kdl_chain.getNrOfSegments();
+  mKDLChainSize = kdl_chain->getNrOfSegments();
   std::cout << "The chain has " << mKDLChainSize
 	    << " segments" << std::endl
 	    << "Found " << link_names_vector.size()
@@ -214,7 +217,7 @@ void vtkSlicerRos2Logic
 
 
   // Initialize the fk solver
-  mKDLSolver = new KDL::ChainFkSolverPos_recursive(kdl_chain);
+  mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 
   // Allocate array for links transformation nodes
   mChainNodeTransforms.resize(mKDLChainSize);
@@ -325,7 +328,11 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
   for (size_t index = 0; index < mKDLChainSize; ++index) {
     jointArray(index) = jointValues[index];
   }
-
+  std::cout << jointArray(0) << std::endl;
+  std::cout << jointArray(1) << std::endl;
+  std::cout << jointArray(2) << std::endl;
+  std::cout << jointArray(3) << std::endl;
+  std::cout << jointArray(4) << std::endl;
   // Calculate forward position kinematics
   mKDLSolver->JntToCart(jointArray, FK_frames);
 
@@ -356,7 +363,7 @@ void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp
   auto result = future.get();
   auto param = result.at(0);
   robot_description_string = param.as_string().c_str();
-  RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
+  //RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
 }
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
