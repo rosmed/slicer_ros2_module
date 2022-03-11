@@ -1,5 +1,7 @@
 # C++ based module using `rclcpp`
 
+See README.md
+
 # Python based module using `rclpy`
 
 rclpy is not pure Python, it has binaries that need to match Python
