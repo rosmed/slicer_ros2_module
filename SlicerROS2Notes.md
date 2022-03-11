@@ -68,7 +68,7 @@ Then we can use the Slicer python, including `pip`.  At that point,
 one needs to add `ament_package` to the `src` directory (`git clone
 https://github.com/ament/ament_package`) since it can't be installed
 over pip.  I got stuck on Foxy with
-`rcl_logging_interfaceConfig.cmake" missing.  So I removed Foxy and
+`rcl_logging_interfaceConfig.cmake` missing.  So I removed Foxy and
 tried Galactic.  On Galactic, we also need `catkin_pkg` which can be
 installed with `pip install catkin_pkg`.  Now stuck on compilation
 errors for `rclpy` re. cast of const/non-const ptr.  Note that in
