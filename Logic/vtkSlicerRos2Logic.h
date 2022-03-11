@@ -82,7 +82,7 @@ private:
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
 
-  std::string robot_description_string;
+  // std::string robot_description_string;
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);

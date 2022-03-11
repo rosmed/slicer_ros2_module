@@ -80,8 +80,8 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   // subscription
   mJointStateSubscription
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
-    ("measured_js", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
-				  this, std::placeholders::_1));
+    ("joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
+				   this, std::placeholders::_1));
 }
 
 
@@ -133,7 +133,7 @@ void vtkSlicerRos2Logic
 
 //----------------------------------------------------------------------------
 void vtkSlicerRos2Logic
-::loadRobotSTLModels(const std::string& filename)
+::loadRobotSTLModels(const std::string & robot_description_string)
 {
   // Print out the urdf from param
   std::cout << robot_description_string << std::endl;
@@ -362,8 +362,9 @@ void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp
 {
   auto result = future.get();
   auto param = result.at(0);
-  robot_description_string = param.as_string().c_str();
+  loadRobotSTLModels(param.as_string().c_str());
   //RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
+  
 }
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
