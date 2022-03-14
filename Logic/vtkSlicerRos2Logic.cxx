@@ -80,7 +80,7 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   // subscription
   mJointStateSubscription
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
-    ("measured_js", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
+    ("/joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
 }
 

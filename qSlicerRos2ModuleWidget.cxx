@@ -66,11 +66,13 @@ qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
   this->mTimer = new QTimer();
   mTimer->setSingleShot(false);
   mTimer->setInterval(20); // 20 ms, 50Hz
+  mTimer->start();
 }
 
 //-----------------------------------------------------------------------------
 qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
 {
+  mTimer->stop();
   delete this->mTimer;
 }
 
@@ -97,7 +99,6 @@ void qSlicerRos2ModuleWidget::setup()
 
   // Set up timer connections
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
-  this->connect(d->activeCheckBox, SIGNAL(toggled(bool)), this, SLOT(onTimerStarted(bool)));
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -120,18 +121,6 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
 
 }
 
-void qSlicerRos2ModuleWidget::onTimerStarted(bool state)
-{
-  Q_D(qSlicerRos2ModuleWidget);
-  this->Superclass::setup();
-
-  if (state == true){
-    mTimer->start();
-  }
-  else{
-    mTimer->stop();
-  }
-}
 
 void qSlicerRos2ModuleWidget::onTimerTimeOut()
 {

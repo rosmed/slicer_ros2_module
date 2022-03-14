@@ -57,7 +57,6 @@ protected:
 
 protected slots:
   void onFileSelected(const QString&);
-  void onTimerStarted(bool state);
   void onTimerTimeOut();
 
 
