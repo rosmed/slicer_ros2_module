@@ -50,6 +50,7 @@
 #include "PythonQt.h"
 #endif
 
+
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
 
@@ -70,13 +71,13 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = std::make_shared<rclcpp::AsyncParametersClient>
     (mNodePointer,
      "/robot_state_publisher");
-  mParameterClient->wait_for_service(); // We need this wait for service to get the parameter - may cause issues with hanging
+  using wait_time = std::chrono::duration<int, std::ratio<1, 10000>>;
+  mParameterClient->wait_for_service(wait_time(1));
   auto parameters_future
     = mParameterClient->get_parameters
     ({"robot_description"},
      std::bind(&vtkSlicerRos2Logic::ParameterCallback,
                this, std::placeholders::_1));
-
   // subscription
   mJointStateSubscription
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
@@ -135,6 +136,11 @@ void vtkSlicerRos2Logic
 void vtkSlicerRos2Logic
 ::loadRobotSTLModels(const std::string& filename)
 {
+
+  if (parameterNodeCallbackFlag == false){
+    std::cout << " Never entered call back" << std::endl;
+    return;
+  }
   // Print out the urdf from param
   std::cout << robot_description_string << std::endl;
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
@@ -360,6 +366,7 @@ void vtkSlicerRos2Logic::Spin(void)
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
 {
+  parameterNodeCallbackFlag = true;
   auto result = future.get();
   auto param = result.at(0);
   robot_description_string = param.as_string().c_str();
