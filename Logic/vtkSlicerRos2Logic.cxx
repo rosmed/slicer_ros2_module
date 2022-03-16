@@ -71,7 +71,7 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = std::make_shared<rclcpp::AsyncParametersClient>
     (mNodePointer,
      "/robot_state_publisher");
-  using wait_time = std::chrono::duration<int, std::ratio<1, 100>>;
+  using wait_time = std::chrono::duration<int, std::ratio<1, 100>>; // This might be causing issues!
   mParameterClient->wait_for_service(wait_time(1));
   auto parameters_future
     = mParameterClient->get_parameters
@@ -83,6 +83,11 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
     ("/joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
+
+  mTfSubscription
+    = mNodePointer->create_subscription<tf2_msgs::msg::TFMessage>
+      ("/tf", 10, std::bind(&vtkSlicerRos2Logic::TfCallback,
+        this, std::placeholders::_1));
 }
 
 
@@ -379,4 +384,9 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
   if (msg->position.size() == 6) {
     UpdateFK(msg->position);
   }
+}
+
+void vtkSlicerRos2Logic::TfCallback(const std::shared_ptr<tf2_msgs::msg::TFMessage> msg)
+{
+  std::cerr << "got the tf " << std::endl;
 }

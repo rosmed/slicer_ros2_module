@@ -44,6 +44,9 @@ class vtkMRMLTransformNode;
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
+// Tf include_directories
+#include "tf2_msgs/msg/tf_message.hpp"
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
   public vtkSlicerModuleLogic
@@ -87,6 +90,9 @@ private:
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
+
+  std::shared_ptr<rclcpp::Subscription<tf2_msgs::msg::TFMessage>> mTfSubscription;
+  void TfCallback(const std::shared_ptr<tf2_msgs::msg::TFMessage> msg);
 };
 
 #endif
