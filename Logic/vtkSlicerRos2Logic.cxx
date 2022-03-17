@@ -72,7 +72,8 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     (mNodePointer,
      "/robot_state_publisher");
   using wait_time = std::chrono::duration<int, std::ratio<1, 100>>; // This might be causing issues!
-  mParameterClient->wait_for_service(wait_time(1));
+  //mParameterClient->wait_for_service(wait_time(1));
+  mParameterClient->wait_for_service();
   auto parameters_future
     = mParameterClient->get_parameters
     ({"robot_description"},
@@ -388,5 +389,35 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
 
 void vtkSlicerRos2Logic::TfCallback(const std::shared_ptr<tf2_msgs::msg::TFMessage> msg)
 {
-  std::cerr << "got the tf " << std::endl;
+  std::cerr << msg->transforms.at(0).child_frame_id << std::endl;
+
+  auto x = msg->transforms.at(0).transform.translation.x;
+  auto y = msg->transforms.at(0).transform.translation.y;
+  auto z = msg->transforms.at(0).transform.translation.z;
+  // std::cerr << "x" << x << "y" << y << "z" << z << std::endl; // For debugging
+  auto q_x = msg->transforms.at(0).transform.rotation.x;
+  auto q_y = msg->transforms.at(0).transform.rotation.y;
+  auto q_z = msg->transforms.at(0).transform.rotation.z;
+  auto q_w = msg->transforms.at(0).transform.rotation.w;
+  // std::cerr << "x" << q_x << "y" << q_y << "z" << q_z << "w" << q_w << std::endl; // For debugging
+  //UpdateChainFromTf(x, y, z, q_x, q_y, q_z, q_w);
+
+}
+
+void vtkSlicerRos2Logic::UpdateChainFromTf(double translate_x, double translate_y, double translate_z, double rotate_x, double rotate_y, double rotate_z, double rotate_w)
+{
+  // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
+  // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
+  if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
+    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[0]->GetTransformToParent());
+    modifiedTransform2->RotateWXYZ(rotate_w, rotate_x, rotate_y, rotate_z);
+    mChainNodeTransforms[0]->SetAndObserveTransformToParent(modifiedTransform2);
+    mChainNodeTransforms[0]->Modified();
+
+    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(mChainNodeTransforms[0]->GetTransformToParent());
+    modifiedTransform->Translate(translate_x, translate_y, translate_z);
+    mChainNodeTransforms[0]->SetAndObserveTransformToParent(modifiedTransform);
+    mChainNodeTransforms[0]->Modified();
+
+  }
 }
