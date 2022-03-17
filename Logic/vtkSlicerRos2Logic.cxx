@@ -71,9 +71,9 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = std::make_shared<rclcpp::AsyncParametersClient>
     (mNodePointer,
      "/robot_state_publisher");
-  using wait_time = std::chrono::duration<int, std::ratio<1, 100>>; // This might be causing issues!
-  //mParameterClient->wait_for_service(wait_time(1));
-  mParameterClient->wait_for_service();
+
+  std::chrono::seconds sec(1);
+  mParameterClient->wait_for_service(sec);
   auto parameters_future
     = mParameterClient->get_parameters
     ({"robot_description"},
