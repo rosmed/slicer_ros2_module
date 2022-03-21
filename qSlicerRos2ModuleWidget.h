@@ -47,6 +47,7 @@ protected:
 
   void setup() override;
   QTimer* mTimer;
+  bool timerOff = false; 
 
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();

@@ -56,7 +56,7 @@ public:
   static vtkSlicerRos2Logic *New();
   vtkTypeMacro(vtkSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-  void loadRobotSTLModels(const std::string & filename); // Could also be protected friend ** ask Anton
+  void loadRobotSTLModels(); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
   void UpdateChainFromTf(double translate_x, double translate_y, double translate_z, double rotate_x, double rotate_y, double rotate_z, double rotate_w);
   void Spin(void);

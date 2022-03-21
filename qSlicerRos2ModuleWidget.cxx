@@ -107,8 +107,6 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
   Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
 
-  //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
-  // have to do the SafeDownCast
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
 	if (!logic)
   {
@@ -116,9 +114,13 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
  	   return;
 	}
 
-  // Convert input QString to std::string to pass to logic
-  const std::string model_path = text.toStdString();;
-  logic->loadRobotSTLModels(model_path);
+  // Check if the timer is on or off before setting up the robot
+  if (timerOff == true){
+    mTimer->start();
+    timerOff = false;
+  }
+
+  logic->loadRobotSTLModels();
 
 }
 
@@ -147,4 +149,11 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
     return;
   }
   logic->Clear();
+
+  // Stop the timer too if three are no more models in the scene
+  if (timerOff == false){
+    mTimer->stop();
+    timerOff = true;
+  }
+
 }

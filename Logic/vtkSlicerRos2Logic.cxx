@@ -142,7 +142,7 @@ void vtkSlicerRos2Logic
 
 //----------------------------------------------------------------------------
 void vtkSlicerRos2Logic
-::loadRobotSTLModels(const std::string& filename)
+::loadRobotSTLModels()
 {
 
   if (parameterNodeCallbackFlag == false){
