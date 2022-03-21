@@ -52,7 +52,6 @@
 
 // Generic includes
 #include <boost/filesystem/path.hpp>
-#include <stdlib.h>
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
@@ -161,7 +160,7 @@ void vtkSlicerRos2Logic
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromString(robot_description_string, my_tree)) {
-    return; //std::cout << "No urdf file to load." << filename << std::endl;
+    return; 
   }
 
   // Start by getting the name of the root link and add it to the vector of strings
@@ -187,34 +186,11 @@ void vtkSlicerRos2Logic
     }
   }
 
-
   // Print out the list of link names
   for (std::string i: link_names_vector) {
     std::cout << "[" << i << "] ";
   }
   std::cout << std::endl;
-
-  //Call load STL model functions with python - can't find C++ implementation
-  // QList<QVariant> link_names_for_loading;
-  // // Link names need to be converted to QList of QVariants to be passed to python script
-  // for (size_t j = 0; j < link_names_vector.size(); j ++) {
-  //   QVariant link_to_be_added;
-  //   link_to_be_added = QString::fromStdString(link_names_vector[j]);
-  //   link_names_for_loading.append(link_to_be_added);
-  // }
-  // //link_names_for_loading.append(link_names_vector);
-  // #ifdef Slicer_USE_PYTHONQT
-  //   PythonQt::init();
-  //   PythonQtObjectPtr context = PythonQt::self()->getMainModule();
-  //   context.addVariable("linkNamesList", link_names_for_loading);
-  //   context.evalScript(QString(
-  //   "import slicer \n"
-  //   "from pathlib import Path \n"
-  //   "print(linkNamesList) \n"
-  //   "mesh_dir = str(Path.home()) + '/ros2_ws/src/SlicerRos2/models/meshes/' \n"
-  //   "for j in range(len(linkNamesList)): \n"
-  //   " slicer.util.loadModel(mesh_dir + linkNamesList[j] + '.stl') \n" ));
-  // #endif
 
   auto kdl_chain = new KDL::Chain();
   std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
@@ -256,9 +232,6 @@ void vtkSlicerRos2Logic
   initialJointValues[1] = 0.8; // for testing
   UpdateFK(initialJointValues);
 
-  char * pHome = getenv ("HOME");
-  const std::string home(pHome);
-
   // Get the origin and rpy
   std::vector<urdf::Pose> origins;
   std::vector<std::string> filenames;
@@ -266,22 +239,15 @@ void vtkSlicerRos2Logic
     urdf::Pose origin;
     origin = i->origin;
     origins.push_back(origin);
-
-    urdf::Geometry geometry1; // Working on getting the STL file name
-    geometry1 = *(i->geometry);
+    // Get stl file name and add it to a list of vectors for python parsing later
     std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
-    std::cerr << "STL filename " << mesh->filename << std::endl;
     filenames.push_back(mesh->filename);
   }
 
   //Call load STL model functions with python - can't find C++ implementation
-  QList<QVariant> link_names_for_loading;
   QList<QVariant> file_names_for_loading;
   // Link names need to be converted to QList of QVariants to be passed to python script
-  for (size_t j = 0; j < link_names_vector.size(); j ++) {
-    QVariant link_to_be_added;
-    link_to_be_added = QString::fromStdString(link_names_vector[j]);
-    link_names_for_loading.append(link_to_be_added);
+  for (size_t j = 0; j < filenames.size(); j ++) {
     QVariant file_to_be_added;
     file_to_be_added = QString::fromStdString(filenames[j]);
     file_names_for_loading.append(file_to_be_added);
@@ -290,7 +256,6 @@ void vtkSlicerRos2Logic
   #ifdef Slicer_USE_PYTHONQT
     PythonQt::init();
     PythonQtObjectPtr context = PythonQt::self()->getMainModule();
-    context.addVariable("linkNamesList", link_names_for_loading);
     context.addVariable("fileNamesList", file_names_for_loading);
     context.evalScript(QString(
     "import slicer \n"
