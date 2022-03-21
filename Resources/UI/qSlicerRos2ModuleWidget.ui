@@ -18,6 +18,13 @@
     <widget class="QComboBox" name="fileSelector"/>
    </item>
    <item>
+    <widget class="QPushButton" name="clearSceneButton">
+     <property name="text">
+      <string>Clear Scene</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

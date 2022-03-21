@@ -60,6 +60,7 @@ public:
   void UpdateFK(const std::vector<double> & joinValues);
   void UpdateChainFromTf(double translate_x, double translate_y, double translate_z, double rotate_x, double rotate_y, double rotate_z, double rotate_w);
   void Spin(void);
+  void Clear();
 
 protected:
   vtkSlicerRos2Logic();

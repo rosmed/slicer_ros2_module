@@ -160,7 +160,7 @@ void vtkSlicerRos2Logic
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromString(robot_description_string, my_tree)) {
-    return; 
+    return;
   }
 
   // Start by getting the name of the root link and add it to the vector of strings
@@ -425,4 +425,9 @@ void vtkSlicerRos2Logic::UpdateChainFromTf(double translate_x, double translate_
     mChainNodeTransforms[0]->Modified();
 
   }
+}
+
+void vtkSlicerRos2Logic::Clear()
+{
+  this->GetMRMLScene()->Clear();
 }

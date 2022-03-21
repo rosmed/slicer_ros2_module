@@ -96,6 +96,7 @@ void qSlicerRos2ModuleWidget::setup()
     d->fileSelector->addItem(file.path().c_str());
 
   this->connect(d->fileSelector, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onFileSelected(const QString&)));
+  this->connect(d->clearSceneButton, SIGNAL(clicked(bool)), this, SLOT(onClearSceneSelected()));
 
   // Set up timer connections
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
@@ -133,4 +134,17 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
     return;
   }
   logic->Spin();
+}
+
+void qSlicerRos2ModuleWidget::onClearSceneSelected()
+{
+  Q_D(qSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    return;
+  }
+  logic->Clear();
 }

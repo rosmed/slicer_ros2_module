@@ -58,6 +58,7 @@ protected:
 protected slots:
   void onFileSelected(const QString&);
   void onTimerTimeOut();
+  void onClearSceneSelected();
 
 
 private:
