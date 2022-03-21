@@ -17,7 +17,7 @@
     <visual>
       <origin xyz="0 -0.02 0" />
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/base.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/base.stl" />
       </geometry>
       <material name="metal_seamed"/>
     </visual>
@@ -26,7 +26,7 @@
     <visual>
       <origin xyz="0 0 0.036" rpy="-1.5707 0 0"/>
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/torso.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/torso.stl" />
       </geometry>
       <material name="blue"/>
     </visual>
@@ -35,7 +35,7 @@
     <visual>
       <origin xyz="0.0075 0 0" rpy="0 0 0"/>
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/upper_arm.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/upper_arm.stl" />
       </geometry>
       <material name="metal_seamed" />
     </visual>
@@ -44,7 +44,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="1.5707 0 0"/>
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/lower_arm.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/lower_arm.stl" />
       </geometry>
       <material name="metal_seamed" />
     </visual>
@@ -53,7 +53,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="3.14159 0 0"/>
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/wrist.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/wrist.stl" />
       </geometry>
       <material name="metal_seamed" />
     </visual>
@@ -62,7 +62,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="-1.5707 0 0"/>
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/tip.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/tip.stl" />
       </geometry>
       <material name="metal_seamed" />
     </visual>
@@ -71,7 +71,7 @@
     <visual>
       <origin xyz="0 -0.039 0" rpy="1.5707 1.5707 0"/>
       <geometry>
-	<mesh filename="package://sensable_phantom_models/meshes/pen.stl" />
+	<mesh filename="/ros2_ws/src/SlicerRos2/models/meshes/pen.stl" />
       </geometry>
       <material name="blue" />
     </visual>
