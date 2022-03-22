@@ -41,13 +41,14 @@ public:
 public slots:
 
   //void setMRMLScene(vtkMRMLScene* scene);
+  void stopSound();
 
 protected:
   QScopedPointer<qSlicerRos2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
   QTimer* mTimer;
-  bool timerOff = false; 
+  bool timerOff = false;
 
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
@@ -60,6 +61,7 @@ protected slots:
   void onFileSelected(const QString&);
   void onTimerTimeOut();
   void onClearSceneSelected();
+
 
 
 private:

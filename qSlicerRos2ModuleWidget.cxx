@@ -19,11 +19,14 @@
 #include <QTimer>
 #include <QDebug>
 #include <QtGui>
+#include <QCloseEvent>
 #include <QButtonGroup>
+#include <QWidget>
 
 // Slicer includes
 #include "qSlicerRos2ModuleWidget.h"
 #include "ui_qSlicerRos2ModuleWidget.h"
+#include "qSlicerApplication.h"
 
 // reference to Logic
 #include "vtkSlicerRos2Logic.h"
@@ -100,6 +103,7 @@ void qSlicerRos2ModuleWidget::setup()
 
   // Set up timer connections
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
+  connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -156,4 +160,11 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
     timerOff = true;
   }
 
+}
+
+void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+{
+  std::cerr << "closing event" << std::endl;
+  mTimer->stop();
+  delete this->mTimer;
 }
