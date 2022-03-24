@@ -53,6 +53,8 @@
 // Generic includes
 #include <boost/filesystem/path.hpp>
 
+
+
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
 
@@ -91,6 +93,10 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = mNodePointer->create_subscription<tf2_msgs::msg::TFMessage>
       ("/tf", 10, std::bind(&vtkSlicerRos2Logic::TfCallback,
         this, std::placeholders::_1));
+
+  mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
+  mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+
 }
 
 
@@ -373,6 +379,7 @@ void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
   rclcpp::spin_some(mNodePointer);
+  queryTfNode();
 }
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
@@ -430,4 +437,19 @@ void vtkSlicerRos2Logic::UpdateChainFromTf(double translate_x, double translate_
 void vtkSlicerRos2Logic::Clear()
 {
   this->GetMRMLScene()->Clear();
+}
+
+void vtkSlicerRos2Logic::queryTfNode()
+{
+  std::string fromFrameRel = "base";
+  std::string toFrameRel = "wrist";
+  geometry_msgs::msg::TransformStamped transformStamped;
+
+  try {
+    transformStamped = mTfBuffer->lookupTransform(toFrameRel, fromFrameRel, tf2::TimePointZero);
+    std::cout << "Recieved transform" << std::endl;
+  } catch (tf2::TransformException & ex) {
+    std::cout << " Transform exception" << std::endl;
+    return;
+  }
 }

@@ -45,7 +45,22 @@ class vtkMRMLTransformNode;
 #include <sensor_msgs/msg/joint_state.hpp>
 
 // Tf include_directories
-#include "tf2_msgs/msg/tf_message.hpp"
+// Tf includes
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+
+#include <rclcpp/rclcpp.hpp>
+#include <tf2/exceptions.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <turtlesim/srv/spawn.hpp>
+
+#include <chrono>
+#include <memory>
+#include <string>
+
+using std::placeholders::_1;
+using namespace std::chrono_literals;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
@@ -95,6 +110,11 @@ private:
 
   std::shared_ptr<rclcpp::Subscription<tf2_msgs::msg::TFMessage>> mTfSubscription;
   void TfCallback(const std::shared_ptr<tf2_msgs::msg::TFMessage> msg);
+
+  std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
+  std::shared_ptr<tf2_ros::TransformListener> mTfListener;// tf2_ros::TransformListener tfListener(tf2_ros::Buffer tfBuffer);
+  void queryTfNode();
+
 };
 
 #endif
