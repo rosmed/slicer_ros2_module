@@ -73,7 +73,6 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   void loadRobotSTLModels(); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
-  void UpdateChainFromTf(double translate_x, double translate_y, double translate_z, double rotate_x, double rotate_y, double rotate_z, double rotate_w);
   void Spin(void);
   void Clear();
 
@@ -104,17 +103,15 @@ private:
 
   std::string robot_description_string;
   bool parameterNodeCallbackFlag = false;
+  std::vector<std::string> link_names_vector;
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
 
-  std::shared_ptr<rclcpp::Subscription<tf2_msgs::msg::TFMessage>> mTfSubscription;
-  void TfCallback(const std::shared_ptr<tf2_msgs::msg::TFMessage> msg);
-
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
   std::shared_ptr<tf2_ros::TransformListener> mTfListener;// tf2_ros::TransformListener tfListener(tf2_ros::Buffer tfBuffer);
   void queryTfNode();
-
+  void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
 };
 
 #endif

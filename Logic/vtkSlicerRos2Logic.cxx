@@ -89,11 +89,6 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     ("/joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
 
-  mTfSubscription
-    = mNodePointer->create_subscription<tf2_msgs::msg::TFMessage>
-      ("/tf", 10, std::bind(&vtkSlicerRos2Logic::TfCallback,
-        this, std::placeholders::_1));
-
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
 
@@ -213,7 +208,6 @@ void vtkSlicerRos2Logic
 
   std::cout << "This is the joint position array" << std::endl;
 
-
   // Initialize the fk solver
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 
@@ -280,7 +274,7 @@ void vtkSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
-    tnode->SetName("InitialPosition");
+    tnode->SetName(("InitialPosition_" + link_names_vector[k]).c_str());
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
@@ -314,12 +308,19 @@ void vtkSlicerRos2Logic
     tnode->Modified();
 
     if (k == 0) {
+
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       assert(modelNode);
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     } else {
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
+
+      // Uncomment for cascaded transforms
+      // if (k > 1){
+      //   vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(("InitialPosition_" + link_names_vector[k - 1]).c_str()));
+      //   transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+      // }
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
@@ -379,7 +380,7 @@ void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
   rclcpp::spin_some(mNodePointer);
-  queryTfNode();
+  //queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
 }
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
@@ -388,68 +389,78 @@ void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp
   auto result = future.get();
   auto param = result.at(0);
   robot_description_string = param.as_string().c_str();
-  //RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
+
 }
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
 {
   std::cerr << "got message of size " << msg->position.size() << std::endl;
   if (msg->position.size() == 6) {
-    UpdateFK(msg->position);
+    std::cerr << "commenting out for testing" << std::endl;
+    UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
   }
 }
 
-void vtkSlicerRos2Logic::TfCallback(const std::shared_ptr<tf2_msgs::msg::TFMessage> msg)
-{
-  std::cerr << msg->transforms.at(0).child_frame_id << std::endl;
-
-  auto x = msg->transforms.at(0).transform.translation.x;
-  auto y = msg->transforms.at(0).transform.translation.y;
-  auto z = msg->transforms.at(0).transform.translation.z;
-  // std::cerr << "x" << x << "y" << y << "z" << z << std::endl; // For debugging
-  auto q_x = msg->transforms.at(0).transform.rotation.x;
-  auto q_y = msg->transforms.at(0).transform.rotation.y;
-  auto q_z = msg->transforms.at(0).transform.rotation.z;
-  auto q_w = msg->transforms.at(0).transform.rotation.w;
-  // std::cerr << "x" << q_x << "y" << q_y << "z" << q_z << "w" << q_w << std::endl; // For debugging
-  //UpdateChainFromTf(x, y, z, q_x, q_y, q_z, q_w);
-
-}
-
-void vtkSlicerRos2Logic::UpdateChainFromTf(double translate_x, double translate_y, double translate_z, double rotate_x, double rotate_y, double rotate_z, double rotate_w)
-{
-  // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
-  // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
-  if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
-    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[0]->GetTransformToParent());
-    modifiedTransform2->RotateWXYZ(rotate_w, rotate_x, rotate_y, rotate_z);
-    mChainNodeTransforms[0]->SetAndObserveTransformToParent(modifiedTransform2);
-    mChainNodeTransforms[0]->Modified();
-
-    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(mChainNodeTransforms[0]->GetTransformToParent());
-    modifiedTransform->Translate(translate_x, translate_y, translate_z);
-    mChainNodeTransforms[0]->SetAndObserveTransformToParent(modifiedTransform);
-    mChainNodeTransforms[0]->Modified();
-
-  }
-}
 
 void vtkSlicerRos2Logic::Clear()
 {
   this->GetMRMLScene()->Clear();
 }
 
+// void vtkSlicerRos2Logic::setupTfHierarchy()
+// {
+//
+// }
+
 void vtkSlicerRos2Logic::queryTfNode()
 {
-  std::string fromFrameRel = "base";
-  std::string toFrameRel = "wrist";
-  geometry_msgs::msg::TransformStamped transformStamped;
+  std::vector<std::string> link_names; // just make the one in intializer a global var
+  link_names.push_back("base");
+  link_names.push_back("torso");
+  link_names.push_back("upper_arm");
+  link_names.push_back("lower_arm");
+  link_names.push_back("wrist");
+  link_names.push_back("tip");
+  link_names.push_back("stylus");
+  for (int link = 0; link < link_names.size() - 1; link++) {
+    geometry_msgs::msg::TransformStamped transformStamped;
 
-  try {
-    transformStamped = mTfBuffer->lookupTransform(toFrameRel, fromFrameRel, tf2::TimePointZero);
-    std::cout << "Recieved transform" << std::endl;
-  } catch (tf2::TransformException & ex) {
-    std::cout << " Transform exception" << std::endl;
-    return;
+    try {
+      transformStamped = mTfBuffer->lookupTransform(link_names[link + 1], link_names[link], tf2::TimePointZero);
+      std::cout << "Recieved transform" << link << std::endl;
+      updateTransformFromTf(transformStamped, link);
+      } catch (tf2::TransformException & ex) {
+        std::cout << " Transform exception" << std::endl;
+        return;
+    }
+
+  }
+}
+
+void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
+{
+  // Retrieve the translation vector and quaternion from the geometry message
+  auto x = transformStamped.transform.translation.x/1000;
+  auto y = transformStamped.transform.translation.y/1000;
+  auto z = transformStamped.transform.translation.z/1000; // convert from m to mm
+  auto q_w = transformStamped.transform.rotation.w;
+  auto q_x = transformStamped.transform.rotation.x;
+  auto q_y = transformStamped.transform.rotation.y;
+  auto q_z = transformStamped.transform.rotation.z;
+  std::cerr << "Got transform" << std::endl;
+  std::cerr << "x: " << x << "y: " << y << "z: " << z << "w: " << q_w << "x: " <<  q_x << "y: " << q_y << "z: " << q_z << std::endl;
+  // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
+  // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
+  if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
+    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
+    modifiedTransform2->RotateWXYZ(q_w, q_x, q_y, q_z);
+    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform2);
+    mChainNodeTransforms[transform]->Modified();
+
+    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
+    modifiedTransform->Translate(x, y, z);
+    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform);
+    mChainNodeTransforms[transform]->Modified();
+
   }
 }
