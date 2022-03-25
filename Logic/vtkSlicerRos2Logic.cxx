@@ -30,6 +30,8 @@
 
 // VTK includes
 #include <vtkMatrix4x4.h>
+#include <vtkMatrix3x3.h>
+#include <vtkMath.h>
 #include <vtkTransform.h>
 
 #include <qSlicerCoreIOManager.h>
@@ -407,10 +409,6 @@ void vtkSlicerRos2Logic::Clear()
   this->GetMRMLScene()->Clear();
 }
 
-// void vtkSlicerRos2Logic::setupTfHierarchy()
-// {
-//
-// }
 
 void vtkSlicerRos2Logic::queryTfNode()
 {
@@ -422,13 +420,14 @@ void vtkSlicerRos2Logic::queryTfNode()
   link_names.push_back("wrist");
   link_names.push_back("tip");
   link_names.push_back("stylus");
-  for (int link = 0; link < link_names.size() - 1; link++) {
+  // for (int link = 0; link < link_names.size() - 1; link++) {
+  for (int link = 1; link < link_names.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
 
     try {
-      transformStamped = mTfBuffer->lookupTransform(link_names[link + 1], link_names[link], tf2::TimePointZero);
+      transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[0], tf2::TimePointZero);
       std::cout << "Recieved transform" << link << std::endl;
-      updateTransformFromTf(transformStamped, link);
+      updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
         std::cout << " Transform exception" << std::endl;
         return;
@@ -440,9 +439,10 @@ void vtkSlicerRos2Logic::queryTfNode()
 void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
 {
   // Retrieve the translation vector and quaternion from the geometry message
-  auto x = transformStamped.transform.translation.x/1000;
-  auto y = transformStamped.transform.translation.y/1000;
-  auto z = transformStamped.transform.translation.z/1000; // convert from m to mm
+
+  auto x = transformStamped.transform.translation.x;
+  auto y = transformStamped.transform.translation.y;
+  auto z = transformStamped.transform.translation.z; // convert from m to mm
   auto q_w = transformStamped.transform.rotation.w;
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
@@ -451,15 +451,30 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
   std::cerr << "x: " << x << "y: " << y << "z: " << z << "w: " << q_w << "x: " <<  q_x << "y: " << q_y << "z: " << q_z << std::endl;
   // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
   // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
+
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
     vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
     modifiedTransform2->RotateWXYZ(q_w, q_x, q_y, q_z);
-    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform2);
-    mChainNodeTransforms[transform]->Modified();
+    //modifiedTransform2->Translate(x, y, z); // Its a rotational joint so we shouldn't need translation right?
+    modifiedTransform2->Modified();
+    //mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform2);
+    //mChainNodeTransforms[transform]->Modified();
 
-    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
-    modifiedTransform->Translate(x, y, z);
-    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform);
+    vtkNew<vtkMatrix4x4> t;
+    // //mChainNodeTransforms[transform]->GetMatrixTransformToParent(t);
+    //
+    modifiedTransform2->GetMatrix(t);
+    // // Apply LPS to RAS conversion
+    // // x forward, y left, z up
+    // // a forward, r left, s up
+    vtkNew<vtkMatrix4x4> RosToRAS_matrix;
+    RosToRAS_matrix->SetElement(0, 1, 1.0);
+    RosToRAS_matrix->SetElement(0, 0, 0.0);
+    RosToRAS_matrix->SetElement(1, 1, 0.0);
+    RosToRAS_matrix->SetElement(1, 0, 1.0);
+    //
+    RosToRAS_matrix->Multiply4x4(t, RosToRAS_matrix, t);
+    mChainNodeTransforms[transform]->SetMatrixTransformToParent(t);
     mChainNodeTransforms[transform]->Modified();
 
   }
