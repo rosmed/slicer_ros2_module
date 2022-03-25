@@ -70,18 +70,23 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
     = std::make_shared<rclcpp::AsyncParametersClient>
     (mNodePointer,
      "/robot_state_publisher");
-  mParameterClient->wait_for_service(); // We need this wait for service to get the parameter - may cause issues with hanging
+
+  std::chrono::seconds sec(1);
+  mParameterClient->wait_for_service(sec);
   auto parameters_future
     = mParameterClient->get_parameters
     ({"robot_description"},
      std::bind(&vtkSlicerRos2Logic::ParameterCallback,
                this, std::placeholders::_1));
-
   // subscription
   mJointStateSubscription
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
-    ("joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
-				   this, std::placeholders::_1));
+    ("/joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
+				  this, std::placeholders::_1));
+
+  mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
+  mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+
 }
 
 
@@ -133,8 +138,13 @@ void vtkSlicerRos2Logic
 
 //----------------------------------------------------------------------------
 void vtkSlicerRos2Logic
-::loadRobotSTLModels(const std::string & robot_description_string)
+::loadRobotSTLModels()
 {
+
+  if (parameterNodeCallbackFlag == false){
+    std::cout << " Never entered call back" << std::endl;
+    return;
+  }
   // Print out the urdf from param
   std::cout << robot_description_string << std::endl;
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
@@ -146,7 +156,7 @@ void vtkSlicerRos2Logic
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromString(robot_description_string, my_tree)) {
-    return; //std::cout << "No urdf file to load." << filename << std::endl;
+    return;
   }
 
   // Start by getting the name of the root link and add it to the vector of strings
@@ -178,28 +188,6 @@ void vtkSlicerRos2Logic
   }
   std::cout << std::endl;
 
-  //Call load STL model functions with python - can't find C++ implementation
-  QList<QVariant> link_names_for_loading;
-  // Link names need to be converted to QList of QVariants to be passed to python script
-  for (size_t j = 0; j < link_names_vector.size(); j ++) {
-    QVariant link_to_be_added;
-    link_to_be_added = QString::fromStdString(link_names_vector[j]);
-    link_names_for_loading.append(link_to_be_added);
-  }
-  //link_names_for_loading.append(link_names_vector);
-  #ifdef Slicer_USE_PYTHONQT
-    PythonQt::init();
-    PythonQtObjectPtr context = PythonQt::self()->getMainModule();
-    context.addVariable("linkNamesList", link_names_for_loading);
-    context.evalScript(QString(
-    "import slicer \n"
-    "from pathlib import Path \n"
-    "print(linkNamesList) \n"
-    "mesh_dir = str(Path.home()) + '/ros2_ws/src/SlicerRos2/models/meshes/' \n"
-    "for j in range(len(linkNamesList)): \n"
-    " slicer.util.loadModel(mesh_dir + linkNamesList[j] + '.stl') \n" ));
-  #endif
-
   auto kdl_chain = new KDL::Chain();
   std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
   std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
@@ -214,7 +202,6 @@ void vtkSlicerRos2Logic
 	    << " links" << std::endl;
 
   std::cout << "This is the joint position array" << std::endl;
-
 
   // Initialize the fk solver
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
@@ -242,11 +229,36 @@ void vtkSlicerRos2Logic
 
   // Get the origin and rpy
   std::vector<urdf::Pose> origins;
+  std::vector<std::string> filenames;
   for (std::shared_ptr<urdf::Visual> i: visual_vector) {
     urdf::Pose origin;
     origin = i->origin;
     origins.push_back(origin);
+    // Get stl file name and add it to a list of vectors for python parsing later
+    std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
+    filenames.push_back(mesh->filename);
   }
+
+  //Call load STL model functions with python - can't find C++ implementation
+  QList<QVariant> file_names_for_loading;
+  // Link names need to be converted to QList of QVariants to be passed to python script
+  for (size_t j = 0; j < filenames.size(); j ++) {
+    QVariant file_to_be_added;
+    file_to_be_added = QString::fromStdString(filenames[j]);
+    file_names_for_loading.append(file_to_be_added);
+  }
+  //link_names_for_loading.append(link_names_vector);
+  #ifdef Slicer_USE_PYTHONQT
+    PythonQt::init();
+    PythonQtObjectPtr context = PythonQt::self()->getMainModule();
+    context.addVariable("fileNamesList", file_names_for_loading);
+    context.evalScript(QString(
+    "import slicer \n"
+    "from pathlib import Path \n"
+    "print(fileNamesList) \n"
+    "for j in range(len(fileNamesList)): \n"
+    " slicer.util.loadModel(str(Path.home()) + fileNamesList[j]) \n" ));
+  #endif
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
   for (size_t k = 0; k < (mKDLChainSize + 1); k ++) {
@@ -257,7 +269,7 @@ void vtkSlicerRos2Logic
     generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
-    tnode->SetName("InitialPosition");
+    tnode->SetName(("InitialPosition_" + link_names_vector[k]).c_str());
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
@@ -297,6 +309,12 @@ void vtkSlicerRos2Logic
     } else {
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
+
+      // Uncomment for cascaded transforms
+      // if (k > 1){
+      //   vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(("InitialPosition_" + link_names_vector[k - 1]).c_str()));
+      //   transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+      // }
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
@@ -356,21 +374,86 @@ void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
   rclcpp::spin_some(mNodePointer);
+  //queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
 }
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
 {
+  parameterNodeCallbackFlag = true;
   auto result = future.get();
   auto param = result.at(0);
-  loadRobotSTLModels(param.as_string().c_str());
-  //RCLCPP_INFO(mNodePointer->get_logger(), "Got global param: %s", param.as_string().c_str()); // this should be saved somewhere so it can be accessed
-  
+  robot_description_string = param.as_string().c_str();
 }
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
 {
   std::cerr << "got message of size " << msg->position.size() << std::endl;
   if (msg->position.size() == 6) {
-    UpdateFK(msg->position);
+    std::cerr << "commenting out for testing" << std::endl;
+    UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
+  }
+}
+
+
+void vtkSlicerRos2Logic::Clear()
+{
+  this->GetMRMLScene()->Clear();
+}
+
+// void vtkSlicerRos2Logic::setupTfHierarchy()
+// {
+//
+// }
+
+void vtkSlicerRos2Logic::queryTfNode()
+{
+  std::vector<std::string> link_names; // just make the one in intializer a global var
+  link_names.push_back("base");
+  link_names.push_back("torso");
+  link_names.push_back("upper_arm");
+  link_names.push_back("lower_arm");
+  link_names.push_back("wrist");
+  link_names.push_back("tip");
+  link_names.push_back("stylus");
+  for (int link = 0; link < link_names.size() - 1; link++) {
+    geometry_msgs::msg::TransformStamped transformStamped;
+
+    try {
+      transformStamped = mTfBuffer->lookupTransform(link_names[link + 1], link_names[link], tf2::TimePointZero);
+      std::cout << "Recieved transform" << link << std::endl;
+      updateTransformFromTf(transformStamped, link);
+      } catch (tf2::TransformException & ex) {
+        std::cout << " Transform exception" << std::endl;
+        return;
+    }
+
+  }
+}
+
+void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
+{
+  // Retrieve the translation vector and quaternion from the geometry message
+  auto x = transformStamped.transform.translation.x/1000;
+  auto y = transformStamped.transform.translation.y/1000;
+  auto z = transformStamped.transform.translation.z/1000; // convert from m to mm
+  auto q_w = transformStamped.transform.rotation.w;
+  auto q_x = transformStamped.transform.rotation.x;
+  auto q_y = transformStamped.transform.rotation.y;
+  auto q_z = transformStamped.transform.rotation.z;
+  std::cerr << "Got transform" << std::endl;
+  std::cerr << "x: " << x << "y: " << y << "z: " << z << "w: " << q_w << "x: " <<  q_x << "y: " << q_y << "z: " << q_z << std::endl;
+  // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
+  // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
+  if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
+    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
+    modifiedTransform2->RotateWXYZ(q_w, q_x, q_y, q_z);
+    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform2);
+    mChainNodeTransforms[transform]->Modified();
+
+    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
+    modifiedTransform->Translate(x, y, z);
+    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform);
+    mChainNodeTransforms[transform]->Modified();
+
   }
 }

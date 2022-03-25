@@ -44,6 +44,24 @@ class vtkMRMLTransformNode;
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
+// Tf include_directories
+// Tf includes
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+
+#include <rclcpp/rclcpp.hpp>
+#include <tf2/exceptions.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <turtlesim/srv/spawn.hpp>
+
+#include <chrono>
+#include <memory>
+#include <string>
+
+using std::placeholders::_1;
+using namespace std::chrono_literals;
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
   public vtkSlicerModuleLogic
@@ -53,9 +71,10 @@ public:
   static vtkSlicerRos2Logic *New();
   vtkTypeMacro(vtkSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-  void loadRobotSTLModels(const std::string & filename); // Could also be protected friend ** ask Anton
+  void loadRobotSTLModels(); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
   void Spin(void);
+  void Clear();
 
 protected:
   vtkSlicerRos2Logic();
@@ -82,10 +101,17 @@ private:
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
 
-  // std::string robot_description_string;
+  std::string robot_description_string;
+  bool parameterNodeCallbackFlag = false;
+  std::vector<std::string> link_names_vector;
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
+
+  std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
+  std::shared_ptr<tf2_ros::TransformListener> mTfListener;// tf2_ros::TransformListener tfListener(tf2_ros::Buffer tfBuffer);
+  void queryTfNode();
+  void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
 };
 
 #endif

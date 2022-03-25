@@ -19,11 +19,14 @@
 #include <QTimer>
 #include <QDebug>
 #include <QtGui>
+#include <QCloseEvent>
 #include <QButtonGroup>
+#include <QWidget>
 
 // Slicer includes
 #include "qSlicerRos2ModuleWidget.h"
 #include "ui_qSlicerRos2ModuleWidget.h"
+#include "qSlicerApplication.h"
 
 // reference to Logic
 #include "vtkSlicerRos2Logic.h"
@@ -66,11 +69,13 @@ qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
   this->mTimer = new QTimer();
   mTimer->setSingleShot(false);
   mTimer->setInterval(20); // 20 ms, 50Hz
+  mTimer->start();
 }
 
 //-----------------------------------------------------------------------------
 qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
 {
+  mTimer->stop();
   delete this->mTimer;
 }
 
@@ -94,10 +99,11 @@ void qSlicerRos2ModuleWidget::setup()
     d->fileSelector->addItem(file.path().c_str());
 
   this->connect(d->fileSelector, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onFileSelected(const QString&)));
+  this->connect(d->clearSceneButton, SIGNAL(clicked(bool)), this, SLOT(onClearSceneSelected()));
 
   // Set up timer connections
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
-  this->connect(d->activeCheckBox, SIGNAL(toggled(bool)), this, SLOT(onTimerStarted(bool)));
+  connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -105,8 +111,6 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
   Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
 
-  //this->logic()->loadRobotSTLModels(); // This didn't work because it would call the base class which is vtkMRMlAbstractLogic
-  // have to do the SafeDownCast
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
 	if (!logic)
   {
@@ -114,24 +118,16 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
  	   return;
 	}
 
-  // Convert input QString to std::string to pass to logic
-  const std::string model_path = text.toStdString();;
-  logic->loadRobotSTLModels(model_path);
-
-}
-
-void qSlicerRos2ModuleWidget::onTimerStarted(bool state)
-{
-  Q_D(qSlicerRos2ModuleWidget);
-  this->Superclass::setup();
-
-  if (state == true){
+  // Check if the timer is on or off before setting up the robot
+  if (timerOff == true){
     mTimer->start();
+    timerOff = false;
   }
-  else{
-    mTimer->stop();
-  }
+
+  logic->loadRobotSTLModels();
+
 }
+
 
 void qSlicerRos2ModuleWidget::onTimerTimeOut()
 {
@@ -144,4 +140,31 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
     return;
   }
   logic->Spin();
+}
+
+void qSlicerRos2ModuleWidget::onClearSceneSelected()
+{
+  Q_D(qSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    return;
+  }
+  logic->Clear();
+
+  // Stop the timer too if three are no more models in the scene
+  if (timerOff == false){
+    mTimer->stop();
+    timerOff = true;
+  }
+
+}
+
+void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+{
+  std::cerr << "closing event" << std::endl;
+  mTimer->stop();
+  delete this->mTimer;
 }
