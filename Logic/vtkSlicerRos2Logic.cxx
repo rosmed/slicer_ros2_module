@@ -32,6 +32,7 @@
 #include <vtkMatrix4x4.h>
 #include <vtkMatrix3x3.h>
 #include <vtkMath.h>
+#include <vtkQuaternion.h>
 #include <vtkTransform.h>
 
 #include <qSlicerCoreIOManager.h>
@@ -382,7 +383,7 @@ void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
   rclcpp::spin_some(mNodePointer);
-  //queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
+  queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
 }
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
@@ -399,7 +400,7 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
   std::cerr << "got message of size " << msg->position.size() << std::endl;
   if (msg->position.size() == 6) {
     std::cerr << "commenting out for testing" << std::endl;
-    UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
+    //UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
   }
 }
 
@@ -447,35 +448,33 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
   auto q_z = transformStamped.transform.rotation.z;
-  std::cerr << "Got transform" << std::endl;
-  std::cerr << "x: " << x << "y: " << y << "z: " << z << "w: " << q_w << "x: " <<  q_x << "y: " << q_y << "z: " << q_z << std::endl;
-  // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
-  // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
+
 
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
-    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
-    modifiedTransform2->RotateWXYZ(q_w, q_x, q_y, q_z);
-    //modifiedTransform2->Translate(x, y, z); // Its a rotational joint so we shouldn't need translation right?
-    modifiedTransform2->Modified();
-    //mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform2);
-    //mChainNodeTransforms[transform]->Modified();
+    const float q[4] = {q_w, q_x, q_y, q_z};
+    float A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+    vtkMath::QuaternionToMatrix3x3(q, A);
+    std::cerr << A[3][3] << std::endl;
+    vtkNew<vtkMatrix4x4> Tf;
+    for (int row = 0; row < 3; row++){
+      for (int column = 0; column < 3; column++){
+        Tf->SetElement(row, column, A[row][column]);
+      }
+    }
+    // Apply translation vector
+    Tf->SetElement(0,3, x);
+    Tf->SetElement(1,3, y);
+    Tf->SetElement(2,3, z);
 
-    vtkNew<vtkMatrix4x4> t;
-    // //mChainNodeTransforms[transform]->GetMatrixTransformToParent(t);
-    //
-    modifiedTransform2->GetMatrix(t);
-    // // Apply LPS to RAS conversion
-    // // x forward, y left, z up
-    // // a forward, r left, s up
-    vtkNew<vtkMatrix4x4> RosToRAS_matrix;
-    RosToRAS_matrix->SetElement(0, 1, 1.0);
-    RosToRAS_matrix->SetElement(0, 0, 0.0);
-    RosToRAS_matrix->SetElement(1, 1, 0.0);
-    RosToRAS_matrix->SetElement(1, 0, 1.0);
-    //
-    RosToRAS_matrix->Multiply4x4(t, RosToRAS_matrix, t);
-    mChainNodeTransforms[transform]->SetMatrixTransformToParent(t);
+    // x forward - y left - z up (Ros)
+    // x right, y back, z up (LPS)
+    vtkNew<vtkMatrix4x4> RosToLps_matrix;
+    RosToLps_matrix->SetElement(0, 0, 0.0);
+    RosToLps_matrix->SetElement(0, 1, -1.0);
+    RosToLps_matrix->SetElement(1, 0, -1.0);
+    RosToLps_matrix->SetElement(1, 1, 0.0);
+    RosToLps_matrix->Multiply4x4(Tf, RosToLps_matrix, Tf);
+    mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
     mChainNodeTransforms[transform]->Modified();
-
   }
 }
