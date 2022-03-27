@@ -320,10 +320,10 @@ void vtkSlicerRos2Logic
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
       // Uncomment for cascaded transforms
-      // if (k > 1){
-      //   vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(("InitialPosition_" + link_names_vector[k - 1]).c_str()));
-      //   transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
-      // }
+      if (k > 1){
+        vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(("InitialPosition_" + link_names_vector[k - 1]).c_str()));
+        transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+      }
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
@@ -426,8 +426,7 @@ void vtkSlicerRos2Logic::queryTfNode()
     geometry_msgs::msg::TransformStamped transformStamped;
 
     try {
-      transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[0], tf2::TimePointZero);
-      std::cout << "Recieved transform" << link << std::endl;
+      transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[link - 1], tf2::TimePointZero);
       updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
         std::cout << " Transform exception" << std::endl;
@@ -440,10 +439,9 @@ void vtkSlicerRos2Logic::queryTfNode()
 void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
 {
   // Retrieve the translation vector and quaternion from the geometry message
-
   auto x = transformStamped.transform.translation.x;
   auto y = transformStamped.transform.translation.y;
-  auto z = transformStamped.transform.translation.z; // convert from m to mm
+  auto z = transformStamped.transform.translation.z;
   auto q_w = transformStamped.transform.rotation.w;
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
@@ -453,12 +451,11 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
     const float q[4] = {q_w, q_x, q_y, q_z};
     float A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
-    vtkMath::QuaternionToMatrix3x3(q, A);
-    std::cerr << A[3][3] << std::endl;
+    vtkMath::QuaternionToMatrix3x3(q, A); // Convert quaternion to a 3x3 matrix
     vtkNew<vtkMatrix4x4> Tf;
     for (int row = 0; row < 3; row++){
       for (int column = 0; column < 3; column++){
-        Tf->SetElement(row, column, A[row][column]);
+        Tf->SetElement(row, column, A[row][column]); // Set the 3x3 matrix as the rotation component of the homogeneous transform
       }
     }
     // Apply translation vector
@@ -466,13 +463,13 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
     Tf->SetElement(1,3, y);
     Tf->SetElement(2,3, z);
 
-    // x forward - y left - z up (Ros)
-    // x right, y back, z up (LPS)
+    // x forward - y left - z up (Ros) - http://wiki.ros.org/tf/Overview/Transformations
+    // x right, y back, z up (LPS) - https://www.slicer.org/wiki/Coordinate_systems
     vtkNew<vtkMatrix4x4> RosToLps_matrix;
     RosToLps_matrix->SetElement(0, 0, 0.0);
+    RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
     RosToLps_matrix->SetElement(0, 1, -1.0);
     RosToLps_matrix->SetElement(1, 0, -1.0);
-    RosToLps_matrix->SetElement(1, 1, 0.0);
     RosToLps_matrix->Multiply4x4(Tf, RosToLps_matrix, Tf);
     mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
     mChainNodeTransforms[transform]->Modified();
