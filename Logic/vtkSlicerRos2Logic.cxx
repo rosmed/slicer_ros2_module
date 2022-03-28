@@ -301,13 +301,23 @@ void vtkSlicerRos2Logic
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
 
+    // Apply Ros to LPS
+    // x forward - y left - z up (Ros) - http://wiki.ros.org/tf/Overview/Transformations
+    // x right, y back, z up (LPS) - https://www.slicer.org/wiki/Coordinate_systems
+    vtkNew<vtkMatrix4x4> RosToLps_matrix;
+    RosToLps_matrix->SetElement(0, 0, 0.0);
+    RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
+    RosToLps_matrix->SetElement(0, 1, -1.0);
+    RosToLps_matrix->SetElement(1, 0, -1.0);
+    RosToLps_matrix->Multiply4x4(RosToLps_matrix, initialPositionMatrix, initialPositionMatrix);
+
     // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
     LPSToRAS_matrix->SetElement(0, 0, -1.0);
     LPSToRAS_matrix->SetElement(1, 1, -1.0);
 
-    LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, LPSToRAS_matrix);
-    tnode->SetMatrixTransformToParent(LPSToRAS_matrix);
+    LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
+    tnode->SetMatrixTransformToParent(initialPositionMatrix);
     tnode->Modified();
 
     if (k == 0) {
@@ -321,7 +331,7 @@ void vtkSlicerRos2Logic
 
       // Uncomment for cascaded transforms
       if (k > 1){
-        vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(("InitialPosition_" + link_names_vector[k - 1]).c_str()));
+        vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
         transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
       }
 
@@ -424,9 +434,13 @@ void vtkSlicerRos2Logic::queryTfNode()
   // for (int link = 0; link < link_names.size() - 1; link++) {
   for (int link = 1; link < link_names.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
-
     try {
-      transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[link - 1], tf2::TimePointZero);
+      if (link == 0){
+        transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[link], tf2::TimePointZero);
+      }
+      else{
+        transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[link - 1], tf2::TimePointZero);
+      }
       updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
         std::cout << " Transform exception" << std::endl;
@@ -463,14 +477,7 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
     Tf->SetElement(1,3, y);
     Tf->SetElement(2,3, z);
 
-    // x forward - y left - z up (Ros) - http://wiki.ros.org/tf/Overview/Transformations
-    // x right, y back, z up (LPS) - https://www.slicer.org/wiki/Coordinate_systems
-    vtkNew<vtkMatrix4x4> RosToLps_matrix;
-    RosToLps_matrix->SetElement(0, 0, 0.0);
-    RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
-    RosToLps_matrix->SetElement(0, 1, -1.0);
-    RosToLps_matrix->SetElement(1, 0, -1.0);
-    RosToLps_matrix->Multiply4x4(Tf, RosToLps_matrix, Tf);
+
     mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
     mChainNodeTransforms[transform]->Modified();
   }
