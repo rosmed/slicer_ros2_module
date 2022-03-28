@@ -308,7 +308,7 @@ void vtkSlicerRos2Logic
     RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
     RosToLps_matrix->SetElement(0, 1, -1.0);
     RosToLps_matrix->SetElement(1, 0, -1.0);
-    RosToLps_matrix->Multiply4x4(RosToLps_matrix, initialPositionMatrix, initialPositionMatrix);
+    initialPositionMatrix->Multiply4x4(RosToLps_matrix, initialPositionMatrix, initialPositionMatrix);
 
     // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
@@ -391,8 +391,11 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
-  rclcpp::spin_some(mNodePointer);
-  queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
+  if (rclcpp::ok()){
+    rclcpp::spin_some(mNodePointer);
+    queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
+  }
+
 }
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
