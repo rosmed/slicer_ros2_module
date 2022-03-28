@@ -170,7 +170,6 @@ void vtkSlicerRos2Logic
   // Start by getting the name of the root link and add it to the vector of strings
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
   std::string root_name = root->name;
-  std::vector<std::string> link_names_vector;
   link_names_vector.push_back(root_name);
   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
   visual_vector.push_back(root->visual);
@@ -423,23 +422,15 @@ void vtkSlicerRos2Logic::Clear()
 
 void vtkSlicerRos2Logic::queryTfNode()
 {
-  std::vector<std::string> link_names; // just make the one in intializer a global var
-  link_names.push_back("base");
-  link_names.push_back("torso");
-  link_names.push_back("upper_arm");
-  link_names.push_back("lower_arm");
-  link_names.push_back("wrist");
-  link_names.push_back("tip");
-  link_names.push_back("stylus");
-  // for (int link = 0; link < link_names.size() - 1; link++) {
-  for (int link = 1; link < link_names.size(); link++) {
+
+  for (int link = 1; link < link_names_vector.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
       if (link == 0){
-        transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[link], tf2::TimePointZero);
+        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       else{
-        transformStamped = mTfBuffer->lookupTransform(link_names[link], link_names[link - 1], tf2::TimePointZero);
+        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link - 1], tf2::TimePointZero);
       }
       updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
@@ -476,7 +467,6 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
     Tf->SetElement(0,3, x);
     Tf->SetElement(1,3, y);
     Tf->SetElement(2,3, z);
-
 
     mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
     mChainNodeTransforms[transform]->Modified();
