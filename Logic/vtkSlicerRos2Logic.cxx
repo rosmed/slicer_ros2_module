@@ -56,6 +56,8 @@
 // Generic includes
 #include <boost/filesystem/path.hpp>
 
+// RQt includes
+ #include <rqt_gui_cpp/plugin.h>
 
 
 //----------------------------------------------------------------------------
@@ -94,6 +96,8 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
 
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+
+  //mRqtPlugin = std::make_shared<rqt_gui_cpp::Plugin>();
 
 }
 
@@ -303,12 +307,12 @@ void vtkSlicerRos2Logic
     // Apply Ros to LPS
     // x forward - y left - z up (Ros) - http://wiki.ros.org/tf/Overview/Transformations
     // x right, y back, z up (LPS) - https://www.slicer.org/wiki/Coordinate_systems
-    vtkNew<vtkMatrix4x4> RosToLps_matrix;
-    RosToLps_matrix->SetElement(0, 0, 0.0);
-    RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
-    RosToLps_matrix->SetElement(0, 1, -1.0);
-    RosToLps_matrix->SetElement(1, 0, -1.0);
-    initialPositionMatrix->Multiply4x4(RosToLps_matrix, initialPositionMatrix, initialPositionMatrix);
+    // vtkNew<vtkMatrix4x4> RosToLps_matrix;
+    // RosToLps_matrix->SetElement(0, 0, 0.0);
+    // RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
+    // RosToLps_matrix->SetElement(0, 1, -1.0);
+    // RosToLps_matrix->SetElement(1, 0, -1.0);
+    // initialPositionMatrix->Multiply4x4(RosToLps_matrix, initialPositionMatrix, initialPositionMatrix);
 
     // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
@@ -433,7 +437,7 @@ void vtkSlicerRos2Logic::queryTfNode()
         transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       else{
-        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link - 1], tf2::TimePointZero);
+        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link - 1], link_names_vector[link], tf2::TimePointZero);
       }
       updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
