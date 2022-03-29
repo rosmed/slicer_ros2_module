@@ -62,6 +62,7 @@ class vtkMRMLTransformNode;
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
   public vtkSlicerModuleLogic
@@ -109,9 +110,11 @@ private:
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
 
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
-  std::shared_ptr<tf2_ros::TransformListener> mTfListener;// tf2_ros::TransformListener tfListener(tf2_ros::Buffer tfBuffer);
+  std::shared_ptr<tf2_ros::TransformListener> mTfListener;
   void queryTfNode();
   void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
+
+  //std::shared_ptr<rqt_gui_cpp::Plugin> mRqtPlugin;
 };
 
 #endif

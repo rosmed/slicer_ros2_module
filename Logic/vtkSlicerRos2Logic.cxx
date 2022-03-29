@@ -30,6 +30,9 @@
 
 // VTK includes
 #include <vtkMatrix4x4.h>
+#include <vtkMatrix3x3.h>
+#include <vtkMath.h>
+#include <vtkQuaternion.h>
 #include <vtkTransform.h>
 
 #include <qSlicerCoreIOManager.h>
@@ -49,6 +52,13 @@
 #ifdef Slicer_USE_PYTHONQT
 #include "PythonQt.h"
 #endif
+
+// Generic includes
+#include <boost/filesystem/path.hpp>
+
+// RQt includes
+ #include <rqt_gui_cpp/plugin.h>
+
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
@@ -86,6 +96,8 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
 
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+
+  //mRqtPlugin = std::make_shared<rqt_gui_cpp::Plugin>();
 
 }
 
@@ -162,7 +174,6 @@ void vtkSlicerRos2Logic
   // Start by getting the name of the root link and add it to the vector of strings
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
   std::string root_name = root->name;
-  std::vector<std::string> link_names_vector;
   link_names_vector.push_back(root_name);
   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
   visual_vector.push_back(root->visual);
@@ -298,8 +309,8 @@ void vtkSlicerRos2Logic
     LPSToRAS_matrix->SetElement(0, 0, -1.0);
     LPSToRAS_matrix->SetElement(1, 1, -1.0);
 
-    LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, LPSToRAS_matrix);
-    tnode->SetMatrixTransformToParent(LPSToRAS_matrix);
+    LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
+    tnode->SetMatrixTransformToParent(initialPositionMatrix);
     tnode->Modified();
 
     if (k == 0) {
@@ -311,10 +322,10 @@ void vtkSlicerRos2Logic
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
       // Uncomment for cascaded transforms
-      // if (k > 1){
-      //   vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(("InitialPosition_" + link_names_vector[k - 1]).c_str()));
-      //   transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
-      // }
+      if (k > 1){
+        vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
+        transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+      }
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
@@ -373,8 +384,11 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
-  rclcpp::spin_some(mNodePointer);
-  //queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
+  if (rclcpp::ok()){
+    rclcpp::spin_some(mNodePointer);
+    queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
+  }
+
 }
 
 void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
@@ -390,7 +404,7 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
   std::cerr << "got message of size " << msg->position.size() << std::endl;
   if (msg->position.size() == 6) {
     std::cerr << "commenting out for testing" << std::endl;
-    UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
+    //UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
   }
 }
 
@@ -400,28 +414,15 @@ void vtkSlicerRos2Logic::Clear()
   this->GetMRMLScene()->Clear();
 }
 
-// void vtkSlicerRos2Logic::setupTfHierarchy()
-// {
-//
-// }
 
 void vtkSlicerRos2Logic::queryTfNode()
 {
-  std::vector<std::string> link_names; // just make the one in intializer a global var
-  link_names.push_back("base");
-  link_names.push_back("torso");
-  link_names.push_back("upper_arm");
-  link_names.push_back("lower_arm");
-  link_names.push_back("wrist");
-  link_names.push_back("tip");
-  link_names.push_back("stylus");
-  for (int link = 0; link < link_names.size() - 1; link++) {
-    geometry_msgs::msg::TransformStamped transformStamped;
 
+  for (int link = 1; link < link_names_vector.size(); link++) {
+    geometry_msgs::msg::TransformStamped transformStamped;
     try {
-      transformStamped = mTfBuffer->lookupTransform(link_names[link + 1], link_names[link], tf2::TimePointZero);
-      std::cout << "Recieved transform" << link << std::endl;
-      updateTransformFromTf(transformStamped, link);
+      transformStamped = mTfBuffer->lookupTransform(link_names_vector[link - 1], link_names_vector[link], tf2::TimePointZero);
+      updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
         std::cout << " Transform exception" << std::endl;
         return;
@@ -433,27 +434,31 @@ void vtkSlicerRos2Logic::queryTfNode()
 void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
 {
   // Retrieve the translation vector and quaternion from the geometry message
-  auto x = transformStamped.transform.translation.x/1000;
-  auto y = transformStamped.transform.translation.y/1000;
-  auto z = transformStamped.transform.translation.z/1000; // convert from m to mm
+  auto x = transformStamped.transform.translation.x;
+  auto y = transformStamped.transform.translation.y;
+  auto z = transformStamped.transform.translation.z;
   auto q_w = transformStamped.transform.rotation.w;
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
   auto q_z = transformStamped.transform.rotation.z;
-  std::cerr << "Got transform" << std::endl;
-  std::cerr << "x: " << x << "y: " << y << "z: " << z << "w: " << q_w << "x: " <<  q_x << "y: " << q_y << "z: " << q_z << std::endl;
-  // Right now this rotates the torso according to a defined transform from the state_publisher - if we write all the transforms then we would have to define the header for each and rotate
-  // that node accordingly in the mNodeTransforms list - so basically the logic works now but we have to work on publisher to use it
+
+
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
-    vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
-    modifiedTransform2->RotateWXYZ(q_w, q_x, q_y, q_z);
-    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform2);
-    mChainNodeTransforms[transform]->Modified();
+    const float q[4] = {q_w, q_x, q_y, q_z};
+    float A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+    vtkMath::QuaternionToMatrix3x3(q, A); // Convert quaternion to a 3x3 matrix
+    vtkNew<vtkMatrix4x4> Tf;
+    for (int row = 0; row < 3; row++){
+      for (int column = 0; column < 3; column++){
+        Tf->SetElement(row, column, A[row][column]); // Set the 3x3 matrix as the rotation component of the homogeneous transform
+      }
+    }
+    // Apply translation vector
+    Tf->SetElement(0,3, x);
+    Tf->SetElement(1,3, y);
+    Tf->SetElement(2,3, z);
 
-    vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(mChainNodeTransforms[transform]->GetTransformToParent());
-    modifiedTransform->Translate(x, y, z);
-    mChainNodeTransforms[transform]->SetAndObserveTransformToParent(modifiedTransform);
+    mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
     mChainNodeTransforms[transform]->Modified();
-
   }
 }

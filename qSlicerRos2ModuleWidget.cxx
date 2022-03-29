@@ -22,6 +22,8 @@
 #include <QCloseEvent>
 #include <QButtonGroup>
 #include <QWidget>
+#include <QVBoxLayout>
+#include <QLayout>
 
 // Slicer includes
 #include "qSlicerRos2ModuleWidget.h"
@@ -104,6 +106,44 @@ void qSlicerRos2ModuleWidget::setup()
   // Set up timer connections
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
   connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
+
+  // Setup state / selection options
+  QVBoxLayout *stateBoxLayout = new QVBoxLayout;
+  stateBoxLayout->addWidget(topicLineEdit);
+  topicLineEdit->setEnabled(false);
+  d->stateWidgetGroupBox->setLayout(stateBoxLayout);
+  this->connect(d->stateSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onStateSelection(const QString&)));
+
+
+  // THIS IS A REPEAT OF ABOVE CODE TO THE NEW FILE SELECTOR SO I DONT BREAK ANYTHING
+  // This should just be a file browser
+  // urdfFileSelector->addItem("Not selected");
+  // for (const auto & file : fs::directory_iterator(paths))
+  //   urdfFileSelector->addItem(file.path().c_str());
+
+  // Setup description / selection options
+  QVBoxLayout *descriptionBoxLayout = new QVBoxLayout;
+  descriptionBoxLayout->addWidget(urdfFileSelector);
+  // Button is a place holder
+  descriptionBoxLayout->addWidget(printButton);
+  printButton->setText("Selected urdf");
+  descriptionBoxLayout->addWidget(nodeLineEdit);
+  descriptionBoxLayout->addWidget(paramLineEdit);
+  urdfFileSelector->setEnabled(false);
+  nodeLineEdit->setEnabled(false);
+  paramLineEdit->setEnabled(false);
+  printButton->setEnabled(false);
+  d->descriptionWidgetGroupBox->setLayout(descriptionBoxLayout);
+  this->connect(d->descriptionSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onDescriptionSelection(const QString&)));
+
+  // Set up signals / slots for dynamically loaded widgets
+  // Note: All of the QLineEdits are triggered by pressing enter in the edit box - the slot functions access the text that was entered themselves
+  this->connect(topicLineEdit, SIGNAL(returnPressed()), this, SLOT(onTopicNameEntered()));
+  this->connect(nodeLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeNameEntered()));
+  this->connect(paramLineEdit, SIGNAL(returnPressed()), this, SLOT(onParamNameEntered()));
+  this->connect(printButton, SIGNAL(clicked(bool)), this, SLOT(onPrintButtonSelected()));
+  // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
+
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -167,4 +207,89 @@ void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: h
   std::cerr << "closing event" << std::endl;
   mTimer->stop();
   delete this->mTimer;
+}
+
+void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
+{
+  Q_D(qSlicerRos2ModuleWidget);
+
+  // Add all the dynamic widgets already and figure out how to hide and show them dynamically
+  if (text == "Tf2"){
+    d->stateWidgetGroupBox->setTitle("Tf2 selected");
+    topicLineEdit->setEnabled(false);
+  }
+  else if (text == "Topic"){
+    d->stateWidgetGroupBox->setTitle("Topic selected");
+    topicLineEdit->setEnabled(true);
+  }
+  else if (text == "Not selected"){
+    d->stateWidgetGroupBox->setTitle("Not selected");
+    topicLineEdit->setEnabled(false);
+  }
+
+}
+
+void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+{
+  Q_D(qSlicerRos2ModuleWidget);
+
+  if (text == "File"){
+    d->descriptionWidgetGroupBox->setTitle("File selected");
+    urdfFileSelector->setEnabled(true);
+    nodeLineEdit->setEnabled(false);
+    paramLineEdit->setEnabled(false);
+    printButton->setEnabled(true);
+  }
+  else if (text == "Param"){
+    d->descriptionWidgetGroupBox->setTitle("Param selected");
+    urdfFileSelector->setEnabled(false);
+    nodeLineEdit->setEnabled(true);
+    paramLineEdit->setEnabled(true);
+    printButton->setEnabled(false);
+  }
+  else if (text == "Not selected"){
+    d->descriptionWidgetGroupBox->setTitle("Not selected");
+    urdfFileSelector->setEnabled(false);
+    nodeLineEdit->setEnabled(false);
+    paramLineEdit->setEnabled(false);
+    printButton->setEnabled(false);
+  }
+}
+
+// Slots for all of the dyanmic selections start here
+
+void qSlicerRos2ModuleWidget::onTopicNameEntered()
+{
+  // Get the topic name that was entered ( we will need it later)
+  QString topic = topicLineEdit->text();
+  std::cerr << "Topic name entered: " << topic.toStdString() << std::endl;
+}
+
+void qSlicerRos2ModuleWidget::onNodeNameEntered()
+{
+  // Get the topic name that was entered ( we will need it later)
+  QString node = nodeLineEdit->text();
+  std::cerr << "Node name entered: " << node.toStdString() << std::endl;
+}
+
+void qSlicerRos2ModuleWidget::onParamNameEntered()
+{
+  // Get the topic name that was entered ( we will need it later)
+  QString param = paramLineEdit->text();
+  std::cerr << "Param name entered: " << param.toStdString() << std::endl;
+}
+
+void qSlicerRos2ModuleWidget::onDescriptionFileSelected()
+{
+  // Get the topic name that was entered ( we will need it later)
+  QString param = paramLineEdit->text();
+  std::cerr << "Param name entered: " << param.toStdString() << std::endl;
+}
+
+void qSlicerRos2ModuleWidget::onPrintButtonSelected()
+{
+  // This function lets you access the name of the urdf file that was selected in the fileDialog
+  // Get the topic name that was entered ( we will need it later)
+  QStringList string = urdfFileSelector->selectedFiles();
+  std::cerr << string.at(0).toStdString() << std::endl;
 }

@@ -25,14 +25,96 @@
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string/>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="1">
+       <widget class="QComboBox" name="stateSelectionComboBox">
+        <item>
+         <property name="text">
+          <string>Not selected</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Tf2</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Topic</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="stateLabel">
+        <property name="text">
+         <string>State:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="3">
+       <widget class="QGroupBox" name="stateWidgetGroupBox">
+        <property name="title">
+         <string>Not selected</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLabel" name="descriptionWidgetArea">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="3">
+       <widget class="QGroupBox" name="descriptionWidgetGroupBox">
+        <property name="title">
+         <string>Not selected</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="descriptionSelectionComboBox">
+        <item>
+         <property name="text">
+          <string>Not selected</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>File</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Param</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="descriptionLabel">
+        <property name="text">
+         <string>Description:</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>0</width>
-       <height>0</height>
+       <width>20</width>
+       <height>40</height>
       </size>
      </property>
     </spacer>
