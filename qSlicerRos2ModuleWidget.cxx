@@ -116,9 +116,10 @@ void qSlicerRos2ModuleWidget::setup()
 
 
   // THIS IS A REPEAT OF ABOVE CODE TO THE NEW FILE SELECTOR SO I DONT BREAK ANYTHING
-  urdfFileSelector->addItem("Not selected");
-  for (const auto & file : fs::directory_iterator(paths))
-    urdfFileSelector->addItem(file.path().c_str());
+  // This should just be a file browser
+  // urdfFileSelector->addItem("Not selected");
+  // for (const auto & file : fs::directory_iterator(paths))
+  //   urdfFileSelector->addItem(file.path().c_str());
 
   // Setup description / selection options
   QVBoxLayout *descriptionBoxLayout = new QVBoxLayout;

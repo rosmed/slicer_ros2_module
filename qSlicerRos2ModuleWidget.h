@@ -24,7 +24,8 @@
 
 // Qt includes
 #include <QLineEdit>
-#include <QComboBox>
+//#include <QComboBox>
+#include <QFileDialog>
 
 class qSlicerRos2ModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -54,7 +55,7 @@ protected:
   bool timerOff = false;
 
   QLineEdit *topicLineEdit = new QLineEdit(tr("Enter topic name here .."));
-  QComboBox *urdfFileSelector = new QComboBox();
+  QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated?
   QLineEdit *nodeLineEdit = new QLineEdit(tr("Enter node name here .."));
   QLineEdit *paramLineEdit = new QLineEdit(tr("Enter param name here .."));
   /// Create and return the widget representation associated to this module
