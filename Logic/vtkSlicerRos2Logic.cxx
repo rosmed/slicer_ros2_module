@@ -304,16 +304,6 @@ void vtkSlicerRos2Logic
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
 
-    // Apply Ros to LPS
-    // x forward - y left - z up (Ros) - http://wiki.ros.org/tf/Overview/Transformations
-    // x right, y back, z up (LPS) - https://www.slicer.org/wiki/Coordinate_systems
-    // vtkNew<vtkMatrix4x4> RosToLps_matrix;
-    // RosToLps_matrix->SetElement(0, 0, 0.0);
-    // RosToLps_matrix->SetElement(1, 1, 0.0); // Reset from identity
-    // RosToLps_matrix->SetElement(0, 1, -1.0);
-    // RosToLps_matrix->SetElement(1, 0, -1.0);
-    // initialPositionMatrix->Multiply4x4(RosToLps_matrix, initialPositionMatrix, initialPositionMatrix);
-
     // Apply LPS to RAS conversion
     vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
     LPSToRAS_matrix->SetElement(0, 0, -1.0);
@@ -433,12 +423,7 @@ void vtkSlicerRos2Logic::queryTfNode()
   for (int link = 1; link < link_names_vector.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
-      if (link == 0){
-        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
-      }
-      else{
-        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link - 1], link_names_vector[link], tf2::TimePointZero);
-      }
+      transformStamped = mTfBuffer->lookupTransform(link_names_vector[link - 1], link_names_vector[link], tf2::TimePointZero);
       updateTransformFromTf(transformStamped, link - 1);
       } catch (tf2::TransformException & ex) {
         std::cout << " Transform exception" << std::endl;
