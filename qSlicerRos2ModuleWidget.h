@@ -20,8 +20,11 @@
 
 // Slicer includes
 #include "qSlicerAbstractModuleWidget.h"
-
 #include "qSlicerRos2ModuleExport.h"
+
+// Qt includes
+#include <QLineEdit>
+#include <QComboBox>
 
 class qSlicerRos2ModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -50,6 +53,10 @@ protected:
   QTimer* mTimer;
   bool timerOff = false;
 
+  QLineEdit *topicLineEdit = new QLineEdit(tr("Enter topic name here .."));
+  QComboBox *urdfFileSelector = new QComboBox();
+  QLineEdit *nodeLineEdit = new QLineEdit(tr("Enter node name here .."));
+  QLineEdit *paramLineEdit = new QLineEdit(tr("Enter param name here .."));
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
 
@@ -60,6 +67,7 @@ protected:
 protected slots:
   void onFileSelected(const QString&);
   void onStateSelection(const QString&);
+  void onDescriptionSelection(const QString&);
   void onTimerTimeOut();
   void onClearSceneSelected();
 

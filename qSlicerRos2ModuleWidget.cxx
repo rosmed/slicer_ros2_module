@@ -22,6 +22,8 @@
 #include <QCloseEvent>
 #include <QButtonGroup>
 #include <QWidget>
+#include <QVBoxLayout>
+#include <QLayout>
 
 // Slicer includes
 #include "qSlicerRos2ModuleWidget.h"
@@ -89,8 +91,6 @@ void qSlicerRos2ModuleWidget::setup()
   // Start the QComboBox with a generic string
   d->fileSelector->addItem("Not selected");
 
-  d->stateWidgetArea->setText("Tf2 selected");
-
   // Get the home directory path
   char * pHome = getenv ("HOME");
   const std::string home(pHome);
@@ -107,8 +107,32 @@ void qSlicerRos2ModuleWidget::setup()
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
   connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
 
-  // Set up new combo box selections
+  // Setup state / selection options
+  QVBoxLayout *stateBoxLayout = new QVBoxLayout;
+  stateBoxLayout->addWidget(topicLineEdit);
+  topicLineEdit->setEnabled(false);
+  d->stateWidgetGroupBox->setLayout(stateBoxLayout);
   this->connect(d->stateSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onStateSelection(const QString&)));
+
+
+  // THIS IS A REPEAT OF ABOVE CODE TO THE NEW FILE SELECTOR SO I DONT BREAK ANYTHING
+  urdfFileSelector->addItem("Not selected");
+  for (const auto & file : fs::directory_iterator(paths))
+    urdfFileSelector->addItem(file.path().c_str());
+
+  // Setup description / selection options
+  QVBoxLayout *descriptionBoxLayout = new QVBoxLayout;
+  descriptionBoxLayout->addWidget(urdfFileSelector);
+  descriptionBoxLayout->addWidget(nodeLineEdit);
+  descriptionBoxLayout->addWidget(paramLineEdit);
+  urdfFileSelector->setEnabled(false);
+  nodeLineEdit->setEnabled(false);
+  paramLineEdit->setEnabled(false);
+  d->descriptionWidgetGroupBox->setLayout(descriptionBoxLayout);
+  this->connect(d->descriptionSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onDescriptionSelection(const QString&)));
+
+  // Set up signals / slots for dynamically loaded widgets
+  // grab the global widget vars and set up their signals
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -178,12 +202,42 @@ void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
 {
   Q_D(qSlicerRos2ModuleWidget);
 
+  // Add all the dynamic widgets already and figure out how to hide and show them dynamically
   if (text == "Tf2"){
-    std::cerr << "Tf2 selection" << std::endl;
-    d->stateWidgetArea->setText("Tf2 selected");
+    d->stateWidgetGroupBox->setTitle("Tf2 selected");
+    topicLineEdit->setEnabled(false);
   }
-  else{
-    std::cerr << "Topic selection" << std::endl;
-    d->stateWidgetArea->setText("Topic selected");
+  else if (text == "Topic"){
+    d->stateWidgetGroupBox->setTitle("Topic selected");
+    topicLineEdit->setEnabled(true);
+  }
+  else if (text == "Not selected"){
+    d->stateWidgetGroupBox->setTitle("Not selected");
+    topicLineEdit->setEnabled(false);
+  }
+
+}
+
+void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+{
+  Q_D(qSlicerRos2ModuleWidget);
+
+  if (text == "File"){
+    d->descriptionWidgetGroupBox->setTitle("File selected");
+    urdfFileSelector->setEnabled(true);
+    nodeLineEdit->setEnabled(false);
+    paramLineEdit->setEnabled(false);
+  }
+  else if (text == "Param"){
+    d->descriptionWidgetGroupBox->setTitle("Param selected");
+    urdfFileSelector->setEnabled(false);
+    nodeLineEdit->setEnabled(true);
+    paramLineEdit->setEnabled(true);
+  }
+  else if (text == "Not selected"){
+    d->descriptionWidgetGroupBox->setTitle("Not selected");
+    urdfFileSelector->setEnabled(false);
+    nodeLineEdit->setEnabled(false);
+    paramLineEdit->setEnabled(false);
   }
 }
