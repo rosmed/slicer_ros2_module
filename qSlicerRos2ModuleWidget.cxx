@@ -89,6 +89,8 @@ void qSlicerRos2ModuleWidget::setup()
   // Start the QComboBox with a generic string
   d->fileSelector->addItem("Not selected");
 
+  d->stateWidgetArea->setText("Tf2 selected");
+
   // Get the home directory path
   char * pHome = getenv ("HOME");
   const std::string home(pHome);
@@ -104,6 +106,9 @@ void qSlicerRos2ModuleWidget::setup()
   // Set up timer connections
   connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
   connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
+
+  // Set up new combo box selections
+  this->connect(d->stateSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onStateSelection(const QString&)));
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -167,4 +172,18 @@ void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: h
   std::cerr << "closing event" << std::endl;
   mTimer->stop();
   delete this->mTimer;
+}
+
+void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
+{
+  Q_D(qSlicerRos2ModuleWidget);
+
+  if (text == "Tf2"){
+    std::cerr << "Tf2 selection" << std::endl;
+    d->stateWidgetArea->setText("Tf2 selected");
+  }
+  else{
+    std::cerr << "Topic selection" << std::endl;
+    d->stateWidgetArea->setText("Topic selected");
+  }
 }
