@@ -85,12 +85,6 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   // create the ROS node
   mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 
-  // subscription
-  mJointStateSubscription
-    = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
-    ("/joint_states", 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
-				  this, std::placeholders::_1));
-
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
   //mRqtPlugin = std::make_shared<rqt_gui_cpp::Plugin>();
@@ -367,7 +361,6 @@ void vtkSlicerRos2Logic
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
-      // Uncomment for cascaded transforms
       if (mModel.Serial == true){
         if (k > 1){
           vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
@@ -406,11 +399,7 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
   for (size_t index = 0; index < mKDLChainSize; ++index) {
     jointArray(index) = jointValues[index];
   }
-  std::cout << jointArray(0) << std::endl;
-  std::cout << jointArray(1) << std::endl;
-  std::cout << jointArray(2) << std::endl;
-  std::cout << jointArray(3) << std::endl;
-  std::cout << jointArray(4) << std::endl;
+
   // Calculate forward position kinematics
   mKDLSolver->JntToCart(jointArray, FK_frames);
 
@@ -454,7 +443,7 @@ void vtkSlicerRos2Logic::ModelParameterCallback(std::shared_future<std::vector<r
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
 {
   if (msg->position.size() == 6) {
-    UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
+    UpdateFK(msg->position);
   }
 }
 
@@ -522,15 +511,11 @@ void vtkSlicerRos2Logic::SetRobotStateTopic(const std::string & topicName){
     (topicName, 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
   mModel.Serial = false;
-  // Set serial to false - add this condition to loadRobotSTLModels functions
-  // call UpdateFK - where should this be
-
 }
 
 void vtkSlicerRos2Logic::SetRobotStateTf(){
 
   mRobotState.IsUsingTopic = false;
   mModel.Serial = true;
-  // Set serial to true
-  // Shouldn't need to do anything else
+
 }
