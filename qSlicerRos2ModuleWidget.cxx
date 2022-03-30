@@ -137,7 +137,7 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
     return;
   }
-  
+
   // Check if the timer is on or off before setting up the robot
   // Anton: is this still needed?
   if (timerOff == true){
@@ -251,10 +251,17 @@ void qSlicerRos2ModuleWidget::onDescriptionFileSelected()
   std::cerr << "Param name entered: " << param.toStdString() << std::endl;
 }
 
-void qSlicerRos2ModuleWidget::onPrintButtonSelected()
+void qSlicerRos2ModuleWidget::onPrintButtonSelected(void)
 {
   // This function lets you access the name of the urdf file that was selected in the fileDialog
   // Get the topic name that was entered ( we will need it later)
   QStringList string = urdfFileSelector->selectedFiles();
-  std::cerr << string.at(0).toStdString() << std::endl;
+  std::string selectedFile = string.at(0).toStdString();
+  vtkSlicerRos2Logic *
+    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    return;
+  }
+  logic->SetModelFile(selectedFile);
 }

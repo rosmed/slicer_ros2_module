@@ -81,7 +81,7 @@ public:
     the URDF. */
   void SetModelNodeAndParameter(const std::string & nodeName,
 				const std::string & parameterName);
-
+  void SetModelFile(const std::string & selectedFile);
   void loadRobotSTLModels(); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
   void Spin(void);
@@ -123,7 +123,7 @@ private:
 
   struct {
     bool Loaded = false; // do we have a model properly loaded and something to display
-    std::string URDF; // keep a copy of the URDF before it's loaded 
+    std::string URDF; // keep a copy of the URDF before it's loaded
     bool ComesFromFile = false; // by default we assume the URDF comes for parameter
     std::string FileName;
     struct {
@@ -142,7 +142,7 @@ private:
   void queryTfNode();
   void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
 
-  //std::shared_ptr<rqt_gui_cpp::Plugin> mRqtPlugin;
+
 };
 
 #endif

@@ -61,6 +61,12 @@
 // RQt includes
  #include <rqt_gui_cpp/plugin.h>
 
+// Reading file includes
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+using std::ifstream; using std::ostringstream; using std::string;
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
@@ -126,9 +132,28 @@ void vtkSlicerRos2Logic::SetModelNodeAndParameter(const std::string & nodeName,
     = mParameterClient->get_parameters
     ({mModel.Parameter.ParameterName},
      std::bind(&vtkSlicerRos2Logic::ModelParameterCallback,
-               this, std::placeholders::_1)); 
+               this, std::placeholders::_1));
 }
 
+//---------------------------------------------------------------------------
+void vtkSlicerRos2Logic::SetModelFile(const std::string & selectedFile){
+  // WORKING HERE
+  // re-initialize model variables
+  mModel.Loaded = false;
+  mModel.ComesFromFile = true;
+
+  std::string urdfFile;
+
+  ifstream input_file(selectedFile);
+  if (!input_file.is_open()){
+    std::cerr << "Couldn't open file" << std::endl;
+  }
+  else {
+    mModel.URDF = string((std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>());
+    loadRobotSTLModels();
+  }
+
+}
 //---------------------------------------------------------------------------
 void vtkSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
@@ -265,7 +290,7 @@ void vtkSlicerRos2Logic
     if (std::regex_search(filename, match, param_regex)) {
       const std::string package = match[1];
       const std::string relativeFile = match[2];
-      // Anton: add try/catch here in case the package is not found! 
+      // Anton: add try/catch here in case the package is not found!
       const std::string packageShareDirectory
 	= ament_index_cpp::get_package_share_directory(package);
       filename = packageShareDirectory + "/" + relativeFile;
