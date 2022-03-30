@@ -17,6 +17,7 @@
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 // SlicerRos2 Logic includes
 #include "vtkSlicerRos2Logic.h"
@@ -54,7 +55,8 @@
 #endif
 
 // Generic includes
-#include <boost/filesystem/path.hpp>
+// #include <boost/filesystem/path.hpp>
+#include <regex>
 
 // RQt includes
  #include <rqt_gui_cpp/plugin.h>
@@ -74,20 +76,9 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   int argc = 1;
   rclcpp::init(argc, argv);
 
-  // parameter
+  // create the ROS node
   mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
-  mParameterClient
-    = std::make_shared<rclcpp::AsyncParametersClient>
-    (mNodePointer,
-     "/robot_state_publisher");
 
-  std::chrono::seconds sec(1);
-  mParameterClient->wait_for_service(sec);
-  auto parameters_future
-    = mParameterClient->get_parameters
-    ({"robot_description"},
-     std::bind(&vtkSlicerRos2Logic::ParameterCallback,
-               this, std::placeholders::_1));
   // subscription
   mJointStateSubscription
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
@@ -96,9 +87,7 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
 
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
-
   //mRqtPlugin = std::make_shared<rqt_gui_cpp::Plugin>();
-
 }
 
 
@@ -112,6 +101,32 @@ vtkSlicerRos2Logic::~vtkSlicerRos2Logic()
 void vtkSlicerRos2Logic::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+void vtkSlicerRos2Logic::SetModelNodeAndParameter(const std::string & nodeName,
+						  const std::string & parameterName)
+{
+  // re-initialize model variables
+  mModel.Loaded = false;
+  mModel.ComesFromFile = false;
+  mModel.Parameter.NodeName = nodeName;
+  mModel.Parameter.NodeFound = false;
+  mModel.Parameter.ParameterName = parameterName;
+  mModel.Parameter.ParameterFound = false;
+
+  // create parameter client
+  mParameterClient
+    = std::make_shared<rclcpp::AsyncParametersClient>
+    (mNodePointer,
+     mModel.Parameter.NodeName);
+
+  std::chrono::seconds sec(1);
+  mParameterClient->wait_for_service(sec);
+  auto parameters_future
+    = mParameterClient->get_parameters
+    ({mModel.Parameter.ParameterName},
+     std::bind(&vtkSlicerRos2Logic::ModelParameterCallback,
+               this, std::placeholders::_1)); 
 }
 
 //---------------------------------------------------------------------------
@@ -153,21 +168,17 @@ void vtkSlicerRos2Logic
 ::loadRobotSTLModels()
 {
 
-  if (parameterNodeCallbackFlag == false){
-    std::cout << " Never entered call back" << std::endl;
-    return;
-  }
   // Print out the urdf from param
-  std::cout << robot_description_string << std::endl;
+  std::cout << mModel.URDF << std::endl;
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
-  if (!my_model.initString(robot_description_string)) {
+  if (!my_model.initString(mModel.URDF)) {
       return;
   }
 
   // load urdf file into a kdl tree to do forward kinematics
   KDL::Tree my_tree;
-  if (!kdl_parser::treeFromString(robot_description_string, my_tree)) {
+  if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
     return;
   }
 
@@ -247,7 +258,19 @@ void vtkSlicerRos2Logic
     origins.push_back(origin);
     // Get stl file name and add it to a list of vectors for python parsing later
     std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
-    filenames.push_back(mesh->filename);
+    // See if the file name uses a package url
+    std::string filename = mesh->filename;
+    std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
+    std::smatch match;
+    if (std::regex_search(filename, match, param_regex)) {
+      const std::string package = match[1];
+      const std::string relativeFile = match[2];
+      // Anton: add try/catch here in case the package is not found! 
+      const std::string packageShareDirectory
+	= ament_index_cpp::get_package_share_directory(package);
+      filename = packageShareDirectory + "/" + relativeFile;
+    }
+    filenames.push_back(filename);
   }
 
   //Call load STL model functions with python - can't find C++ implementation
@@ -268,7 +291,7 @@ void vtkSlicerRos2Logic
     "from pathlib import Path \n"
     "print(fileNamesList) \n"
     "for j in range(len(fileNamesList)): \n"
-    " slicer.util.loadModel(str(Path.home()) + fileNamesList[j]) \n" ));
+    " slicer.util.loadModel(fileNamesList[j]) \n" ));
   #endif
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
@@ -331,6 +354,7 @@ void vtkSlicerRos2Logic
       modelNode->SetAndObserveTransformNodeID(tnode->GetID());
     }
   }
+  mModel.Loaded = true;
 }
 
 void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
@@ -384,19 +408,22 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 void vtkSlicerRos2Logic::Spin(void)
 {
   // Spin ROS loop
-  if (rclcpp::ok()){
+  if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
-    queryTfNode(); // COMMENT THIS OUT TO SWTICH BACK TO FK
+    if (!mRobotState.IsUsingTopic) {
+      queryTfNode();
+    }
   }
-
 }
 
-void vtkSlicerRos2Logic::ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
+void vtkSlicerRos2Logic::ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
 {
-  parameterNodeCallbackFlag = true;
+  // get the URDF as a single string
   auto result = future.get();
+  // Anton: we should make sure there is a result
   auto param = result.at(0);
-  robot_description_string = param.as_string().c_str();
+  mModel.URDF = param.as_string().c_str();
+  loadRobotSTLModels();
 }
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
@@ -444,12 +471,12 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
 
 
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
-    const float q[4] = {q_w, q_x, q_y, q_z};
-    float A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+    const double q[4] = {q_w, q_x, q_y, q_z};
+    double A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
     vtkMath::QuaternionToMatrix3x3(q, A); // Convert quaternion to a 3x3 matrix
     vtkNew<vtkMatrix4x4> Tf;
-    for (int row = 0; row < 3; row++){
-      for (int column = 0; column < 3; column++){
+    for (size_t row = 0; row < 3; row++) {
+      for (size_t column = 0; column < 3; column++) {
         Tf->SetElement(row, column, A[row][column]); // Set the 3x3 matrix as the rotation component of the homogeneous transform
       }
     }

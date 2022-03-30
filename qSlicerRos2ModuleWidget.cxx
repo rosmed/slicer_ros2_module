@@ -41,8 +41,6 @@
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLInteractionNode.h"
 #include "vtkMRMLScene.h"
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -88,38 +86,17 @@ void qSlicerRos2ModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
-  // Start the QComboBox with a generic string
-  d->fileSelector->addItem("Not selected");
-
-  // Get the home directory path
-  char * pHome = getenv ("HOME");
-  const std::string home(pHome);
-
-  // Add the subsequent folders where the urdf file should be found
-  const std::string paths = home + "/ros2_ws/src/SlicerRos2/models/urdf/";
-  for (const auto & file : fs::directory_iterator(paths))
-    d->fileSelector->addItem(file.path().c_str());
-
-  this->connect(d->fileSelector, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onFileSelected(const QString&)));
   this->connect(d->clearSceneButton, SIGNAL(clicked(bool)), this, SLOT(onClearSceneSelected()));
 
   // Set up timer connections
-  connect(mTimer, SIGNAL( timeout() ), this, SLOT( onTimerTimeOut() ));
+  connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
   connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
 
   // Setup state / selection options
   QVBoxLayout *stateBoxLayout = new QVBoxLayout;
   stateBoxLayout->addWidget(topicLineEdit);
-  topicLineEdit->setEnabled(false);
   d->stateWidgetGroupBox->setLayout(stateBoxLayout);
   this->connect(d->stateSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onStateSelection(const QString&)));
-
-
-  // THIS IS A REPEAT OF ABOVE CODE TO THE NEW FILE SELECTOR SO I DONT BREAK ANYTHING
-  // This should just be a file browser
-  // urdfFileSelector->addItem("Not selected");
-  // for (const auto & file : fs::directory_iterator(paths))
-  //   urdfFileSelector->addItem(file.path().c_str());
 
   // Setup description / selection options
   QVBoxLayout *descriptionBoxLayout = new QVBoxLayout;
@@ -127,45 +104,46 @@ void qSlicerRos2ModuleWidget::setup()
   // Button is a place holder
   descriptionBoxLayout->addWidget(printButton);
   printButton->setText("Selected urdf");
+
   descriptionBoxLayout->addWidget(nodeLineEdit);
   descriptionBoxLayout->addWidget(paramLineEdit);
-  urdfFileSelector->setEnabled(false);
-  nodeLineEdit->setEnabled(false);
-  paramLineEdit->setEnabled(false);
-  printButton->setEnabled(false);
   d->descriptionWidgetGroupBox->setLayout(descriptionBoxLayout);
   this->connect(d->descriptionSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onDescriptionSelection(const QString&)));
 
   // Set up signals / slots for dynamically loaded widgets
   // Note: All of the QLineEdits are triggered by pressing enter in the edit box - the slot functions access the text that was entered themselves
   this->connect(topicLineEdit, SIGNAL(returnPressed()), this, SLOT(onTopicNameEntered()));
-  this->connect(nodeLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeNameEntered()));
-  this->connect(paramLineEdit, SIGNAL(returnPressed()), this, SLOT(onParamNameEntered()));
+  this->connect(nodeLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
+  this->connect(paramLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
   this->connect(printButton, SIGNAL(clicked(bool)), this, SLOT(onPrintButtonSelected()));
   // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
 
+  // Set default, assuming defaults are:
+  // - state if from tf
+  // - model is from param
+  d->stateWidgetGroupBox->hide();
+  urdfFileSelector->hide();
+  printButton->hide();
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
 {
+  // Anton: do we know why we have these 2 lines?  These are also in most callback onXYZ methods...
   Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
 
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
-	if (!logic)
-  {
+  if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
- 	   return;
-	}
-
+    return;
+  }
+  
   // Check if the timer is on or off before setting up the robot
+  // Anton: is this still needed?
   if (timerOff == true){
     mTimer->start();
     timerOff = false;
   }
-
-  logic->loadRobotSTLModels();
-
 }
 
 
@@ -195,7 +173,7 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
   logic->Clear();
 
   // Stop the timer too if three are no more models in the scene
-  if (timerOff == false){
+  if (timerOff == false) {
     mTimer->stop();
     timerOff = true;
   }
@@ -206,58 +184,41 @@ void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: h
 {
   std::cerr << "closing event" << std::endl;
   mTimer->stop();
-  delete this->mTimer;
 }
 
 void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
 {
   Q_D(qSlicerRos2ModuleWidget);
 
-  // Add all the dynamic widgets already and figure out how to hide and show them dynamically
-  if (text == "Tf2"){
-    d->stateWidgetGroupBox->setTitle("Tf2 selected");
-    topicLineEdit->setEnabled(false);
+  if (text == "tf2") {
+    d->stateWidgetGroupBox->hide();
+  } else if (text == "topic") {
+    d->stateWidgetGroupBox->setTitle("Using topic");
+    d->stateWidgetGroupBox->show();
   }
-  else if (text == "Topic"){
-    d->stateWidgetGroupBox->setTitle("Topic selected");
-    topicLineEdit->setEnabled(true);
-  }
-  else if (text == "Not selected"){
-    d->stateWidgetGroupBox->setTitle("Not selected");
-    topicLineEdit->setEnabled(false);
-  }
-
 }
 
 void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
   Q_D(qSlicerRos2ModuleWidget);
 
-  if (text == "File"){
+  if (text == "file") {
     d->descriptionWidgetGroupBox->setTitle("File selected");
-    urdfFileSelector->setEnabled(true);
-    nodeLineEdit->setEnabled(false);
-    paramLineEdit->setEnabled(false);
-    printButton->setEnabled(true);
+    urdfFileSelector->show();
+    printButton->show();
+    nodeLineEdit->hide();
+    paramLineEdit->hide();
   }
-  else if (text == "Param"){
+  else if (text == "parameter") {
     d->descriptionWidgetGroupBox->setTitle("Param selected");
-    urdfFileSelector->setEnabled(false);
-    nodeLineEdit->setEnabled(true);
-    paramLineEdit->setEnabled(true);
-    printButton->setEnabled(false);
-  }
-  else if (text == "Not selected"){
-    d->descriptionWidgetGroupBox->setTitle("Not selected");
-    urdfFileSelector->setEnabled(false);
-    nodeLineEdit->setEnabled(false);
-    paramLineEdit->setEnabled(false);
-    printButton->setEnabled(false);
+    urdfFileSelector->hide();
+    printButton->hide();
+    nodeLineEdit->show();
+    paramLineEdit->show();
   }
 }
 
-// Slots for all of the dyanmic selections start here
-
+// Slots for all of the dynamic selections start here
 void qSlicerRos2ModuleWidget::onTopicNameEntered()
 {
   // Get the topic name that was entered ( we will need it later)
@@ -265,18 +226,22 @@ void qSlicerRos2ModuleWidget::onTopicNameEntered()
   std::cerr << "Topic name entered: " << topic.toStdString() << std::endl;
 }
 
-void qSlicerRos2ModuleWidget::onNodeNameEntered()
+void qSlicerRos2ModuleWidget::onNodeOrParameterNameEntered(void)
 {
   // Get the topic name that was entered ( we will need it later)
   QString node = nodeLineEdit->text();
-  std::cerr << "Node name entered: " << node.toStdString() << std::endl;
-}
-
-void qSlicerRos2ModuleWidget::onParamNameEntered()
-{
-  // Get the topic name that was entered ( we will need it later)
   QString param = paramLineEdit->text();
-  std::cerr << "Param name entered: " << param.toStdString() << std::endl;
+  if ((!node.isEmpty())
+      && (!param.isEmpty())) {
+    vtkSlicerRos2Logic *
+      logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+    if (!logic) {
+      qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+      return;
+    }
+    logic->SetModelNodeAndParameter(node.toStdString(),
+				    param.toStdString());
+  }
 }
 
 void qSlicerRos2ModuleWidget::onDescriptionFileSelected()

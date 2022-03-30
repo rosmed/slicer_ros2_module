@@ -24,7 +24,6 @@
 
 // Qt includes
 #include <QLineEdit>
-//#include <QComboBox>
 #include <QFileDialog>
 #include <QPushButton>
 
@@ -60,28 +59,25 @@ protected:
   QLineEdit *nodeLineEdit = new QLineEdit(tr("Enter node name here .."));
   QLineEdit *paramLineEdit = new QLineEdit(tr("Enter param name here .."));
   QPushButton *printButton = new QPushButton();
+
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
 
   /// Create and return the logic associated to this module
   //virtual vtkMRMLAbstractLogic* createLogic();
 
-
 protected slots:
   void onFileSelected(const QString&);
   void onStateSelection(const QString&);
   void onDescriptionSelection(const QString&);
-  void onTimerTimeOut();
-  void onClearSceneSelected();
+  void onTimerTimeOut(void);
+  void onClearSceneSelected(void);
 
   // Slots for dyanmic widgets
-  void onTopicNameEntered();
-  void onNodeNameEntered();
-  void onParamNameEntered();
-  void onDescriptionFileSelected();
-  void onPrintButtonSelected();
-
-
+  void onTopicNameEntered(void);
+  void onNodeOrParameterNameEntered(void);
+  void onDescriptionFileSelected(void);
+  void onPrintButtonSelected(void);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);

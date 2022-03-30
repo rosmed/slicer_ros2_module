@@ -72,6 +72,16 @@ public:
   static vtkSlicerRos2Logic *New();
   vtkTypeMacro(vtkSlicerRos2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  // Logic methods
+
+  /*! This method will set the name of the node and name of the
+    parameter used to load the robot URDF.  Once the names are set,
+    the class will create a parameter client and callback to retrieve
+    the URDF. */
+  void SetModelNodeAndParameter(const std::string & nodeName,
+				const std::string & parameterName);
+
   void loadRobotSTLModels(); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
   void Spin(void);
@@ -98,13 +108,31 @@ private:
   size_t mKDLChainSize = 0;
   std::vector<vtkSmartPointer<vtkMRMLTransformNode> > mChainNodeTransforms;
 
-  void ParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
+  void ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
 
-  std::string robot_description_string;
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
+
+  // state
+  struct {
+    bool IsUsingTopic = false; // if not topic, using tf
+    std::string Topic;
+  } mRobotState;
+
+  struct {
+    bool Loaded = false; // do we have a model properly loaded and something to display
+    std::string URDF; // keep a copy of the URDF before it's loaded 
+    bool ComesFromFile = false; // by default we assume the URDF comes for parameter
+    std::string FileName;
+    struct {
+      std::string NodeName;
+      std::string ParameterName;
+      bool NodeFound = false;
+      bool ParameterFound = false;
+    } Parameter;
+  } mModel;
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
