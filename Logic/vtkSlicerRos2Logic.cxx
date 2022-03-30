@@ -85,9 +85,10 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   // create the ROS node
   mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 
+  // Set up the listener in the constructor because this is the default behaviour
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
-  //mRqtPlugin = std::make_shared<rqt_gui_cpp::Plugin>();
+
 }
 
 
@@ -442,9 +443,15 @@ void vtkSlicerRos2Logic::ModelParameterCallback(std::shared_future<std::vector<r
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
 {
-  if (msg->position.size() == 6) {
-    UpdateFK(msg->position);
+  if (mRobotState.IsUsingTopic == true){
+    if (msg->position.size() == 6) {
+      UpdateFK(msg->position);
+    }
   }
+  else{
+    return;
+  }
+
 }
 
 
@@ -511,11 +518,17 @@ void vtkSlicerRos2Logic::SetRobotStateTopic(const std::string & topicName){
     (topicName, 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
   mModel.Serial = false;
+  // Should this clean up the Tf listener?
 }
 
 void vtkSlicerRos2Logic::SetRobotStateTf(){
 
   mRobotState.IsUsingTopic = false;
   mModel.Serial = true;
+
+  // Remove the subscription
+  if (mJointStateSubscription != NULL){
+    mJointStateSubscription.reset();
+  }
 
 }

@@ -172,12 +172,6 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
   }
   logic->Clear();
 
-  // Stop the timer too if three are no more models in the scene
-  if (timerOff == false) {
-    mTimer->stop();
-    timerOff = true;
-  }
-
 }
 
 void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
