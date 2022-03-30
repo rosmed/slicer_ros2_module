@@ -137,12 +137,10 @@ void vtkSlicerRos2Logic::SetModelNodeAndParameter(const std::string & nodeName,
 
 //---------------------------------------------------------------------------
 void vtkSlicerRos2Logic::SetModelFile(const std::string & selectedFile){
-  // WORKING HERE
+
   // re-initialize model variables
   mModel.Loaded = false;
   mModel.ComesFromFile = true;
-
-  std::string urdfFile;
 
   ifstream input_file(selectedFile);
   if (!input_file.is_open()){
@@ -370,9 +368,11 @@ void vtkSlicerRos2Logic
       tnode->SetAndObserveTransformNodeID(transformNode->GetID());
 
       // Uncomment for cascaded transforms
-      if (k > 1){
-        vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
-        transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+      if (mModel.Serial == true){
+        if (k > 1){
+          vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
+          transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+        }
       }
 
       vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
@@ -453,10 +453,8 @@ void vtkSlicerRos2Logic::ModelParameterCallback(std::shared_future<std::vector<r
 
 void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
 {
-  std::cerr << "got message of size " << msg->position.size() << std::endl;
   if (msg->position.size() == 6) {
-    std::cerr << "commenting out for testing" << std::endl;
-    //UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
+    UpdateFK(msg->position); // COMMENT THIS OUT TO SWITCH TO TF
   }
 }
 
@@ -513,4 +511,26 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
     mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
     mChainNodeTransforms[transform]->Modified();
   }
+}
+
+void vtkSlicerRos2Logic::SetRobotStateTopic(const std::string & topicName){
+
+  mRobotState.IsUsingTopic = true;
+  // subscription
+  mJointStateSubscription
+    = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
+    (topicName, 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
+				  this, std::placeholders::_1));
+  mModel.Serial = false;
+  // Set serial to false - add this condition to loadRobotSTLModels functions
+  // call UpdateFK - where should this be
+
+}
+
+void vtkSlicerRos2Logic::SetRobotStateTf(){
+
+  mRobotState.IsUsingTopic = false;
+  mModel.Serial = true;
+  // Set serial to true
+  // Shouldn't need to do anything else
 }

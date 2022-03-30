@@ -189,12 +189,20 @@ void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: h
 void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
 {
   Q_D(qSlicerRos2ModuleWidget);
-
+  // Note: this logic part is repeated a lot there is probably a way to avoid that
+  vtkSlicerRos2Logic *
+    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    return;
+  }
   if (text == "tf2") {
     d->stateWidgetGroupBox->hide();
+    logic->SetRobotStateTf();
   } else if (text == "topic") {
     d->stateWidgetGroupBox->setTitle("Using topic");
     d->stateWidgetGroupBox->show();
+    //logic->SetRobotStateTopic(); moving this to where topic is entered
   }
 }
 
@@ -223,6 +231,13 @@ void qSlicerRos2ModuleWidget::onTopicNameEntered()
 {
   // Get the topic name that was entered ( we will need it later)
   QString topic = topicLineEdit->text();
+  vtkSlicerRos2Logic *
+    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    return;
+  }
+  logic->SetRobotStateTopic(topic.toStdString());
   std::cerr << "Topic name entered: " << topic.toStdString() << std::endl;
 }
 

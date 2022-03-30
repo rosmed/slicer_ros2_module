@@ -82,6 +82,8 @@ public:
   void SetModelNodeAndParameter(const std::string & nodeName,
 				const std::string & parameterName);
   void SetModelFile(const std::string & selectedFile);
+  void SetRobotStateTopic(const std::string & topicName);
+  void SetRobotStateTf();
   void loadRobotSTLModels(); // Could also be protected friend ** ask Anton
   void UpdateFK(const std::vector<double> & joinValues);
   void Spin(void);
@@ -126,6 +128,7 @@ private:
     std::string URDF; // keep a copy of the URDF before it's loaded
     bool ComesFromFile = false; // by default we assume the URDF comes for parameter
     std::string FileName;
+    bool Serial = true;
     struct {
       std::string NodeName;
       std::string ParameterName;
