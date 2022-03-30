@@ -102,8 +102,8 @@ void qSlicerRos2ModuleWidget::setup()
   QVBoxLayout *descriptionBoxLayout = new QVBoxLayout;
   descriptionBoxLayout->addWidget(urdfFileSelector);
   // Button is a place holder
-  descriptionBoxLayout->addWidget(printButton);
-  printButton->setText("Selected urdf");
+  descriptionBoxLayout->addWidget(loadModelButton);
+  loadModelButton->setText("Load model");
 
   descriptionBoxLayout->addWidget(nodeLineEdit);
   descriptionBoxLayout->addWidget(paramLineEdit);
@@ -115,7 +115,7 @@ void qSlicerRos2ModuleWidget::setup()
   this->connect(topicLineEdit, SIGNAL(returnPressed()), this, SLOT(onTopicNameEntered()));
   this->connect(nodeLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
   this->connect(paramLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
-  this->connect(printButton, SIGNAL(clicked(bool)), this, SLOT(onPrintButtonSelected()));
+  this->connect(loadModelButton, SIGNAL(clicked(bool)), this, SLOT(onLoadModelButtonSelected()));
   // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
 
   // Set default, assuming defaults are:
@@ -123,7 +123,7 @@ void qSlicerRos2ModuleWidget::setup()
   // - model is from param
   d->stateWidgetGroupBox->hide();
   urdfFileSelector->hide();
-  printButton->hide();
+  loadModelButton->hide();
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -205,14 +205,14 @@ void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Sho
   if (text == "file") {
     d->descriptionWidgetGroupBox->setTitle("File selected");
     urdfFileSelector->show();
-    printButton->show();
+    loadModelButton->show();
     nodeLineEdit->hide();
     paramLineEdit->hide();
   }
   else if (text == "parameter") {
     d->descriptionWidgetGroupBox->setTitle("Param selected");
     urdfFileSelector->hide();
-    printButton->hide();
+    loadModelButton->hide();
     nodeLineEdit->show();
     paramLineEdit->show();
   }
@@ -251,7 +251,7 @@ void qSlicerRos2ModuleWidget::onDescriptionFileSelected()
   std::cerr << "Param name entered: " << param.toStdString() << std::endl;
 }
 
-void qSlicerRos2ModuleWidget::onPrintButtonSelected(void)
+void qSlicerRos2ModuleWidget::onLoadModelButtonSelected(void)
 {
   // This function lets you access the name of the urdf file that was selected in the fileDialog
   // Get the topic name that was entered ( we will need it later)
@@ -264,4 +264,5 @@ void qSlicerRos2ModuleWidget::onPrintButtonSelected(void)
     return;
   }
   logic->SetModelFile(selectedFile);
+  loadModelButton->hide();
 }

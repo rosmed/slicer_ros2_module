@@ -58,7 +58,7 @@ protected:
   QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html
   QLineEdit *nodeLineEdit = new QLineEdit(tr("Enter node name here .."));
   QLineEdit *paramLineEdit = new QLineEdit(tr("Enter param name here .."));
-  QPushButton *printButton = new QPushButton();
+  QPushButton *loadModelButton = new QPushButton();
 
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
@@ -77,7 +77,7 @@ protected slots:
   void onTopicNameEntered(void);
   void onNodeOrParameterNameEntered(void);
   void onDescriptionFileSelected(void);
-  void onPrintButtonSelected(void);
+  void onLoadModelButtonSelected(void);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
