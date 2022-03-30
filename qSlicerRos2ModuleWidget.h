@@ -59,6 +59,7 @@ protected:
   QLineEdit *nodeLineEdit = new QLineEdit(tr("Enter node name here .."));
   QLineEdit *paramLineEdit = new QLineEdit(tr("Enter param name here .."));
   QPushButton *loadModelButton = new QPushButton();
+  QPushButton *selectFileButton = new QPushButton();
 
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
@@ -78,6 +79,7 @@ protected slots:
   void onNodeOrParameterNameEntered(void);
   void onDescriptionFileSelected(void);
   void onLoadModelButtonSelected(void);
+  void onSelectFile(void);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
