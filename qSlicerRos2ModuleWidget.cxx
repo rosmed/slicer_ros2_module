@@ -68,7 +68,7 @@ qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
 {
   this->mTimer = new QTimer();
   mTimer->setSingleShot(false);
-  mTimer->setInterval(20); // 20 ms, 50Hz
+  mTimer->setInterval(10); // 20 ms, 50Hz
   mTimer->start();
 }
 

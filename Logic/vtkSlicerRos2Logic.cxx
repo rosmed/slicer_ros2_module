@@ -28,6 +28,7 @@
 #include <vtkMRMLTransformStorageNode.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLLinearTransformNode.h>
+#include <vtkMRMLModelStorageNode.h>
 
 // VTK includes
 #include <vtkMatrix4x4.h>
@@ -195,10 +196,10 @@ void vtkSlicerRos2Logic
   }
 
   // load urdf file into a kdl tree to do forward kinematics
-  KDL::Tree my_tree;
-  if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
-    return;
-  }
+  // KDL::Tree my_tree;
+  // if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
+  //   return;
+  // }
 
   // Start by getting the name of the root link and add it to the vector of strings
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
@@ -207,97 +208,128 @@ void vtkSlicerRos2Logic
   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
   visual_vector.push_back(root->visual);
 
-
-  while (true) {
-    std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
+  size_t lastExplored = 0;
+  while (lastExplored != visual_vector.size()){
+    std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[lastExplored]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
-
-    if (child_link.size() == 0) {
-      break;
-    } else {
-      for (std::shared_ptr<urdf::Link> i: child_link) {
-	link_names_vector.push_back(i->name);
-	visual_vector.push_back(i->visual); // need to get the origin from the visual
-      }
+    for (std::shared_ptr<urdf::Link> i: child_link) {
+    	link_names_vector.push_back(i->name);
+    	visual_vector.push_back(i->visual); // need to get the origin from the visual
     }
+    lastExplored++;
   }
 
+  // while (true) {
+  //   std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
+  //   std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
+  //
+  //   if (child_link.size() == 0) {
+  //     break;
+  //   } else {
+  //     for (std::shared_ptr<urdf::Link> i: child_link) {
+	// link_names_vector.push_back(i->name);
+	// visual_vector.push_back(i->visual); // need to get the origin from the visual
+  //     }
+  //   }
+  // }
+
   // Print out the list of link names
+  std::cerr << "Link name list" << std::endl;
   for (std::string i: link_names_vector) {
     std::cout << "[" << i << "] ";
   }
   std::cout << std::endl;
 
-  auto kdl_chain = new KDL::Chain();
-  std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
-  if (!my_tree.getChain(base_frame, tip_frame, *kdl_chain)) {
-    std::cerr << "not working" << std::endl;
-    return;
-  }
-  mKDLChainSize = kdl_chain->getNrOfSegments();
-  std::cout << "The chain has " << mKDLChainSize
-	    << " segments" << std::endl
-	    << "Found " << link_names_vector.size()
-	    << " links" << std::endl;
-
-  std::cout << "This is the joint position array" << std::endl;
-
-  // Initialize the fk solver
-  mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
-
-  // Allocate array for links transformation nodes
+  // auto kdl_chain = new KDL::Chain();
+  // std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
+  // std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
+  // if (!my_tree.getChain(base_frame, tip_frame, *kdl_chain)) {
+  //   std::cerr << "not working" << std::endl;
+  //   return;
+  // }
+  // mKDLChainSize = kdl_chain->getNrOfSegments();
+  // std::cout << "The chain has " << mKDLChainSize
+	//     << " segments" << std::endl
+	//     << "Found " << link_names_vector.size()
+	//     << " links" << std::endl;
+  //
+  // std::cout << "This is the joint position array" << std::endl;
+  //
+  // // Initialize the fk solver
+  // mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
+  //
+  // // Allocate array for links transformation nodes
+  mKDLChainSize = link_names_vector.size();
   mChainNodeTransforms.resize(mKDLChainSize);
+  std::cerr << "Length of link names vector" << link_names_vector.size() << std::endl;
 
   // Create a vtkMRMLTransform Node for each of these frames
-  for (size_t l = 0; l < mKDLChainSize; l++) {
+#if 0
+  for (size_t l = 1; l < mKDLChainSize; l++) {
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     storageNode->SetScene(this->GetMRMLScene());
     vtkNew<vtkMRMLTransformNode> generalTransform;
     generalTransform->SetScene(this->GetMRMLScene());
     mChainNodeTransforms[l] = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(mChainNodeTransforms[l].GetPointer());
-    mChainNodeTransforms[l]->SetName((link_names_vector[l + 1] + "_transform").c_str());
+    mChainNodeTransforms[l]->SetName((link_names_vector[l] + "_transform").c_str());
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(mChainNodeTransforms[l]);
     mChainNodeTransforms[l]->SetAndObserveStorageNodeID(storageNode->GetID());
   }
+#endif
 
-  std::vector<double> initialJointValues(mKDLChainSize, 0.0);
-  initialJointValues[1] = 0.8; // for testing
-  UpdateFK(initialJointValues);
-
+  // std::vector<double> initialJointValues(mKDLChainSize, 0.0);
+  // initialJointValues[1] = 0.8; // for testing
+  //UpdateFK(initialJointValues);
+  std::cerr << "Getting past transform declartion" << std::endl;
   // Get the origin and rpy
   std::vector<urdf::Pose> origins;
   std::vector<std::string> filenames;
-  for (std::shared_ptr<urdf::Visual> i: visual_vector) {
-    urdf::Pose origin;
-    origin = i->origin;
-    origins.push_back(origin);
-    // Get stl file name and add it to a list of vectors for python parsing later
-    std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
-    // See if the file name uses a package url
-    std::string filename = mesh->filename;
-    std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
-    std::smatch match;
-    if (std::regex_search(filename, match, param_regex)) {
-      const std::string package = match[1];
-      const std::string relativeFile = match[2];
-      // Anton: add try/catch here in case the package is not found!
-      const std::string packageShareDirectory
-	= ament_index_cpp::get_package_share_directory(package);
-      filename = packageShareDirectory + "/" + relativeFile;
+  filenames.resize(visual_vector.size());
+  for (size_t index = 0; index < visual_vector.size(); ++index) {
+    std::shared_ptr<urdf::Visual> i = visual_vector[index];
+    if (i == nullptr) {
+      std::cerr << "no visual" << std::endl;
+    } else {
+      urdf::Pose origin;
+      origin = i->origin;
+      origins.push_back(origin);
+      // Get stl file name and add it to a list of vectors for python parsing later
+      std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
+      if (mesh != nullptr) {
+        // See if the file name uses a package url
+        std::string filename = mesh->filename;
+        std::cerr << index << ": " << filename << std::endl;
+        std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
+        std::smatch match;
+        if (std::regex_search(filename, match, param_regex)) {
+          const std::string package = match[1];
+          const std::string relativeFile = match[2];
+          // Anton: add try/catch here in case the package is not found!
+          const std::string packageShareDirectory
+             = ament_index_cpp::get_package_share_directory(package);
+          filename = packageShareDirectory + "/" + relativeFile;
+        }
+        filenames[index] = filename;
+        std::cerr << index << ": " << filename << std::endl;
+      } else {
+        std::cerr << "link " << index << " has a visual, but not from file" << std::endl;
+      }
     }
-    filenames.push_back(filename);
   }
 
+  std::cerr << "Getting past file name fetch" << std::endl;
   //Call load STL model functions with python - can't find C++ implementation
+  #if 0
   QList<QVariant> file_names_for_loading;
   // Link names need to be converted to QList of QVariants to be passed to python script
   for (size_t j = 0; j < filenames.size(); j ++) {
-    QVariant file_to_be_added;
-    file_to_be_added = QString::fromStdString(filenames[j]);
-    file_names_for_loading.append(file_to_be_added);
+    if (!filenames[j].empty()) {
+      QVariant file_to_be_added;
+      file_to_be_added = QString::fromStdString(filenames[j]);
+      file_names_for_loading.append(file_to_be_added);
+    }
   }
   //link_names_for_loading.append(link_names_vector);
   #ifdef Slicer_USE_PYTHONQT
@@ -311,21 +343,38 @@ void vtkSlicerRos2Logic
     "for j in range(len(fileNamesList)): \n"
     " slicer.util.loadModel(fileNamesList[j]) \n" ));
   #endif
+  #endif
 
+  std::cerr << "Getting past python load" << std::endl;
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
-  for (size_t k = 0; k < (mKDLChainSize + 1); k ++) {
+  for (size_t k = 0; k < (mKDLChainSize); k ++) {
+
+    // this was in loop before python
+    vtkNew<vtkMRMLTransformStorageNode> storageNode1;
+    storageNode1->SetScene(this->GetMRMLScene());
+    //vtkNew<vtkMRMLTransformNode> generalTransform1;
+    //generalTransform1->SetScene(this->GetMRMLScene());
+    mChainNodeTransforms[k] = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+    storageNode1->ReadData(mChainNodeTransforms[k].GetPointer());
+    mChainNodeTransforms[k]->SetName((link_names_vector[k] + "_transform").c_str());
+    this->GetMRMLScene()->AddNode(storageNode1.GetPointer());
+    this->GetMRMLScene()->AddNode(mChainNodeTransforms[k]);
+    mChainNodeTransforms[k]->SetAndObserveStorageNodeID(storageNode1->GetID());
+
+
+    std::cerr << k << " a" << std::endl;
     vtkNew<vtkMRMLTransformStorageNode> storageNode;
     vtkSmartPointer<vtkMRMLTransformNode> tnode;
     storageNode->SetScene(this->GetMRMLScene());
-    vtkNew<vtkMRMLTransformNode> generalTransform;
-    generalTransform->SetScene(this->GetMRMLScene());
+    //vtkNew<vtkMRMLTransformNode> generalTransform;
+    //generalTransform->SetScene(this->GetMRMLScene());
     tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
     storageNode->ReadData(tnode.GetPointer());
     tnode->SetName(("InitialPosition_" + link_names_vector[k]).c_str());
     this->GetMRMLScene()->AddNode(storageNode.GetPointer());
     this->GetMRMLScene()->AddNode(tnode);
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
-
+std::cerr << k << " b" << std::endl;
     vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
     urdf::Pose origin = origins[k];
     modifiedTransform->Translate(origin.position.x, origin.position.y, origin.position.z);
@@ -341,7 +390,7 @@ void vtkSlicerRos2Logic
     modifiedTransform2->RotateX(r * (180.0/M_PI));
     tnode->SetAndObserveTransformToParent(modifiedTransform2);
     tnode->Modified();
-
+std::cerr << k << " c" << std::endl;
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
 
@@ -353,26 +402,50 @@ void vtkSlicerRos2Logic
     LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
     tnode->SetMatrixTransformToParent(initialPositionMatrix);
     tnode->Modified();
+std::cerr << k << " d" << std::endl;
+    // if (k == 0) {
+    //   vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
+    //   assert(modelNode);
+    //   modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+    // std::cerr << k << " d1" << std::endl;
+    // } else {
 
-    if (k == 0) {
-      vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
-      assert(modelNode);
-      modelNode->SetAndObserveTransformNodeID(tnode->GetID());
-    } else {
-      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
-      tnode->SetAndObserveTransformNodeID(transformNode->GetID());
+
+      // vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
+      tnode->SetAndObserveTransformNodeID(mChainNodeTransforms[k]->GetID()); // transformNode->GetID());
 
       if (mModel.Serial == true){
         if (k > 1){
-          vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
-          transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+          // vtkMRMLTransformNode *previousTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k - 1] + "_transform").c_str()));
+          // transformNode->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+	  // mChainNodeTransforms[k]->SetAndObserveTransformNodeID(previousTransformNode->GetID());
+	  mChainNodeTransforms[k]->SetAndObserveTransformNodeID(mChainNodeTransforms[k-1]->GetID());
         }
       }
 
-      vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));
-      modelNode->SetAndObserveTransformNodeID(tnode->GetID());
-    }
+      // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));   // for nodes created using Python
+      vtkNew<vtkMRMLModelStorageNode> modelStorageNode;
+      vtkNew<vtkMRMLModelNode> modelNode;
+      modelStorageNode->SetScene(this->GetMRMLScene());
+      modelNode->SetScene(this->GetMRMLScene());
+      modelNode->SetName((link_names_vector[k] + "_model").c_str());
+      if (!(filenames[k].empty())) {
+        modelStorageNode->SetFileName((filenames[k]).c_str());
+        modelStorageNode->Modified();
+        //modelStorageNode->ReadDataInternal(modelNode);
+      }
+
+
+      modelNode->SetAndObserveStorageNodeID(modelStorageNode->GetID());
+      modelNode->Modified();
+      this->GetMRMLScene()->AddNode(modelStorageNode); //.GetPointer());
+      this->GetMRMLScene()->AddNode(modelNode);
+
+      //modelNode->SetAndObserveTransformNodeID(tnode->GetID());
+      std::cerr << k << " d2" << std::endl;
+    //}
   }
+  std::cerr << "------------- Model loaded!" << std::endl;
   mModel.Loaded = true;
 }
 
@@ -425,7 +498,7 @@ void vtkSlicerRos2Logic::Spin(void)
   // Spin ROS loop
   if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
-    if (!mRobotState.IsUsingTopic) {
+    if (mModel.Loaded && !mRobotState.IsUsingTopic) {
       queryTfNode();
     }
   }
@@ -445,7 +518,8 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
 {
   if (mRobotState.IsUsingTopic == true){
     if (msg->position.size() == 6) {
-      UpdateFK(msg->position);
+      std::cerr << "No loading" << std::endl;
+      //UpdateFK(msg->position);
     }
   }
   else{
@@ -475,6 +549,7 @@ void vtkSlicerRos2Logic::queryTfNode()
     }
 
   }
+  mChainNodeTransforms[0]->Modified();
 }
 
 void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
@@ -505,7 +580,7 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
     Tf->SetElement(2,3, z);
 
     mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
-    mChainNodeTransforms[transform]->Modified();
+    //mChainNodeTransforms[transform]->Modified();
   }
 }
 
