@@ -126,6 +126,7 @@ void qSlicerRos2ModuleWidget::setup()
   // - model is from param
   d->stateWidgetGroupBox->hide();
   loadModelButton->hide();
+  selectFileButton->hide();
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -208,12 +209,14 @@ void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Sho
   if (text == "file") {
     d->descriptionWidgetGroupBox->setTitle("File selected");
     loadModelButton->show();
+    selectFileButton->show();
     nodeLineEdit->hide();
     paramLineEdit->hide();
   }
   else if (text == "parameter") {
     d->descriptionWidgetGroupBox->setTitle("Param selected");
     loadModelButton->hide();
+    selectFileButton->hide();
     nodeLineEdit->show();
     paramLineEdit->show();
   }
