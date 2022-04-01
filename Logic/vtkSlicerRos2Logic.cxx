@@ -29,6 +29,8 @@
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLLinearTransformNode.h>
 #include <vtkMRMLModelStorageNode.h>
+#include <vtkMRMLDisplayNode.h>
+#include <vtkMRMLModelDisplayNode.h>
 
 // VTK includes
 #include <vtkMatrix4x4.h>
@@ -36,6 +38,10 @@
 #include <vtkMath.h>
 #include <vtkQuaternion.h>
 #include <vtkTransform.h>
+#include <vtkSTLReader.h>
+#include <vtkPointSet.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkPolyData.h>
 
 #include <qSlicerCoreIOManager.h>
 
@@ -422,24 +428,55 @@ std::cerr << k << " d" << std::endl;
 	  mChainNodeTransforms[k]->SetAndObserveTransformNodeID(mChainNodeTransforms[k-1]->GetID());
         }
       }
+      // Read the STL file and add the model to the scene - set the name to be the link name instead of file name
+      // Note this code is a repeat of function implemented in vtkMRMLModelStorageNode - in Slicer MRML core - AddFileName should hopefully do the same and save efficiency
+      if (!filenames[k].empty()){
+        vtkNew<vtkSTLReader> reader;
+        reader->SetFileName(filenames[k].c_str());
+        reader->Update();
+        vtkSmartPointer<vtkPointSet> meshFromFile;
+        meshFromFile = reader->GetOutput();
+        vtkSmartPointer<vtkPointSet> meshToSetInNode;
+        meshToSetInNode = meshFromFile;
+        //meshToSetInNode->Update();
 
-      // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));   // for nodes created using Python
-      vtkNew<vtkMRMLModelStorageNode> modelStorageNode;
-      vtkNew<vtkMRMLModelNode> modelNode;
-      modelStorageNode->SetScene(this->GetMRMLScene());
-      modelNode->SetScene(this->GetMRMLScene());
-      modelNode->SetName((link_names_vector[k] + "_model").c_str());
-      if (!(filenames[k].empty())) {
-        modelStorageNode->SetFileName((filenames[k]).c_str());
-        modelStorageNode->Modified();
-        //modelStorageNode->ReadDataInternal(modelNode);
+        vtkNew< vtkMRMLModelNode > modelNode;
+        this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
+        modelNode->SetName((link_names_vector[k] + "_model").c_str());
+        //modelNodeToUpdate = modelNode.GetPointer();
+        modelNode->SetAndObserveMesh(meshToSetInNode);
+
+        if (modelNode->GetDisplayNode() == NULL){
+            vtkNew< vtkMRMLModelDisplayNode > displayNode;
+            this->GetMRMLScene()->AddNode( displayNode.GetPointer() );
+            displayNode->SetName((link_names_vector[k] + "_model_display_node").c_str());
+            modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
+          }
       }
+      // vtkNew<vtkMRMLModelStorageNode> modelStorageNode;
+      // vtkNew<vtkMRMLModelNode> modelNode;
+      // modelStorageNode->SetScene(this->GetMRMLScene());
+      // modelNode->SetScene(this->GetMRMLScene());
+      // modelNode->SetName((link_names_vector[k] + "_model").c_str());
+      // if (!(filenames[k].empty())) {
+      //   modelStorageNode->SetFileName((filenames[k]).c_str());
+      //   modelStorageNode->Modified();
+      //   //modelStorageNode->ReadDataInternal(modelNode);
+      // }
 
 
-      modelNode->SetAndObserveStorageNodeID(modelStorageNode->GetID());
-      modelNode->Modified();
-      this->GetMRMLScene()->AddNode(modelStorageNode); //.GetPointer());
-      this->GetMRMLScene()->AddNode(modelNode);
+      // modelNode->SetAndObserveStorageNodeID(modelStorageNode->GetID());
+      // modelNode->Modified();
+
+
+      //coordinateSystemInFileHeader = vtkMRMLModelStorageNode::GetCoordinateSystemFromFileHeader(reader->GetHeader());
+
+      // modelNode->SetAndObserveMesh(meshToSetInNode);
+      // modelNode->Modified();
+      // this->GetMRMLScene()->AddNode(modelStorageNode); //.GetPointer());
+      // this->GetMRMLScene()->AddNode(modelNode);
+      // vtkMRMLModelNode *modelNode = vtkMRMLModelNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName(link_names_vector[k].c_str()));   // for nodes created using Python
+
 
       //modelNode->SetAndObserveTransformNodeID(tnode->GetID());
       std::cerr << k << " d2" << std::endl;
