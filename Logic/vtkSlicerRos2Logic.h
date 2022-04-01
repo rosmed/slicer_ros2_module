@@ -116,6 +116,7 @@ private:
 
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
+  std::vector<std::string> link_parent_names_vector;
 
   // state
   struct {
