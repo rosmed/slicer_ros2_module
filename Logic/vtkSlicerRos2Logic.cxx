@@ -397,11 +397,12 @@ void vtkSlicerRos2Logic
       // vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
       tnode->SetAndObserveTransformNodeID(mChainNodeTransforms[k]->GetID()); // transformNode->GetID());
 
-      if (mModel.Serial == true){
-        if (k > 1){
-	         mChainNodeTransforms[k]->SetAndObserveTransformNodeID(mChainNodeTransforms[k-1]->GetID());
+
+      if (link_parent_names_vector[k] != "world"){
+        vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_parent_names_vector[k] + "_transform").c_str()));
+	        mChainNodeTransforms[k]->SetAndObserveTransformNodeID(parentTransformNode->GetID());
         }
-      }
+
       // Read the STL file and add the model to the scene - set the name to be the link name instead of file name
       // Note this code is a repeat of function implemented in vtkMRMLModelStorageNode - in Slicer MRML core - AddFileName should hopefully do the same and save efficiency (modelStorageNode->SetFileName((filenames[k]).c_str());)
       if (!filenames[k].empty()){
