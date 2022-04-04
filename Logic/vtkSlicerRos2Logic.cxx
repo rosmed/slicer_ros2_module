@@ -201,17 +201,12 @@ void vtkSlicerRos2Logic
 
   // Print out the urdf from param
   std::cout << mModel.URDF << std::endl;
+
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
   if (!my_model.initString(mModel.URDF)) {
       return;
   }
-
-  // load urdf file into a kdl tree to do forward kinematics
-  // KDL::Tree my_tree;
-  // if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
-  //   return;
-  // }
 
   // Start by getting the name of the root link and add it to the vector of strings
   std::shared_ptr<const urdf::Link> root = my_model.getRoot();
@@ -220,72 +215,23 @@ void vtkSlicerRos2Logic
   link_parent_names_vector.push_back(root_name);
   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
   visual_vector.push_back(root->visual);
-  std::cerr << "Root:" << root_name <<  std::endl;
   size_t lastExplored = 0;
   while (lastExplored != visual_vector.size()){
     std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[lastExplored]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
-    std::cerr << "Parent:" << current_link->name <<  std::endl;
     for (std::shared_ptr<urdf::Link> i: child_link) {
     	link_names_vector.push_back(i->name);
       link_parent_names_vector.push_back(current_link->name);
       std::string child_name = i->name;
-      std::cerr << "Child link:" << child_name << std::endl;
     	visual_vector.push_back(i->visual); // need to get the origin from the visual
     }
-    std::cerr << "No more children" <<  std::endl;
     lastExplored++;
   }
 
-  // while (true) {
-  //   std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[link_names_vector.size() - 1]);
-  //   std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
-  //
-  //   if (child_link.size() == 0) {
-  //     break;
-  //   } else {
-  //     for (std::shared_ptr<urdf::Link> i: child_link) {
-	// link_names_vector.push_back(i->name);
-	// visual_vector.push_back(i->visual); // need to get the origin from the visual
-  //     }
-  //   }
-  // }
 
-  // Print out the list of link names
-  std::cerr << "Link name list" << std::endl;
-  for (std::string i: link_names_vector) {
-    std::cout << "[" << i << "] ";
-  }
-  std::cout << std::endl;
-
-  std::cerr << "Link name list" << std::endl;
-  for (std::string i: link_parent_names_vector) {
-    std::cout << "[" << i << "] ";
-  }
-  std::cout << std::endl;
-
-  // auto kdl_chain = new KDL::Chain();
-  // std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
-  // std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
-  // if (!my_tree.getChain(base_frame, tip_frame, *kdl_chain)) {
-  //   std::cerr << "not working" << std::endl;
-  //   return;
-  // }
-  // mKDLChainSize = kdl_chain->getNrOfSegments();
-  // std::cout << "The chain has " << mKDLChainSize
-	//     << " segments" << std::endl
-	//     << "Found " << link_names_vector.size()
-	//     << " links" << std::endl;
-  //
-  // std::cout << "This is the joint position array" << std::endl;
-  //
-  // // Initialize the fk solver
-  // mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
-  //
   // // Allocate array for links transformation nodes
   mKDLChainSize = link_names_vector.size();
   mChainNodeTransforms.resize(mKDLChainSize);
-  std::cerr << "Length of link names vector" << link_names_vector.size() << std::endl;
 
   // Create a vtkMRMLTransform Node for each of these frames
 #if 0
@@ -389,13 +335,8 @@ void vtkSlicerRos2Logic
     // vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
     // LPSToRAS_matrix->SetElement(0, 0, -1.0);
     // LPSToRAS_matrix->SetElement(1, 1, -1.0);
-    // // LPSToRAS_matrix->SetElement(0, 0, 0.0);
-    // // LPSToRAS_matrix->SetElement(0, 2, 1.0);
-    // // LPSToRAS_matrix->SetElement(1, 1, 1.0);
-    // // LPSToRAS_matrix->SetElement(2, 2, 0.0);
-    // // LPSToRAS_matrix->SetElement(2, 0, 1.0);
-    // //
     // LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
+
     // Scale everything up - account for unit conversion from (mm to m)
     vtkNew<vtkMatrix4x4> MmToM_Transform;
     MmToM_Transform->SetElement(0, 0, MM_TO_M_CONVERSION);
@@ -429,9 +370,6 @@ void vtkSlicerRos2Logic
         vtkNew< vtkMRMLModelNode > modelNode;
         this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
         modelNode->SetName((link_names_vector[k] + "_model").c_str());
-        // Convert to RAS - this is protected? Will this mess things up
-        //meshToSetInNode = vtkSmartPointer<vtkUnstructuredGrid>::New();
-        //vtkMRMLModelStorageNode::ConvertBetweenRASAndLPS(meshFromFile, meshToSetInNode);
 
         modelNode->SetAndObserveMesh(meshToSetInNode);
         // Create display node
@@ -487,7 +425,6 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
       }
     }
 
-
     mChainNodeTransforms[l]->SetMatrixTransformToParent(matrix);
     mChainNodeTransforms[l]->Modified();
   }
@@ -499,7 +436,6 @@ void vtkSlicerRos2Logic::Spin(void)
   if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
     if (mModel.Loaded && !mRobotState.IsUsingTopic) {
-      //BroadcastTransform();
       queryTfNode();
     }
   }
@@ -615,7 +551,8 @@ void vtkSlicerRos2Logic::SetRobotStateTf(){
 }
 
 void vtkSlicerRos2Logic::BroadcastTransform(){
-  //mRobotState.IsUsingTopic = true; // This is just to turn off the query transform for testing
+
+  // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
   geometry_msgs::msg::TransformStamped transformStamped;
   rclcpp::Time now = mNodePointer->get_clock()->now();
   transformStamped.header.stamp = now;
@@ -631,6 +568,5 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
   transformStamped.transform.rotation.z = q.z();
   transformStamped.transform.rotation.w = q.w();
   mTfBroadcaster->sendTransform(transformStamped);
-  // Note: I think this isn't working because the joint state publisher is constantly sending transforms
 
 }
