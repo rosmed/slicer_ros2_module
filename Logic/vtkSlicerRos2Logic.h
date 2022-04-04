@@ -54,6 +54,7 @@ class vtkMRMLTransformNode;
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <turtlesim/srv/spawn.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <chrono>
 #include <memory>
@@ -88,6 +89,7 @@ public:
   void UpdateFK(const std::vector<double> & joinValues);
   void Spin(void);
   void Clear();
+  void BroadcastTransform();
 
 protected:
   vtkSlicerRos2Logic();
@@ -146,6 +148,8 @@ private:
   void queryTfNode();
   void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
 
+  // Set up the broadcaster
+  std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
 
 };
 

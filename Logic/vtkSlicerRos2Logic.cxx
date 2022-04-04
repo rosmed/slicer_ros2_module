@@ -19,6 +19,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
+
 // SlicerRos2 Logic includes
 #include "vtkSlicerRos2Logic.h"
 
@@ -67,11 +68,13 @@
 
 // RQt includes
  #include <rqt_gui_cpp/plugin.h>
+ #include <tf2_ros/transform_broadcaster.h>
 
 // Reading file includes
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
 
 using std::ifstream; using std::ostringstream; using std::string;
 
@@ -95,6 +98,8 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   // Set up the listener in the constructor because this is the default behaviour
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+
+  mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*mNodePointer);
 
 }
 
@@ -479,6 +484,7 @@ void vtkSlicerRos2Logic::Spin(void)
   if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
     if (mModel.Loaded && !mRobotState.IsUsingTopic) {
+      //BroadcastTransform();
       queryTfNode();
     }
   }
@@ -590,5 +596,26 @@ void vtkSlicerRos2Logic::SetRobotStateTf(){
   if (mJointStateSubscription != NULL){
     mJointStateSubscription.reset();
   }
+
+}
+
+void vtkSlicerRos2Logic::BroadcastTransform(){
+  //mRobotState.IsUsingTopic = true; // This is just to turn off the query transform for testing
+  geometry_msgs::msg::TransformStamped transformStamped;
+  rclcpp::Time now = mNodePointer->get_clock()->now();
+  transformStamped.header.stamp = now;
+  transformStamped.header.frame_id = "base";
+  transformStamped.child_frame_id = "torso";
+  transformStamped.transform.translation.x = 0.0;
+  transformStamped.transform.translation.y = 0.0;
+  transformStamped.transform.translation.z = 0.0;
+  tf2::Quaternion q;
+  q.setRPY(0, 0, 1.5);
+  transformStamped.transform.rotation.x = q.x();
+  transformStamped.transform.rotation.y = q.y();
+  transformStamped.transform.rotation.z = q.z();
+  transformStamped.transform.rotation.w = q.w();
+  mTfBroadcaster->sendTransform(transformStamped);
+  // Note: I think this isn't working because the joint state publisher is constantly sending transforms
 
 }

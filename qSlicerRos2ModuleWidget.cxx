@@ -127,6 +127,8 @@ void qSlicerRos2ModuleWidget::setup()
   d->stateWidgetGroupBox->hide();
   loadModelButton->hide();
   selectFileButton->hide();
+
+  this->connect(d->broadcastTransformButton, SIGNAL(clicked(bool)), this, SLOT(onBroadcastButtonPressed()));
 }
 
 void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
@@ -285,4 +287,15 @@ void qSlicerRos2ModuleWidget::onLoadModelButtonSelected(void)
     return;
   }
   logic->SetModelFile(selectedFile);
+}
+
+void qSlicerRos2ModuleWidget::onBroadcastButtonPressed()
+{
+  vtkSlicerRos2Logic *
+    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    return;
+  }
+  logic->BroadcastTransform();
 }

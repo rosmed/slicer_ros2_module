@@ -80,6 +80,7 @@ protected slots:
   void onDescriptionFileSelected(void);
   void onLoadModelButtonSelected(void);
   void onSelectFile(void);
+  void onBroadcastButtonPressed();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
