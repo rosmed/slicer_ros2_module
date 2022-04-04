@@ -77,6 +77,7 @@
 
 
 using std::ifstream; using std::ostringstream; using std::string;
+auto const MM_TO_M_CONVERSION = 1000.00;
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
@@ -368,7 +369,7 @@ void vtkSlicerRos2Logic
     tnode->SetAndObserveStorageNodeID(storageNode->GetID());
     vtkTransform * modifiedTransform = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
     urdf::Pose origin = origins[k];
-    modifiedTransform->Translate(origin.position.x, origin.position.y, origin.position.z);
+    modifiedTransform->Translate(origin.position.x*MM_TO_M_CONVERSION, origin.position.y*MM_TO_M_CONVERSION, origin.position.z*MM_TO_M_CONVERSION);
     tnode->SetAndObserveTransformToParent(modifiedTransform);
     tnode->Modified();
     vtkTransform * modifiedTransform2 = vtkTransform::SafeDownCast(tnode->GetTransformToParent());
@@ -384,12 +385,24 @@ void vtkSlicerRos2Logic
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
 
-    // Apply LPS to RAS conversion
+    //Apply LPS to RAS conversion
     // vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
     // LPSToRAS_matrix->SetElement(0, 0, -1.0);
     // LPSToRAS_matrix->SetElement(1, 1, -1.0);
-    //
+    // // LPSToRAS_matrix->SetElement(0, 0, 0.0);
+    // // LPSToRAS_matrix->SetElement(0, 2, 1.0);
+    // // LPSToRAS_matrix->SetElement(1, 1, 1.0);
+    // // LPSToRAS_matrix->SetElement(2, 2, 0.0);
+    // // LPSToRAS_matrix->SetElement(2, 0, 1.0);
+    // //
     // LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
+    // Scale everything up - account for unit conversion from (mm to m)
+    vtkNew<vtkMatrix4x4> MmToM_Transform;
+    MmToM_Transform->SetElement(0, 0, MM_TO_M_CONVERSION);
+    MmToM_Transform->SetElement(1, 1, MM_TO_M_CONVERSION);
+    MmToM_Transform->SetElement(2, 2, MM_TO_M_CONVERSION);
+    MmToM_Transform->Multiply4x4(initialPositionMatrix, MmToM_Transform, initialPositionMatrix);
+
     tnode->SetMatrixTransformToParent(initialPositionMatrix);
     tnode->Modified();
 
@@ -473,7 +486,8 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
         matrix->SetElement(i, j, cartpos(i, j));
       }
     }
-    // Update the matrix for the transform
+
+
     mChainNodeTransforms[l]->SetMatrixTransformToParent(matrix);
     mChainNodeTransforms[l]->Modified();
   }
@@ -532,7 +546,7 @@ void vtkSlicerRos2Logic::queryTfNode()
         transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       else{
-        transformStamped = mTfBuffer->lookupTransform(link_names_vector[link - 1], link_names_vector[link], tf2::TimePointZero);
+        transformStamped = mTfBuffer->lookupTransform(link_parent_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       updateTransformFromTf(transformStamped, link);
       } catch (tf2::TransformException & ex) {
@@ -547,9 +561,9 @@ void vtkSlicerRos2Logic::queryTfNode()
 void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
 {
   // Retrieve the translation vector and quaternion from the geometry message
-  auto x = transformStamped.transform.translation.x;
-  auto y = transformStamped.transform.translation.y;
-  auto z = transformStamped.transform.translation.z;
+  auto x = transformStamped.transform.translation.x*MM_TO_M_CONVERSION;
+  auto y = transformStamped.transform.translation.y*MM_TO_M_CONVERSION;
+  auto z = transformStamped.transform.translation.z*MM_TO_M_CONVERSION;
   auto q_w = transformStamped.transform.rotation.w;
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
