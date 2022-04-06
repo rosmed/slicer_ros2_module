@@ -257,6 +257,7 @@ void vtkSlicerRos2Logic
   std::vector<urdf::Pose> origins;
   std::vector<std::string> filenames;
   filenames.resize(visual_vector.size());
+  origins.resize(visual_vector.size());
   for (size_t index = 0; index < visual_vector.size(); ++index) {
     std::shared_ptr<urdf::Visual> i = visual_vector[index];
     if (i == nullptr) {
@@ -264,7 +265,7 @@ void vtkSlicerRos2Logic
     } else {
       urdf::Pose origin;
       origin = i->origin;
-      origins.push_back(origin);
+      origins[index] = origin;
       // Get stl file name and add it to a list of vectors for python parsing later
       std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
       if (mesh != nullptr) {
@@ -330,6 +331,8 @@ void vtkSlicerRos2Logic
     tnode->Modified();
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
+    // CHANGED
+    //initialPositionMatrix->Invert();
 
     //Apply LPS to RAS conversion
     // vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
@@ -363,6 +366,12 @@ void vtkSlicerRos2Logic
         vtkNew<vtkSTLReader> reader;
         reader->SetFileName(filenames[k].c_str());
         reader->Update();
+        const char* header;
+        header = reader->GetHeader();
+
+        std::string headerStr = header;
+        std::cerr << "Header" << std::endl;
+        std::cerr << headerStr << std::endl;
         vtkSmartPointer<vtkPointSet> meshFromFile;
         meshFromFile = reader->GetOutput();
         vtkSmartPointer<vtkPointSet> meshToSetInNode;
@@ -479,19 +488,21 @@ void vtkSlicerRos2Logic::queryTfNode()
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
       if (link == 0){
+        // CHANGED world used to be link_names_vector[link]
         transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       else{
+        // CHANGED world used to be link_parent_names_vector[link]
         transformStamped = mTfBuffer->lookupTransform(link_parent_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       updateTransformFromTf(transformStamped, link);
       } catch (tf2::TransformException & ex) {
         std::cout << " Transform exception" << std::endl;
-        return;
+        // return;
     }
 
   }
-  mChainNodeTransforms[0]->Modified();
+  //mChainNodeTransforms[0]->Modified();
 }
 
 void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
@@ -504,7 +515,9 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
   auto q_z = transformStamped.transform.rotation.z;
-
+  std::cerr << transformStamped.child_frame_id << std::endl;
+  std::cerr << "Translation" << x << ", " << y << ", " << z << std::endl;
+  std::cerr << "Quat" << q_w << "," << q_x << "," << q_y << "," << q_z << std::endl;
 
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
     const double q[4] = {q_w, q_x, q_y, q_z};
@@ -522,7 +535,7 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
     Tf->SetElement(2,3, z);
 
     mChainNodeTransforms[transform]->SetMatrixTransformToParent(Tf);
-    //mChainNodeTransforms[transform]->Modified();
+    mChainNodeTransforms[transform]->Modified();
   }
 }
 
@@ -552,21 +565,33 @@ void vtkSlicerRos2Logic::SetRobotStateTf(){
 
 void vtkSlicerRos2Logic::BroadcastTransform(){
 
+  mRobotState.IsUsingTopic = true;
+
   // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
+  vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName("torso_transform"));
+  float quat[4] = {0.0, 0.0, 0.0, 0.0};
+  float pos[3] = {0.0, 0.0, 0.0};
+
+  vtkTransform * transform = vtkTransform::SafeDownCast(transformNode->GetTransformToParent());
+  transform->GetOrientationWXYZ(quat);
+  transform->GetPosition(pos);
+  std::cerr << "Orientation" << quat[0] << quat[1] << quat[2] << quat[3] << std::endl;
+  std::cerr << "Position" << pos[0] << pos[1] << pos[2] << std::endl;
+
   geometry_msgs::msg::TransformStamped transformStamped;
   rclcpp::Time now = mNodePointer->get_clock()->now();
   transformStamped.header.stamp = now;
   transformStamped.header.frame_id = "base";
   transformStamped.child_frame_id = "torso";
-  transformStamped.transform.translation.x = 0.0;
-  transformStamped.transform.translation.y = 0.0;
-  transformStamped.transform.translation.z = 0.0;
-  tf2::Quaternion q;
-  q.setRPY(0, 0, 1.5);
-  transformStamped.transform.rotation.x = q.x();
-  transformStamped.transform.rotation.y = q.y();
-  transformStamped.transform.rotation.z = q.z();
-  transformStamped.transform.rotation.w = q.w();
+  transformStamped.transform.translation.x = pos[0]/MM_TO_M_CONVERSION;
+  transformStamped.transform.translation.y = pos[1]/MM_TO_M_CONVERSION;
+  transformStamped.transform.translation.z = pos[2]/MM_TO_M_CONVERSION;
+  transformStamped.transform.rotation.x = quat[1];
+  transformStamped.transform.rotation.y = quat[2];
+  transformStamped.transform.rotation.z = quat[3];
+  transformStamped.transform.rotation.w = quat[0];
   mTfBroadcaster->sendTransform(transformStamped);
+
+  mRobotState.IsUsingTopic = false;
 
 }
