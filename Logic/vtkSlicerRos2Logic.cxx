@@ -258,6 +258,7 @@ void vtkSlicerRos2Logic
   std::vector<std::string> filenames;
   filenames.resize(visual_vector.size());
   origins.resize(visual_vector.size());
+  // This was causing a big issue before - dvrk showing up in the wrong places
   for (size_t index = 0; index < visual_vector.size(); ++index) {
     std::shared_ptr<urdf::Visual> i = visual_vector[index];
     if (i == nullptr) {
@@ -366,12 +367,6 @@ void vtkSlicerRos2Logic
         vtkNew<vtkSTLReader> reader;
         reader->SetFileName(filenames[k].c_str());
         reader->Update();
-        const char* header;
-        header = reader->GetHeader();
-
-        std::string headerStr = header;
-        std::cerr << "Header" << std::endl;
-        std::cerr << headerStr << std::endl;
         vtkSmartPointer<vtkPointSet> meshFromFile;
         meshFromFile = reader->GetOutput();
         vtkSmartPointer<vtkPointSet> meshToSetInNode;
@@ -447,6 +442,9 @@ void vtkSlicerRos2Logic::Spin(void)
     if (mModel.Loaded && !mRobotState.IsUsingTopic) {
       queryTfNode();
     }
+    else if (mModel.Loaded && mRobotState.IsUsingTopic){
+      BroadcastTransform();
+    }
   }
 }
 
@@ -488,11 +486,10 @@ void vtkSlicerRos2Logic::queryTfNode()
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
       if (link == 0){
-        // CHANGED world used to be link_names_vector[link]
+        // Probably don't need this if - the parent of the first link should be just world
         transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       else{
-        // CHANGED world used to be link_parent_names_vector[link]
         transformStamped = mTfBuffer->lookupTransform(link_parent_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       updateTransformFromTf(transformStamped, link);
@@ -515,9 +512,7 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
   auto q_x = transformStamped.transform.rotation.x;
   auto q_y = transformStamped.transform.rotation.y;
   auto q_z = transformStamped.transform.rotation.z;
-  std::cerr << transformStamped.child_frame_id << std::endl;
-  std::cerr << "Translation" << x << ", " << y << ", " << z << std::endl;
-  std::cerr << "Quat" << q_w << "," << q_x << "," << q_y << "," << q_z << std::endl;
+
 
   if (mKDLChainSize > 0){ // Make sure the KDL chain is defined to avoid crash
     const double q[4] = {q_w, q_x, q_y, q_z};
@@ -565,33 +560,50 @@ void vtkSlicerRos2Logic::SetRobotStateTf(){
 
 void vtkSlicerRos2Logic::BroadcastTransform(){
 
+  // this will need to go through all of the transforms and update them accordingly
+  // Need to somehow turn off queryTfNode and have slicer just figure out how to follow a point
   mRobotState.IsUsingTopic = true;
+  for (int link = 0; link < link_names_vector.size(); link++) {
+    if (link_names_vector[link] != link_parent_names_vector[link]){
+      // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
+      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[link] + "_transform").c_str()));
+      float quat[4] = {0.0, 0.0, 0.0, 0.0};
+      float pos[3] = {0.0, 0.0, 0.0};
 
-  // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
-  vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName("torso_transform"));
-  float quat[4] = {0.0, 0.0, 0.0, 0.0};
-  float pos[3] = {0.0, 0.0, 0.0};
 
-  vtkTransform * transform = vtkTransform::SafeDownCast(transformNode->GetTransformToParent());
-  transform->GetOrientationWXYZ(quat);
-  transform->GetPosition(pos);
-  std::cerr << "Orientation" << quat[0] << quat[1] << quat[2] << quat[3] << std::endl;
-  std::cerr << "Position" << pos[0] << pos[1] << pos[2] << std::endl;
+      vtkTransform * transform = vtkTransform::SafeDownCast(transformNode->GetTransformToParent());
+      // This code should fix the issue
+      // vtkNew<vtkMatrix4x4> matrix;
+      // transformNode->GetMatrixTransformToParent(matrix);
+      // vtkNew<vtkMatrix3x3> rotationMatrix;
+      // for (int i = 0; i < 3; i ++){
+      //   for (int j = 0; j < 3; j ++){
+      //     rotationMatrix->SetElement(i, j, matrix->GetElement(i, j));
+      //   }
+      // }
+      //
+      // vtkMath::Matrix3x3ToQuaternion(rotationMatrix, quat); // Convert quaternion to a 3x3 matrix
+      // Instead of this GetOrientationWXYZ do vtkMath.vtkMatrix3x3ToQuaternion and pull numbers from the matrix this isn't the quaternion that's why it's not working!
+      transform->GetOrientationWXYZ(quat); // This isn't the quaternion that's why things are weird
+      transform->GetPosition(pos);
 
-  geometry_msgs::msg::TransformStamped transformStamped;
-  rclcpp::Time now = mNodePointer->get_clock()->now();
-  transformStamped.header.stamp = now;
-  transformStamped.header.frame_id = "base";
-  transformStamped.child_frame_id = "torso";
-  transformStamped.transform.translation.x = pos[0]/MM_TO_M_CONVERSION;
-  transformStamped.transform.translation.y = pos[1]/MM_TO_M_CONVERSION;
-  transformStamped.transform.translation.z = pos[2]/MM_TO_M_CONVERSION;
-  transformStamped.transform.rotation.x = quat[1];
-  transformStamped.transform.rotation.y = quat[2];
-  transformStamped.transform.rotation.z = quat[3];
-  transformStamped.transform.rotation.w = quat[0];
-  mTfBroadcaster->sendTransform(transformStamped);
+      geometry_msgs::msg::TransformStamped transformStamped;
+      rclcpp::Time now = mNodePointer->get_clock()->now();
+      transformStamped.header.stamp = now;
+      transformStamped.header.frame_id = link_parent_names_vector[link]; //"torso"; // should have header be torso and child be base
+      transformStamped.child_frame_id =  link_names_vector[link];// if you swap this and do it incorectly you can confirm that we're updating tf because the rviz updates to - just need to figure out how to do the dot example
+      transformStamped.transform.translation.x = pos[0]/MM_TO_M_CONVERSION;
+      transformStamped.transform.translation.y = pos[1]/MM_TO_M_CONVERSION;
+      transformStamped.transform.translation.z = pos[2]/MM_TO_M_CONVERSION;
+      transformStamped.transform.rotation.w = quat[0];
+      transformStamped.transform.rotation.x = quat[1];
+      transformStamped.transform.rotation.y = quat[2];
+      transformStamped.transform.rotation.z = quat[3];
+      mTfBroadcaster->sendTransform(transformStamped);
+      std::cerr << "Sending transform" << std::endl;
+    }
 
-  mRobotState.IsUsingTopic = false;
+
+  }
 
 }
