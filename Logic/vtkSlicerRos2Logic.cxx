@@ -567,25 +567,22 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
     if (link_names_vector[link] != link_parent_names_vector[link]){
       // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[link] + "_transform").c_str()));
-      float quat[4] = {0.0, 0.0, 0.0, 0.0};
-      float pos[3] = {0.0, 0.0, 0.0};
+      float pos[3] = {0.0, 0.0, 0.0}; // translation vector
+      double q[4] = {0.0, 0.0, 0.0, 0.0}; // quaternion vector
+      double A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}}; // 3x3 rotation matrix
 
-
-      vtkTransform * transform = vtkTransform::SafeDownCast(transformNode->GetTransformToParent());
-      // This code should fix the issue
-      // vtkNew<vtkMatrix4x4> matrix;
-      // transformNode->GetMatrixTransformToParent(matrix);
-      // vtkNew<vtkMatrix3x3> rotationMatrix;
-      // for (int i = 0; i < 3; i ++){
-      //   for (int j = 0; j < 3; j ++){
-      //     rotationMatrix->SetElement(i, j, matrix->GetElement(i, j));
-      //   }
-      // }
+      vtkNew<vtkMatrix4x4> matrix;
+      transformNode->GetMatrixTransformToParent(matrix);
+      for (int i = 0; i < 3; i ++){
+        for (int j = 0; j < 3; j ++){
+          A[i][j] =  matrix->GetElement(i, j);
+        }
+      }
       //
-      // vtkMath::Matrix3x3ToQuaternion(rotationMatrix, quat); // Convert quaternion to a 3x3 matrix
-      // Instead of this GetOrientationWXYZ do vtkMath.vtkMatrix3x3ToQuaternion and pull numbers from the matrix this isn't the quaternion that's why it's not working!
-      transform->GetOrientationWXYZ(quat); // This isn't the quaternion that's why things are weird
-      transform->GetPosition(pos);
+      vtkMath::Matrix3x3ToQuaternion(A, q); // Convert quaternion to a 3x3 matrix
+      pos[0] = matrix->GetElement(0,3); // Get the translation vector from the homogeneous transformation matrix
+      pos[1] = matrix->GetElement(1,3);
+      pos[2] = matrix->GetElement(2,3);
 
       geometry_msgs::msg::TransformStamped transformStamped;
       rclcpp::Time now = mNodePointer->get_clock()->now();
@@ -595,10 +592,12 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
       transformStamped.transform.translation.x = pos[0]/MM_TO_M_CONVERSION;
       transformStamped.transform.translation.y = pos[1]/MM_TO_M_CONVERSION;
       transformStamped.transform.translation.z = pos[2]/MM_TO_M_CONVERSION;
-      transformStamped.transform.rotation.w = quat[0];
-      transformStamped.transform.rotation.x = quat[1];
-      transformStamped.transform.rotation.y = quat[2];
-      transformStamped.transform.rotation.z = quat[3];
+      transformStamped.transform.rotation.w = q[0];
+      transformStamped.transform.rotation.x = q[1];
+      transformStamped.transform.rotation.y = q[2];
+      transformStamped.transform.rotation.z = q[3];
+
+      // Send the transform
       mTfBroadcaster->sendTransform(transformStamped);
       std::cerr << "Sending transform" << std::endl;
     }
