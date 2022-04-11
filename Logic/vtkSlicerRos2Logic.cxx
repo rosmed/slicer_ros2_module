@@ -482,22 +482,19 @@ void vtkSlicerRos2Logic::Clear()
 void vtkSlicerRos2Logic::queryTfNode()
 {
 
-  for (int link = 0; link < link_names_vector.size(); link++) {
+  for (size_t link = 0; link < link_names_vector.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
-      if (link == 0){
+      if (link == 0) {
         // Probably don't need this if - the parent of the first link should be just world
         transformStamped = mTfBuffer->lookupTransform(link_names_vector[link], link_names_vector[link], tf2::TimePointZero);
-      }
-      else{
+      } else {
         transformStamped = mTfBuffer->lookupTransform(link_parent_names_vector[link], link_names_vector[link], tf2::TimePointZero);
       }
       updateTransformFromTf(transformStamped, link);
-      } catch (tf2::TransformException & ex) {
-        std::cout << " Transform exception" << std::endl;
-        // return;
+    } catch (tf2::TransformException & ex) {
+      std::cout << " Transform exception" << std::endl;
     }
-
   }
   //mChainNodeTransforms[0]->Modified();
 }
@@ -563,7 +560,7 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
   // this will need to go through all of the transforms and update them accordingly
   // Need to somehow turn off queryTfNode and have slicer just figure out how to follow a point
   mRobotState.IsUsingTopic = true;
-  for (int link = 0; link < link_names_vector.size(); link++) {
+  for (size_t link = 0; link < link_names_vector.size(); link++) {
     if (link_names_vector[link] != link_parent_names_vector[link]){
       // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[link] + "_transform").c_str()));
