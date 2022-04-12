@@ -364,39 +364,56 @@ void vtkSlicerRos2Logic
       // Read the STL file and add the model to the scene - set the name to be the link name instead of file name
       // Note this code is a repeat of function implemented in vtkMRMLModelStorageNode - in Slicer MRML core - AddFileName should hopefully do the same and save efficiency (modelStorageNode->SetFileName((filenames[k]).c_str());)
       if (!filenames[k].empty()){
-        vtkNew<vtkSTLReader> reader; // default is STL
         if (filenames[k].find(".stl") or filenames[k].find(".STL")){
           std::cerr << "Model file format is STL" << std::endl;
+          vtkNew<vtkSTLReader> reader; // default is STL
+          reader->SetFileName(filenames[k].c_str());
+          reader->Update();
+          vtkSmartPointer<vtkPointSet> meshFromFile;
+          meshFromFile = reader->GetOutput();
+          vtkSmartPointer<vtkPointSet> meshToSetInNode;
+          meshToSetInNode = meshFromFile;
+          vtkNew< vtkMRMLModelNode > modelNode;
+          this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
+          modelNode->SetName((link_names_vector[k] + "_model").c_str());
+          modelNode->SetAndObserveMesh(meshToSetInNode);
+          // Create display node
+          if (modelNode->GetDisplayNode() == NULL){
+              vtkNew< vtkMRMLModelDisplayNode > displayNode;
+              this->GetMRMLScene()->AddNode( displayNode.GetPointer() );
+              displayNode->SetName((link_names_vector[k] + "_model_display_node").c_str());
+              modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
+            }
+          // Set the model node to listen to the right transform
+          modelNode->SetAndObserveTransformNodeID(tnode->GetID());
         }
-        else if (filenames[k].find(".obj") or filenames[k].find(".OBJ")){
-          std::cerr << "Model file format is OBJ, updating the reader." << std::endl;
-          vtkNew<vtkOBJReader> reader;
+        if(filenames[k].find(".obj") or filenames[k].find(".OBJ")){
+          std::cerr << "Model file format is OBJ" << std::endl;
+          vtkNew<vtkOBJReader> reader; // This is not updating for some reason
+          reader->SetFileName(filenames[k].c_str());
+          reader->Update();
+          vtkSmartPointer<vtkPointSet> meshFromFile;
+          meshFromFile = reader->GetOutput();
+          vtkSmartPointer<vtkPointSet> meshToSetInNode;
+          meshToSetInNode = meshFromFile;
+          vtkNew< vtkMRMLModelNode > modelNode;
+          this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
+          modelNode->SetName((link_names_vector[k] + "_model").c_str());
+          modelNode->SetAndObserveMesh(meshToSetInNode);
+          // Create display node
+          if (modelNode->GetDisplayNode() == NULL){
+              vtkNew< vtkMRMLModelDisplayNode > displayNode;
+              this->GetMRMLScene()->AddNode( displayNode.GetPointer() );
+              displayNode->SetName((link_names_vector[k] + "_model_display_node").c_str());
+              modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
+            }
+          // Set the model node to listen to the right transform
+          modelNode->SetAndObserveTransformNodeID(tnode->GetID());
         }
         else{
           std::cerr << "Model file type is not supported" << std::endl;
           return;
         }
-
-        reader->SetFileName(filenames[k].c_str());
-        reader->Update();
-        vtkSmartPointer<vtkPointSet> meshFromFile;
-        meshFromFile = reader->GetOutput();
-        vtkSmartPointer<vtkPointSet> meshToSetInNode;
-        meshToSetInNode = meshFromFile;
-        vtkNew< vtkMRMLModelNode > modelNode;
-        this->GetMRMLScene()->AddNode( modelNode.GetPointer() );
-        modelNode->SetName((link_names_vector[k] + "_model").c_str());
-
-        modelNode->SetAndObserveMesh(meshToSetInNode);
-        // Create display node
-        if (modelNode->GetDisplayNode() == NULL){
-            vtkNew< vtkMRMLModelDisplayNode > displayNode;
-            this->GetMRMLScene()->AddNode( displayNode.GetPointer() );
-            displayNode->SetName((link_names_vector[k] + "_model_display_node").c_str());
-            modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
-          }
-        // Set the model node to listen to the right transform
-        modelNode->SetAndObserveTransformNodeID(tnode->GetID());
       }
   }
   mModel.Loaded = true;
