@@ -238,8 +238,6 @@ void vtkSlicerRos2Logic
     lastExplored++;
   }
 
-  std::cerr << "Serial value:" << mModel.Serial << std::endl;
-
   // // Allocate array for links transformation nodes
   //mKDLChainSize = link_names_vector.size();
   //mChainNodeTransforms.resize(mKDLChainSize);
@@ -527,6 +525,29 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
 void vtkSlicerRos2Logic::Clear()
 {
   this->GetMRMLScene()->Clear();
+  mKDLSolver = 0;
+  mKDLChainSize = 0;
+  // Need to handle mChainNodeTransforms
+  mParameterClient.reset();
+  link_names_vector.clear();
+  link_parent_names_vector.clear();
+
+  // Restore defaults
+  // Robot state
+  mRobotState.IsUsingTopic = false;
+  mRobotState.sendingTf = false;
+  mRobotState.Topic = "";
+
+  // Robot model
+  mModel.Loaded = false;
+  mModel.URDF = "";
+  mModel.ComesFromFile = false;
+  mModel.FileName = "";
+  mModel.Serial = true;
+  mModel.Parameter.NodeName = "";
+  mModel.Parameter.ParameterName = "";
+  mModel.Parameter.NodeFound = false;
+  mModel.Parameter.ParameterFound = false;
 }
 
 
