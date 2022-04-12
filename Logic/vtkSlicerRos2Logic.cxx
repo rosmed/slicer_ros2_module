@@ -230,14 +230,16 @@ void vtkSlicerRos2Logic
 
 
   // // Allocate array for links transformation nodes
-  mKDLChainSize = link_names_vector.size();
-  mChainNodeTransforms.resize(mKDLChainSize);
+  //mKDLChainSize = link_names_vector.size();
+  //mChainNodeTransforms.resize(mKDLChainSize);
 
   if (mRobotState.IsUsingTopic){
     initializeFkSolver();
-    // std::vector<double> initialJointValues(mKDLChainSize - 1, 0.0);
-    // initialJointValues[1] = 0.8; // for testing
-    // UpdateFK(initialJointValues);
+    mChainNodeTransforms.resize(mKDLChainSize + 1);
+  }
+  else {
+    mKDLChainSize = link_names_vector.size();
+    mChainNodeTransforms.resize(mKDLChainSize);
   }
 
 
@@ -279,12 +281,18 @@ void vtkSlicerRos2Logic
     }
   }
 
-
+  // This is  hack for the FK/ Tf issue - need to figure out how to write this so it's intuitive to read
+  int counter;
+  if (mRobotState.IsUsingTopic){
+    counter = mKDLChainSize + 1;
+  }
+  else{
+    counter = mKDLChainSize;
+  }
 
   // Set up the initial position for each link (Rotate and Translate based on origin and rpy from the urdf file)
-  for (size_t k = 0; k < (mKDLChainSize); k ++) {
+  for (size_t k = 0; k < (counter); k ++) {
 
-    // this was in loop before python
     vtkNew<vtkMRMLTransformStorageNode> storageNode1;
     storageNode1->SetScene(this->GetMRMLScene());
     mChainNodeTransforms[k] = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
@@ -410,7 +418,7 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 
   //Get the matrix and update it based on the forward kinematics
   // TODO: Figure out why the indexing needs to be like this and where the stylus went
-  for (size_t l = 0; l < mKDLChainSize - 1; l++) {
+  for (size_t l = 0; l < (mKDLChainSize); l++) { // TODO: This shoul be the size of mChainNodeTransforms
     KDL::Frame cartpos;
     cartpos = FK_frames[l];
     vtkNew<vtkMatrix4x4> matrix;
