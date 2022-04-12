@@ -76,6 +76,10 @@
 #include <fstream>
 #include <sstream>
 
+// Qt includes
+#include <QDialog>
+#include <QLabel>
+#include <QVBoxLayout>
 
 using std::ifstream; using std::ostringstream; using std::string;
 auto const MM_TO_M_CONVERSION = 1000.00;
@@ -242,7 +246,13 @@ void vtkSlicerRos2Logic
 
   if (mRobotState.IsUsingTopic){
     if (!mModel.Serial){
-      std::cerr << "Topic transforms are not supported for parallel manipulators." << std::endl;
+      QDialog *popupDialog = new QDialog();
+      QLabel *label = new QLabel();
+      label->setText("Topic transforms are not supported for parallel manipulators.");
+      QVBoxLayout *layout = new QVBoxLayout();
+      layout->addWidget(label);
+      popupDialog->setLayout(layout);
+      popupDialog->show();
       return;
     }
     initializeFkSolver();
