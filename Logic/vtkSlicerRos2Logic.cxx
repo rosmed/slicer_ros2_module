@@ -40,6 +40,7 @@
 #include <vtkQuaternion.h>
 #include <vtkTransform.h>
 #include <vtkSTLReader.h>
+#include <vtkOBJReader.h>
 #include <vtkPointSet.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkPolyData.h>
@@ -339,14 +340,6 @@ void vtkSlicerRos2Logic
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
 
-    // if (mRobotState.IsUsingTopic){
-    //   //Apply LPS to RAS conversion
-    //   vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
-    //   LPSToRAS_matrix->SetElement(0, 0, -1.0);
-    //   LPSToRAS_matrix->SetElement(1, 1, -1.0);
-    //   LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
-    // }
-
     // Scale everything up - account for unit conversion from (mm to m)
     vtkNew<vtkMatrix4x4> MmToM_Transform;
     MmToM_Transform->SetElement(0, 0, MM_TO_M_CONVERSION);
@@ -371,7 +364,19 @@ void vtkSlicerRos2Logic
       // Read the STL file and add the model to the scene - set the name to be the link name instead of file name
       // Note this code is a repeat of function implemented in vtkMRMLModelStorageNode - in Slicer MRML core - AddFileName should hopefully do the same and save efficiency (modelStorageNode->SetFileName((filenames[k]).c_str());)
       if (!filenames[k].empty()){
-        vtkNew<vtkSTLReader> reader;
+        vtkNew<vtkSTLReader> reader; // default is STL
+        if (filenames[k].find(".stl") or filenames[k].find(".STL")){
+          std::cerr << "Model file format is STL" << std::endl;
+        }
+        else if (filenames[k].find(".obj") or filenames[k].find(".OBJ")){
+          std::cerr << "Model file format is OBJ, updating the reader." << std::endl;
+          vtkNew<vtkOBJReader> reader;
+        }
+        else{
+          std::cerr << "Model file type is not supported" << std::endl;
+          return;
+        }
+
         reader->SetFileName(filenames[k].c_str());
         reader->Update();
         vtkSmartPointer<vtkPointSet> meshFromFile;
