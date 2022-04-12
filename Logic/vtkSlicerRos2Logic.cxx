@@ -233,25 +233,13 @@ void vtkSlicerRos2Logic
   mKDLChainSize = link_names_vector.size();
   mChainNodeTransforms.resize(mKDLChainSize);
 
-  // Create a vtkMRMLTransform Node for each of these frames
-#if 0
-  for (size_t l = 1; l < mKDLChainSize; l++) {
-    vtkNew<vtkMRMLTransformStorageNode> storageNode;
-    storageNode->SetScene(this->GetMRMLScene());
-    vtkNew<vtkMRMLTransformNode> generalTransform;
-    generalTransform->SetScene(this->GetMRMLScene());
-    mChainNodeTransforms[l] = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-    storageNode->ReadData(mChainNodeTransforms[l].GetPointer());
-    mChainNodeTransforms[l]->SetName((link_names_vector[l] + "_transform").c_str());
-    this->GetMRMLScene()->AddNode(storageNode.GetPointer());
-    this->GetMRMLScene()->AddNode(mChainNodeTransforms[l]);
-    mChainNodeTransforms[l]->SetAndObserveStorageNodeID(storageNode->GetID());
+  if (mRobotState.IsUsingTopic){
+    initializeFkSolver();
+    // std::vector<double> initialJointValues(mKDLChainSize - 1, 0.0);
+    // initialJointValues[1] = 0.8; // for testing
+    // UpdateFK(initialJointValues);
   }
-#endif
 
-  // std::vector<double> initialJointValues(mKDLChainSize, 0.0);
-  // initialJointValues[1] = 0.8; // for testing
-  //UpdateFK(initialJointValues);
 
   // Get the origin and rpy
   std::vector<urdf::Pose> origins;
@@ -332,14 +320,14 @@ void vtkSlicerRos2Logic
     tnode->Modified();
     vtkNew<vtkMatrix4x4> initialPositionMatrix;
     tnode->GetMatrixTransformToParent(initialPositionMatrix);
-    // CHANGED
-    //initialPositionMatrix->Invert();
 
-    //Apply LPS to RAS conversion
-    // vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
-    // LPSToRAS_matrix->SetElement(0, 0, -1.0);
-    // LPSToRAS_matrix->SetElement(1, 1, -1.0);
-    // LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
+    // if (mRobotState.IsUsingTopic){
+    //   //Apply LPS to RAS conversion
+    //   vtkNew<vtkMatrix4x4> LPSToRAS_matrix;
+    //   LPSToRAS_matrix->SetElement(0, 0, -1.0);
+    //   LPSToRAS_matrix->SetElement(1, 1, -1.0);
+    //   LPSToRAS_matrix->Multiply4x4(initialPositionMatrix, LPSToRAS_matrix, initialPositionMatrix);
+    // }
 
     // Scale everything up - account for unit conversion from (mm to m)
     vtkNew<vtkMatrix4x4> MmToM_Transform;
@@ -355,10 +343,11 @@ void vtkSlicerRos2Logic
       // vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[k] + "_transform").c_str()));
       tnode->SetAndObserveTransformNodeID(mChainNodeTransforms[k]->GetID()); // transformNode->GetID());
 
-
-      if (link_parent_names_vector[k] != "world"){
-        vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_parent_names_vector[k] + "_transform").c_str()));
-	        mChainNodeTransforms[k]->SetAndObserveTransformNodeID(parentTransformNode->GetID());
+      if (!mRobotState.IsUsingTopic){
+        if (link_parent_names_vector[k] != "world"){
+          vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_parent_names_vector[k] + "_transform").c_str()));
+  	        mChainNodeTransforms[k]->SetAndObserveTransformNodeID(parentTransformNode->GetID());
+          }
         }
 
       // Read the STL file and add the model to the scene - set the name to be the link name instead of file name
@@ -409,6 +398,7 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
   std::vector<KDL::Frame> FK_frames;
   FK_frames.resize(mKDLChainSize);
 
+
   // Convert std::vector to KDL joint array
   auto jointArray = KDL::JntArray(mKDLChainSize);
   for (size_t index = 0; index < mKDLChainSize; ++index) {
@@ -419,18 +409,30 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
   mKDLSolver->JntToCart(jointArray, FK_frames);
 
   //Get the matrix and update it based on the forward kinematics
-  for (size_t l = 0; l < mKDLChainSize; l++) {
+  // TODO: Figure out why the indexing needs to be like this and where the stylus went
+  for (size_t l = 0; l < mKDLChainSize - 1; l++) {
     KDL::Frame cartpos;
     cartpos = FK_frames[l];
     vtkNew<vtkMatrix4x4> matrix;
     for (size_t i = 0; i < 4; i++) {
       for (size_t j = 0; j < 4; j ++) {
-        matrix->SetElement(i, j, cartpos(i, j));
+        if (i == 0 & j == 3){
+          matrix->SetElement(i, j, cartpos(i, j)*MM_TO_M_CONVERSION);
+        }
+        else if (i == 1 & j == 3){
+          matrix->SetElement(i, j, cartpos(i, j)*MM_TO_M_CONVERSION);
+        }
+        else if (i == 2 & j == 3){
+          matrix->SetElement(i, j, cartpos(i, j)*MM_TO_M_CONVERSION);
+        }
+        else {
+          matrix->SetElement(i, j, cartpos(i, j));
+        }
       }
     }
 
-    mChainNodeTransforms[l]->SetMatrixTransformToParent(matrix);
-    mChainNodeTransforms[l]->Modified();
+    mChainNodeTransforms[l + 1]->SetMatrixTransformToParent(matrix);
+    mChainNodeTransforms[l + 1]->Modified();
   }
 }
 
@@ -439,10 +441,10 @@ void vtkSlicerRos2Logic::Spin(void)
   // Spin ROS loop
   if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
-    if (mModel.Loaded && !mRobotState.IsUsingTopic) {
+    if (mModel.Loaded && !mRobotState.sendingTf && !mRobotState.IsUsingTopic) {
       queryTfNode();
     }
-    else if (mModel.Loaded && mRobotState.IsUsingTopic){
+    else if (mModel.Loaded && mRobotState.sendingTf && !mRobotState.IsUsingTopic){
       BroadcastTransform();
     }
   }
@@ -462,8 +464,7 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
 {
   if (mRobotState.IsUsingTopic == true){
     if (msg->position.size() == 6) {
-      std::cerr << "No loading" << std::endl;
-      //UpdateFK(msg->position);
+      UpdateFK(msg->position);
     }
   }
   else{
@@ -481,8 +482,8 @@ void vtkSlicerRos2Logic::Clear()
 
 void vtkSlicerRos2Logic::queryTfNode()
 {
-
-  for (size_t link = 0; link < link_names_vector.size(); link++) {
+  std::cerr << "In query transform" << std::endl;
+  for (int link = 0; link < link_names_vector.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
       if (link == 0) {
@@ -539,7 +540,7 @@ void vtkSlicerRos2Logic::SetRobotStateTopic(const std::string & topicName){
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
     (topicName, 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
-  mModel.Serial = false;
+  //mModel.Serial = false;
   // Should this clean up the Tf listener?
 }
 
@@ -559,8 +560,8 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
 
   // this will need to go through all of the transforms and update them accordingly
   // Need to somehow turn off queryTfNode and have slicer just figure out how to follow a point
-  mRobotState.IsUsingTopic = true;
-  for (size_t link = 0; link < link_names_vector.size(); link++) {
+  mRobotState.sendingTf = true;
+  for (int link = 0; link < link_names_vector.size(); link++) {
     if (link_names_vector[link] != link_parent_names_vector[link]){
       // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
       vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[link] + "_transform").c_str()));
@@ -596,10 +597,35 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
 
       // Send the transform
       mTfBroadcaster->sendTransform(transformStamped);
-      std::cerr << "Sending transform" << std::endl;
     }
-
-
   }
 
+}
+
+void vtkSlicerRos2Logic::initializeFkSolver(){
+
+  KDL::Tree my_tree;
+  if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
+    return;
+  }
+
+  auto kdl_chain = new KDL::Chain();
+
+  std::string base_frame(link_names_vector[0]); // Specify the base to tip you want ie. joint 1 to 2 (base to torso)
+  std::string tip_frame(link_names_vector[link_names_vector.size() - 1]);
+  std::cerr << "Tip frame: " << tip_frame << std::endl;
+  if (!my_tree.getChain(base_frame, tip_frame, *kdl_chain)) {
+    std::cerr << "not working" << std::endl;
+    return;
+  }
+  mKDLChainSize = kdl_chain->getNrOfSegments();
+  std::cout << "The chain has " << mKDLChainSize
+      << " segments" << std::endl
+      << "Found " << link_names_vector.size()
+      << " links" << std::endl;
+
+  std::cout << "This is the joint position array" << std::endl;
+
+  // Initialize the fk solver
+  mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 }

@@ -123,6 +123,7 @@ private:
   // state
   struct {
     bool IsUsingTopic = false; // if not topic, using tf
+    bool sendingTf = false;
     std::string Topic;
   } mRobotState;
 
@@ -150,6 +151,8 @@ private:
 
   // Set up the broadcaster
   std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
+
+  void initializeFkSolver();
 
 };
 
