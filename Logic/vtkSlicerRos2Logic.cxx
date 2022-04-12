@@ -500,7 +500,6 @@ void vtkSlicerRos2Logic::Clear()
 
 void vtkSlicerRos2Logic::queryTfNode()
 {
-  std::cerr << "In query transform" << std::endl;
   for (int link = 0; link < link_names_vector.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
     try {
@@ -572,48 +571,50 @@ void vtkSlicerRos2Logic::SetRobotStateTf(){
 
 void vtkSlicerRos2Logic::BroadcastTransform(){
 
-  // this will need to go through all of the transforms and update them accordingly
-  // Need to somehow turn off queryTfNode and have slicer just figure out how to follow a point
   mRobotState.sendingTf = true;
+  std::string parent;
   for (int link = 0; link < link_names_vector.size(); link++) {
-    if (link_names_vector[link] != link_parent_names_vector[link]){
-      // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
-      vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[link] + "_transform").c_str()));
-      float pos[3] = {0.0, 0.0, 0.0}; // translation vector
-      double q[4] = {0.0, 0.0, 0.0, 0.0}; // quaternion vector
-      double A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}}; // 3x3 rotation matrix
-
-      vtkNew<vtkMatrix4x4> matrix;
-      transformNode->GetMatrixTransformToParent(matrix);
-      for (int i = 0; i < 3; i ++){
-        for (int j = 0; j < 3; j ++){
-          A[i][j] =  matrix->GetElement(i, j);
-        }
-      }
-      //
-      vtkMath::Matrix3x3ToQuaternion(A, q); // Convert quaternion to a 3x3 matrix
-      pos[0] = matrix->GetElement(0,3); // Get the translation vector from the homogeneous transformation matrix
-      pos[1] = matrix->GetElement(1,3);
-      pos[2] = matrix->GetElement(2,3);
-
-      geometry_msgs::msg::TransformStamped transformStamped;
-      rclcpp::Time now = mNodePointer->get_clock()->now();
-      transformStamped.header.stamp = now;
-      transformStamped.header.frame_id = link_parent_names_vector[link]; //"torso"; // should have header be torso and child be base
-      transformStamped.child_frame_id =  link_names_vector[link];// if you swap this and do it incorectly you can confirm that we're updating tf because the rviz updates to - just need to figure out how to do the dot example
-      transformStamped.transform.translation.x = pos[0]/MM_TO_M_CONVERSION;
-      transformStamped.transform.translation.y = pos[1]/MM_TO_M_CONVERSION;
-      transformStamped.transform.translation.z = pos[2]/MM_TO_M_CONVERSION;
-      transformStamped.transform.rotation.w = q[0];
-      transformStamped.transform.rotation.x = q[1];
-      transformStamped.transform.rotation.y = q[2];
-      transformStamped.transform.rotation.z = q[3];
-
-      // Send the transform
-      mTfBroadcaster->sendTransform(transformStamped);
+    if (link_names_vector[link] == link_parent_names_vector[link]){
+      parent = "world";
     }
-  }
+    else{
+      parent = link_parent_names_vector[link];
+    }
+      // This should get the transform from 3D Slicer - try to upgrade it based on transform in 3D Slicer
+    vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((link_names_vector[link] + "_transform").c_str()));
+    float pos[3] = {0.0, 0.0, 0.0}; // translation vector
+    double q[4] = {0.0, 0.0, 0.0, 0.0}; // quaternion vector
+    double A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}}; // 3x3 rotation matrix
 
+    vtkNew<vtkMatrix4x4> matrix;
+    transformNode->GetMatrixTransformToParent(matrix);
+    for (int i = 0; i < 3; i ++){
+      for (int j = 0; j < 3; j ++){
+        A[i][j] =  matrix->GetElement(i, j);
+      }
+    }
+    //
+    vtkMath::Matrix3x3ToQuaternion(A, q); // Convert quaternion to a 3x3 matrix
+    pos[0] = matrix->GetElement(0,3); // Get the translation vector from the homogeneous transformation matrix
+    pos[1] = matrix->GetElement(1,3);
+    pos[2] = matrix->GetElement(2,3);
+
+    geometry_msgs::msg::TransformStamped transformStamped;
+    rclcpp::Time now = mNodePointer->get_clock()->now();
+    transformStamped.header.stamp = now;
+    transformStamped.header.frame_id = parent; //"torso"; // should have header be torso and child be base
+    transformStamped.child_frame_id =  link_names_vector[link];// if you swap this and do it incorectly you can confirm that we're updating tf because the rviz updates to - just need to figure out how to do the dot example
+    transformStamped.transform.translation.x = pos[0]/MM_TO_M_CONVERSION;
+    transformStamped.transform.translation.y = pos[1]/MM_TO_M_CONVERSION;
+    transformStamped.transform.translation.z = pos[2]/MM_TO_M_CONVERSION;
+    transformStamped.transform.rotation.w = q[0];
+    transformStamped.transform.rotation.x = q[1];
+    transformStamped.transform.rotation.y = q[2];
+    transformStamped.transform.rotation.z = q[3];
+
+    // Send the transform
+    mTfBroadcaster->sendTransform(transformStamped);
+  }
 }
 
 void vtkSlicerRos2Logic::initializeFkSolver(){
