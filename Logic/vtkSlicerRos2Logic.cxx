@@ -219,6 +219,11 @@ void vtkSlicerRos2Logic
   while (lastExplored != visual_vector.size()){
     std::shared_ptr<const urdf::Link> current_link = my_model.getLink(link_names_vector[lastExplored]);
     std::vector< std::shared_ptr< urdf::Link > > child_link =  current_link->child_links;
+    // Check if the model is Serial
+    if (child_link.size() > 1){
+      mModel.Serial = false;
+    }
+
     for (std::shared_ptr<urdf::Link> i: child_link) {
     	link_names_vector.push_back(i->name);
       link_parent_names_vector.push_back(current_link->name);
@@ -228,12 +233,17 @@ void vtkSlicerRos2Logic
     lastExplored++;
   }
 
+  std::cerr << "Serial value:" << mModel.Serial << std::endl;
 
   // // Allocate array for links transformation nodes
   //mKDLChainSize = link_names_vector.size();
   //mChainNodeTransforms.resize(mKDLChainSize);
 
   if (mRobotState.IsUsingTopic){
+    if (!mModel.Serial){
+      std::cerr << "Topic transforms are not supported for parallel manipulators." << std::endl;
+      return;
+    }
     initializeFkSolver();
     mChainNodeTransforms.resize(mKDLChainSize + 1);
   }
@@ -548,15 +558,11 @@ void vtkSlicerRos2Logic::SetRobotStateTopic(const std::string & topicName){
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
     (topicName, 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
 				  this, std::placeholders::_1));
-  //mModel.Serial = false;
-  // Should this clean up the Tf listener?
 }
 
 void vtkSlicerRos2Logic::SetRobotStateTf(){
 
   mRobotState.IsUsingTopic = false;
-  mModel.Serial = true;
-
   // Remove the subscription
   if (mJointStateSubscription != NULL){
     mJointStateSubscription.reset();
