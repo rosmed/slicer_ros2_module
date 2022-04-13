@@ -525,8 +525,11 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
 void vtkSlicerRos2Logic::Clear()
 {
   this->GetMRMLScene()->Clear();
+
   mKDLSolver = 0;
   mKDLChainSize = 0;
+  parameterNodeCallbackFlag = false;
+  
   // Need to handle mChainNodeTransforms
   mParameterClient.reset();
   link_names_vector.clear();
@@ -548,6 +551,8 @@ void vtkSlicerRos2Logic::Clear()
   mModel.Parameter.ParameterName = "";
   mModel.Parameter.NodeFound = false;
   mModel.Parameter.ParameterFound = false;
+
+
 }
 
 
