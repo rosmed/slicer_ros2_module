@@ -161,6 +161,16 @@ void vtkSlicerRos2Logic::SetModelFile(const std::string & selectedFile){
   }
   else {
     mModel.URDF = string((std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>());
+    if (mModel.URDF == ""){
+      QDialog *popupDialog = new QDialog();
+      QLabel *label = new QLabel();
+      label->setText("The URDF file is empty! Please select a valid urdf file.");
+      QVBoxLayout *layout = new QVBoxLayout();
+      layout->addWidget(label);
+      popupDialog->setLayout(layout);
+      popupDialog->show();
+      return;
+    }
     loadRobotSTLModels();
   }
 
@@ -529,7 +539,7 @@ void vtkSlicerRos2Logic::Clear()
   mKDLSolver = 0;
   mKDLChainSize = 0;
   parameterNodeCallbackFlag = false;
-  
+
   // Need to handle mChainNodeTransforms
   mParameterClient.reset();
   link_names_vector.clear();
@@ -676,6 +686,8 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
 }
 
 void vtkSlicerRos2Logic::initializeFkSolver(){
+
+
 
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
