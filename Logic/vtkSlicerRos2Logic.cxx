@@ -313,7 +313,7 @@ void vtkSlicerRos2Logic
   // This is  hack for the FK/ Tf issue - need to figure out how to write this so it's intuitive to read
   int counter;
   if (mRobotState.IsUsingTopic){
-    counter = mKDLChainSize + 1;
+    counter = mKDLChainSize + 1; // This is weird
   }
   else{
     counter = mKDLChainSize;
@@ -467,7 +467,6 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
   mKDLSolver->JntToCart(jointArray, FK_frames);
 
   //Get the matrix and update it based on the forward kinematics
-  // TODO: Figure out why the indexing needs to be like this and where the stylus went
   for (size_t l = 0; l < (mKDLChainSize); l++) { // TODO: This shoul be the size of mChainNodeTransforms
     KDL::Frame cartpos;
     cartpos = FK_frames[l];
@@ -475,7 +474,7 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
     for (size_t i = 0; i < 4; i++) {
       for (size_t j = 0; j < 4; j ++) {
         if (i == 0 & j == 3){
-          matrix->SetElement(i, j, cartpos(i, j)*MM_TO_M_CONVERSION);
+          matrix->SetElement(i, j, cartpos(i, j)*MM_TO_M_CONVERSION); // Only need to apply the unit conversion to the translation
         }
         else if (i == 1 & j == 3){
           matrix->SetElement(i, j, cartpos(i, j)*MM_TO_M_CONVERSION);
@@ -489,7 +488,7 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
       }
     }
 
-    mChainNodeTransforms[l + 1]->SetMatrixTransformToParent(matrix);
+    mChainNodeTransforms[l + 1]->SetMatrixTransformToParent(matrix); // This is also weird that it's + 1
     mChainNodeTransforms[l + 1]->Modified();
   }
 }
@@ -658,7 +657,7 @@ void vtkSlicerRos2Logic::BroadcastTransform(){
     transformNode->GetMatrixTransformToParent(matrix);
     for (int i = 0; i < 3; i ++){
       for (int j = 0; j < 3; j ++){
-        A[i][j] =  matrix->GetElement(i, j);
+        A[i][j] =  matrix->GetElement(i, j); // Not sure how to clean up this loop because it's only copying the rotation part of the homeogeneous matrix
       }
     }
     //
