@@ -20,8 +20,12 @@
 
 // Slicer includes
 #include "qSlicerAbstractModuleWidget.h"
-
 #include "qSlicerRos2ModuleExport.h"
+
+// Qt includes
+#include <QLineEdit>
+#include <QFileDialog>
+#include <QPushButton>
 
 class qSlicerRos2ModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -50,19 +54,33 @@ protected:
   QTimer* mTimer;
   bool timerOff = false;
 
+  QLineEdit *topicLineEdit = new QLineEdit(tr("/joint_states"));
+  QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html
+  QLineEdit *nodeLineEdit = new QLineEdit(tr("/robot_state_publisher"));
+  QLineEdit *paramLineEdit = new QLineEdit(tr("robot_description"));
+  QPushButton *loadModelButton = new QPushButton();
+  QPushButton *selectFileButton = new QPushButton();
+
   /// Create and return the widget representation associated to this module
   //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
 
   /// Create and return the logic associated to this module
   //virtual vtkMRMLAbstractLogic* createLogic();
 
-
 protected slots:
   void onFileSelected(const QString&);
-  void onTimerTimeOut();
-  void onClearSceneSelected();
+  void onStateSelection(const QString&);
+  void onDescriptionSelection(const QString&);
+  void onTimerTimeOut(void);
+  void onClearSceneSelected(void);
 
-
+  // Slots for dyanmic widgets
+  void onTopicNameEntered(void);
+  void onNodeOrParameterNameEntered(void);
+  void onDescriptionFileSelected(void);
+  void onLoadModelButtonSelected(void);
+  void onSelectFile(void);
+  void onBroadcastButtonPressed();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
