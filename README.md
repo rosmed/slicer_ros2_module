@@ -1,22 +1,23 @@
-This module is designed to enable direct communication between ROS2 and 3D Slicer
+This module is designed to enable direct communication between ROS 2 and 3D Slicer.
 
 ## Features
 
-* Load a robot description from ros parameter `robot_description`
+* Load a robot description from ros parameter `robot_description`, create MRML Slicer node for each link and load meshes
 * Update the robot position using tf, assuming there is a `robot_state_publisher` running
+* Alternatively, the module can load an URDF file directly and use KDL for the kinematic chain.  This feature only works with serial robots (no parallel mechanisms)
 
 ## Pre-requisites
 
 * ROS 2 (tested using ubuntu 20.04 and ROS2 Foxy or Galactic), see www.ros.org.
-* Slicer built from source (required to build an extension).  Remember the build path for Slicer, it will be needed to compile the module.
-* Make sure we use the system OpenSSL libraries otherwise you'll get some errors when compiling the ROS 2 part.  After you ran CMake, in the build tree, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON`.
+* Slicer built from source is required to build an extension, see https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html.  Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.
+* Make sure we use the system OpenSSL libraries otherwise you'll get some errors when compiling the ROS 2 part.  After you ran CMake, in the build directory, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON`.
 * **Older Slicer** Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
 
 ## Compilation
 
-This code should be built with colcon as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module is under `~/ros2_ws/src/slicer_ros2_module`.
+This code should be built with `colcon` as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module is under `~/ros2_ws/src/slicer_ros2_module`.
 
-Source the ROS setup script your ROS 2 version (foxy or galactic):
+Source the ROS setup script for ROS 2 (foxy or galactic):
 ```sh
 source /opt/ros/foxy/setup.bash
 ```
@@ -28,7 +29,7 @@ colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_
 ```
 Note: the `-DSlicer_DIR...` option is only needed for the first `colcon build`.
 
-If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the colcon command line, you can run `colcon build` once and then run `ccmake` on the `slicer_ros2_module` build directory.  You should see the following error messages if the `Slicer_DIR` is not set properly (or if Slicer has not been build from scratch):
+If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the colcon command line, you can run `colcon build` once and then run `ccmake` on the `slicer_ros2_module` build directory.  You should see the following error messages if the `Slicer_DIR` is not set properly (or if Slicer has not been built from scratch):
 ```
   Could not find a package configuration file provided by "Slicer" with any
   of the following names:
@@ -36,14 +37,14 @@ If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the
     SlicerConfig.cmake
     slicer-config.cmake
 ```
-If you see this message, run CMake on the build tree for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/slicer_ros2_module`.  In CMake, set `Slicer_DIR` to point to your Slicer build tree then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again.
+If you see this message, run CMake on the build directory for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/slicer_ros2_module`.  In CMake, set `Slicer_DIR` to point to your Slicer build directory then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again.
 
 ## Using the module
 
-In a terminal navigate to your Slicer inner build folder (`cd`).  Then:
+In a terminal navigate to your Slicer inner build directory (`cd`).  Then:
 ```sh
 source ~/ros2_ws/install/setup.bash # or whatever your ROS 2 workspace is
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/foxy/lib # change for your ROS 2 distribution
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/foxy/lib # change for your ROS 2 distribution, foxy or galactic
 ./Slicer
 ```
 
