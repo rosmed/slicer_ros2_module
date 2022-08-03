@@ -1,32 +1,33 @@
-This module is designed to enable direct communication between ROS 2 and 3D Slicer.  You can find more details regarding this module in [https://pubmed.ncbi.nlm.nih.gov/35891016/](Bridging 3D Slicer and ROS2 for Image-Guided Robotic Interventions).  This is an early prototype but we hope to add more features in the future.
+This module is designed to enable direct communication between ROS 2 and 3D Slicer.  You can find more details regarding this module in [Bridging 3D Slicer and ROS2 for Image-Guided Robotic Interventions](https://pubmed.ncbi.nlm.nih.gov/35891016/).  This is an early prototype and we hope to add more features soon.
 
 ## Features
 
 The main feature currently supported is the ability to visualize a robot within Slicer.  The default approach is similar to RViz, i.e.:
-* Load a robot description from ros parameter `robot_description`, create MRML Slicer node for each link and load meshes
-* Update the robot position using tf2, assuming there is a `robot_state_publisher` running.
+* Load a robot description from ros parameter `robot_description`, create a MRML Slicer node for each link and load meshes
+* Update the links positions using tf2, assuming there is a `robot_state_publisher` running
 
-Alternatively, the module can load an URDF file directly and use KDL for the kinematic chain.  This feature only works with serial robots (no parallel mechanisms)
+Alternatively, the module can load an URDF file directly and use KDL for the kinematic chain.  This feature only works with serial robots (no parallel mechanisms).  This is not the recommended approach.
 
 ## Known limitations
 
-* We only support STL and OBJ meshes for the `visual` defined in the URDF.  If the `visual` is defined using a `geometry` (sphere, box...), the links will not be displayed in RViz.
-* The current module only supports one robot at a time.
+* We only support STL and OBJ meshes for the `visual` defined in the URDF.  If any `visual` is defined using a `geometry` (sphere, box...), it will not be displayed in RViz
+* The current module only supports one robot at a time
+* There is no mechanism to synchronize the MRML scene in Slicer with tf2 in ROS 2 
 
 ## Pre-requisites
 
-* ROS 2 (tested using ubuntu 20.0ros2 run sensable_omni_model pretend_omni_joint_state_publisher4 and ROS2 Foxy or Galactic), see www.ros.org.
-* Slicer built from source is required to build an extension, see [https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html](Slicer build instructions).  Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.
-* Make sure we use the system OpenSSL libraries otherwise you'll get some errors when compiling the Slicer ROS 2 module.  After you ran CMake, in the build directory, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON` or `ccmake`.
+* ROS 2 (tested using ubuntu 20.04 and ROS2 Foxy or Galactic), see www.ros.org.
+* Slicer built from source is required to build an extension, see [Slicer build instructions](https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html).  Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.
+* Make sure we use the system/native OpenSSL libraries otherwise you'll get some errors when compiling the Slicer ROS 2 module.  After you ran CMake, in the Slicer build directory, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON` or `ccmake`.
 * **Older Slicer** Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
 
 ## Compilation
 
-This code should be built with `colcon` as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module is under `~/ros2_ws/src/slicer_ros2_module`.
+This code should be built with `colcon` as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module has been cloned under `~/ros2_ws/src/slicer_ros2_module`.
 
-You will first need to source theros2 run sensable_omni_model pretend_omni_joint_state_publisher ROS setup script for ROS 2 (foxy or galactic):
+You will first need to source the ROS setup script for ROS 2 (foxy or galactic):
 ```sh
-source /opt/ros/foxy/setup.bash
+source /opt/ros/galactic/setup.bash
 ```
 
 Then build the module using `colcon` while providing the path to your Slicer build directory:
@@ -44,15 +45,15 @@ If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the
     SlicerConfig.cmake
     slicer-config.cmake
 ```
-If you see this message, run CMake on the build directory for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/slicer_ros2_module`.  In CMake, set `Slicer_DIR` to point to your Slicer build directory then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again.
+If you see this message, run CMake on the build directory for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/slicer_ros2_module`.  In CMake, set `Slicer_DIR` to point to your Slicer build directory then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again (after `cd ~/ros2_ws`).
 
 ## Start a ROS `robot_state_publisher`
 
-The following are examples of robots we've used to test the Slicer ROS2 module.  Note that tried to follow the standart ROS approch, i.e. make the URDF description available as a ROS parameter and then launch the usual ROS `robot_state_publisher` node.
+The following are examples of robots we've used to test the Slicer ROS2 module.  Note that we tried to follow the standart ROS approch, i.e. make the URDF description available as a ROS parameter and then launch the usual ROS `robot_state_publisher` node.  The `robot_state_publisher` will use the joint state to compute the forward kinematic and broadcast the 3D position of each link to tf2.  The Slicer ROS 2 module will then query the 3D positions to display the robot's links in the correct position. 
 
-### Sensable Phantom Omni
+### Sensable Phantom Omni aka Geomagic/3DS Touch
 
-We used the following package for the Omni: https://github.com/jhu-saw/ros2_sensable_omni_model.  This package contains the URDF, STL meshes and a launch file for the `robot_state_publisher`.  Make sure you start the Omni nodes (using a couple of terminals) before loading the Slicer ROS 2 module:
+We created and used the following package for the Omni: https://github.com/jhu-saw/ros2_sensable_omni_model.  This package contains the URDF, STL meshes and a launch file for the `robot_state_publisher`.  Make sure you start the Omni nodes (using a couple of terminals) before loading the Slicer ROS 2 module:
 ```sh
 ros2 launch sensable_omni_model omni.launch.py # first terminal
 ros2 run sensable_omni_model pretend_omni_joint_state_publisher # second 
