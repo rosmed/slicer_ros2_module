@@ -1,28 +1,35 @@
-This module is designed to enable direct communication between ROS 2 and 3D Slicer.
+This module is designed to enable direct communication between ROS 2 and 3D Slicer.  You can find more details regarding this module in [https://pubmed.ncbi.nlm.nih.gov/35891016/](Bridging 3D Slicer and ROS2 for Image-Guided Robotic Interventions).  This is an early prototype but we hope to add more features in the future.
 
 ## Features
 
+The main feature currently supported is the ability to visualize a robot within Slicer.  The default approach is similar to RViz, i.e.:
 * Load a robot description from ros parameter `robot_description`, create MRML Slicer node for each link and load meshes
-* Update the robot position using tf, assuming there is a `robot_state_publisher` running
-* Alternatively, the module can load an URDF file directly and use KDL for the kinematic chain.  This feature only works with serial robots (no parallel mechanisms)
+* Update the robot position using tf2, assuming there is a `robot_state_publisher` running.
+
+Alternatively, the module can load an URDF file directly and use KDL for the kinematic chain.  This feature only works with serial robots (no parallel mechanisms)
+
+## Known limitations
+
+* We only support STL and OBJ meshes for the `visual` defined in the URDF.  If the `visual` is defined using a `geometry` (sphere, box...), the links will not be displayed in RViz.
+* The current module only supports one robot at a time.
 
 ## Pre-requisites
 
-* ROS 2 (tested using ubuntu 20.04 and ROS2 Foxy or Galactic), see www.ros.org.
-* Slicer built from source is required to build an extension, see https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html.  Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.
-* Make sure we use the system OpenSSL libraries otherwise you'll get some errors when compiling the ROS 2 part.  After you ran CMake, in the build directory, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON`.
+* ROS 2 (tested using ubuntu 20.0ros2 run sensable_omni_model pretend_omni_joint_state_publisher4 and ROS2 Foxy or Galactic), see www.ros.org.
+* Slicer built from source is required to build an extension, see [https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html](Slicer build instructions).  Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.
+* Make sure we use the system OpenSSL libraries otherwise you'll get some errors when compiling the Slicer ROS 2 module.  After you ran CMake, in the build directory, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON` or `ccmake`.
 * **Older Slicer** Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
 
 ## Compilation
 
 This code should be built with `colcon` as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module is under `~/ros2_ws/src/slicer_ros2_module`.
 
-Source the ROS setup script for ROS 2 (foxy or galactic):
+You will first need to source theros2 run sensable_omni_model pretend_omni_joint_state_publisher ROS setup script for ROS 2 (foxy or galactic):
 ```sh
 source /opt/ros/foxy/setup.bash
 ```
 
-Build the module using `colcon` while providing the path to your Slicer build directory:
+Then build the module using `colcon` while providing the path to your Slicer build directory:
 ```sh
 cd ~/ros2_ws
 colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build
@@ -39,16 +46,39 @@ If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the
 ```
 If you see this message, run CMake on the build directory for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/slicer_ros2_module`.  In CMake, set `Slicer_DIR` to point to your Slicer build directory then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again.
 
-## Using the module
+## Start a ROS `robot_state_publisher`
+
+The following are examples of robots we've used to test the Slicer ROS2 module.  Note that tried to follow the standart ROS approch, i.e. make the URDF description available as a ROS parameter and then launch the usual ROS `robot_state_publisher` node.
+
+### Sensable Phantom Omni
+
+We used the following package for the Omni: https://github.com/jhu-saw/ros2_sensable_omni_model.  This package contains the URDF, STL meshes and a launch file for the `robot_state_publisher`.  Make sure you start the Omni nodes (using a couple of terminals) before loading the Slicer ROS 2 module:
+```sh
+ros2 launch sensable_omni_model omni.launch.py # first terminal
+ros2 run sensable_omni_model pretend_omni_joint_state_publisher # second 
+```
+
+### dVRK PSM
+
+todo
+
+### Cobot
+
+todo
+
+## Using the Slicer ROS 2 module
 
 In a terminal navigate to your Slicer inner build directory (`cd`).  Then:
 ```sh
 source ~/ros2_ws/install/setup.bash # or whatever your ROS 2 workspace is
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ros/foxy/lib # change for your ROS 2 distribution, foxy or galactic
+# you can ignore the error message related to slicer_ros2_module/local_setup.bash
 ./Slicer
 ```
 
-Note: the module directory should be in the application settings so that it can be loaded.  To do so, open Slicer and navigate through the menus: `Edit` -> `Application Settings` -> `Modules` -> `Additional module paths` ->  `Add`:
+The first time you run Slicer, you need to add the module directory should be in the application settings so that it can be loaded.  To do so, open Slicer and navigate through the menus: `Edit` -> `Application Settings` -> `Modules` -> `Additional module paths` ->  `Add`:
 ```sh
 ~ros2_ws/build/slicer_ros2_module/lib/Slicer-4.13/qt-loadable-modules
 ```
+At that point, Slicer will offer to restart.  Do so and then load the module using the button `Modules` -> `Examples` -> Ros2.
+
+The module's interface will appear on the left side of Slicer.  You should leave the first two drop-down menus as-is, i.e. `State` should be `tf2` and `Description` should be `parameter`.  The defaults `/robot_state_publisher` and `robot_description` should work for most cases so leave these as-is.  To activate your selection, just hit "Enter" in the `/robot_state_publisher` box.  Please note that we plan to improve this user interface.  At that, the robot's model should be loaded and displayed in Slicer.
