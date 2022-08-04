@@ -10,7 +10,7 @@ Alternatively, the module can load an URDF file directly and use KDL for the kin
 
 ## Known limitations
 
-* We only support STL and OBJ meshes for the `visual` defined in the URDF.  If any `visual` is defined using a `geometry` (sphere, box...), it will not be displayed in RViz
+* We only support STL and OBJ meshes for the `visual` defined in the URDF.  If any `visual` is defined using a `geometry` (sphere, box...), it will not be displayed in Slicer
 * The current module only supports one robot at a time
 * There is no mechanism to synchronize the MRML scene in Slicer with tf2 in ROS 2 
 
@@ -49,7 +49,7 @@ If you see this message, run CMake on the build directory for `slicer_ros2_modul
 
 ## Start a ROS `robot_state_publisher`
 
-The following are examples of robots we've used to test the Slicer ROS2 module.  Note that we tried to follow the standart ROS approch, i.e. make the URDF description available as a ROS parameter and then launch the usual ROS `robot_state_publisher` node.  The `robot_state_publisher` will use the joint state to compute the forward kinematic and broadcast the 3D position of each link to tf2.  The Slicer ROS 2 module will then query the 3D positions to display the robot's links in the correct position. 
+The following are examples of robots we've used to test the Slicer ROS2 module.  Note that we tried to follow the standard ROS approch, i.e. make the URDF description available as a ROS parameter and then launch the usual ROS `robot_state_publisher` node.  The `robot_state_publisher` will use the joint state to compute the forward kinematic and broadcast the 3D position of each link to tf2.  The Slicer ROS 2 module will then query the 3D positions to display the robot's links in the correct position. 
 
 ### Sensable Phantom Omni aka Geomagic/3DS Touch
 
@@ -65,7 +65,19 @@ todo
 
 ### Cobot
 
-todo
+We also tested SlicerROS2 on myCobot by Elephant Robotics (https://www.elephantrobotics.com/en/mycobot-en/), specifically the myCobot 280 M5 Stack. 
+The ROS 2 interface for the device can be found here: https://github.com/elephantrobotics/mycobot_ros2 and drivers can be installed from the Elephant Robotics website. 
+
+Assuming the interface (mycobot_ros2) is cloned under the same ros2_ws, the state publisher can be started using the following steps: 
+```sh
+cd ~/ros2_ws/src/mycobot_ros2/src/mycobot_ros2/mycobot_280/mycobot_280/config
+python3 listen_real.py
+```
+
+It's possible that you will need to change the port specified on line 14 of listen_real.py depending on your device.
+The .dae files in the robot description also need to be converted to STLs (an online converter will work) and the paths in the URDF file should be updated to reflect this change. 
+
+Once running - make sure your robot is in "Transponder Mode". More instructions for basic operation of the myCobot can be found in the Gitbook (https://docs.elephantrobotics.com/docs/gitbook-en/2-serialproduct/2.1-280/2.1-280.html)
 
 ## Using the Slicer ROS 2 module
 
