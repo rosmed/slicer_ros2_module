@@ -33,15 +33,6 @@
 // reference to Logic
 #include "vtkSlicerRos2Logic.h"
 
-// Slicer includes
-#include "vtkMRMLModelDisplayNode.h"
-#include "vtkMRMLMarkupsDisplayNode.h"
-#include "vtkMRMLDisplayNode.h"
-#include "vtkMRMLModelNode.h"
-#include "vtkMRMLMarkupsFiducialNode.h"
-#include "vtkMRMLInteractionNode.h"
-#include "vtkMRMLScene.h"
-
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerRos2ModuleWidget
@@ -58,6 +49,7 @@ qSlicerRos2ModuleWidgetPrivate::qSlicerRos2ModuleWidgetPrivate()
 {
 }
 
+
 //-----------------------------------------------------------------------------
 // qSlicerRos2ModuleWidget methods
 
@@ -72,6 +64,7 @@ qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
   mTimer->start();
 }
 
+
 //-----------------------------------------------------------------------------
 qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
 {
@@ -79,8 +72,9 @@ qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
   delete this->mTimer;
 }
 
+
 //-----------------------------------------------------------------------------
-void qSlicerRos2ModuleWidget::setup()
+void qSlicerRos2ModuleWidget::setup(void)
 {
   Q_D(qSlicerRos2ModuleWidget);
   d->setupUi(this);
@@ -90,7 +84,7 @@ void qSlicerRos2ModuleWidget::setup()
 
   // Set up timer connections
   connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
-  connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopSound()));
+  connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopTimer()));
 
   // Setup state / selection options
   QVBoxLayout *stateBoxLayout = new QVBoxLayout;
@@ -131,21 +125,18 @@ void qSlicerRos2ModuleWidget::setup()
   this->connect(d->broadcastTransformButton, SIGNAL(clicked(bool)), this, SLOT(onBroadcastButtonPressed()));
 }
 
-void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
-{
-  // Anton: do we know why we have these 2 lines?  These are also in most callback onXYZ methods...
-  Q_D(qSlicerRos2ModuleWidget);
-  this->Superclass::setup();
 
+void qSlicerRos2ModuleWidget::onFileSelected(const QString&)
+{
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
 
   // Check if the timer is on or off before setting up the robot
   // Anton: is this still needed?
-  if (timerOff == true){
+  if (timerOff == true) {
     mTimer->start();
     timerOff = false;
   }
@@ -154,36 +145,32 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString& text)
 
 void qSlicerRos2ModuleWidget::onTimerTimeOut()
 {
-  Q_D(qSlicerRos2ModuleWidget);
-  this->Superclass::setup();
-
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   logic->Spin();
 }
 
+
 void qSlicerRos2ModuleWidget::onClearSceneSelected()
 {
-  Q_D(qSlicerRos2ModuleWidget);
-  this->Superclass::setup();
-
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   logic->Clear();
 
 }
 
-void qSlicerRos2ModuleWidget::stopSound() // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+
+void qSlicerRos2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
-  std::cerr << "closing event" << std::endl;
   mTimer->stop();
 }
+
 
 void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
 {
@@ -192,7 +179,7 @@ void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
   vtkSlicerRos2Logic *
     logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   if (text == "tf2") {
@@ -203,6 +190,7 @@ void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
     d->stateWidgetGroupBox->show();
   }
 }
+
 
 void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
@@ -224,24 +212,26 @@ void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Sho
   }
 }
 
+
 // Slots for all of the dynamic selections start here
-void qSlicerRos2ModuleWidget::onTopicNameEntered()
+void qSlicerRos2ModuleWidget::onTopicNameEntered(void)
 {
-  // Get the topic name that was entered ( we will need it later)
+  // Get the topic name (we will need it later)
   QString topic = topicLineEdit->text();
   vtkSlicerRos2Logic *
     logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   logic->SetRobotStateTopic(topic.toStdString());
-  std::cerr << "Topic name entered: " << topic.toStdString() << std::endl;
+  qDebug() << "SlicerROS2: using topic " << topic;
 }
+
 
 void qSlicerRos2ModuleWidget::onNodeOrParameterNameEntered(void)
 {
-  // Get the topic name that was entered ( we will need it later)
+  // Get the parameter and node names (we will need it later)
   QString node = nodeLineEdit->text();
   QString param = paramLineEdit->text();
   if ((!node.isEmpty())
@@ -249,52 +239,49 @@ void qSlicerRos2ModuleWidget::onNodeOrParameterNameEntered(void)
     vtkSlicerRos2Logic *
       logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
     if (!logic) {
-      qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+      qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
       return;
     }
     logic->SetModelNodeAndParameter(node.toStdString(),
 				    param.toStdString());
+    qDebug() << "SlicerROS2: using parameter " << param
+	     << " from node " << node;
   }
 }
 
-void qSlicerRos2ModuleWidget::onDescriptionFileSelected()
-{
-  // Get the topic name that was entered ( we will need it later)
-  QString param = paramLineEdit->text();
-  std::cerr << "Param name entered: " << param.toStdString() << std::endl;
-}
 
 void qSlicerRos2ModuleWidget::onSelectFile(void)
 {
   urdfFileSelector->show();
 }
 
+
 void qSlicerRos2ModuleWidget::onLoadModelButtonSelected(void)
 {
   // This function lets you access the name of the urdf file that was selected in the fileDialog
   // Get the topic name that was entered ( we will need it later)
-
-  QStringList string = urdfFileSelector->selectedFiles();
-  if (string.isEmpty()){
-    std::cerr << "No file selected." << std::endl;
+  QStringList files = urdfFileSelector->selectedFiles();
+  if (files.isEmpty()) {
+    qWarning() << "SlicerROS2: no file selected";
     return;
   }
-  std::string selectedFile = string.at(0).toStdString();
+  std::string selectedFile = files.at(0).toStdString();
   vtkSlicerRos2Logic *
     logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   logic->SetModelFile(selectedFile);
 }
+
 
 void qSlicerRos2ModuleWidget::onBroadcastButtonPressed()
 {
   vtkSlicerRos2Logic *
     logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid Slicer Ros2 logic";
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   logic->BroadcastTransform();

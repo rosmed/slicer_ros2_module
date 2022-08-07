@@ -43,9 +43,7 @@ public:
   virtual ~qSlicerRos2ModuleWidget();
 
 public slots:
-
-  //void setMRMLScene(vtkMRMLScene* scene);
-  void stopSound();
+  void stopTimer(void);
 
 protected:
   QScopedPointer<qSlicerRos2ModuleWidgetPrivate> d_ptr;
@@ -61,12 +59,6 @@ protected:
   QPushButton *loadModelButton = new QPushButton();
   QPushButton *selectFileButton = new QPushButton();
 
-  /// Create and return the widget representation associated to this module
-  //virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
-
-  /// Create and return the logic associated to this module
-  //virtual vtkMRMLAbstractLogic* createLogic();
-
 protected slots:
   void onFileSelected(const QString&);
   void onStateSelection(const QString&);
@@ -74,10 +66,9 @@ protected slots:
   void onTimerTimeOut(void);
   void onClearSceneSelected(void);
 
-  // Slots for dyanmic widgets
+  // Slots for dynamic widgets
   void onTopicNameEntered(void);
   void onNodeOrParameterNameEntered(void);
-  void onDescriptionFileSelected(void);
   void onLoadModelButtonSelected(void);
   void onSelectFile(void);
   void onBroadcastButtonPressed();
