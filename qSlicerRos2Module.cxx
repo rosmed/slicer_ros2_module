@@ -23,28 +23,11 @@
 #include "qSlicerRos2ModuleWidget.h"
 
 //-----------------------------------------------------------------------------
-/// \ingroup Slicer_QtModules_ExtensionTemplate
-class qSlicerRos2ModulePrivate
-{
-public:
-  qSlicerRos2ModulePrivate();
-};
-
-//-----------------------------------------------------------------------------
-// qSlicerRos2ModulePrivate methods
-
-//-----------------------------------------------------------------------------
-qSlicerRos2ModulePrivate::qSlicerRos2ModulePrivate()
-{
-}
-
-//-----------------------------------------------------------------------------
 // qSlicerRos2Module methods
 
 //-----------------------------------------------------------------------------
 qSlicerRos2Module::qSlicerRos2Module(QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerRos2ModulePrivate)
 {
 }
 
@@ -56,27 +39,27 @@ qSlicerRos2Module::~qSlicerRos2Module()
 //-----------------------------------------------------------------------------
 QString qSlicerRos2Module::helpText() const
 {
-  return "This is a loadable module that can be bundled in an extension";
+  return "ROS 2 Slicer Module.  See https://github.com/rosmed/slicer_ros2_module";
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerRos2Module::acknowledgementText() const
 {
-  return "This work was partially funded by NIH grant NXNNXXNNNNNN-NNXN";
+  return "This work was partially funded by National Institutes of Health (USA) grant R01EB020667, the National Sciences and Engineering Research Council of Canada and the Canadian Institutes of Health Research";
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerRos2Module::contributors() const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("John Doe (AnyWare Corp.)");
+  moduleContributors << QString("Laura Connolly (Queen’s University, Kingston, Canada), Anton Deguet (Johns Hopkins University, Baltimore, USA)");
   return moduleContributors;
 }
 
 //-----------------------------------------------------------------------------
 QIcon qSlicerRos2Module::icon() const
 {
-  return QIcon(":/Icons/SlicerRos2.png");
+  return QIcon(":/Icons/SlicerROS2.png");
 }
 
 //-----------------------------------------------------------------------------
