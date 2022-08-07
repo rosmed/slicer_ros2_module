@@ -43,29 +43,12 @@ class vtkMRMLTransformNode;
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-
-// Tf include_directories
-// Tf includes
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <geometry_msgs/msg/twist.hpp>
-
-#include <rclcpp/rclcpp.hpp>
-#include <tf2/exceptions.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-#include <turtlesim/srv/spawn.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include <chrono>
-#include <memory>
-#include <string>
-
-using std::placeholders::_1;
-using namespace std::chrono_literals;
-
-
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
   public vtkSlicerModuleLogic
 {
 public:
@@ -101,7 +84,6 @@ protected:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
-
 
 private:
 
@@ -146,14 +128,13 @@ private:
 
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
   std::shared_ptr<tf2_ros::TransformListener> mTfListener;
-  void queryTfNode();
+  void queryTfNode(void);
   void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
 
   // Set up the broadcaster
   std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
 
-  void initializeFkSolver();
-
+  void initializeFkSolver(void);
 };
 
 #endif
