@@ -34,11 +34,16 @@ namespace rclcpp {
 }
 
 class vtkMRMLTransformNode;
+class vtkMRMLROS2SubscriberNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
 #include "vtkSlicerRos2ModuleLogicExport.h"
+
+#include <vtkMRMLROS2SubscriberNode.h>
+#include "vtkMRML.h"
+#include "vtkMRMLNode.h"
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
@@ -73,6 +78,9 @@ public:
   void Spin(void);
   void Clear();
   void BroadcastTransform();
+
+  // bool testSubNode( vtkMRMLNode* node );
+  // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
 
 protected:
   vtkSlicerRos2Logic();
@@ -123,6 +131,7 @@ private:
     } Parameter;
   } mModel;
 
+  vtkSmartPointer<vtkMRMLNode> mTestSubscriber;
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
 

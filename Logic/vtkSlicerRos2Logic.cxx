@@ -33,6 +33,10 @@
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLModelDisplayNode.h>
 
+
+#include<vtkMRMLNode.h>
+
+
 // VTK includes
 #include <vtkMatrix4x4.h>
 #include <vtkMatrix3x3.h>
@@ -64,6 +68,7 @@
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
+
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
 
@@ -86,8 +91,19 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
 
   mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*mNodePointer);
+  vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
+  sub->SetSubscriber(mNodePointer);
+  sub->SetScene(this->GetMRMLScene());
+  mTestSubscriber = sub;
+  //vtkMRMLROS2SubscriberNode* subNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
 }
 
+// vtkMRMLROS2SubscriberNode* vtkSlicerRos2Logic::CreateSubscriberNode(){
+//
+//   vtkSmartPointer< vtkMRMLROS2SubscriberNode > subNode = vtkSmartPointer< vtkMRMLROS2SubscriberNode >::New();
+//   return subNode;
+//
+// }
 
 //----------------------------------------------------------------------------
 vtkSlicerRos2Logic::~vtkSlicerRos2Logic()
@@ -182,6 +198,14 @@ void vtkSlicerRos2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode* vtkNotUsed(node))
 {
 }
 
+// bool vtkSlicerRos2Logic::testSubNode(vtkMRMLNode* node){
+//     vtkMRMLROS2SubscriberNode* subNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
+//     subNode->SubscriberCallBack();
+// //     if (subNode != NULL){
+// //         subNode->SubscriberCallBack();
+// //     }
+// //     return false;
+// }
 
 //---------------------------------------------------------------------------
 void vtkSlicerRos2Logic
