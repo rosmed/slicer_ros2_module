@@ -35,7 +35,7 @@ public:
 
 
   void SubscriberCallBack(const geometry_msgs::msg::PoseStamped& pose);
-  vtkMRMLScene* currentScene;
+  void AddSubToMRMLScene();
 
 
 

@@ -38,8 +38,23 @@ vtkMRMLROS2SubscriberNode::~vtkMRMLROS2SubscriberNode()
 
 //----------------------------------------------------------------------------
 void vtkMRMLROS2SubscriberNode::SetSubscriber(std::shared_ptr<rclcpp::Node> mNodePointer){
-  std::cerr << "Set sub called" << std::endl;
+  //AddSubToMRMLScene();
   mSubscription= mNodePointer->create_subscription<geometry_msgs::msg::PoseStamped>("/blah_blah", 10000, std::bind(&vtkMRMLROS2SubscriberNode::SubscriberCallBack, this, std::placeholders::_1));
+}
+
+void vtkMRMLROS2SubscriberNode::AddSubToMRMLScene(){
+
+  vtkNew<vtkMRMLTransformStorageNode> storageNode;
+  vtkSmartPointer<vtkMRMLTransformNode> tnode;
+  vtkMRMLScene* scene = GetScene();
+  storageNode->SetScene(scene);
+  tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+  storageNode->ReadData(tnode.GetPointer());
+  tnode->SetName("/blah_blah");
+  // these two lines cause a crash
+//   scene->AddNode(storageNode.GetPointer());
+//   scene->AddNode(tnode);
+  tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 }
 
 
@@ -74,12 +89,11 @@ void vtkMRMLROS2SubscriberNode::SubscriberCallBack(const geometry_msgs::msg::Pos
   Tf->SetElement(2,3, z);
 
   vtkMRMLScene* scene = GetScene();
-  vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(scene->GetFirstNodeByName("hi"));
+  vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(scene->GetFirstNodeByName("/blah_blah"));
   if (transformNode != 0){
     transformNode->SetMatrixTransformToParent(Tf);
     transformNode->TransformModified();
   }
-
 
 
 }

@@ -710,14 +710,11 @@ void vtkSlicerRos2Logic::AddToScene(void){
   storageNode->SetScene(this->GetMRMLScene());
   tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
   storageNode->ReadData(tnode.GetPointer());
-  tnode->SetName("hi");
+  tnode->SetName("/blah_blah");
   this->GetMRMLScene()->AddNode(storageNode.GetPointer());
   this->GetMRMLScene()->AddNode(tnode);
   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
-  // first instance should probably be a global variable
-  vtkSmartPointer<vtkMRMLROS2SubscriberNode> subCaller = vtkMRMLROS2SubscriberNode::New();
-  vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName("hi"));
   //moved this from constructor
   vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
   sub->SetSubscriber(mNodePointer);
