@@ -91,10 +91,8 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
 
   mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*mNodePointer);
-  vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
-  sub->SetSubscriber(mNodePointer);
-  sub->SetScene(this->GetMRMLScene());
-  mTestSubscriber = sub;
+
+
   //vtkMRMLROS2SubscriberNode* subNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
 }
 
@@ -702,4 +700,27 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
 
   // Initialize the fk solver
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
+}
+
+
+void vtkSlicerRos2Logic::AddToScene(void){
+  // This could probably move to the subscriber function
+  vtkNew<vtkMRMLTransformStorageNode> storageNode;
+  vtkSmartPointer<vtkMRMLTransformNode> tnode;
+  storageNode->SetScene(this->GetMRMLScene());
+  tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+  storageNode->ReadData(tnode.GetPointer());
+  tnode->SetName("hi");
+  this->GetMRMLScene()->AddNode(storageNode.GetPointer());
+  this->GetMRMLScene()->AddNode(tnode);
+  tnode->SetAndObserveStorageNodeID(storageNode->GetID());
+
+  // first instance should probably be a global variable
+  vtkSmartPointer<vtkMRMLROS2SubscriberNode> subCaller = vtkMRMLROS2SubscriberNode::New();
+  vtkMRMLTransformNode *transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName("hi"));
+  //moved this from constructor
+  vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
+  sub->SetSubscriber(mNodePointer);
+  sub->SetScene(this->GetMRMLScene());
+  mTestSubscriber = sub;
 }

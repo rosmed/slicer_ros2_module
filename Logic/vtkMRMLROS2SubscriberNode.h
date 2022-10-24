@@ -5,7 +5,7 @@
 #include <vtkMRMLNode.h>
 #include <vtkMRMLStorageNode.h>
 #include <vtkMRMLScene.h>
-
+#include <vtkMRMLTransformNode.h>
 
 
 // VTK includes
@@ -35,6 +35,7 @@ public:
 
 
   void SubscriberCallBack(const geometry_msgs::msg::PoseStamped& pose);
+  vtkMRMLScene* currentScene;
 
 
 
@@ -54,6 +55,7 @@ public:
   //----------------------------------------------------------------
   std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>> mSubscription;
   void SetSubscriber(std::shared_ptr<rclcpp::Node> mNodePointer);
+
 
 private:
   //----------------------------------------------------------------

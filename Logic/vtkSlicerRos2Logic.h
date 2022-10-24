@@ -78,6 +78,7 @@ public:
   void Spin(void);
   void Clear();
   void BroadcastTransform();
+  void AddToScene(void);
 
   // bool testSubNode( vtkMRMLNode* node );
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
@@ -132,6 +133,8 @@ private:
   } mModel;
 
   vtkSmartPointer<vtkMRMLNode> mTestSubscriber;
+
+
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
 

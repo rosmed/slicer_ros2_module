@@ -162,7 +162,8 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
     return;
   }
   logic->Clear();
-
+  // PLACE HOLDER
+  logic->AddToScene();
 }
 
 
