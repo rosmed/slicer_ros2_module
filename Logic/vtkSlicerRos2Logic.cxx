@@ -715,9 +715,12 @@ void vtkSlicerRos2Logic::AddToScene(void){
   this->GetMRMLScene()->AddNode(tnode);
   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
+//   vtkMRMLROS2SubscriberPoseStamped * sub = new vtkMRMLROS2SubscriberPoseStamped();
+//   sub->SetTopic("/blah_blah"); // these 2
+
   //moved this from constructor
-  vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
-  sub->SetSubscriber(mNodePointer);
-  sub->SetScene(this->GetMRMLScene());
-  mTestSubscriber = sub;
+//   vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
+//   sub->SetSubscriber(mNodePointer); // this line
+//   sub->SetScene(this->GetMRMLScene());
+//   mTestSubscriber = sub;
 }
