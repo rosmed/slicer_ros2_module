@@ -44,6 +44,8 @@ void vtkMRMLROS2SubscriberNode::SetTopic(const std::string & topic){
   mTopic = topic;
 }
 
+// vtkMRMLNodeNewMacro(vtkMRMLROS2SubscriberPoseStamped);
+
 // void vtkMRMLROS2SubscriberNode::SubscriberCallBack(const geometry_msgs::msg::PoseStamped& pose){
 //   std::cerr << "Sub callback" << std::endl;
 //   std::cerr << pose.pose.position.x << std::endl;

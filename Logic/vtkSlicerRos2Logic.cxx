@@ -705,22 +705,26 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
 
 void vtkSlicerRos2Logic::AddToScene(void){
   // This could probably move to the subscriber function
-  vtkNew<vtkMRMLTransformStorageNode> storageNode;
-  vtkSmartPointer<vtkMRMLTransformNode> tnode;
-  storageNode->SetScene(this->GetMRMLScene());
-  tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-  storageNode->ReadData(tnode.GetPointer());
-  tnode->SetName("/blah_blah");
-  this->GetMRMLScene()->AddNode(storageNode.GetPointer());
-  this->GetMRMLScene()->AddNode(tnode);
-  tnode->SetAndObserveStorageNodeID(storageNode->GetID());
+//   vtkNew<vtkMRMLTransformStorageNode> storageNode;
+//   vtkSmartPointer<vtkMRMLTransformNode> tnode;
+//   storageNode->SetScene(this->GetMRMLScene());
+//   tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
+//   storageNode->ReadData(tnode.GetPointer());
+//   tnode->SetName("/blah_blah");
+//   this->GetMRMLScene()->AddNode(storageNode.GetPointer());
+//   this->GetMRMLScene()->AddNode(tnode);
+//   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
-//   vtkMRMLROS2SubscriberPoseStamped * sub = new vtkMRMLROS2SubscriberPoseStamped();
-//   sub->SetTopic("/blah_blah"); // these 2
+//   vtkNew<vtkMRMLROS2SubscriberNode> sub;
 
-  //moved this from constructor
-//   vtkSmartPointer<vtkMRMLROS2SubscriberNode> sub = vtkMRMLROS2SubscriberNode::New();
-//   sub->SetSubscriber(mNodePointer); // this line
+  vtkMRMLROS2SubscriberPoseStamped * sub = new vtkMRMLROS2SubscriberPoseStamped();
+  sub->SetTopic("/blah_blah"); // these 2
+  sub->SetSubscriber(mNodePointer); // this line
+
+  vtkMRMLROS2SubscriberString * subs = new vtkMRMLROS2SubscriberString();
+  subs->SetTopic("/hi"); // these 2
+  subs->SetSubscriber(mNodePointer); // this line
 //   sub->SetScene(this->GetMRMLScene());
 //   mTestSubscriber = sub;
+  this->GetMRMLScene()->AddNode(subs);
 }
