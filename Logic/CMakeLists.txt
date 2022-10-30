@@ -12,6 +12,10 @@ set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}Logic.h
   vtkMRMLROS2SubscriberNode.h
   vtkMRMLROS2SubscriberNode.cxx
+  vtkMRMLROS2SubscriberImplementation.h
+  vtkMRMLROS2SubscriberInstantiation.h
+  vtkROS2ToSlicer.h
+  vtkROS2ToSlicer.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES

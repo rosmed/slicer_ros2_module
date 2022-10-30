@@ -36,7 +36,6 @@
 
 #include<vtkMRMLNode.h>
 
-
 // VTK includes
 #include <vtkMatrix4x4.h>
 #include <vtkMatrix3x3.h>
@@ -727,4 +726,5 @@ void vtkSlicerRos2Logic::AddToScene(void){
 //   sub->SetScene(this->GetMRMLScene());
 //   mTestSubscriber = sub;
   this->GetMRMLScene()->AddNode(subs);
+  this->GetMRMLScene()->AddNode(sub);
 }

@@ -41,7 +41,8 @@ class vtkMRMLROS2SubscriberNode;
 #include <vtkSmartPointer.h>
 #include "vtkSlicerRos2ModuleLogicExport.h"
 
-#include <vtkMRMLROS2SubscriberNode.h>
+#include <vtkMRMLROS2SubscriberInstantiation.h>
+
 #include "vtkMRML.h"
 #include "vtkMRMLNode.h"
 
