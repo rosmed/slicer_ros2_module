@@ -13,7 +13,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2SubscriberNode.h
   vtkMRMLROS2SubscriberNode.cxx
   vtkMRMLROS2SubscriberImplementation.h
-  vtkMRMLROS2SubscriberInstantiation.h
+  vtkMRMLROS2SubscriberInstantiations.h
+  vtkMRMLROS2SubscriberInstantiations.cxx
   vtkROS2ToSlicer.h
   vtkROS2ToSlicer.cxx
   )

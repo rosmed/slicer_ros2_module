@@ -8,26 +8,11 @@ Date:      $Date: 2006/03/17 15:10:10 $
 Version:   $Revision: 1.2 $
 =========================================================================auto=*/
 
-// OpenIGTLinkIF MRML includes
 #include "vtkMRMLROS2SubscriberNode.h"
-#include <vtkNew.h>
-#include <vtkMRMLTransformStorageNode.h>
-#include <vtkMRMLLinearTransformNode.h>
-#include <vtkMRMLTransformNode.h>
-#include <vtkMatrix4x4.h>
-#include <vtkMath.h>
-#include <vtkMRMLScene.h>
-
-
-auto const MM_TO_M_CONVERSION = 1000.00;
-
-//------------------------------------------------------------------------------
-// vtkMRMLNodeNewMacro(vtkMRMLROS2SubscriberNode);
 
 //----------------------------------------------------------------------------
 vtkMRMLROS2SubscriberNode::vtkMRMLROS2SubscriberNode()
 {
-
 }
 
 //----------------------------------------------------------------------------
@@ -35,13 +20,14 @@ vtkMRMLROS2SubscriberNode::~vtkMRMLROS2SubscriberNode()
 {
 }
 
-// //----------------------------------------------------------------------------
-// void vtkMRMLROS2SubscriberNode::SetSubscriber(std::shared_ptr<rclcpp::Node> mNodePointer){
-//   mSubscription= mNodePointer->create_subscription<geometry_msgs::msg::PoseStamped>("/blah_blah", 10000, std::bind(&vtkMRMLROS2SubscriberNode::SubscriberCallBack, this, std::placeholders::_1));
-// }
-
-void vtkMRMLROS2SubscriberNode::SetTopic(const std::string & topic){
+void vtkMRMLROS2SubscriberNode::SetTopic(const std::string & topic)
+{
   mTopic = topic;
+}
+
+size_t vtkMRMLROS2SubscriberNode::GetNumberOfMessages(void) const
+{
+  return mNumberOfMessages;
 }
 
 // vtkMRMLNodeNewMacro(vtkMRMLROS2SubscriberPoseStamped);
