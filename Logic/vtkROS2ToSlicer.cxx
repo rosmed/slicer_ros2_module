@@ -5,7 +5,6 @@ auto const MM_TO_M_CONVERSION = 1000.00;
 
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result)
 {
-  // do conversion here
   result = input.data;
 }
 
@@ -24,6 +23,7 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPoin
   const double q[4] = {q_w, q_x, q_y, q_z};
   double A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
 
+  // Is there a more efficient way to do this??
   // Apply rotation
   vtkMath::QuaternionToMatrix3x3(q, A); // Convert quaternion to a 3x3 matrix
   for (size_t row = 0; row < 3; row++) {

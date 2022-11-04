@@ -701,20 +701,8 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 }
 
-
 void vtkSlicerRos2Logic::AddToScene(void){
-  // This could probably move to the subscriber function
-//   vtkNew<vtkMRMLTransformStorageNode> storageNode;
-//   vtkSmartPointer<vtkMRMLTransformNode> tnode;
-//   storageNode->SetScene(this->GetMRMLScene());
-//   tnode = vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
-//   storageNode->ReadData(tnode.GetPointer());
-//   tnode->SetName("/blah_blah");
-//   this->GetMRMLScene()->AddNode(storageNode.GetPointer());
-//   this->GetMRMLScene()->AddNode(tnode);
-//   tnode->SetAndObserveStorageNodeID(storageNode->GetID());
 
-//   vtkNew<vtkMRMLROS2SubscriberNode> sub;
   vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
   sub->SetTopic("/blah_blah");
   sub->SetSubscriber(mNodePointer);
@@ -726,5 +714,9 @@ void vtkSlicerRos2Logic::AddToScene(void){
   vtkSmartPointer<vtkMRMLROS2SubscriberString> subs = vtkNew<vtkMRMLROS2SubscriberString>();
   subs->SetTopic("/hi");
   subs->SetSubscriber(mNodePointer);
+  std::string output = "laura";
+  subs->GetLastMessage(output); // this function needs to actually update the pointer
+  std::cerr << output << std::endl;
   this->GetMRMLScene()->AddNode(subs);
+  
 }

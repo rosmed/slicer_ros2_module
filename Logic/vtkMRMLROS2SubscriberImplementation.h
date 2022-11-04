@@ -56,10 +56,11 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation: p
    * is converted from the ROS type to a Slicer type by the overloaded
    * global function vtkROS2ToSlicer.
    */
-  void GetLastMessage(vtkSmartPointer<_slicer_type> result) const
+  void GetLastMessage(_slicer_type & result) const
   {
     // todo maybe add some check that we actually received a message?
     vtkROS2ToSlicer(mLastMessage, result);
+    // make sure the result is actually stored in the result
   }
 
   /**
