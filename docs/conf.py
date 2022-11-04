@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'SliROS2'
-copyright = '2022, Laura, Aravind, Anton'
-author = 'Laura, Aravind, Anton'
+project = 'Slicer ROS2'
+copyright = '2022, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
+author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.1'
