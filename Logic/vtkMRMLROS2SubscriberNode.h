@@ -22,6 +22,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode : public vtk
   void SetTopic(const std::string & topic);
   size_t GetNumberOfMessages(void) const;
 
+//  virtual vtkObject * GetLastMessage(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0; // Conclusions - virtual functions are causing new error?? Not being linked properly (location??)
 
  protected:
