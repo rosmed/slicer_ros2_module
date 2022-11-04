@@ -30,13 +30,13 @@ the source code for this module has been cloned under ``~/ros2_ws/src/slicer_ros
 
 You will first need to source the ROS setup script for ROS 2 (foxy or galactic):
 
-.. code-block::bash
+.. code-block:: bash
 
     source /opt/ros/galactic/setup.bash
 
 Then build the module using `colcon` while providing the path to your Slicer build directory:
 
-.. code-block::bash
+.. code-block:: bash
 
     cd ~/ros2_ws
     colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build
@@ -52,7 +52,7 @@ you can run ``colcon build`` once and then run ``ccmake`` on the ``slicer_ros2_m
 
     You should see the following error messages if the ``Slicer_DIR`` is not set properly (or if Slicer has not been built from scratch):
 
-    .. code-block::
+    .. code-block:: bash
 
         Could not find a package configuration file provided by "Slicer" with any
         of the following names:
