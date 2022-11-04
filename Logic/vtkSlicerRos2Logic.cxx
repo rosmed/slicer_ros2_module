@@ -718,6 +718,8 @@ void vtkSlicerRos2Logic::AddToScene(void){
   vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
   sub->SetTopic("/blah_blah");
   sub->SetSubscriber(mNodePointer);
+  vtkSmartPointer<vtkMatrix4x4> mat;
+  sub->GetLastMessage(mat);
   this->GetMRMLScene()->AddNode(sub);
 
   vtkSmartPointer<vtkMRMLROS2SubscriberString> subs = vtkNew<vtkMRMLROS2SubscriberString>();
