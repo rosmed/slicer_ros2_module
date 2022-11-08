@@ -487,6 +487,7 @@ void vtkSlicerRos2Logic::Spin(void)
   // Spin ROS loop
   if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
+    updateMRMLSceneFromSubs();
     if (mModel.Loaded && !mRobotState.sendingTf && !mRobotState.IsUsingTopic) {
       queryTfNode();
     }
@@ -734,7 +735,7 @@ void vtkSlicerRos2Logic::AddToScene(void){
 }
 
 void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name){
-
+  // Add a transform for subscriber type 1 (PoseStamped)
   vtkSmartPointer<vtkMRMLTransformNode> poseTransform =  vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
   poseTransform->SetMatrixTransformToParent(mat);
   poseTransform->Modified();
@@ -742,15 +743,18 @@ void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat
   this->GetMRMLScene()->AddNode(poseTransform);
 }
 
-// void vtkSlicerRos2Logic::updateMRMLSceneFromSubs(void){
-//   for (size_t index = 0; index < mSubs.size(); ++index){
-//     if (mSubscriptionTypes[index] == typeid(geometry_msgs::msg::PoseStamped).name()){
-//       vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((mSubscriptionNames[index] + "_transform").c_str()));
-//       vtkSmartPointer<vtkMatrix4x4> mat = vtkNew<vtkMatrix4x4>();
-//       vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = mSubs[index];
-//       sub->GetLastMessage(mat);
-//       parentTransformNode->SetMatrixTransformToParent(mat);
-//       parentTransformNode->Modified();
-//     }
-//   }
-// }
+void vtkSlicerRos2Logic::updateMRMLSceneFromSubs(void){
+  // This should be activated on spin and should update that's attached to the vtkMRMLROS2SubscriberNode
+  // Get lastMessage needs to work for this though
+  for (size_t index = 0; index < mSubs.size(); ++index){
+    if (mSubscriptionTypes[index] == typeid(geometry_msgs::msg::PoseStamped).name()){
+      vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((mSubscriptionNames[index] + "_transform").c_str()));
+      mSubs[index] = vtkSmartPointer<vtkMRMLROS2SubscriberNode>::Take(vtkMRMLROS2SubscriberPoseStamped::New());
+      vtkSmartPointer<vtkMatrix4x4> mat = vtkNew<vtkMatrix4x4>();
+      // Commenting out so this doesn't mess anything up
+      // mSubs[index]->GetLastMessage(mat); // GetLastMessage isn't available so this doesn't work
+      // parentTransformNode->SetMatrixTransformToParent(mat);
+      // parentTransformNode->Modified();
+    }
+  }
+}

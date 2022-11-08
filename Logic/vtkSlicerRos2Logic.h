@@ -83,9 +83,10 @@ public:
   int mNumSubscriptions = 0;
   std::vector<std::string> mSubscriptionNames;
   std::vector<std::string> mSubscriptionTypes;
+  vtkSmartPointer<vtkMatrix4x4> lastMessage;
   std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs;
   void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
-  // void updateMRMLSceneFromSubs(void);
+  void updateMRMLSceneFromSubs(void);
 
   // bool testSubNode( vtkMRMLNode* node );
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
