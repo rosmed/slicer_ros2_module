@@ -80,6 +80,12 @@ public:
   void Clear();
   void BroadcastTransform();
   void AddToScene(void);
+  int mNumSubscriptions = 0;
+  std::vector<std::string> mSubscriptionNames;
+  std::vector<std::string> mSubscriptionTypes;
+  std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs;
+  void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
+  // void updateMRMLSceneFromSubs(void);
 
   // bool testSubNode( vtkMRMLNode* node );
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
@@ -134,6 +140,7 @@ private:
   } mModel;
 
   vtkSmartPointer<vtkMRMLNode> mTestSubscriber;
+
 
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;

@@ -15,7 +15,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation: p
 
   vtkMRMLROS2SubscriberImplementation() {};
   ~vtkMRMLROS2SubscriberImplementation() {};
-  
+
   /**
    * This is the ROS callback for the subscription.  This methods
    * saves the ROS message as-is and set the modified flag for the
@@ -31,7 +31,8 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation: p
  public:
   typedef vtkMRMLROS2SubscriberImplementation<_ros_type, _slicer_type> SelfType;
   vtkTemplateTypeMacro(SelfType, vtkMRMLROS2SubscriberNode);
-
+  _ros_type type;
+  _slicer_type slicerType;
   static SelfType * New(void); // vtkObject - Create an object with Debug turned off, modified time initialized to zero, and reference counting on.
 
   // Create instance of the default node. Like New only virtual. -> Explanation from doxygen

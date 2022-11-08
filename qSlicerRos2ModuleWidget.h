@@ -64,7 +64,9 @@ protected slots:
   void onStateSelection(const QString&);
   void onDescriptionSelection(const QString&);
   void onTimerTimeOut(void);
+  void updateSubscriberTableWidget(void);
   void onClearSceneSelected(void);
+  void onSetSubscribers(void);
 
   // Slots for dynamic widgets
   void onTopicNameEntered(void);

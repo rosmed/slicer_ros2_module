@@ -24,6 +24,8 @@
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QLayout>
+#include <QTableWidgetItem>
+#include <QString>
 
 // Slicer includes
 #include "qSlicerRos2ModuleWidget.h"
@@ -81,6 +83,7 @@ void qSlicerRos2ModuleWidget::setup(void)
   this->Superclass::setup();
 
   this->connect(d->clearSceneButton, SIGNAL(clicked(bool)), this, SLOT(onClearSceneSelected()));
+  this->connect(d->setSubscribersButton, SIGNAL(clicked(bool)), this, SLOT(onSetSubscribers()));
 
   // Set up timer connections
   connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
@@ -123,6 +126,7 @@ void qSlicerRos2ModuleWidget::setup(void)
   selectFileButton->hide();
 
   this->connect(d->broadcastTransformButton, SIGNAL(clicked(bool)), this, SLOT(onBroadcastButtonPressed()));
+
 }
 
 
@@ -151,8 +155,44 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
     return;
   }
   logic->Spin();
+  updateSubscriberTableWidget();
 }
 
+void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
+{
+  Q_D(qSlicerRos2ModuleWidget);
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+
+  d->rosSubscriberTableWidget->setRowCount(logic->mNumSubscriptions);
+  // Update the table with subscription name
+  if (logic->mSubscriptionNames.size() > 0){
+    for (size_t index = 0; index < logic->mSubscriptionNames.size(); ++index){
+      QString topicName = logic->mSubscriptionNames[index].c_str();
+      QString typeName = logic->mSubscriptionTypes[index].c_str();
+      QString message = logic->mSubs[index]->GetLastMessageYAML().c_str();
+      QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(index, 0);
+      QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(index, 1);
+      QTableWidgetItem *message_item = d->rosSubscriberTableWidget->item(index, 2);
+      if(!topic_item){
+        topic_item = new QTableWidgetItem;
+        d->rosSubscriberTableWidget->setItem(index, 0, topic_item);
+        topic_item->setText(topicName);
+        type_item = new QTableWidgetItem;
+        d->rosSubscriberTableWidget->setItem(index, 1, type_item);
+        type_item->setText(typeName);
+        message_item = new QTableWidgetItem;
+        d->rosSubscriberTableWidget->setItem(index, 2, message_item);
+      }
+     else{
+       message_item->setText(message);
+     }
+    }
+  }
+}
 
 void qSlicerRos2ModuleWidget::onClearSceneSelected()
 {
@@ -162,10 +202,17 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
     return;
   }
   logic->Clear();
-  // PLACE HOLDER
-  logic->AddToScene();
 }
 
+void qSlicerRos2ModuleWidget::onSetSubscribers()
+{
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->AddToScene();
+}
 
 void qSlicerRos2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
