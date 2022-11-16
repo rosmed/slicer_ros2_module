@@ -17,7 +17,8 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode : public vtk
  public:
   vtkTypeMacro(vtkMRMLROS2SubscriberNode, vtkMRMLNode);
 
-  inline const char* GetNodeTagName() override { return mTopic.c_str(); };
+  inline const char* GetNodeTagName() override { 
+    return "ROS2Subscriber"; };
 
   void SetTopic(const std::string & topic);
   size_t GetNumberOfMessages(void) const;
@@ -33,6 +34,8 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode : public vtk
   ~vtkMRMLROS2SubscriberNode();
 
   std::string mTopic = "undefined";
+  std::string mNodeName = "ros2:";
+  // char * mNodeNamePtr = nullptr;
   size_t mNumberOfMessages = 0;
 
  public:

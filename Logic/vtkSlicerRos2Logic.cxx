@@ -728,6 +728,8 @@ void vtkSlicerRos2Logic::AddToScene(void){
   subs->GetLastMessage(output); // this function needs to actually update the pointer, doesn't seem to be
   std::cerr << "Message:" << output.c_str() << std::endl;
   this->GetMRMLScene()->AddNode(subs);
+  subs->SetNodeReferenceID("PaRent",sub->GetID());
+  sub->SetNodeReferenceID("chilD",subs->GetID());
   mNumSubscriptions++;
   mSubscriptionNames.push_back(subs_name);
   mSubscriptionTypes.push_back(typeid(subs->type).name());

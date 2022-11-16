@@ -36,9 +36,10 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation: p
   static SelfType * New(void); // vtkObject - Create an object with Debug turned off, modified time initialized to zero, and reference counting on.
 
   // Create instance of the default node. Like New only virtual. -> Explanation from doxygen
-  virtual vtkMRMLNode * CreateNodeInstance(void) override {
-    return SelfType::New();
-  };
+  vtkMRMLNode * CreateNodeInstance(void) override;
+  //  {
+  //   return SelfType::New();
+  // };
 
   void PrintSelf(ostream&, vtkIndent) override {};
 
@@ -76,6 +77,36 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation: p
     rosidl_generator_traits::to_yaml(mLastMessage, out);
     return out.str();
   }
+
+
+  /**
+   * Attempting to save the file to XML
+   * 
+   */
+  virtual void WriteXML(ostream& of, int nIndent) override {
+    this->Superclass::WriteXML(of, nIndent); 
+    // of = std::cerr;
+    std::cerr << "This is being used" << endl; //Sanity check to make sure function is being called;
+    
+    this->content = "random data"; // setting random value
+
+    of << " random_manual_field=\"" << this->content << "\""; //manually writing
+    
+    vtkMRMLWriteXMLBeginMacro(of);
+    vtkMRMLWriteXMLStdStringMacro(random_manual_field_2, content); // using vtk macro - This requires vtkGetMacro to be set for the string
+    vtkMRMLWriteXMLEndMacro();
+
+    std::stringstream ss;
+    ss << of.rdbuf();
+    std::string myString = ss.str();
+
+    std::cerr << ss.str() << "End mine" << endl;
+    // std::cerr << of.str() << "End mine" << endl;
+
+  }
+// GetParent - SrtPartent
+  std::string content; // defining a random string
+  vtkGetMacro(content, std::string); // used in writeXML
 };
 
 #endif
