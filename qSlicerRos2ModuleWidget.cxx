@@ -167,30 +167,31 @@ void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
     return;
   }
 
-  d->rosSubscriberTableWidget->setRowCount(logic->mNumSubscriptions);
-  // Update the table with subscription name
-  if (logic->mSubscriptionNames.size() > 0){
-    for (size_t index = 0; index < logic->mSubscriptionNames.size(); ++index){
-      QString topicName = logic->mSubscriptionNames[index].c_str();
-      QString typeName = logic->mSubscriptionTypes[index].c_str();
-      QString message = logic->mSubs[index]->GetLastMessageYAML().c_str();
-      QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(index, 0);
-      QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(index, 1);
-      QTableWidgetItem *message_item = d->rosSubscriberTableWidget->item(index, 2);
-      if(!topic_item){
-        topic_item = new QTableWidgetItem;
-        d->rosSubscriberTableWidget->setItem(index, 0, topic_item);
-        topic_item->setText(topicName);
-        type_item = new QTableWidgetItem;
-        d->rosSubscriberTableWidget->setItem(index, 1, type_item);
-        type_item->setText(typeName);
-        message_item = new QTableWidgetItem;
-        d->rosSubscriberTableWidget->setItem(index, 2, message_item);
-      }
-     else{
-       message_item->setText(message);
-     }
+  d->rosSubscriberTableWidget->setRowCount(logic->mSubs.size());
+  size_t row = 0;
+  for (const auto sub : logic->mSubs) {
+    QString topicName = sub->GetTopic();
+    QString typeName = sub->GetROSType();
+    QString message = sub->GetLastMessageYAML().c_str();
+    QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
+    QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 1);
+    QTableWidgetItem *message_item = d->rosSubscriberTableWidget->item(row, 2);
+    // if the row doesn't exist, populate
+    if (!topic_item) {
+      topic_item = new QTableWidgetItem;
+      d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
+      topic_item->setText(topicName);
+      type_item = new QTableWidgetItem;
+      d->rosSubscriberTableWidget->setItem(row, 1, type_item);
+      type_item->setText(typeName);
+      message_item = new QTableWidgetItem;
+      d->rosSubscriberTableWidget->setItem(row, 2, message_item);
     }
+    // otherwise, just update the message
+    else {
+      message_item->setText(message);
+    }
+    row++;
   }
 }
 

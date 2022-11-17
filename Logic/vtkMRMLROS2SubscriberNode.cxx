@@ -18,6 +18,7 @@ vtkMRMLROS2SubscriberNode::vtkMRMLROS2SubscriberNode()
 //----------------------------------------------------------------------------
 vtkMRMLROS2SubscriberNode::~vtkMRMLROS2SubscriberNode()
 {
+  this->SetName(mNodeName.c_str());
 }
 
 void vtkMRMLROS2SubscriberNode::SetTopic(const std::string & topic)
@@ -25,8 +26,6 @@ void vtkMRMLROS2SubscriberNode::SetTopic(const std::string & topic)
   mTopic = topic;
   mNodeName = "ros2:" + topic;
   this->SetName(mNodeName.c_str());
-  // mNodeName.append(topic);
-  // mNodeNamePtr = mNodeName.c_str();
 }
 
 size_t vtkMRMLROS2SubscriberNode::GetNumberOfMessages(void) const

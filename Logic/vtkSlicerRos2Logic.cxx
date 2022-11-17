@@ -715,9 +715,6 @@ void vtkSlicerRos2Logic::AddToScene(void){
   AddTransformForMatrix(mat, sub_name);
   mat->PrintSelf(std::cerr, vtkIndent(0));
   this->GetMRMLScene()->AddNode(sub);
-  mNumSubscriptions++;
-  mSubscriptionNames.push_back(sub_name);
-  mSubscriptionTypes.push_back(typeid(sub->type).name());
   mSubs.push_back(sub);
 
   vtkSmartPointer<vtkMRMLROS2SubscriberString> subs = vtkNew<vtkMRMLROS2SubscriberString>();
@@ -726,13 +723,10 @@ void vtkSlicerRos2Logic::AddToScene(void){
   subs->SetSubscriber(mNodePointer);
   std::string output;
   subs->GetLastMessage(output); // this function needs to actually update the pointer, doesn't seem to be
-  std::cerr << "Message:" << output.c_str() << std::endl;
+  std::cerr << "Message: " << output << std::endl;
   this->GetMRMLScene()->AddNode(subs);
   subs->SetNodeReferenceID("PaRent",sub->GetID());
   sub->SetNodeReferenceID("chilD",subs->GetID());
-  mNumSubscriptions++;
-  mSubscriptionNames.push_back(subs_name);
-  mSubscriptionTypes.push_back(typeid(subs->type).name());
   mSubs.push_back(subs);
 }
 
@@ -748,6 +742,7 @@ void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat
 void vtkSlicerRos2Logic::updateMRMLSceneFromSubs(void){
   // This should be activated on spin and should update that's attached to the vtkMRMLROS2SubscriberNode
   // Get lastMessage needs to work for this though
+#if 0
   for (size_t index = 0; index < mSubs.size(); ++index){
     if (mSubscriptionTypes[index] == typeid(geometry_msgs::msg::PoseStamped).name()){
       vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((mSubscriptionNames[index] + "_transform").c_str()));
@@ -759,4 +754,5 @@ void vtkSlicerRos2Logic::updateMRMLSceneFromSubs(void){
       // parentTransformNode->Modified();
     }
   }
+#endif
 }
