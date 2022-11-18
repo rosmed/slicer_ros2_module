@@ -20,43 +20,14 @@
       <string/>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="4" column="0" colspan="3">
-       <widget class="QPushButton" name="clearSceneButton">
-        <property name="text">
-         <string>Clear Scene</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="1">
-       <widget class="QLabel" name="topicLabel">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0" colspan="3">
-       <widget class="QGroupBox" name="descriptionWidgetGroupBox">
-        <property name="title">
-         <string>Not selected</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Subscribers</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0" colspan="3">
-       <widget class="QGroupBox" name="stateWidgetGroupBox">
-        <property name="title">
-         <string>Not selected</string>
-        </property>
-       </widget>
-      </item>
       <item row="8" column="0" colspan="3">
        <widget class="QTableWidget" name="rosSubscriberTableWidget">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>15</horstretch>
+          <verstretch>15</verstretch>
+         </sizepolicy>
+        </property>
         <property name="rowCount">
          <number>0</number>
         </property>
@@ -65,33 +36,19 @@
         </property>
         <column>
          <property name="text">
-          <string>Subscriber name</string>
+          <string>Subscriber name                   </string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>Message type</string>
+          <string>Message type                     </string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>Message</string>
+          <string>Message                                                                                    </string>
          </property>
         </column>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="stateLabel">
-        <property name="text">
-         <string>State:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0" colspan="3">
-       <widget class="QPushButton" name="broadcastTransformButton">
-        <property name="text">
-         <string>Broadcast Position</string>
-        </property>
        </widget>
       </item>
       <item row="0" column="1">
@@ -111,6 +68,55 @@
         </item>
        </widget>
       </item>
+      <item row="2" column="2">
+       <widget class="QLabel" name="descriptionWidgetArea">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0" colspan="3">
+       <widget class="QPushButton" name="broadcastTransformButton">
+        <property name="text">
+         <string>Broadcast Position</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="descriptionLabel">
+        <property name="text">
+         <string>Description:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0" colspan="3">
+       <widget class="QPushButton" name="clearSceneButton">
+        <property name="text">
+         <string>Clear Scene</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Subscribers</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="stateLabel">
+        <property name="text">
+         <string>State:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QLabel" name="topicLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="descriptionSelectionComboBox">
         <property name="currentText">
@@ -128,18 +134,20 @@
         </item>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="descriptionLabel">
-        <property name="text">
-         <string>Description:</string>
+      <item row="1" column="0" colspan="3">
+       <widget class="QGroupBox" name="stateWidgetGroupBox">
+        <property name="title">
+         <string>Not selected</string>
         </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="QLabel" name="descriptionWidgetArea">
-        <property name="text">
-         <string/>
-        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLineEdit" name="topicLineEdit">
+           <property name="text">
+            <string>/joint_states</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
       <item row="6" column="0" colspan="3">
@@ -147,6 +155,35 @@
         <property name="text">
          <string>Setup Subscribers</string>
         </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="3">
+       <widget class="QGroupBox" name="descriptionWidgetGroupBox">
+        <property name="title">
+         <string>Parameter selected</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QPushButton" name="selectFileButton">
+           <property name="text">
+            <string>Select model file</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="loadModelButton">
+           <property name="text">
+            <string>Load model</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="nodeLineEdit"/>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="paramLineEdit"/>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>

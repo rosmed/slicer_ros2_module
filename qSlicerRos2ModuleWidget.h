@@ -23,9 +23,7 @@
 #include "qSlicerRos2ModuleExport.h"
 
 // Qt includes
-#include <QLineEdit>
 #include <QFileDialog>
-#include <QPushButton>
 
 class qSlicerRos2ModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -52,12 +50,9 @@ protected:
   QTimer* mTimer;
   bool timerOff = false;
 
-  QLineEdit *topicLineEdit = new QLineEdit(tr("/joint_states"));
+  // QFileDialog is not available in Qt Designer!!
   QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html
-  QLineEdit *nodeLineEdit = new QLineEdit(tr("/robot_state_publisher"));
-  QLineEdit *paramLineEdit = new QLineEdit(tr("robot_description"));
-  QPushButton *loadModelButton = new QPushButton();
-  QPushButton *selectFileButton = new QPushButton();
+
 
 protected slots:
   void onFileSelected(const QString&);

@@ -90,40 +90,26 @@ void qSlicerRos2ModuleWidget::setup(void)
   connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopTimer()));
 
   // Setup state / selection options
-  QVBoxLayout *stateBoxLayout = new QVBoxLayout;
-  stateBoxLayout->addWidget(topicLineEdit);
-  d->stateWidgetGroupBox->setLayout(stateBoxLayout);
   this->connect(d->stateSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onStateSelection(const QString&)));
 
-  // Setup description / selection options
-  QVBoxLayout *descriptionBoxLayout = new QVBoxLayout;
-  // Button is a place holder
-  descriptionBoxLayout->addWidget(selectFileButton);
-  selectFileButton->setText("Select model file");
-  descriptionBoxLayout->addWidget(loadModelButton);
-  loadModelButton->setText("Load model");
-
-
-  descriptionBoxLayout->addWidget(nodeLineEdit);
-  descriptionBoxLayout->addWidget(paramLineEdit);
-  d->descriptionWidgetGroupBox->setLayout(descriptionBoxLayout);
   this->connect(d->descriptionSelectionComboBox, SIGNAL(currentTextChanged(const QString&)), this, SLOT(onDescriptionSelection(const QString&)));
 
   // Set up signals / slots for dynamically loaded widgets
   // Note: All of the QLineEdits are triggered by pressing enter in the edit box - the slot functions access the text that was entered themselves
-  this->connect(topicLineEdit, SIGNAL(returnPressed()), this, SLOT(onTopicNameEntered()));
-  this->connect(nodeLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
-  this->connect(paramLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
-  this->connect(selectFileButton, SIGNAL(clicked(bool)), this, SLOT(onSelectFile()));
-  this->connect(loadModelButton, SIGNAL(clicked(bool)), this, SLOT(onLoadModelButtonSelected()));
+  this->connect(d->topicLineEdit, SIGNAL(returnPressed()), this, SLOT(onTopicNameEntered()));
+  this->connect(d->nodeLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
+  this->connect(d->paramLineEdit, SIGNAL(returnPressed()), this, SLOT(onNodeOrParameterNameEntered()));
+  this->connect(d->selectFileButton, SIGNAL(clicked(bool)), this, SLOT(onSelectFile()));
+  this->connect(d->loadModelButton, SIGNAL(clicked(bool)), this, SLOT(onLoadModelButtonSelected()));
   // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
 
   // Set default, assuming defaults are:
   // - state if from tf
   // - model is from param
   d->stateWidgetGroupBox->hide();
-  loadModelButton->hide();
-  selectFileButton->hide();
+  d->loadModelButton->hide();
+  d->selectFileButton->hide();
+  d->rosSubscriberTableWidget->resizeColumnsToContents();
 
   this->connect(d->broadcastTransformButton, SIGNAL(clicked(bool)), this, SLOT(onBroadcastButtonPressed()));
 
@@ -247,17 +233,17 @@ void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Sho
 
   if (text == "file") {
     d->descriptionWidgetGroupBox->setTitle("File selected");
-    loadModelButton->show();
-    selectFileButton->show();
-    nodeLineEdit->hide();
-    paramLineEdit->hide();
+    d->loadModelButton->show();
+    d->selectFileButton->show();
+    d->nodeLineEdit->hide();
+    d->paramLineEdit->hide();
   }
   else if (text == "parameter") {
     d->descriptionWidgetGroupBox->setTitle("Param selected");
-    loadModelButton->hide();
-    selectFileButton->hide();
-    nodeLineEdit->show();
-    paramLineEdit->show();
+    d->loadModelButton->hide();
+    d->selectFileButton->hide();
+    d->nodeLineEdit->show();
+    d->paramLineEdit->show();
   }
 }
 
@@ -265,8 +251,9 @@ void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Sho
 // Slots for all of the dynamic selections start here
 void qSlicerRos2ModuleWidget::onTopicNameEntered(void)
 {
+  Q_D(qSlicerRos2ModuleWidget);
   // Get the topic name (we will need it later)
-  QString topic = topicLineEdit->text();
+  QString topic = d->topicLineEdit->text();
   vtkSlicerRos2Logic *
     logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
@@ -281,8 +268,9 @@ void qSlicerRos2ModuleWidget::onTopicNameEntered(void)
 void qSlicerRos2ModuleWidget::onNodeOrParameterNameEntered(void)
 {
   // Get the parameter and node names (we will need it later)
-  QString node = nodeLineEdit->text();
-  QString param = paramLineEdit->text();
+  Q_D(qSlicerRos2ModuleWidget);
+  QString node = d->nodeLineEdit->text();
+  QString param = d->paramLineEdit->text();
   if ((!node.isEmpty())
       && (!param.isEmpty())) {
     vtkSlicerRos2Logic *
