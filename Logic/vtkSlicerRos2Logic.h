@@ -41,10 +41,12 @@ class vtkMRMLROS2SubscriberNode;
 #include <vtkSmartPointer.h>
 #include "vtkSlicerRos2ModuleLogicExport.h"
 
-#include <vtkMRMLROS2SubscriberInstantiations.h>
+#include <vtkMRMLROS2SubscriberNativeNode.h>
 
 #include "vtkMRML.h"
 #include "vtkMRMLNode.h"
+
+#include <vtkMatrix4x4.h>
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
@@ -52,6 +54,8 @@ class vtkMRMLROS2SubscriberNode;
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
+
+class vtkMRMLROS2NodeNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
@@ -112,7 +116,7 @@ private:
   void ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
-
+  vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node; // proper MRML node
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
   std::vector<std::string> link_parent_names_vector;

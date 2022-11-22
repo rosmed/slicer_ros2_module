@@ -5,7 +5,12 @@ auto const MM_TO_M_CONVERSION = 1000.00;
 
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result)
 {
-  result = input.data.c_str();
+  result = input.data;
+}
+
+void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result)
+{
+  result = input.data;
 }
 
 void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result)

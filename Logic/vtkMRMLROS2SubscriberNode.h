@@ -4,38 +4,37 @@
 // MRML includes
 #include <vtkMRMLNode.h>
 
-// STD includes
-#include <string>
+#include <vtkSlicerRos2ModuleLogicExport.h>
 
-// ROS2 includes
-#include <rclcpp/rclcpp.hpp>
+// forward declaration for internals
+class vtkMRMLROS2SubscriberInternals;
 
-#include "vtkSlicerRos2ModuleLogicExport.h"
-
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode : public vtkMRMLNode
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode: public vtkMRMLNode
 {
+
+  friend class vtkMRMLROS2SubscriberInternals;
+
+  template <typename _ros_type, typename _slicer_type>
+    friend class vtkMRMLROS2SubscriberTemplatedInternals;
+
  public:
   vtkTypeMacro(vtkMRMLROS2SubscriberNode, vtkMRMLNode);
 
-  inline const char * GetNodeTagName(void) override {
-    return "ROS2Subscriber"; };
+  bool AddToROS2Node(const char * nodeId,
+		     const std::string & topic);
 
-  void SetTopic(const std::string & topic);
+  const char * GetTopic(void) const;
 
-  const char * GetTopic(void) const {
-    return mTopic.c_str();
-  }
+  const char * GetROSType(void) const;
+
+  const char * GetSlicerType(void) const;
 
   size_t GetNumberOfMessages(void) const;
-
-  virtual const char * GetROSType(void) const = 0;
-
-  virtual const char * GetSlicerType(void) const = 0;
 
   /**
    * Get the latest ROS message in YAML format
    */
-  virtual std::string GetLastMessageYAML(void) const = 0;
+  std::string GetLastMessageYAML(void) const;
 
   /**
    * Get the latest message as a vtkVariant.  This method will use the
@@ -47,19 +46,13 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode : public vtk
   virtual vtkVariant GetLastMessageVariant(void) = 0;
 
  protected:
-  //----------------------------------------------------------------
-  // Constructor and destructor
-  //----------------------------------------------------------------
-
   vtkMRMLROS2SubscriberNode();
   ~vtkMRMLROS2SubscriberNode();
 
+  vtkMRMLROS2SubscriberInternals * mInternals;
   std::string mTopic = "undefined";
-  std::string mNodeName = "ros2:undefined";
+  std::string mMRMLNodeName = "ros2:sub:undefined";
   size_t mNumberOfMessages = 0;
-
- public:
-  virtual void SetSubscriber(std::shared_ptr<rclcpp::Node> mNodePointer) = 0;
 };
 
-#endif
+#endif // __vtkMRMLROS2SubscriberNode_h

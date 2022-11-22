@@ -66,6 +66,9 @@
 #include <fstream>
 #include <sstream>
 
+#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2SubscriberVTKNode.h>
+
 auto const MM_TO_M_CONVERSION = 1000.00;
 
 
@@ -487,6 +490,9 @@ void vtkSlicerRos2Logic::Spin(void)
   // Spin ROS loop
   if (rclcpp::ok()) {
     rclcpp::spin_some(mNodePointer);
+    if (mROS2Node) {
+      mROS2Node->Spin();
+    }
     updateMRMLSceneFromSubs();
     if (mModel.Loaded && !mRobotState.sendingTf && !mRobotState.IsUsingTopic) {
       queryTfNode();
@@ -704,30 +710,40 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 }
 
-void vtkSlicerRos2Logic::AddToScene(void){
+void vtkSlicerRos2Logic::AddToScene(void)
+{
+  mROS2Node = vtkMRMLROS2NodeNode::New();
+  this->GetMRMLScene()->AddNode(mROS2Node);
+  mROS2Node->Create("testNode");
 
-  vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
-  std::string sub_name = "/blah_blah";
-  sub->SetTopic(sub_name);
-  sub->SetSubscriber(mNodePointer);
-  vtkSmartPointer<vtkMatrix4x4> mat = vtkNew<vtkMatrix4x4>();
-  sub->GetLastMessage(mat);
-  AddTransformForMatrix(mat, sub_name);
-  mat->PrintSelf(std::cerr, vtkIndent(0));
-  this->GetMRMLScene()->AddNode(sub);
-  mSubs.push_back(sub);
+  vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
+  this->GetMRMLScene()->AddNode(subString);
+  subString->AddToROS2Node(mROS2Node->GetID(), "/string_sub");
+  mSubs.push_back(subString);
 
-  vtkSmartPointer<vtkMRMLROS2SubscriberString> subs = vtkNew<vtkMRMLROS2SubscriberString>();
-  std::string subs_name = "/hi";
-  subs->SetTopic(subs_name);
-  subs->SetSubscriber(mNodePointer);
-  std::string output;
-  subs->GetLastMessage(output); // this function needs to actually update the pointer, doesn't seem to be
-  std::cerr << "Message: " << output << std::endl;
-  this->GetMRMLScene()->AddNode(subs);
-  subs->SetNodeReferenceID("PaRent",sub->GetID());
-  sub->SetNodeReferenceID("chilD",subs->GetID());
-  mSubs.push_back(subs);
+  vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> subPose = vtkMRMLROS2SubscriberPoseStampedNode::New();
+  this->GetMRMLScene()->AddNode(subPose);
+  subPose->AddToROS2Node(mROS2Node->GetID(), "/pose_sub");
+  mSubs.push_back(subPose);
+
+  // vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
+  // std::string sub_name = "/blah_blah";
+  // sub->SetTopic(sub_name);
+  // sub->SetSubscriber(mNodePointer);
+  // vtkSmartPointer<vtkMatrix4x4> mat = vtkNew<vtkMatrix4x4>();
+  // sub->GetLastMessage(mat);
+  // AddTransformForMatrix(mat, sub_name);
+  // mat->PrintSelf(std::cerr, vtkIndent(0));
+  // this->GetMRMLScene()->AddNode(sub);
+  // mSubs.push_back(sub);
+
+  // std::string output;
+  // subs->GetLastMessage(output); // this function needs to actually update the pointer, doesn't seem to be
+  // std::cerr << "Message: " << output << std::endl;
+  // this->GetMRMLScene()->AddNode(subs);
+  // subs->SetNodeReferenceID("PaRent",sub->GetID());
+  // sub->SetNodeReferenceID("chilD",subs->GetID());
+
 }
 
 void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name){
