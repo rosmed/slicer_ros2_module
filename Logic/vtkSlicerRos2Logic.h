@@ -85,7 +85,7 @@ public:
   void BroadcastTransform();
   void AddToScene(void);
 
-  std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs;
+  std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
 
   void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
   void updateMRMLSceneFromSubs(void);

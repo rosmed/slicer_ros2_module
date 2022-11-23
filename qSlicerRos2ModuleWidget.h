@@ -49,6 +49,7 @@ protected:
   void setup() override;
   QTimer* mTimer;
   bool timerOff = false;
+  int popupCounter = 0;
 
   // QFileDialog is not available in Qt Designer!!
   QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html
@@ -64,11 +65,10 @@ protected slots:
   void onSetSubscribers(void);
 
   // Slots for dynamic widgets
-  void onTopicNameEntered(void);
   void onNodeOrParameterNameEntered(void);
   void onLoadModelButtonSelected(void);
-  void onSelectFile(void);
   void onBroadcastButtonPressed();
+  void printLastMessage(int row, int col);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
