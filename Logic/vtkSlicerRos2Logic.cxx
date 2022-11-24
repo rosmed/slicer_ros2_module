@@ -710,6 +710,27 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 }
 
+void vtkSlicerRos2Logic::CreateNewSubscriber(const std::string & newSubscriberName, std::string type){
+  // Provide this as python method for adding new subscribers to the scene
+  if (mROS2Node == nullptr){
+    vtkErrorMacro(<< "Trying to add a subscriber to a null node. Press the Setup Subcriber buttons and try again.");
+    return;
+  }
+  if (type == "string"){
+    vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> sub = vtkMRMLROS2SubscriberStringNode::New();
+    this->GetMRMLScene()->AddNode(sub);
+    sub->AddToROS2Node(mROS2Node->GetID(), newSubscriberName);
+    mSubs.push_back(sub);
+  }
+  else if (type == "pose"){
+    vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> sub = vtkMRMLROS2SubscriberPoseStampedNode::New();
+    this->GetMRMLScene()->AddNode(sub);
+    sub->AddToROS2Node(mROS2Node->GetID(), newSubscriberName);
+    mSubs.push_back(sub);
+  }
+}
+
+
 void vtkSlicerRos2Logic::AddToScene(void)
 {
   mROS2Node = vtkMRMLROS2NodeNode::New();

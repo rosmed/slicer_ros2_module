@@ -100,6 +100,7 @@ void qSlicerRos2ModuleWidget::setup(void)
   // Set up signals / slots for dynamically loaded widgets
   // Note: All of the QLineEdits are triggered by pressing enter in the edit box - the slot functions access the text that was entered themselves
   this->connect(d->loadVisualizationButton, SIGNAL(clicked(bool)), this, SLOT(onNodeOrParameterNameEntered()));
+  this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(printLastMessage(int, int)));
   // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
 
   // Set default, assuming defaults are:
@@ -141,21 +142,12 @@ void qSlicerRos2ModuleWidget::printLastMessage(int row, int col)
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-
   if (col == 2){ // only invoked when users click the number of messages cell
     const auto sub = logic->mSubs[row];
     QString message = sub->GetLastMessageYAML().c_str();
     QLabel *popupLabel = new QLabel();
     popupLabel->setText(message);
-
-    // Workaround because this is called twice for some reason
-    if (popupCounter == 0){
-      popupLabel->show();
-      popupCounter = popupCounter + 1;
-    }
-    else{
-      popupCounter = 0;
-    }
+    popupLabel->show();
   }
 }
 
@@ -187,21 +179,19 @@ void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
     QString typeName = sub->GetROSType();
     QString numMessages =  QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
     QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
-    QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 1);
-    QTableWidgetItem *num_messages_item = d->rosSubscriberTableWidget->item(row, 2);
+    QTableWidgetItem *num_messages_item = d->rosSubscriberTableWidget->item(row, 1);
+    QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 2);
     // if the row doesn't exist, populate
     if (!topic_item) {
       topic_item = new QTableWidgetItem;
       d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
       topic_item->setText(topicName);
-      type_item = new QTableWidgetItem;
-      d->rosSubscriberTableWidget->setItem(row, 1, type_item);
-      type_item->setText(typeName);
       num_messages_item = new QTableWidgetItem;
-      d->rosSubscriberTableWidget->setItem(row, 2, num_messages_item);
-      this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(printLastMessage(int, int)));
+      d->rosSubscriberTableWidget->setItem(row, 1, num_messages_item);
+      type_item = new QTableWidgetItem;
+      d->rosSubscriberTableWidget->setItem(row, 2, type_item);
+      type_item->setText(typeName);
     }
-    // otherwise, just update the message
     else {
       num_messages_item->setText(numMessages);
     }

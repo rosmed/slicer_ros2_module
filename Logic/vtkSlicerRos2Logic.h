@@ -84,6 +84,7 @@ public:
   void Clear();
   void BroadcastTransform();
   void AddToScene(void);
+  void CreateNewSubscriber(const std::string & newSubscriberName, std::string type);
 
   std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
 

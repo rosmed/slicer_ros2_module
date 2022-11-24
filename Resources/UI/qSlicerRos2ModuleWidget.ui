@@ -176,12 +176,12 @@
            </column>
            <column>
             <property name="text">
-             <string>Message type</string>
+             <string>Num messages</string>
             </property>
            </column>
            <column>
             <property name="text">
-             <string>Num messages</string>
+             <string>Message type</string>
             </property>
            </column>
           </widget>
