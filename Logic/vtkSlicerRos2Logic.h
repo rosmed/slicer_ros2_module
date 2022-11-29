@@ -35,6 +35,7 @@ namespace rclcpp {
 
 class vtkMRMLTransformNode;
 class vtkMRMLROS2SubscriberNode;
+class vtkMRMLROS2PublisherNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
@@ -42,6 +43,7 @@ class vtkMRMLROS2SubscriberNode;
 #include "vtkSlicerRos2ModuleLogicExport.h"
 
 #include <vtkMRMLROS2SubscriberNativeNode.h>
+#include <vtkMRMLROS2PublisherNativeNode.h>
 
 #include "vtkMRML.h"
 #include "vtkMRMLNode.h"

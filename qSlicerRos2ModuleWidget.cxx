@@ -180,38 +180,38 @@ void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  // Shouldn't need list should just get from the reference
-  d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferenceRoles());
-  size_t row = 0;
-  for (int j = 0; j < (logic->mROS2Node->GetNumberOfNodeReferenceRoles()); j++){
+  // // Shouldn't need list should just get from the reference
+  // d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferenceRoles());
+  // size_t row = 0;
+  // for (int j = 0; j < (logic->mROS2Node->GetNumberOfNodeReferenceRoles()); j++){
 
-    std::string subName = logic->mROS2Node->GetNthNodeReferenceRole(j);
-    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(subName.c_str()));
+  //   std::string subName = logic->mROS2Node->GetNthNodeReferenceRole(j);
+  //   vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(subName.c_str()));
 
-    QString topicName = sub->GetTopic();
-    QString typeName = sub->GetROSType();
-    QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
+  //   QString topicName = sub->GetTopic();
+  //   QString typeName = sub->GetROSType();
+  //   QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
 
-    QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
-    QTableWidgetItem *num_messages_item = d->rosSubscriberTableWidget->item(row, 1);
-    QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 2);
+  //   QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
+  //   QTableWidgetItem *num_messages_item = d->rosSubscriberTableWidget->item(row, 1);
+  //   QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 2);
 
-    // if the row doesn't exist, populate
-    if (!topic_item) {
-      topic_item = new QTableWidgetItem;
-      d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
-      topic_item->setText(topicName);
-      num_messages_item = new QTableWidgetItem;
-      d->rosSubscriberTableWidget->setItem(row, 1, num_messages_item);
-      type_item = new QTableWidgetItem;
-      d->rosSubscriberTableWidget->setItem(row, 2, type_item);
-      type_item->setText(typeName);
-    }
-    else {
-      num_messages_item->setText(numMessages);
-    }
-    row++;
-  }
+  //   // if the row doesn't exist, populate
+  //   if (!topic_item) {
+  //     topic_item = new QTableWidgetItem;
+  //     d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
+  //     topic_item->setText(topicName);
+  //     num_messages_item = new QTableWidgetItem;
+  //     d->rosSubscriberTableWidget->setItem(row, 1, num_messages_item);
+  //     type_item = new QTableWidgetItem;
+  //     d->rosSubscriberTableWidget->setItem(row, 2, type_item);
+  //     type_item->setText(typeName);
+  //   }
+  //   else {
+  //     num_messages_item->setText(numMessages);
+  //   }
+  //   row++;
+  // }
 }
 
 void qSlicerRos2ModuleWidget::onClearSceneSelected()
