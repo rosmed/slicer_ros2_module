@@ -1,0 +1,82 @@
+diff --git a/Logic/vtkMRMLROS2SubscriberImplementation.h b/Logic/vtkMRMLROS2SubscriberImplementation.h
+index 0649ca7..52ce15d 100644
+--- a/Logic/vtkMRMLROS2SubscriberImplementation.h
++++ b/Logic/vtkMRMLROS2SubscriberImplementation.h
+@@ -5,15 +5,18 @@
+ #include "vtkSlicerRos2ModuleLogicExport.h"
+ #include <vtkROS2ToSlicer.h>
+ 
++
+ template <typename _ros_type, typename _slicer_type>
+ class  VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation: public vtkMRMLROS2SubscriberNode
+ {
+    private:
+       _ros_type mLastMessage;
++//      _slicer_type mSlicerMessage;
+       std::shared_ptr<rclcpp::Subscription<_ros_type>> mSubscription;
+ 
+    public:
+      typedef vtkMRMLROS2SubscriberImplementation<_ros_type, _slicer_type> ThisType;
++     vtkTemplateTypeMacro(ThisType, vtkMRMLROS2SubscriberNode);
+ //     static ThisType *New(); // vtkObject - Create an object with Debug turned off, modified time initialized to zero, and reference counting on.
+      virtual vtkMRMLNode* CreateNodeInstance() override { return new ThisType(); };//ThisType::New(); }; //Create instance of the default node. Like New only virtual. -> Explanation from doxygen
+ 
+@@ -21,15 +24,21 @@ class  VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberImplementation:
+        mSubscription= nodePointer->create_subscription<_ros_type>(mTopic, 10000, std::bind(&ThisType::SubscriberCallback, this, std::placeholders::_1));
+      }
+ 
+-     void GetLastMessage(_slicer_type & result) const {
++     void GetLastMessage(vtkSmartPointer<_slicer_type> message) {
+       // maybe add some check that we actually received a message?
+-       vtkROS2ToSlicer(mLastMessage, result);
++        // const _slicer_type & var
++        // cache the converted  messages maybe
++       vtkROS2ToSlicer(mLastMessage, message); // this is not working what
+      }
+ 
+ 
+       // this is the ROS callback when creating
+      void SubscriberCallback(const _ros_type & message) {
+        mLastMessage = message;
++       // figure out what slicer_type is and how to inistialize it
++
++//       GetLastMessage(mSlicerMessage);
++       // Need to figure out how to properly call GetLastMessage and then do conversion code
+ //       std::cerr << GetLastMessageYAML() << std::endl; // useful for debugging
+        this->Modified(); // or whatever vtk uses to indicates the node has been modified
+      }
+diff --git a/Logic/vtkROS2ToSlicer.cxx b/Logic/vtkROS2ToSlicer.cxx
+index 65dbd0f..4e277c1 100644
+--- a/Logic/vtkROS2ToSlicer.cxx
++++ b/Logic/vtkROS2ToSlicer.cxx
+@@ -1,12 +1,13 @@
+ #include <vtkROS2ToSlicer.h>
+ 
+ 
+-inline void vtkROS2ToSlicer(const std_msgs::msg::String & input, vtkStdString & result)
++void vtkROS2ToSlicer(const std_msgs::msg::String & input, vtkSmartPointer<vtkStdString> result)
+ {
+ // do conversion here
++
+ }
+ 
+-inline void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkMatrix4x4 & result)
++void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result)
+ {
+ // do conversion here
+   std::cerr << "converting " << std::endl;
+diff --git a/Logic/vtkROS2ToSlicer.h b/Logic/vtkROS2ToSlicer.h
+index 3156e6f..37f67f3 100644
+--- a/Logic/vtkROS2ToSlicer.h
++++ b/Logic/vtkROS2ToSlicer.h
+@@ -4,8 +4,8 @@
+ #include "vtkSlicerRos2ModuleLogicExport.h"
+ #include <vtkMRMLROS2SubscriberNode.h>
+ //
+-inline void vtkROS2ToSlicer(const std_msgs::msg::String & input, vtkStdString & result);
++void vtkROS2ToSlicer(const std_msgs::msg::String & input, vtkSmartPointer<vtkStdString> result);
+ 
+-inline void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkMatrix4x4 & result);
++void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
+ 
+ #endif

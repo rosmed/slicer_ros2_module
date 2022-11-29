@@ -53,3 +53,5 @@ std::string vtkMRMLROS2PublisherNode::GetLastMessageYAML(void) const
 {
   return mInternals->GetLastMessageYAML();
 }
+
+// Messed up commit
