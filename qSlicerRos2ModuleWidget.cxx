@@ -147,7 +147,6 @@ void qSlicerRos2ModuleWidget::printLastMessage(int row, int col)
     QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
     const char* referenceRole = subName.toStdString().c_str();
     vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(referenceRole));
-    // const auto sub = logic->mROS2Node->mSubs[row];
     QString message = sub->GetLastMessageYAML().c_str();
     QLabel *popupLabel = new QLabel();
     popupLabel->setText(message);
@@ -163,13 +162,11 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
     return;
   }
   logic->Spin();
-  if (logic->mROS2Node){
-    if (modifiedConnect == 0){
-      qvtkReconnect(logic->mROS2Node, vtkCommand::ModifiedEvent, this, SLOT(updateSubscriberTableWidget()));
-      // qvtkReconnect(logic->mROS2Node, vtkMRMLNode::ReferencedNodeModifiedEvent, this, SLOT(updateSubscriberTableWidget())); // this should work?
-      logic->mROS2Node->Modified();
-      modifiedConnect++;
-    }
+  if (logic->mROS2Node && modifiedConnect == 0){
+    qvtkReconnect(logic->mROS2Node, vtkCommand::ModifiedEvent, this, SLOT(updateSubscriberTableWidget())); // Set up observer
+    // qvtkReconnect(logic->mROS2Node, vtkMRMLNode::ReferencedNodeModifiedEvent, this, SLOT(updateSubscriberTableWidget())); // this should work?
+    logic->mROS2Node->Modified(); // Invoke setup by calling modified once
+    modifiedConnect++; // prevent second observer connection
   }
 }
 

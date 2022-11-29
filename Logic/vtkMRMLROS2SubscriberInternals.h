@@ -51,7 +51,7 @@ protected:
     // \todo is there a timestamp in MRML nodes we can update from the ROS message?
     mLastMessageROS = message;
     mMRMLNode->mNumberOfMessages++;
-    mMRMLNode->Modified(); // Should just be able to call this
+    mMRMLNode->Modified(); // Should just be able to call this but it's not working
     rosNodePtr->Modified();
   }
 
