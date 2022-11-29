@@ -493,7 +493,7 @@ void vtkSlicerRos2Logic::Spin(void)
     if (mROS2Node) {
       mROS2Node->Spin();
     }
-    updateMRMLSceneFromSubs();
+    // updateMRMLSceneFromSubs();
     if (mModel.Loaded && !mRobotState.sendingTf && !mRobotState.IsUsingTopic) {
       queryTfNode();
     }
@@ -720,13 +720,13 @@ void vtkSlicerRos2Logic::CreateNewSubscriber(const std::string & newSubscriberNa
     vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> sub = vtkMRMLROS2SubscriberStringNode::New();
     this->GetMRMLScene()->AddNode(sub);
     sub->AddToROS2Node(mROS2Node->GetID(), newSubscriberName);
-    mSubs.push_back(sub);
+    // mSubs.push_back(sub);
   }
   else if (type == "pose"){
     vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> sub = vtkMRMLROS2SubscriberPoseStampedNode::New();
     this->GetMRMLScene()->AddNode(sub);
     sub->AddToROS2Node(mROS2Node->GetID(), newSubscriberName);
-    mSubs.push_back(sub);
+    // mSubs.push_back(sub);
   }
 }
 
@@ -740,12 +740,12 @@ void vtkSlicerRos2Logic::AddToScene(void)
   vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
   this->GetMRMLScene()->AddNode(subString);
   subString->AddToROS2Node(mROS2Node->GetID(), "/string_sub");
-  mSubs.push_back(subString);
+  // mSubs.push_back(subString);
 
   vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> subPose = vtkMRMLROS2SubscriberPoseStampedNode::New();
   this->GetMRMLScene()->AddNode(subPose);
   subPose->AddToROS2Node(mROS2Node->GetID(), "/pose_sub");
-  mSubs.push_back(subPose);
+  // mSubs.push_back(subPose);
 
   // vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
   // std::string sub_name = "/blah_blah";
@@ -780,10 +780,10 @@ void vtkSlicerRos2Logic::updateMRMLSceneFromSubs(void){
   // This should be activated on spin and should update that's attached to the vtkMRMLROS2SubscriberNode
   // Get lastMessage needs to work for this though
 #if 0
-  for (size_t index = 0; index < mSubs.size(); ++index){
+  for (size_t index = 0; index < mROS2Node->mSubs.size(); ++index){
     if (mSubscriptionTypes[index] == typeid(geometry_msgs::msg::PoseStamped).name()){
       vtkMRMLTransformNode *parentTransformNode = vtkMRMLTransformNode::SafeDownCast(this->GetMRMLScene()->GetFirstNodeByName((mSubscriptionNames[index] + "_transform").c_str()));
-      mSubs[index] = vtkSmartPointer<vtkMRMLROS2SubscriberNode>::Take(vtkMRMLROS2SubscriberPoseStamped::New());
+      mROS2Node->mSubs[index] = vtkSmartPointer<vtkMRMLROS2SubscriberNode>::Take(vtkMRMLROS2SubscriberPoseStamped::New());
       vtkSmartPointer<vtkMatrix4x4> mat = vtkNew<vtkMatrix4x4>();
       // Commenting out so this doesn't mess anything up
       // mSubs[index]->GetLastMessage(mat); // GetLastMessage isn't available so this doesn't work

@@ -21,6 +21,7 @@ public:
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0;
+  vtkMRMLROS2NodeNode * rosNodePtr;
 
 protected:
   vtkMRMLROS2SubscriberNode * mMRMLNode;
@@ -49,7 +50,8 @@ protected:
     // \todo is there a timestamp in MRML nodes we can update from the ROS message?
     mLastMessageROS = message;
     mMRMLNode->mNumberOfMessages++;
-    mMRMLNode->Modified();
+    mMRMLNode->Modified(); // Should just be able to call this
+    rosNodePtr->Modified();
   }
 
   /**
@@ -63,7 +65,8 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    // vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
       errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
       return false;
@@ -71,6 +74,10 @@ protected:
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     mSubscription= nodePointer->create_subscription<_ros_type>(topic, 100,
 							       std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
+
+    rosNodePtr->SetAndObserveNodeReferenceID(topic.c_str(), mMRMLNode->GetID()); // Set up node references
+    rosNodePtr->mSubs.push_back(mMRMLNode);
+    rosNodePtr->Modified();
     return true;
   }
 

@@ -50,6 +50,7 @@ protected:
   QTimer* mTimer;
   bool timerOff = false;
   int popupCounter = 0;
+  int modifiedConnect = 0;
 
   // QFileDialog is not available in Qt Designer!!
   QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html

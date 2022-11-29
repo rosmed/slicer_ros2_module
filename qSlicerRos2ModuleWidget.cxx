@@ -143,7 +143,7 @@ void qSlicerRos2ModuleWidget::printLastMessage(int row, int col)
     return;
   }
   if (col == 2){ // only invoked when users click the number of messages cell
-    const auto sub = logic->mSubs[row];
+    const auto sub = logic->mROS2Node->mSubs[row];
     QString message = sub->GetLastMessageYAML().c_str();
     QLabel *popupLabel = new QLabel();
     popupLabel->setText(message);
@@ -159,11 +159,19 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
     return;
   }
   logic->Spin();
-  updateSubscriberTableWidget();
+  if (logic->mROS2Node){
+    if (modifiedConnect == 0){
+      qvtkReconnect(logic->mROS2Node, vtkCommand::ModifiedEvent, this, SLOT(updateSubscriberTableWidget()));
+      // qvtkReconnect(logic->mROS2Node, vtkMRMLNode::ReferencedNodeModifiedEvent, this, SLOT(updateSubscriberTableWidget())); // this should work?
+      logic->mROS2Node->Modified();
+      modifiedConnect++;
+    }
+  }
 }
 
 void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
 {
+  std::cerr << "Table widget updated" << std::endl;
   Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
@@ -171,16 +179,23 @@ void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-
-  d->rosSubscriberTableWidget->setRowCount(logic->mSubs.size());
+  // Shouldn't need list should just get from the reference
+  d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->mSubs.size());
+  // d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferenceRoles());
   size_t row = 0;
-  for (const auto sub : logic->mSubs) {
+  // std::cerr << "Num refs" << (logic->mROS2Node->GetNumberOfNodeReferenceRoles()) << std::endl;
+  // for (int j = 0; j < (logic->mROS2Node->GetNumberOfNodeReferenceRoles()); j++){
+  for (const auto sub : logic->mROS2Node->mSubs) {
+    // std::string subName = logic->mROS2Node->GetNthNodeReferenceRole(j);
+    // auto sub = logic->mROS2Node->GetNodeReference(subName.c_str());
     QString topicName = sub->GetTopic();
     QString typeName = sub->GetROSType();
-    QString numMessages =  QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
+    QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
+
     QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
     QTableWidgetItem *num_messages_item = d->rosSubscriberTableWidget->item(row, 1);
     QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 2);
+
     // if the row doesn't exist, populate
     if (!topic_item) {
       topic_item = new QTableWidgetItem;

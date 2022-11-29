@@ -8,6 +8,7 @@
 
 // forward declaration for internals
 class vtkMRMLROS2NodeInternals;
+class vtkMRMLROS2SubscriberNode;
 
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 {
@@ -24,6 +25,8 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNod
 
   void Create(const std::string & nodeName, bool initialize = false);
   void Spin(void);
+  std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs;
+  // void SetAndObserveSubscriberNode(const char* nodeId);
 
  protected:
   vtkMRMLROS2NodeNode();
