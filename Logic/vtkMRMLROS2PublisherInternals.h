@@ -57,9 +57,8 @@ protected:
    */
   void PublisherCallback() {
     // \todo is there a timestamp in MRML nodes we can update from the ROS message?
-    auto message = std_msgs::msg::String();
+    auto message = std_msgs::msg::String(); // typecasted to string - switch to templated
     message.data = "Hello, world! " + std::to_string(count_++);
-    // RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
     mPublisher->publish(message);
     // mLastMessageROS = message;
     // mMRMLNode->mNumberOfMessages++;
@@ -85,8 +84,6 @@ protected:
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    // mSubscription= nodePointer->create_subscription<_ros_type>(topic, 100,
-		// 					       std::bind(&SelfType::PublisherCallback, this, std::placeholders::_1));
     mPublisher = nodePointer->create_publisher<_ros_type>("slicer_publisher", 10);
     timer_ = nodePointer->create_wall_timer(500ms, std::bind(&SelfType::PublisherCallback, this));
     rosNodePtr->SetAndObserveNthNodeReferenceID(topic.c_str(), nthRef, mMRMLNode->GetID()); // Set up node references
