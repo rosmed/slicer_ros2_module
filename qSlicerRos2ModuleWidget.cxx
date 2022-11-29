@@ -137,13 +137,17 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString&)
 void qSlicerRos2ModuleWidget::printLastMessage(int row, int col)
 {
   // Row is a reference to the message index
+  Q_D(qSlicerRos2ModuleWidget);
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
   if (col == 2){ // only invoked when users click the number of messages cell
-    const auto sub = logic->mROS2Node->mSubs[row];
+    QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
+    const char* referenceRole = subName.toStdString().c_str();
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(referenceRole));
+    // const auto sub = logic->mROS2Node->mSubs[row];
     QString message = sub->GetLastMessageYAML().c_str();
     QLabel *popupLabel = new QLabel();
     popupLabel->setText(message);
@@ -180,14 +184,13 @@ void qSlicerRos2ModuleWidget::updateSubscriberTableWidget()
     return;
   }
   // Shouldn't need list should just get from the reference
-  d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->mSubs.size());
-  // d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferenceRoles());
+  d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferenceRoles());
   size_t row = 0;
-  // std::cerr << "Num refs" << (logic->mROS2Node->GetNumberOfNodeReferenceRoles()) << std::endl;
-  // for (int j = 0; j < (logic->mROS2Node->GetNumberOfNodeReferenceRoles()); j++){
-  for (const auto sub : logic->mROS2Node->mSubs) {
-    // std::string subName = logic->mROS2Node->GetNthNodeReferenceRole(j);
-    // auto sub = logic->mROS2Node->GetNodeReference(subName.c_str());
+  for (int j = 0; j < (logic->mROS2Node->GetNumberOfNodeReferenceRoles()); j++){
+
+    std::string subName = logic->mROS2Node->GetNthNodeReferenceRole(j);
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(subName.c_str()));
+
     QString topicName = sub->GetTopic();
     QString typeName = sub->GetROSType();
     QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string

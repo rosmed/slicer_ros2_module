@@ -48,17 +48,3 @@ void vtkMRMLROS2NodeNode::Spin(void)
     rclcpp::spin_some(mInternals->mNodePointer);
   }
 }
-
-// void vtkMRMLROS2NodeNode::SetAndObserveSubscriberNode(const char* nodeId){
-//
-//   const char* currentNodeId=this->GetNodeReferenceID("HELLO");
-//   if (nodeId!=NULL && currentNodeId!=NULL && strcmp(nodeId,currentNodeId)==0)
-//   {
-//     // not changed
-//     return;
-//   }
-//   this->SetAndObserveNodeReferenceID("HELLO", nodeId);
-//   this->InvokeCustomModifiedEvent(vtkCommand::ModifiedEvent);
-//   this->Modified();
-//   std::cerr << "ROS2 node is modified" << std::endl;
-// }

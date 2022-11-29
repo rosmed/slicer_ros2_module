@@ -22,6 +22,7 @@ public:
   virtual const char * GetSlicerType(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0;
   vtkMRMLROS2NodeNode * rosNodePtr;
+  int nthRef = 0;
 
 protected:
   vtkMRMLROS2SubscriberNode * mMRMLNode;
@@ -75,8 +76,8 @@ protected:
     mSubscription= nodePointer->create_subscription<_ros_type>(topic, 100,
 							       std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
 
-    rosNodePtr->SetAndObserveNodeReferenceID(topic.c_str(), mMRMLNode->GetID()); // Set up node references
-    rosNodePtr->mSubs.push_back(mMRMLNode);
+    rosNodePtr->SetAndObserveNthNodeReferenceID(topic.c_str(), nthRef, mMRMLNode->GetID()); // Set up node references
+    nthRef++;
     rosNodePtr->Modified();
     return true;
   }
