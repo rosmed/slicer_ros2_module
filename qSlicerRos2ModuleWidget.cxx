@@ -35,6 +35,12 @@
 #include "ui_qSlicerRos2ModuleWidget.h"
 #include "qSlicerApplication.h"
 
+#include <vtkMRMLScene.h>
+#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2SubscriberNode.h>
+#include <vtkMRMLROS2PublisherNode.h>
+
+
 // reference to Logic
 #include "vtkSlicerRos2Logic.h"
 //-----------------------------------------------------------------------------
@@ -188,24 +194,27 @@ void qSlicerRos2ModuleWidget::updateWidget()
   d->rosPublisherTableWidget->clearContents();
   d->rosSubscriberTableWidget->clearContents();
 
-  for (int j = 0; j < (logic->mROS2Node->GetNumberOfNodeReferenceRoles()); j++){
-
-    std::string subName = logic->mROS2Node->GetNthNodeReferenceRole(j);
-    std::string pubString = "pub";
-    std::string subString = "sub";
-    
-    if (subName.find(subString) != std::string::npos) {
-      std::cout << "Subsriber!" << '\n';
-      vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(subName.c_str()));
+  // subscribers
+  for (int index = 0; index < logic->mROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
+    const char * id = logic->mROS2Node->GetNthNodeReferenceID("subscriber", index);
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetScene()->GetNodeByID(id));
+    if (sub == nullptr) {
+      std::cerr << "subscriber " << index << " not found for id " << id << std::endl;
+    } else {
       updateSubscriberTable(sub, subRow);
       std::cerr << "Num sub rows: " << subRow << std::endl;
       subRow++;
     }
-  
-    else if (subName.find(pubString) != std::string::npos){
-      std::cout << "Publisher!" << '\n';
-      vtkMRMLROS2PublisherNode *sub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mROS2Node->GetNodeReference(subName.c_str()));
-      updatePublisherTable(sub, pubRow);
+  }
+
+  // publishers
+  for (int index = 0; index < logic->mROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
+    const char * id = logic->mROS2Node->GetNthNodeReferenceID("publisher", index);
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mROS2Node->GetScene()->GetNodeByID(id));
+    if (pub == nullptr) {
+      std::cerr << "publisher " << index << " not found for id " << id << std::endl;
+    } else {
+      updatePublisherTable(pub, pubRow);
       std::cerr << "Num pub rows: " << pubRow << std::endl;
       pubRow++;
     }
@@ -220,7 +229,7 @@ void qSlicerRos2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  
+
   QString topicName = sub->GetTopic();
   QString typeName = sub->GetROSType();
   QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
@@ -241,11 +250,11 @@ void qSlicerRos2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
     type_item = new QTableWidgetItem;
     d->rosSubscriberTableWidget->setItem(row, 2, type_item);
     type_item->setText(typeName);
-    }
-    else {
-      num_messages_item->setText(numMessages);
-    }
-    row++;
+  }
+  else {
+    num_messages_item->setText(numMessages);
+  }
+  row++;
 }
 
 void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row){
@@ -256,7 +265,7 @@ void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  
+
 
   QString topicName = sub->GetTopic();
   QString typeName = sub->GetROSType();
@@ -276,11 +285,11 @@ void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
     type_item = new QTableWidgetItem;
     d->rosPublisherTableWidget->setItem(row, 2, type_item);
     type_item->setText(typeName);
-    }
-    else {
-      num_messages_item->setText(numMessages);
-    }
-    row++;
+  }
+  else {
+    num_messages_item->setText(numMessages);
+  }
+  row++;
 }
 
 void qSlicerRos2ModuleWidget::onClearSceneSelected()
