@@ -49,7 +49,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode: public vtkM
   vtkMRMLROS2SubscriberNode();
   ~vtkMRMLROS2SubscriberNode();
 
-  vtkMRMLROS2SubscriberInternals * mInternals;
+  vtkMRMLROS2SubscriberInternals * mInternals = nullptr;
   std::string mTopic = "undefined";
   std::string mMRMLNodeName = "ros2:sub:undefined";
   size_t mNumberOfMessages = 0;

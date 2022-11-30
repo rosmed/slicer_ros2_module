@@ -15,14 +15,13 @@ public:
   vtkMRMLROS2SubscriberInternals(vtkMRMLROS2SubscriberNode * mrmlNode):
     mMRMLNode(mrmlNode)
   {}
+  virtual ~vtkMRMLROS2SubscriberInternals() {};
 
   virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 			     const std::string & topic, std::string & errorMessage) = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0;
-  vtkMRMLROS2NodeNode * rosNodePtr;
-  int nthRef = 0;
 
 protected:
   vtkMRMLROS2SubscriberNode * mMRMLNode;
@@ -51,8 +50,7 @@ protected:
     // \todo is there a timestamp in MRML nodes we can update from the ROS message?
     mLastMessageROS = message;
     mMRMLNode->mNumberOfMessages++;
-    mMRMLNode->Modified(); // Should just be able to call this but it's not working
-    rosNodePtr->Modified();
+    mMRMLNode->Modified();
   }
 
   /**
@@ -66,19 +64,17 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    // vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
-    rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
       errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    mSubscription= nodePointer->create_subscription<_ros_type>(topic, 100,
-							       std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
-
-    rosNodePtr->SetAndObserveNthNodeReferenceID(topic.c_str(), nthRef, mMRMLNode->GetID()); // Set up node references
-    nthRef++;
-    rosNodePtr->Modified();
+    mSubscription = nodePointer->create_subscription<_ros_type>(topic, 100,
+								std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
+    rosNodePtr->SetNthNodeReferenceID("subscriber",
+				      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
+				      mMRMLNode->GetID());
     return true;
   }
 

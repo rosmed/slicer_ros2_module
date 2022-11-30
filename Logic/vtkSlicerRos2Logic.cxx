@@ -33,6 +33,8 @@
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLModelDisplayNode.h>
 
+#include <vtkMRMLROS2SubscriberNativeNode.h>
+#include <vtkMRMLROS2PublisherNativeNode.h>
 
 #include<vtkMRMLNode.h>
 
@@ -71,7 +73,6 @@
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
-
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerRos2Logic);
 
@@ -94,8 +95,6 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
 
   mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*mNodePointer);
-
-
 
   //vtkMRMLROS2SubscriberNode* subNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
 }
@@ -185,6 +184,12 @@ void vtkSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 void vtkSlicerRos2Logic::RegisterNodes(void)
 {
   assert(this->GetMRMLScene() != 0);
+  // ROS2 node
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
+  // Subscribers
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberBoolNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode>::New());
 }
 
 
@@ -710,25 +715,27 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 }
 
-void vtkSlicerRos2Logic::CreateNewSubscriber(const std::string & newSubscriberName, std::string type){
+vtkMRMLROS2SubscriberNode * vtkSlicerRos2Logic::CreateAndAddSubscriber(const char * className, const std::string & topic)
+{
   // Provide this as python method for adding new subscribers to the scene
-  if (mROS2Node == nullptr){
-    vtkErrorMacro(<< "Trying to add a subscriber to a null node. Press the Setup Subcriber buttons and try again.");
-    return;
+  if (mROS2Node == nullptr) {
+    vtkErrorMacro(<< "the default ROS node has not been created yet");
+    return nullptr;
   }
-  if (type == "string"){
-    vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> sub = vtkMRMLROS2SubscriberStringNode::New();
-    this->GetMRMLScene()->AddNode(sub);
-    sub->AddToROS2Node(mROS2Node->GetID(), newSubscriberName);
-    // mSubs.push_back(sub);
+
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLNode> node = this->GetMRMLScene()->CreateNodeByClass(className);
+
+  // Check that this is a subscriber so we can add it
+  vtkMRMLROS2SubscriberNode * subscriberNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
+  if (subscriberNode == nullptr) {
+    vtkErrorMacro(<< "\"" << className << "\" is not derived from vtkMRMLROS2SubscriberNode");
+    return nullptr;
   }
-  else if (type == "pose"){
-    vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> sub = vtkMRMLROS2SubscriberPoseStampedNode::New();
-    this->GetMRMLScene()->AddNode(sub);
-    sub->AddToROS2Node(mROS2Node->GetID(), newSubscriberName);
-    // mSubs.push_back(sub);
-  }
-  numSubs++;
+
+  this->GetMRMLScene()->AddNode(subscriberNode);
+  subscriberNode->AddToROS2Node(mROS2Node->GetID(), topic);
+  return subscriberNode;
 }
 
 
@@ -737,7 +744,6 @@ void vtkSlicerRos2Logic::AddPublisher(void)
   vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
   this->GetMRMLScene()->AddNode(stringPub);
   stringPub->AddToROS2Node(mROS2Node->GetID(), "/publisher");
-  numPubs++;
 }
 
 void vtkSlicerRos2Logic::AddToScene(void)
@@ -749,12 +755,12 @@ void vtkSlicerRos2Logic::AddToScene(void)
   vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
   this->GetMRMLScene()->AddNode(subString);
   subString->AddToROS2Node(mROS2Node->GetID(), "/string_sub");
-  numSubs++;
 
   vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> subPose = vtkMRMLROS2SubscriberPoseStampedNode::New();
   this->GetMRMLScene()->AddNode(subPose);
   subPose->AddToROS2Node(mROS2Node->GetID(), "/pose_sub");
-  numSubs++;
+
+  this->CreateAndAddSubscriber("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
 
   // vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
   // this->GetMRMLScene()->AddNode(stringPub);
@@ -771,14 +777,6 @@ void vtkSlicerRos2Logic::AddToScene(void)
   // mat->PrintSelf(std::cerr, vtkIndent(0));
   // this->GetMRMLScene()->AddNode(sub);
   // mSubs.push_back(sub);
-
-  // std::string output;
-  // subs->GetLastMessage(output); // this function needs to actually update the pointer, doesn't seem to be
-  // std::cerr << "Message: " << output << std::endl;
-  // this->GetMRMLScene()->AddNode(subs);
-  // subs->SetNodeReferenceID("PaRent",sub->GetID());
-  // sub->SetNodeReferenceID("chilD",subs->GetID());
-
 }
 
 void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name){
