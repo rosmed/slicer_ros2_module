@@ -60,6 +60,7 @@ protected:
     auto message = std_msgs::msg::String(); // typecasted to string - switch to templated
     message.data = "Hello, world! " + std::to_string(count_++);
     mPublisher->publish(message);
+    rosNodePtr->Modified();
     // mLastMessageROS = message;
     // mMRMLNode->mNumberOfMessages++;
     // mMRMLNode->Modified(); // Should just be able to call this but it's not working
@@ -84,7 +85,7 @@ protected:
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    mPublisher = nodePointer->create_publisher<_ros_type>("slicer_publisher", 10);
+    mPublisher = nodePointer->create_publisher<_ros_type>("slicer_sub", 10);
     timer_ = nodePointer->create_wall_timer(500ms, std::bind(&SelfType::PublisherCallback, this));
     rosNodePtr->SetAndObserveNthNodeReferenceID(topic.c_str(), nthRef, mMRMLNode->GetID()); // Set up node references
     nthRef++;

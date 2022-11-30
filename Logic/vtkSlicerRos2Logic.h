@@ -86,12 +86,15 @@ public:
   void Clear();
   void BroadcastTransform();
   void AddToScene(void);
+  void AddPublisher(void);
   void CreateNewSubscriber(const std::string & newSubscriberName, std::string type);
 
   // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
   vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
   void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
   void updateMRMLSceneFromSubs(void);
+  int numSubs = 0;
+  int numPubs = 0;
 
   // bool testSubNode( vtkMRMLNode* node );
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();

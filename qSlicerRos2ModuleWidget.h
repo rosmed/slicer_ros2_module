@@ -27,6 +27,8 @@
 
 class qSlicerRos2ModuleWidgetPrivate;
 class vtkMRMLNode;
+class vtkMRMLROS2SubscriberNode;
+class vtkMRMLROS2PublisherNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerRos2ModuleWidget :
@@ -61,9 +63,12 @@ protected slots:
   void onStateSelection(const QString&);
   void onDescriptionSelection(const QString&);
   void onTimerTimeOut(void);
-  void updateSubscriberTableWidget(void);
+  void updateWidget(void);
+  void updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row);
+  void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
   void onClearSceneSelected(void);
   void onSetSubscribers(void);
+  void onSetPublishers(void);
 
   // Slots for dynamic widgets
   void onNodeOrParameterNameEntered(void);
