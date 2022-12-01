@@ -14,7 +14,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2PublisherNode: public vtkMR
 
   friend class vtkMRMLROS2PublisherInternals;
 
-  template <typename _ros_type, typename _slicer_type>
+  template <typename _slicer_type, typename _ros_type>
     friend class vtkMRMLROS2PublisherTemplatedInternals;
 
  public:
