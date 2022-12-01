@@ -6,7 +6,7 @@
 
 #include <vtkMRMLScene.h>
 
-#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 
 class vtkMRMLROS2SubscriberInternals
@@ -55,7 +55,7 @@ protected:
 
   /**
    * Add the subscriber to the ROS2 node.  This methods searched the
-   * vtkMRMLROS2NodeNode by Id to locate the rclcpp::node
+   * vtkMRMLROS2NODENode by Id to locate the rclcpp::node
    */
   bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 		     const std::string & topic, std::string & errorMessage) {
@@ -64,9 +64,9 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
-      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
+      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;

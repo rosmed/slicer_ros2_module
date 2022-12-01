@@ -10,7 +10,7 @@
 #include <memory>
 #include "std_msgs/msg/string.hpp"
 
-#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 
 using namespace std::chrono_literals;
@@ -27,7 +27,7 @@ public:
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0;
-  vtkMRMLROS2NodeNode * rosNodePtr;
+  vtkMRMLROS2NODENode * rosNodePtr;
   int nthRef = 0;
 
 protected:
@@ -69,7 +69,7 @@ protected:
 
   /**
    * Add the Publisher to the ROS2 node.  This methods searched the
-   * vtkMRMLROS2NodeNode by Id to locate the rclcpp::node
+   * vtkMRMLROS2NODENode by Id to locate the rclcpp::node
    */
   bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 		     const std::string & topic, std::string & errorMessage) {
@@ -78,10 +78,10 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    // vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
-    rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    // vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+    rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
-      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
+      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;

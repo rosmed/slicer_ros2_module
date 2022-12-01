@@ -1,29 +1,29 @@
-#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include "vtkCommand.h"
 
-vtkStandardNewMacro(vtkMRMLROS2NodeNode);
+vtkStandardNewMacro(vtkMRMLROS2NODENode);
 
-vtkMRMLNode * vtkMRMLROS2NodeNode::CreateNodeInstance(void)
+vtkMRMLNode * vtkMRMLROS2NODENode::CreateNodeInstance(void)
 {
   return SelfType::New();
 }
 
-const char * vtkMRMLROS2NodeNode::GetNodeTagName(void)
+const char * vtkMRMLROS2NODENode::GetNodeTagName(void)
 {
   return "ROS2Node";
 }
 
-vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
+vtkMRMLROS2NODENode::vtkMRMLROS2NODENode()
 {
   mInternals = std::make_unique<vtkMRMLROS2NodeInternals>();
 }
 
-vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
+vtkMRMLROS2NODENode::~vtkMRMLROS2NODENode()
 {
 }
 
-void vtkMRMLROS2NodeNode::Create(const std::string & nodeName, bool initialize)
+void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
 {
   // - this should be detected automatically by look for node of type ROS2Node in scene
   // - there might also be a rclcpp method to detect if the context has been initialized
@@ -42,7 +42,7 @@ void vtkMRMLROS2NodeNode::Create(const std::string & nodeName, bool initialize)
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
-void vtkMRMLROS2NodeNode::Spin(void)
+void vtkMRMLROS2NODENode::Spin(void)
 {
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);

@@ -14,8 +14,8 @@ set(${KIT}_SRCS
   vtkROS2ToSlicer.h
   vtkROS2ToSlicer.cxx
   # public classes
-  vtkMRMLROS2NodeNode.h
-  vtkMRMLROS2NodeNode.cxx
+  vtkMRMLROS2NODENode.h
+  vtkMRMLROS2NODENode.cxx
   vtkMRMLROS2SubscriberNode.h
   vtkMRMLROS2SubscriberNode.cxx
   vtkMRMLROS2SubscriberNativeNode.h

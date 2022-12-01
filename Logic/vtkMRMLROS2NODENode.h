@@ -1,5 +1,5 @@
-#ifndef __vtkMRMLROS2NodeNode_h
-#define __vtkMRMLROS2NodeNode_h
+#ifndef __vtkMRMLROS2NODENode_h
+#define __vtkMRMLROS2NODENode_h
 
 // MRML includes
 #include <vtkMRMLNode.h>
@@ -11,7 +11,7 @@ class vtkMRMLROS2NodeInternals;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 {
 
   template <typename _ros_type, typename _slicer_type>
@@ -20,8 +20,8 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNod
     friend class vtkMRMLROS2PublisherTemplatedInternals;
 
  public:
-  typedef vtkMRMLROS2NodeNode SelfType;
-  vtkTypeMacro(vtkMRMLROS2NodeNode, vtkMRMLNode);
+  typedef vtkMRMLROS2NODENode SelfType;
+  vtkTypeMacro(vtkMRMLROS2NODENode, vtkMRMLNode);
   static SelfType * New(void);
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
@@ -30,11 +30,11 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNod
   void Spin(void);
 
  protected:
-  vtkMRMLROS2NodeNode();
-  ~vtkMRMLROS2NodeNode();
+  vtkMRMLROS2NODENode();
+  ~vtkMRMLROS2NODENode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
   std::string mMRMLNodeName = "ros2:node:undefined";
 };
 
-#endif // __vtkMRMLROS2NodeNode_h
+#endif // __vtkMRMLROS2NODENode_h
