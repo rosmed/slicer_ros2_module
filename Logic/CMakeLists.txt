@@ -10,6 +10,23 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}Logic.cxx
   vtkSlicer${MODULE_NAME}Logic.h
+  # conversion methods
+  vtkROS2ToSlicer.h
+  vtkROS2ToSlicer.cxx
+  # public classes
+  vtkMRMLROS2NODENode.h
+  vtkMRMLROS2NODENode.cxx
+  vtkMRMLROS2SubscriberNode.h
+  vtkMRMLROS2SubscriberNode.cxx
+  vtkMRMLROS2SubscriberNativeNode.h
+  vtkMRMLROS2SubscriberNativeNode.cxx
+  vtkMRMLROS2SubscriberVTKNode.h
+  vtkMRMLROS2SubscriberVTKNode.cxx
+  vtkMRMLROS2PublisherNode.h
+  vtkMRMLROS2PublisherNode.cxx
+  vtkMRMLROS2PublisherInternals.h
+  vtkMRMLROS2PublisherNativeNode.h
+  vtkMRMLROS2PublisherNativeNode.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES

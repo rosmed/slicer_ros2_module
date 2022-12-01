@@ -47,7 +47,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #---------------------------------------------------------------------------
 
 add_subdirectory(Logic)
-link_libraries(stdc++fs)
 
 #-----------------------------------------------------------------------------
 set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")

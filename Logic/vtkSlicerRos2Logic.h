@@ -34,38 +34,30 @@ namespace rclcpp {
 }
 
 class vtkMRMLTransformNode;
+class vtkMRMLROS2SubscriberNode;
+class vtkMRMLROS2PublisherNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
 #include "vtkSlicerRos2ModuleLogicExport.h"
 
+#include "vtkMRML.h"
+#include "vtkMRMLNode.h"
+
+#include <vtkMatrix4x4.h>
+
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-
-// Tf include_directories
-// Tf includes
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <geometry_msgs/msg/twist.hpp>
-
-#include <rclcpp/rclcpp.hpp>
-#include <tf2/exceptions.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-#include <turtlesim/srv/spawn.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include <chrono>
-#include <memory>
-#include <string>
-
-using std::placeholders::_1;
-using namespace std::chrono_literals;
-
+class vtkMRMLROS2NODENode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic :
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
   public vtkSlicerModuleLogic
 {
 public:
@@ -90,6 +82,17 @@ public:
   void Spin(void);
   void Clear();
   void BroadcastTransform();
+  void AddToScene(void);
+  void AddPublisher(void);
+  vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+
+  // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
+  vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
+  void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
+  void updateMRMLSceneFromSubs(void);
+
+  // bool testSubNode( vtkMRMLNode* node );
+  // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
 
 protected:
   vtkSlicerRos2Logic();
@@ -101,7 +104,6 @@ protected:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
-
 
 private:
 
@@ -115,7 +117,7 @@ private:
   void ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
-
+  // vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
   std::vector<std::string> link_parent_names_vector;
@@ -141,19 +143,22 @@ private:
     } Parameter;
   } mModel;
 
+  vtkSmartPointer<vtkMRMLNode> mTestSubscriber;
+
+
+
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
   void JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg);
 
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
   std::shared_ptr<tf2_ros::TransformListener> mTfListener;
-  void queryTfNode();
+  void queryTfNode(void);
   void updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transformCount);
 
   // Set up the broadcaster
   std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
 
-  void initializeFkSolver();
-
+  void initializeFkSolver(void);
 };
 
 #endif

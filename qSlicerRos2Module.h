@@ -23,8 +23,6 @@
 
 #include "qSlicerRos2ModuleExport.h"
 
-class qSlicerRos2ModulePrivate;
-
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_ROS2_EXPORT
 qSlicerRos2Module
@@ -62,11 +60,7 @@ protected:
   /// Create and return the logic associated to this module
   vtkMRMLAbstractLogic* createLogic() override;
 
-protected:
-  QScopedPointer<qSlicerRos2ModulePrivate> d_ptr;
-
 private:
-  Q_DECLARE_PRIVATE(qSlicerRos2Module);
   Q_DISABLE_COPY(qSlicerRos2Module);
 
 };
