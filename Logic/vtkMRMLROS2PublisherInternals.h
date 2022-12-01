@@ -34,11 +34,11 @@ protected:
   vtkMRMLROS2PublisherNode * mMRMLNode;
 };
 
-template <typename _ros_type, typename _slicer_type>
+template <typename _slicer_type, typename _ros_type>
 class vtkMRMLROS2PublisherTemplatedInternals: public vtkMRMLROS2PublisherInternals
 {
 public:
-  typedef vtkMRMLROS2PublisherTemplatedInternals<_ros_type, _slicer_type> SelfType;
+  typedef vtkMRMLROS2PublisherTemplatedInternals<_slicer_type, _ros_type> SelfType;
 
   vtkMRMLROS2PublisherTemplatedInternals(vtkMRMLROS2PublisherNode *  mrmlNode):
     vtkMRMLROS2PublisherInternals(mrmlNode)
