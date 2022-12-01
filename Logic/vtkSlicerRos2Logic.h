@@ -54,7 +54,7 @@ class vtkMRMLROS2PublisherNode;
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-class vtkMRMLROS2NodeNode;
+class vtkMRMLROS2NODENode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
@@ -87,7 +87,7 @@ public:
   vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
 
   // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
-  vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
+  vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
   void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
   void updateMRMLSceneFromSubs(void);
 
@@ -117,7 +117,7 @@ private:
   void ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
-  // vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node; // proper MRML node
+  // vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
   std::vector<std::string> link_parent_names_vector;

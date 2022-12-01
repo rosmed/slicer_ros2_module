@@ -36,7 +36,7 @@
 #include "qSlicerApplication.h"
 
 #include <vtkMRMLScene.h>
-#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
 

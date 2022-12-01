@@ -68,7 +68,7 @@
 #include <fstream>
 #include <sstream>
 
-#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2SubscriberVTKNode.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
@@ -185,7 +185,7 @@ void vtkSlicerRos2Logic::RegisterNodes(void)
 {
   assert(this->GetMRMLScene() != 0);
   // ROS2 node
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NODENode>::New());
   // Subscribers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberBoolNode>::New());
@@ -748,7 +748,7 @@ void vtkSlicerRos2Logic::AddPublisher(void)
 
 void vtkSlicerRos2Logic::AddToScene(void)
 {
-  mROS2Node = vtkMRMLROS2NodeNode::New();
+  mROS2Node = vtkMRMLROS2NODENode::New();
   this->GetMRMLScene()->AddNode(mROS2Node);
   mROS2Node->Create("testNode");
 
