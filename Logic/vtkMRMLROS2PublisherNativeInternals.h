@@ -3,12 +3,12 @@
 
 #include <vtkMRMLROS2PublisherInternals.h>
 
-template <typename _ros_type, typename _slicer_type>
+template <typename _slicer_type, typename _ros_type>
 class vtkMRMLROS2PublisherNativeInternals:
-  public vtkMRMLROS2PublisherTemplatedInternals<_ros_type, _slicer_type>
+  public vtkMRMLROS2PublisherTemplatedInternals<_slicer_type, _ros_type>
 {
 public:
-  typedef vtkMRMLROS2PublisherTemplatedInternals<_ros_type, _slicer_type> BaseType;
+  typedef vtkMRMLROS2PublisherTemplatedInternals<_slicer_type, _ros_type> BaseType;
 
   vtkMRMLROS2PublisherNativeInternals(vtkMRMLROS2PublisherNode * mrmlNode):
     BaseType(mrmlNode)
@@ -50,11 +50,11 @@ public:
   };
 
 
-#define VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(ros_type, slicer_type, name) \
+#define VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(slicer_type, ros_type, name) \
 									\
   vtkStandardNewMacro(vtkMRMLROS2Publisher##name##Node);		\
 									\
-  typedef vtkMRMLROS2PublisherNativeInternals<ros_type, slicer_type>	\
+  typedef vtkMRMLROS2PublisherNativeInternals<slicer_type, ros_type >	\
   vtkMRMLROS2Publisher##name##Internals;				\
   									\
  vtkMRMLROS2Publisher##name##Node::vtkMRMLROS2Publisher##name##Node()	\
