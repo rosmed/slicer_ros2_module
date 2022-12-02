@@ -75,6 +75,7 @@ protected:
     rosNodePtr->SetNthNodeReferenceID("subscriber",
 				      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
 				      mMRMLNode->GetID());
+    mMRMLNode->SetNodeReferenceID("node", nodeId);
     return true;
   }
 
