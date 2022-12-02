@@ -47,7 +47,6 @@ public:
 protected:
   _ros_type mMessageROS;
   std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher;
-  size_t count_;
 
   /**
    * Add the Publisher to the ROS2 node.  This methods searched the
