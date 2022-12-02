@@ -8,7 +8,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
-#include "std_msgs/msg/string.hpp"
+#include <std_msgs/msg/string.hpp>
 
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
@@ -45,27 +45,8 @@ public:
   {}
 
 protected:
-  _ros_type mLastMessageROS;
+  _ros_type mMessageROS;
   std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher;
-  // rclcpp::TimerBase::SharedPtr timer_;
-  size_t count_;
-
-  /**
-   * This is the ROS callback for the subscription.  This methods
-   * saves the ROS message as-is and set the modified flag for the
-   * MRML node
-   */
-  // void PublisherCallback() {
-  //   // \todo is there a timestamp in MRML nodes we can update from the ROS message?
-  //   auto message = std_msgs::msg::String(); // typecasted to string - switch to templated
-  //   message.data = "Hello, world! " + std::to_string(count_++);
-  //   mPublisher->publish(message);
-  //   rosNodePtr->Modified();
-  //   // mLastMessageROS = message;
-  //   // mMRMLNode->mNumberOfMessages++;
-  //   // mMRMLNode->Modified(); // Should just be able to call this but it's not working
-  //   // rosNodePtr->Modified();
-  // }
 
   /**
    * Add the Publisher to the ROS2 node.  This methods searched the
@@ -86,8 +67,8 @@ protected:
     }
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    mPublisher = nodePointer->create_publisher<_ros_type>("slicer_sub", 10);
-    // timer_ = nodePointer->create_wall_timer(500ms, std::bind(&SelfType::PublisherCallback, this));
+    mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
+    
     rosNodePtr->SetAndObserveNthNodeReferenceID(topic.c_str(), nthRef, mMRMLNode->GetID()); // Set up node references
     nthRef++;
     rosNodePtr->Modified();

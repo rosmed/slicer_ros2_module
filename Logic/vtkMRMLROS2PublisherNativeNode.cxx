@@ -1,4 +1,4 @@
-#include <vtkROS2ToSlicer.h>
+#include <vtkSlicerToROS2.h>
 
 #include <vtkMRMLROS2PublisherNativeNode.h>
 
