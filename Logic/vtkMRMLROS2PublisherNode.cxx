@@ -49,7 +49,7 @@ size_t vtkMRMLROS2PublisherNode::GetNumberOfMessages(void) const
   return mNumberOfMessages;
 }
 
-std::string vtkMRMLROS2PublisherNode::GetLastMessageYAML(void) const
-{
-  return mInternals->GetLastMessageYAML();
-}
+// std::string vtkMRMLROS2PublisherNode::GetLastMessageYAML(void) const
+// {
+//   return mInternals->GetLastMessageYAML();
+// }

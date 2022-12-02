@@ -16,16 +16,14 @@ public:
 
   _slicer_type mLastMessageSlicer;
 
-  void GetLastMessage(_slicer_type & result)
+  void Publish()
   {
-    // todo maybe add some check that we actually received a message?
-    vtkROS2ToSlicer(this->mLastMessageROS, result);
-  }
-
-  vtkVariant GetLastMessageVariant(void)
-  {
-    GetLastMessage(mLastMessageSlicer);
-    return vtkVariant(mLastMessageSlicer);
+      // vtkSlicerToROS2(message, mMessageROS);
+    // mPublisher->publish(mMessageROS);
+    auto message = std_msgs::msg::String(); // typecasted to string - switch to templated
+    message.data = "Hello, world! " + std::to_string(this->count_++);
+    this->mPublisher->publish(message);
+    this->rosNodePtr->Modified();
   }
 };
 
@@ -41,9 +39,8 @@ public:
     static SelfType * New(void);					\
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    void GetLastMessage(slicer_type & message) const;			\
-    vtkVariant GetLastMessageVariant(void) override;			\
-									\
+    void Publish();			\
+   								\
   protected:								\
     vtkMRMLROS2Publisher##name##Node();				\
     ~vtkMRMLROS2Publisher##name##Node();				\
@@ -77,14 +74,9 @@ public:
    return "ROS2Publisher"#name;					\
  }									\
 									\
- void vtkMRMLROS2Publisher##name##Node::GetLastMessage(slicer_type & message) const \
+ void vtkMRMLROS2Publisher##name##Node::Publish() \
  {									\
-   (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->GetLastMessage(message); \
- }									\
-									\
- vtkVariant vtkMRMLROS2Publisher##name##Node::GetLastMessageVariant(void) \
- {									\
-   return (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->GetLastMessageVariant(); \
- }
+   (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(); \
+ }									
 
 #endif // __vtkMRMLROS2PublisherNativeInternals_h
