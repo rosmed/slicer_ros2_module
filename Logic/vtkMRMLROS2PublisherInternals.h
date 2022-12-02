@@ -21,6 +21,7 @@ public:
   vtkMRMLROS2PublisherInternals(vtkMRMLROS2PublisherNode * mrmlNode):
     mMRMLNode(mrmlNode)
   {}
+  virtual ~vtkMRMLROS2PublisherInternals() {};
 
   virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 			     const std::string & topic, std::string & errorMessage) = 0;
@@ -59,8 +60,7 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    // vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
-    rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+    vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
       errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
       return false;
@@ -68,10 +68,10 @@ protected:
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
-    
-    rosNodePtr->SetAndObserveNthNodeReferenceID(topic.c_str(), nthRef, mMRMLNode->GetID()); // Set up node references
-    nthRef++;
-    rosNodePtr->Modified();
+    rosNodePtr->SetNthNodeReferenceID("publisher",
+				      rosNodePtr->GetNumberOfNodeReferences("publisher"),
+				      mMRMLNode->GetID());
+    mMRMLNode->SetNodeReferenceID("node", nodeId);
     return true;
   }
 
