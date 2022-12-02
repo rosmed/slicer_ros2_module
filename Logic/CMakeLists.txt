@@ -13,6 +13,8 @@ set(${KIT}_SRCS
   # conversion methods
   vtkROS2ToSlicer.h
   vtkROS2ToSlicer.cxx
+  vtkSlicerToROS2.h
+  vtkSlicerToROS2.cxx
   # public classes
   vtkMRMLROS2NODENode.h
   vtkMRMLROS2NODENode.cxx
