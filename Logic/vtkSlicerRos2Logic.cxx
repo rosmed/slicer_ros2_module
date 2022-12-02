@@ -787,10 +787,9 @@ void vtkSlicerRos2Logic::AddToScene(void)
 
   this->CreateAndAddSubscriber("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
 
-  // vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
-  // this->GetMRMLScene()->AddNode(stringPub);
-  // stringPub->AddToROS2Node(mROS2Node->GetID(), "/publisher");
-  // numPubs++;
+  vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
+  this->GetMRMLScene()->AddNode(stringPub);
+  stringPub->AddToROS2Node(mROS2Node->GetID(), "/string_pub");
 
   // vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
   // std::string sub_name = "/blah_blah";
