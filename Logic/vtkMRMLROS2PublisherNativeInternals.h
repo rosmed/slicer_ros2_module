@@ -16,7 +16,17 @@ public:
 
   _slicer_type mLastMessageSlicer;
 
-  void Publish()
+  void Publish(const _slicer_type & msg)
+  {
+      vtkSlicerToROS2(msg, this->mMessageROS);
+    this->mPublisher->publish(this->mMessageROS);
+    // auto message = std_msgs::msg::String(); // typecasted to string - switch to templated
+    // message.data = "Hello, world! " + std::to_string(this->count_++);
+    // this->mPublisher->publish(message);
+    this->rosNodePtr->Modified();
+  }
+
+  void TestPublisher()
   {
       // vtkSlicerToROS2(message, mMessageROS);
     // mPublisher->publish(mMessageROS);
@@ -39,7 +49,8 @@ public:
     static SelfType * New(void);					\
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    void Publish();			\
+    void Publish( const slicer_type & message);			\
+    void TestPublisher(void);   \
    								\
   protected:								\
     vtkMRMLROS2Publisher##name##Node();				\
@@ -74,9 +85,14 @@ public:
    return "ROS2Publisher"#name;					\
  }									\
 									\
- void vtkMRMLROS2Publisher##name##Node::Publish() \
+ void vtkMRMLROS2Publisher##name##Node::TestPublisher(void)	\
  {									\
-   (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(); \
+   (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->TestPublisher();					\
+ }									\
+									\
+ void vtkMRMLROS2Publisher##name##Node::Publish(const slicer_type & message) \
+ {									\
+   (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
  }									
 
 #endif // __vtkMRMLROS2PublisherNativeInternals_h

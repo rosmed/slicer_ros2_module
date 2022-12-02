@@ -8,7 +8,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
-#include "std_msgs/msg/string.hpp"
+#include <std_msgs/msg/string.hpp>
 
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
