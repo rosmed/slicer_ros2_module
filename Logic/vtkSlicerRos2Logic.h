@@ -85,6 +85,7 @@ public:
   void AddToScene(void);
   void AddPublisher(void);
   vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+  vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
 
   // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
   vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!

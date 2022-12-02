@@ -34,7 +34,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2PublisherNode: public vtkMR
   /**
    * Get the latest ROS message in YAML format
    */
-  std::string GetLastMessageYAML(void) const;
+  // std::string GetLastMessageYAML(void) const;
   //
   // /**
   //  * Get the latest message as a vtkVariant.  This method will use the
@@ -43,7 +43,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2PublisherNode: public vtkMR
   //  * cached so future calls to GetLastMessage don't require converting
   //  * again
   //  */
-  virtual vtkVariant GetLastMessageVariant(void) = 0;
+  // virtual vtkVariant GetLastMessageVariant(void) = 0;
 
  protected:
   vtkMRMLROS2PublisherNode();

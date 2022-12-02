@@ -740,6 +740,29 @@ vtkMRMLROS2SubscriberNode * vtkSlicerRos2Logic::CreateAndAddSubscriber(const cha
   return subscriberNode;
 }
 
+vtkMRMLROS2PublisherNode * vtkSlicerRos2Logic::CreateAndAddPublisher(const char * className, const std::string & topic)
+{
+  // Provide this as python method for adding new subscribers to the scene
+  if (mROS2Node == nullptr) {
+    vtkErrorMacro(<< "the default ROS node has not been created yet");
+    return nullptr;
+  }
+
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLNode> node = this->GetMRMLScene()->CreateNodeByClass(className);
+
+  // Check that this is a subscriber so we can add it
+  vtkMRMLROS2PublisherNode * publisherNode = vtkMRMLROS2PublisherNode::SafeDownCast(node);
+  if (publisherNode == nullptr) {
+    vtkErrorMacro(<< "\"" << className << "\" is not derived from vtkMRMLROS2PublisherNode");
+    return nullptr;
+  }
+
+  this->GetMRMLScene()->AddNode(publisherNode);
+  publisherNode->AddToROS2Node(mROS2Node->GetID(), topic);
+  return publisherNode;
+}
+
 
 void vtkSlicerRos2Logic::AddPublisher(void)
 {
