@@ -31,7 +31,7 @@ public:
 
 
 #define VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(slicer_type, name)		\
-  class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2Subscriber##name##Node: \
+  class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Subscriber##name##Node: \
     public vtkMRMLROS2SubscriberNode					\
   {									\
   public:								\
@@ -47,7 +47,7 @@ public:
   protected:								\
     vtkMRMLROS2Subscriber##name##Node();				\
     ~vtkMRMLROS2Subscriber##name##Node();				\
-  };
+  }
 
 
 #define VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(ros_type, slicer_type, name) \
@@ -65,7 +65,7 @@ public:
  vtkMRMLROS2Subscriber##name##Node::~vtkMRMLROS2Subscriber##name##Node() \
  {									\
    delete mInternals;							\
-}									\
+ }									\
 									\
  vtkMRMLNode * vtkMRMLROS2Subscriber##name##Node::CreateNodeInstance(void) \
  {									\

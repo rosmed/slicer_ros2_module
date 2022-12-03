@@ -6,8 +6,6 @@
 
 #include <vtkMatrix4x4.h>
 
-#include <vtkSlicerRos2ModuleLogicExport.h>
-
-VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped)
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
 
 #endif // __vtkMRMLROS2PublisherVTKNode_h
