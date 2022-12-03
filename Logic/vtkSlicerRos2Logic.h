@@ -35,15 +35,17 @@ namespace rclcpp {
 
 class vtkMRMLTransformNode;
 class vtkMRMLROS2SubscriberNode;
+class vtkMRMLROS2PublisherNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
 #include "vtkSlicerRos2ModuleLogicExport.h"
 
-#include <vtkMRMLROS2SubscriberNode.h>
 #include "vtkMRML.h"
 #include "vtkMRMLNode.h"
+
+#include <vtkMatrix4x4.h>
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
@@ -51,6 +53,8 @@ class vtkMRMLROS2SubscriberNode;
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
+
+class vtkMRMLROS2NODENode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
@@ -79,6 +83,14 @@ public:
   void Clear();
   void BroadcastTransform();
   void AddToScene(void);
+  void AddPublisher(void);
+  vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+  vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
+
+  // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
+  vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
+  void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
+  void updateMRMLSceneFromSubs(void);
 
   // bool testSubNode( vtkMRMLNode* node );
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
@@ -106,7 +118,7 @@ private:
   void ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
-
+  // vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
   std::vector<std::string> link_parent_names_vector;
@@ -133,6 +145,7 @@ private:
   } mModel;
 
   vtkSmartPointer<vtkMRMLNode> mTestSubscriber;
+
 
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;
