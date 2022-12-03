@@ -29,6 +29,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2PublisherInternals.h
   vtkMRMLROS2PublisherNativeNode.h
   vtkMRMLROS2PublisherNativeNode.cxx
+  vtkMRMLROS2PublisherVTKNode.h
+  vtkMRMLROS2PublisherVTKNode.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES

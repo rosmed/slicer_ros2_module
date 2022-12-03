@@ -70,6 +70,7 @@
 
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2SubscriberVTKNode.h>
+#include <vtkMRMLROS2PublisherVTKNode.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
@@ -192,6 +193,7 @@ void vtkSlicerRos2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode>::New());
   // Publishers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
 }
 
 
