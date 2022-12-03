@@ -102,3 +102,9 @@ slicerMacroBuildLoadableModule(
 if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
+
+# Not sure how stable this code is.  Basically the CMake code for
+# Slicer sets a default Python interpreter so we need to revert to the
+# "default" one
+set(PYTHON_EXECUTABLE python$ENV{ROS_PYTHON_VERSION})
+ament_package()
