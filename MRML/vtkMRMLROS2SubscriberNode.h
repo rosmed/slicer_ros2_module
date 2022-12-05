@@ -4,12 +4,12 @@
 // MRML includes
 #include <vtkMRMLNode.h>
 
-#include <vtkSlicerRos2ModuleLogicExport.h>
+#include <vtkSlicerRos2ModuleMRMLExport.h>
 
 // forward declaration for internals
 class vtkMRMLROS2SubscriberInternals;
 
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2SubscriberNode: public vtkMRMLNode
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMRMLNode
 {
 
   friend class vtkMRMLROS2SubscriberInternals;

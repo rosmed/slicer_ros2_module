@@ -21,12 +21,11 @@ public:
       vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
   }
-
 };
 
 
 #define VTK_MRML_ROS_PUBLISHER_NATIVE_H(slicer_type, name)		\
-  class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2Publisher##name##Node: \
+  class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Publisher##name##Node: \
     public vtkMRMLROS2PublisherNode					\
   {									\
   public:								\
@@ -41,7 +40,7 @@ public:
   protected:								\
     vtkMRMLROS2Publisher##name##Node();				\
     ~vtkMRMLROS2Publisher##name##Node();				\
-  };
+  }
 
 
 #define VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(slicer_type, ros_type, name) \
