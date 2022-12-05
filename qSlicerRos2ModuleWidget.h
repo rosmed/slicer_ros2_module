@@ -77,6 +77,7 @@ protected slots:
   void onLoadModelButtonSelected(void);
   void onBroadcastButtonPressed();
   void subscriberClicked(int row, int col);
+  void publisherClicked(int row, int col);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);

@@ -14,7 +14,7 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
 					      const std::string & topic)
 {
   mTopic = topic;
-  mMRMLNodeName = "ros2:sub:" + topic;
+  mMRMLNodeName = "ros2:pub:" + topic;
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
   if (!this->GetScene()) {

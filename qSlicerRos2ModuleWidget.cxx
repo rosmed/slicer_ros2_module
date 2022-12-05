@@ -108,7 +108,7 @@ void qSlicerRos2ModuleWidget::setup(void)
   // Note: All of the QLineEdits are triggered by pressing enter in the edit box - the slot functions access the text that was entered themselves
   this->connect(d->loadVisualizationButton, SIGNAL(clicked(bool)), this, SLOT(onNodeOrParameterNameEntered()));
   this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
-  // this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
+  this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
   // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
 
   // Set default, assuming defaults are:
@@ -252,7 +252,7 @@ void qSlicerRos2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
 
   QString topicName = sub->GetTopic();
   QString typeName = sub->GetROSType();
-  
+
   QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
   QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 1);
 
@@ -281,6 +281,7 @@ void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
 
   QString topicName = sub->GetTopic();
   QString typeName = sub->GetROSType();
+
   QTableWidgetItem *topic_item = d->rosPublisherTableWidget->item(row, 0);
   QTableWidgetItem *type_item = d->rosPublisherTableWidget->item(row, 2);
 
@@ -345,12 +346,44 @@ void qSlicerRos2ModuleWidget::subscriberClicked(int row, int col)
     QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
     std::string referenceRole = subName.toStdString();
     vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + referenceRole).c_str()));
+    if (!sub){
+      std::cerr << "No subscriber by this name in the scene" << std::endl;
+      return;
+    }
     QString message = sub->GetLastMessageYAML().c_str();
     QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
     QLabel *popupLabel = new QLabel();
     QString numMess = "Num messages:   ";
     QString mess = "   Message: ";
     popupLabel->setText(numMess + numMessages + mess + message);
+    popupLabel->show();
+  }
+}
+
+void qSlicerRos2ModuleWidget::publisherClicked(int row, int col)
+{
+  // Row is a reference to the message index
+  Q_D(qSlicerRos2ModuleWidget);
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  if (col == 1){ // only invoked when users click the number of messages cell
+    QString pubName = d->rosPublisherTableWidget->item(row,0)->text();
+    std::string referenceRole = pubName.toStdString();
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:pub:" + referenceRole).c_str())); 
+    if (!pub){
+      std::cerr << "No publisher by this name in the scene" << std::endl;
+      return;
+    }
+    // QString message = pub->GetLastMessageYAML().c_str();
+    QString numMessages = QVariant(static_cast<int>(pub->GetNumberOfMessages())).toString(); // to convert to an int and then string
+    std::cerr << pub->GetNumberOfMessages() << std::endl;
+    QLabel *popupLabel = new QLabel();
+    QString numMess = "Num messages:   ";
+    // QString mess = "   Message: ";
+    popupLabel->setText(numMess + numMessages);  //+ mess + message);
     popupLabel->show();
   }
 }
