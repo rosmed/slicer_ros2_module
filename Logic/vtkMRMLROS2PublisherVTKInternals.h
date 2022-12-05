@@ -18,22 +18,17 @@ public:
 
   vtkSmartPointer<_slicer_type> mLastMessageSlicer;
 
-  void Publish(_slicer_type* msg)
+  void Publish(const vtkSmartPointer<_slicer_type> msg)
   {
     vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
   }
 
-  // overload Publish to support pointers
-  void Publish(vtkSmartPointer<_slicer_type> msg)
-  {
-    this->Publish(msg.GetPointer());
-  }
 };
 
 
 #define VTK_MRML_ROS_PUBLISHER_VTK_H(slicer_type, name)		\
-  class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Publisher##name##Node: \
+  class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkMRMLROS2Publisher##name##Node: \
     public vtkMRMLROS2PublisherNode					\
   {									\
   public:								\
@@ -43,13 +38,12 @@ public:
     static SelfType * New(void);                                        \
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    void Publish(slicer_type* msg);				\
-    void Publish( vtkSmartPointer<slicer_type> message);	      \
+    void Publish(const vtkSmartPointer<slicer_type> message);	      \
     									\
   protected:								\
     vtkMRMLROS2Publisher##name##Node();                                \
     ~vtkMRMLROS2Publisher##name##Node();				\
-  }
+  };
 
 
 #define VTK_MRML_ROS_PUBLISHER_VTK_CXX( slicer_type, ros_type, name)	\
@@ -79,14 +73,10 @@ public:
     return "ROS2Publisher"#name;					\
   }									\
  									\
-  void vtkMRMLROS2Publisher##name##Node::Publish(slicer_type * message)  \
+  void vtkMRMLROS2Publisher##name##Node::Publish(const vtkSmartPointer<slicer_type> message)  \
   {									\
     (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
-  }       \
-            \
-   void vtkMRMLROS2Publisher##name##Node::Publish( vtkSmartPointer<slicer_type> message)  \
-  {									\
-    (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
-  }       
-  
+  }									
+
+
 #endif // __vtkMRMLROS2PublisherVTKInternals_h

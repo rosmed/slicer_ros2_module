@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "system_error": "cpp",
+        "typeinfo": "cpp",
+        "functional": "cpp"
+    }
+}
