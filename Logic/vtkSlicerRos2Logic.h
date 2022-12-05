@@ -83,6 +83,7 @@ public:
   void Clear();
   void BroadcastTransform();
   void AddToScene(void);
+  void AddROS2Node(void);
   void AddPublisher(void);
   vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
   vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);

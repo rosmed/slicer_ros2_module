@@ -770,14 +770,23 @@ void vtkSlicerRos2Logic::AddPublisher(void)
 {
   vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
   this->GetMRMLScene()->AddNode(stringPub);
-  stringPub->AddToROS2Node(mROS2Node->GetID(), "/publisher");
+  stringPub->AddToROS2Node(mROS2Node->GetID(), "/string_pub");
+
+  vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub2 = vtkMRMLROS2PublisherStringNode::New();
+  this->GetMRMLScene()->AddNode(stringPub2);
+  stringPub2->AddToROS2Node(mROS2Node->GetID(), "/publisher");
 }
 
-void vtkSlicerRos2Logic::AddToScene(void)
+void vtkSlicerRos2Logic::AddROS2Node(void)
 {
   mROS2Node = vtkMRMLROS2NODENode::New();
   this->GetMRMLScene()->AddNode(mROS2Node);
   mROS2Node->Create("testNode");
+}
+
+void vtkSlicerRos2Logic::AddToScene(void)
+{
+  
 
   vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
   this->GetMRMLScene()->AddNode(subString);
@@ -789,9 +798,6 @@ void vtkSlicerRos2Logic::AddToScene(void)
 
   this->CreateAndAddSubscriber("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
 
-  vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
-  this->GetMRMLScene()->AddNode(stringPub);
-  stringPub->AddToROS2Node(mROS2Node->GetID(), "/string_pub");
 
   // vtkSmartPointer<vtkMRMLROS2SubscriberPoseStamped> sub = vtkNew<vtkMRMLROS2SubscriberPoseStamped>();
   // std::string sub_name = "/blah_blah";

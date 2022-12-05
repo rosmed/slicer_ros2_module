@@ -93,6 +93,7 @@ void qSlicerRos2ModuleWidget::setup(void)
   this->connect(d->clearSceneButton, SIGNAL(clicked(bool)), this, SLOT(onClearSceneSelected()));
   this->connect(d->setSubscribersButton, SIGNAL(clicked(bool)), this, SLOT(onSetSubscribers()));
   this->connect(d->setPublishersButton, SIGNAL(clicked(bool)), this, SLOT(onSetPublishers()));
+  this->connect(d->addNodeButton, SIGNAL(clicked(bool)), this, SLOT(onNodeAddedButton()));
 
   // Set up timer connections
   connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
@@ -106,7 +107,8 @@ void qSlicerRos2ModuleWidget::setup(void)
   // Set up signals / slots for dynamically loaded widgets
   // Note: All of the QLineEdits are triggered by pressing enter in the edit box - the slot functions access the text that was entered themselves
   this->connect(d->loadVisualizationButton, SIGNAL(clicked(bool)), this, SLOT(onNodeOrParameterNameEntered()));
-  this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(printLastMessage(int, int)));
+  this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
+  // this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
   // file dialog signals are weird so using the button as a place holder just so you can print the name of the file you selected
 
   // Set default, assuming defaults are:
@@ -138,27 +140,22 @@ void qSlicerRos2ModuleWidget::onFileSelected(const QString&)
   }
 }
 
-
-
-void qSlicerRos2ModuleWidget::printLastMessage(int row, int col)
+void qSlicerRos2ModuleWidget::onNodeAddedButton()
 {
-  // Row is a reference to the message index
-  Q_D(qSlicerRos2ModuleWidget);
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  if (col == 2){ // only invoked when users click the number of messages cell
-    QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
-    const char* referenceRole = subName.toStdString().c_str();
-    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetNodeReference(referenceRole));
-    QString message = sub->GetLastMessageYAML().c_str();
-    QLabel *popupLabel = new QLabel();
-    popupLabel->setText(message);
-    popupLabel->show();
+  logic->AddROS2Node();
+  // Setup modified connections for the widget
+  if (logic->mROS2Node){
+    std::cerr << "Event connected" << std::endl;
+    qvtkReconnect(logic->mROS2Node, vtkMRMLNode::ReferenceAddedEvent, this, SLOT(updateWidget())); // Set up observer
   }
 }
+
+
 
 void qSlicerRos2ModuleWidget::onTimerTimeOut()
 {
@@ -168,18 +165,11 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
     return;
   }
   logic->Spin();
-  if (logic->mROS2Node && modifiedConnect == 0){
-    qvtkReconnect(logic->mROS2Node, vtkCommand::ModifiedEvent, this, SLOT(updateWidget())); // Set up observer
-    // qvtkReconnect(logic->mROS2Node, vtkMRMLNode::ReferencedNodeModifiedEvent, this, SLOT(updateSubscriberTableWidget())); // this should work?
-    logic->mROS2Node->Modified(); // Invoke setup by calling modified once
-    modifiedConnect++; // prevent second observer connection
-  }
 }
 
 
-void qSlicerRos2ModuleWidget::updateWidget()
+void qSlicerRos2ModuleWidget::refreshSubTable()
 {
-  std::cerr << "Table widget updated" << std::endl;
   Q_D(qSlicerRos2ModuleWidget);
   this->Superclass::setup();
   vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
@@ -187,37 +177,67 @@ void qSlicerRos2ModuleWidget::updateWidget()
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  // Shouldn't need list should just get from the reference
   size_t subRow = 0;
-  size_t pubRow = 0;
-  std::cerr << "Num refs: " << logic->mROS2Node->GetNumberOfNodeReferenceRoles() << std::endl;
-  d->rosPublisherTableWidget->clearContents();
   d->rosSubscriberTableWidget->clearContents();
-
-  // subscribers
+  d->rosSubscriberTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferences("subscriber"));
   for (int index = 0; index < logic->mROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
-    const char * id = logic->mROS2Node->GetNthNodeReferenceID("subscriber", index);
-    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetScene()->GetNodeByID(id));
-    if (sub == nullptr) {
-      std::cerr << "subscriber " << index << " not found for id " << id << std::endl;
+  const char * id = logic->mROS2Node->GetNthNodeReferenceID("subscriber", index);
+  vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mROS2Node->GetScene()->GetNodeByID(id));
+  if (sub == nullptr) {
     } else {
       updateSubscriberTable(sub, subRow);
-      std::cerr << "Num sub rows: " << subRow << std::endl;
       subRow++;
     }
   }
+}
 
-  // publishers
+void qSlicerRos2ModuleWidget::refreshPubTable()
+{
+  Q_D(qSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  size_t pubRow = 0;
+  d->rosPublisherTableWidget->clearContents();
+  d->rosPublisherTableWidget->setRowCount(logic->mROS2Node->GetNumberOfNodeReferences("publisher"));
   for (int index = 0; index < logic->mROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
     const char * id = logic->mROS2Node->GetNthNodeReferenceID("publisher", index);
     vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mROS2Node->GetScene()->GetNodeByID(id));
     if (pub == nullptr) {
-      std::cerr << "publisher " << index << " not found for id " << id << std::endl;
     } else {
       updatePublisherTable(pub, pubRow);
-      std::cerr << "Num pub rows: " << pubRow << std::endl;
       pubRow++;
     }
+  }
+}
+
+void qSlicerRos2ModuleWidget::updateWidget()
+{
+  Q_D(qSlicerRos2ModuleWidget);
+  this->Superclass::setup();
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+
+  // Check how many subscriber references are on the node vs. how many rows are in the table
+  int visibleSubscriberRefs = d->rosSubscriberTableWidget->rowCount();
+  int visiblePublisherRefs = d->rosPublisherTableWidget->rowCount();
+
+  int subscriberRefs = logic->mROS2Node->GetNumberOfNodeReferences("subscriber");
+  int publisherRefs = logic->mROS2Node->GetNumberOfNodeReferences("publisher");
+
+  // update subscriber table 
+  if (visibleSubscriberRefs < subscriberRefs){
+    refreshSubTable();
+  }
+
+  if (visiblePublisherRefs < publisherRefs){
+   refreshPubTable();
   }
 }
 
@@ -232,27 +252,19 @@ void qSlicerRos2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
 
   QString topicName = sub->GetTopic();
   QString typeName = sub->GetROSType();
-  QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
-
+  
   QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
-  QTableWidgetItem *num_messages_item = d->rosSubscriberTableWidget->item(row, 1);
-  QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 2);
+  QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 1);
 
-  std::cerr << topicName.toStdString() << std::endl;
   // if the row doesn't exist, populate
   if (!topic_item) {
     topic_item = new QTableWidgetItem;
     d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
     topic_item->setText(topicName);
-    num_messages_item = new QTableWidgetItem;
-    d->rosSubscriberTableWidget->setItem(row, 1, num_messages_item);
-    num_messages_item->setText(numMessages);
     type_item = new QTableWidgetItem;
-    d->rosSubscriberTableWidget->setItem(row, 2, type_item);
+    d->rosSubscriberTableWidget->setItem(row, 1, type_item);
     type_item->setText(typeName);
-  }
-  else {
-    num_messages_item->setText(numMessages);
+    std::cerr << "Type name:" << typeName.toStdString() << std::endl;
   }
   row++;
 }
@@ -269,10 +281,7 @@ void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
 
   QString topicName = sub->GetTopic();
   QString typeName = sub->GetROSType();
-  QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
-
   QTableWidgetItem *topic_item = d->rosPublisherTableWidget->item(row, 0);
-  QTableWidgetItem *num_messages_item = d->rosPublisherTableWidget->item(row, 1);
   QTableWidgetItem *type_item = d->rosPublisherTableWidget->item(row, 2);
 
   // if the row doesn't exist, populate
@@ -280,14 +289,9 @@ void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
     topic_item = new QTableWidgetItem;
     d->rosPublisherTableWidget->setItem(row, 0, topic_item);
     topic_item->setText(topicName);
-    num_messages_item = new QTableWidgetItem;
-    d->rosPublisherTableWidget->setItem(row, 1, num_messages_item);
     type_item = new QTableWidgetItem;
-    d->rosPublisherTableWidget->setItem(row, 2, type_item);
+    d->rosPublisherTableWidget->setItem(row, 1, type_item);
     type_item->setText(typeName);
-  }
-  else {
-    num_messages_item->setText(numMessages);
   }
   row++;
 }
@@ -313,9 +317,7 @@ void qSlicerRos2ModuleWidget::onSetSubscribers()
     return;
   }
   logic->AddToScene();
-  // d->rosSubscriberTableWidget->setRowCount(logic->numSubs);
-  d->rosSubscriberTableWidget->setRowCount(5);
-
+  refreshSubTable();
 }
 
 void qSlicerRos2ModuleWidget::onSetPublishers()
@@ -327,8 +329,30 @@ void qSlicerRos2ModuleWidget::onSetPublishers()
     return;
   }
   logic->AddPublisher();
-  // d->rosPublisherTableWidget->setRowCount(logic->numPubs);
-  d->rosPublisherTableWidget->setRowCount(5);
+  refreshPubTable();
+}
+
+void qSlicerRos2ModuleWidget::subscriberClicked(int row, int col)
+{
+  // Row is a reference to the message index
+  Q_D(qSlicerRos2ModuleWidget);
+  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  if (col == 1){ // only invoked when users click the number of messages cell
+    QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
+    std::string referenceRole = subName.toStdString();
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + referenceRole).c_str()));
+    QString message = sub->GetLastMessageYAML().c_str();
+    QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
+    QLabel *popupLabel = new QLabel();
+    QString numMess = "Num messages:   ";
+    QString mess = "   Message: ";
+    popupLabel->setText(numMess + numMessages + mess + message);
+    popupLabel->show();
+  }
 }
 
 void qSlicerRos2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
@@ -348,7 +372,6 @@ void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
     return;
   }
   if (text == "tf2") {
-    // d->stateWidgetGroupBox->hide();
     logic->SetRobotStateTf();
   }
 }
