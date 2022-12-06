@@ -25,7 +25,7 @@ To do so, open Slicer and navigate through the menus:
 
 
 At that point, Slicer will offer to restart.  Do so and then load the module using the button:
-     `Modules` |rarr| `Examples` |rarr| *Ros2*
+     `Modules` |rarr| `Examples` |rarr| *ROS2*
 
 The module's interface will appear on the left side of Slicer.  
 You should leave the first two drop-down menus as-is, i.e. 

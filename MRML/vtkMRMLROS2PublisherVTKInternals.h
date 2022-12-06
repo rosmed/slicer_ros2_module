@@ -18,7 +18,7 @@ public:
 
   vtkSmartPointer<_slicer_type> mLastMessageSlicer;
 
-  void Publish(_slicer_type* msg)
+  void Publish(_slicer_type * msg)
   {
     vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
@@ -84,7 +84,7 @@ public:
     (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
   }       \
             \
-   void vtkMRMLROS2Publisher##name##Node::Publish( vtkSmartPointer<slicer_type> message)  \
+   void vtkMRMLROS2Publisher##name##Node::Publish(vtkSmartPointer<slicer_type> message)  \
   {									\
     (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
   }       

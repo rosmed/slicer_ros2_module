@@ -25,7 +25,7 @@ find_package(tf2_ros REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
 #-----------------------------------------------------------------------------
 
-set(MODULE_NAME Ros2)
+set(MODULE_NAME ROS2)
 set(MODULE_TITLE ${MODULE_NAME})
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)

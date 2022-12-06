@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>qSlicerRos2ModuleWidget</class>
- <widget class="qSlicerWidget" name="qSlicerRos2ModuleWidget">
+ <class>qSlicerROS2ModuleWidget</class>
+ <widget class="qSlicerWidget" name="qSlicerROS2ModuleWidget">
   <property name="geometry">
    <rect>
     <x>0</x>

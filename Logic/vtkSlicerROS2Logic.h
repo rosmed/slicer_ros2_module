@@ -15,14 +15,14 @@
 
 ==============================================================================*/
 
-// .NAME vtkSlicerRos2Logic - slicer logic class for volumes manipulation
+// .NAME vtkSlicerROS2Logic - slicer logic class for volumes manipulation
 // .SECTION Description
 // This class manages the logic associated with reading, saving,
 // and changing propertied of the volumes
 
 
-#ifndef __vtkSlicerRos2Logic_h
-#define __vtkSlicerRos2Logic_h
+#ifndef __vtkSlicerROS2Logic_h
+#define __vtkSlicerROS2Logic_h
 
 // Forward declarations
 namespace KDL {
@@ -40,7 +40,7 @@ class vtkMRMLROS2PublisherNode;
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
-#include "vtkSlicerRos2ModuleLogicExport.h"
+#include "vtkSlicerROS2ModuleLogicExport.h"
 
 #include "vtkMRML.h"
 #include "vtkMRMLNode.h"
@@ -57,13 +57,13 @@ class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2NODENode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   public vtkSlicerModuleLogic
 {
 public:
 
-  static vtkSlicerRos2Logic *New();
-  vtkTypeMacro(vtkSlicerRos2Logic, vtkSlicerModuleLogic);
+  static vtkSlicerROS2Logic *New();
+  vtkTypeMacro(vtkSlicerROS2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   // Logic methods
@@ -97,8 +97,8 @@ public:
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
 
 protected:
-  vtkSlicerRos2Logic();
-  ~vtkSlicerRos2Logic() override;
+  vtkSlicerROS2Logic();
+  ~vtkSlicerROS2Logic() override;
 
   void SetMRMLSceneInternal(vtkMRMLScene* newScene) override;
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
@@ -109,8 +109,8 @@ protected:
 
 private:
 
-  vtkSlicerRos2Logic(const vtkSlicerRos2Logic&); // Not implemented
-  void operator=(const vtkSlicerRos2Logic&); // Not implemented
+  vtkSlicerROS2Logic(const vtkSlicerROS2Logic&); // Not implemented
+  void operator=(const vtkSlicerROS2Logic&); // Not implemented
 
   KDL::ChainFkSolverPos_recursive * mKDLSolver = 0;
   size_t mKDLChainSize = 0;

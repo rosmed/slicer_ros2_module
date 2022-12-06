@@ -20,8 +20,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-// SlicerRos2 Logic includes
-#include "vtkSlicerRos2Logic.h"
+// SlicerROS2 Logic includes
+#include "vtkSlicerROS2Logic.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -75,10 +75,10 @@
 auto const MM_TO_M_CONVERSION = 1000.00;
 
 //----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkSlicerRos2Logic);
+vtkStandardNewMacro(vtkSlicerROS2Logic);
 
 //----------------------------------------------------------------------------
-vtkSlicerRos2Logic::vtkSlicerRos2Logic()
+vtkSlicerROS2Logic::vtkSlicerROS2Logic()
 {
   typedef char * char_pointer;
   char_pointer * argv = new char_pointer[1];
@@ -100,7 +100,7 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
   //vtkMRMLROS2SubscriberNode* subNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
 }
 
-// vtkMRMLROS2SubscriberNode* vtkSlicerRos2Logic::CreateSubscriberNode(){
+// vtkMRMLROS2SubscriberNode* vtkSlicerROS2Logic::CreateSubscriberNode(){
 //
 //   vtkSmartPointer< vtkMRMLROS2SubscriberNode > subNode = vtkSmartPointer< vtkMRMLROS2SubscriberNode >::New();
 //   return subNode;
@@ -108,20 +108,20 @@ vtkSlicerRos2Logic::vtkSlicerRos2Logic()
 // }
 
 //----------------------------------------------------------------------------
-vtkSlicerRos2Logic::~vtkSlicerRos2Logic()
+vtkSlicerROS2Logic::~vtkSlicerROS2Logic()
 {
   rclcpp::shutdown();
 }
 
 
 //----------------------------------------------------------------------------
-void vtkSlicerRos2Logic::PrintSelf(std::ostream & os, vtkIndent indent)
+void vtkSlicerROS2Logic::PrintSelf(std::ostream & os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
 
-void vtkSlicerRos2Logic::SetModelNodeAndParameter(const std::string & nodeName,
+void vtkSlicerROS2Logic::SetModelNodeAndParameter(const std::string & nodeName,
 						  const std::string & parameterName)
 {
   // re-initialize model variables
@@ -143,13 +143,13 @@ void vtkSlicerRos2Logic::SetModelNodeAndParameter(const std::string & nodeName,
   auto parameters_future
     = mParameterClient->get_parameters
     ({mModel.Parameter.ParameterName},
-     std::bind(&vtkSlicerRos2Logic::ModelParameterCallback,
+     std::bind(&vtkSlicerROS2Logic::ModelParameterCallback,
                this, std::placeholders::_1));
 }
 
 
 //---------------------------------------------------------------------------
-void vtkSlicerRos2Logic::SetModelFile(const std::string & selectedFile)
+void vtkSlicerROS2Logic::SetModelFile(const std::string & selectedFile)
 {
   // re-initialize model variables
   mModel.Loaded = false;
@@ -171,7 +171,7 @@ void vtkSlicerRos2Logic::SetModelFile(const std::string & selectedFile)
 
 
 //---------------------------------------------------------------------------
-void vtkSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
+void vtkSlicerROS2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
   vtkNew<vtkIntArray> events;
   events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
@@ -182,7 +182,7 @@ void vtkSlicerRos2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 
 
 //-----------------------------------------------------------------------------
-void vtkSlicerRos2Logic::RegisterNodes(void)
+void vtkSlicerROS2Logic::RegisterNodes(void)
 {
   assert(this->GetMRMLScene() != 0);
   // ROS2 node
@@ -198,18 +198,18 @@ void vtkSlicerRos2Logic::RegisterNodes(void)
 
 
 //---------------------------------------------------------------------------
-void vtkSlicerRos2Logic::UpdateFromMRMLScene(void)
+void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 {
   assert(this->GetMRMLScene() != 0);
 }
 
 
 //---------------------------------------------------------------------------
-void vtkSlicerRos2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode* vtkNotUsed(node))
+void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode* vtkNotUsed(node))
 {
 }
 
-// bool vtkSlicerRos2Logic::testSubNode(vtkMRMLNode* node){
+// bool vtkSlicerROS2Logic::testSubNode(vtkMRMLNode* node){
 //     vtkMRMLROS2SubscriberNode* subNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
 //     subNode->SubscriberCallBack();
 // //     if (subNode != NULL){
@@ -219,14 +219,14 @@ void vtkSlicerRos2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode* vtkNotUsed(node))
 // }
 
 //---------------------------------------------------------------------------
-void vtkSlicerRos2Logic
+void vtkSlicerROS2Logic
 ::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
 {
 }
 
 
 //----------------------------------------------------------------------------
-void vtkSlicerRos2Logic::loadRobotSTLModels(void)
+void vtkSlicerROS2Logic::loadRobotSTLModels(void)
 {
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   urdf::Model my_model;
@@ -439,7 +439,7 @@ void vtkSlicerRos2Logic::loadRobotSTLModels(void)
 }
 
 
-void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
+void vtkSlicerROS2Logic::UpdateFK(const std::vector<double> & jointValues)
 {
   // make sure the solver exists
   if (!mKDLSolver) {
@@ -494,7 +494,7 @@ void vtkSlicerRos2Logic::UpdateFK(const std::vector<double> & jointValues)
 }
 
 
-void vtkSlicerRos2Logic::Spin(void)
+void vtkSlicerROS2Logic::Spin(void)
 {
   // Spin ROS loop
   if (rclcpp::ok()) {
@@ -513,7 +513,7 @@ void vtkSlicerRos2Logic::Spin(void)
 }
 
 
-void vtkSlicerRos2Logic::ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
+void vtkSlicerROS2Logic::ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
 {
   // get the URDF as a single string
   auto result = future.get();
@@ -524,7 +524,7 @@ void vtkSlicerRos2Logic::ModelParameterCallback(std::shared_future<std::vector<r
 }
 
 
-void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
+void vtkSlicerROS2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::msg::JointState> msg)
 {
   if (mRobotState.IsUsingTopic == true) {
     if (msg->position.size() == 6) {
@@ -537,7 +537,7 @@ void vtkSlicerRos2Logic::JointStateCallback(const std::shared_ptr<sensor_msgs::m
 }
 
 
-void vtkSlicerRos2Logic::Clear(void)
+void vtkSlicerROS2Logic::Clear(void)
 {
   this->GetMRMLScene()->Clear();
 
@@ -569,7 +569,7 @@ void vtkSlicerRos2Logic::Clear(void)
 }
 
 
-void vtkSlicerRos2Logic::queryTfNode(void)
+void vtkSlicerROS2Logic::queryTfNode(void)
 {
   for (size_t link = 0; link < link_names_vector.size(); link++) {
     geometry_msgs::msg::TransformStamped transformStamped;
@@ -590,7 +590,7 @@ void vtkSlicerRos2Logic::queryTfNode(void)
 }
 
 
-void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
+void vtkSlicerROS2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStamped transformStamped, int transform)
 {
   // Retrieve the translation vector and quaternion from the geometry message
   auto x = transformStamped.transform.translation.x*MM_TO_M_CONVERSION;
@@ -622,18 +622,18 @@ void vtkSlicerRos2Logic::updateTransformFromTf(geometry_msgs::msg::TransformStam
 }
 
 
-void vtkSlicerRos2Logic::SetRobotStateTopic(const std::string & topicName)
+void vtkSlicerROS2Logic::SetRobotStateTopic(const std::string & topicName)
 {
   mRobotState.IsUsingTopic = true;
   // subscription
   mJointStateSubscription
     = mNodePointer->create_subscription<sensor_msgs::msg::JointState>
-    (topicName, 10, std::bind(&vtkSlicerRos2Logic::JointStateCallback,
+    (topicName, 10, std::bind(&vtkSlicerROS2Logic::JointStateCallback,
 			      this, std::placeholders::_1));
 }
 
 
-void vtkSlicerRos2Logic::SetRobotStateTf(void)
+void vtkSlicerROS2Logic::SetRobotStateTf(void)
 {
   mRobotState.IsUsingTopic = false;
   // Remove the subscription
@@ -643,7 +643,7 @@ void vtkSlicerRos2Logic::SetRobotStateTf(void)
 }
 
 
-void vtkSlicerRos2Logic::BroadcastTransform(void)
+void vtkSlicerROS2Logic::BroadcastTransform(void)
 {
   mRobotState.sendingTf = true;
   std::string parent;
@@ -692,7 +692,7 @@ void vtkSlicerRos2Logic::BroadcastTransform(void)
 }
 
 
-void vtkSlicerRos2Logic::initializeFkSolver(void)
+void vtkSlicerROS2Logic::initializeFkSolver(void)
 {
   KDL::Tree my_tree;
   if (!kdl_parser::treeFromString(mModel.URDF, my_tree)) {
@@ -719,7 +719,7 @@ void vtkSlicerRos2Logic::initializeFkSolver(void)
   mKDLSolver = new KDL::ChainFkSolverPos_recursive(*kdl_chain);
 }
 
-vtkMRMLROS2SubscriberNode * vtkSlicerRos2Logic::CreateAndAddSubscriber(const char * className, const std::string & topic)
+vtkMRMLROS2SubscriberNode * vtkSlicerROS2Logic::CreateAndAddSubscriber(const char * className, const std::string & topic)
 {
   // Provide this as python method for adding new subscribers to the scene
   if (mROS2Node == nullptr) {
@@ -742,7 +742,7 @@ vtkMRMLROS2SubscriberNode * vtkSlicerRos2Logic::CreateAndAddSubscriber(const cha
   return subscriberNode;
 }
 
-vtkMRMLROS2PublisherNode * vtkSlicerRos2Logic::CreateAndAddPublisher(const char * className, const std::string & topic)
+vtkMRMLROS2PublisherNode * vtkSlicerROS2Logic::CreateAndAddPublisher(const char * className, const std::string & topic)
 {
   // Provide this as python method for adding new subscribers to the scene
   if (mROS2Node == nullptr) {
@@ -766,7 +766,7 @@ vtkMRMLROS2PublisherNode * vtkSlicerRos2Logic::CreateAndAddPublisher(const char 
 }
 
 
-void vtkSlicerRos2Logic::AddPublisher(void)
+void vtkSlicerROS2Logic::AddPublisher(void)
 {
   vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
   this->GetMRMLScene()->AddNode(stringPub);
@@ -777,14 +777,14 @@ void vtkSlicerRos2Logic::AddPublisher(void)
   stringPub2->AddToROS2Node(mROS2Node->GetID(), "/publisher");
 }
 
-void vtkSlicerRos2Logic::AddROS2Node(void)
+void vtkSlicerROS2Logic::AddROS2Node(void)
 {
   mROS2Node = vtkMRMLROS2NODENode::New();
   this->GetMRMLScene()->AddNode(mROS2Node);
   mROS2Node->Create("testNode");
 }
 
-void vtkSlicerRos2Logic::AddToScene(void)
+void vtkSlicerROS2Logic::AddToScene(void)
 {
   vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
   this->GetMRMLScene()->AddNode(subString);
@@ -809,7 +809,7 @@ void vtkSlicerRos2Logic::AddToScene(void)
   // mSubs.push_back(sub);
 }
 
-void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name){
+void vtkSlicerROS2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name){
   // Add a transform for subscriber type 1 (PoseStamped)
   vtkSmartPointer<vtkMRMLTransformNode> poseTransform =  vtkSmartPointer<vtkMRMLTransformNode>::Take(vtkMRMLLinearTransformNode::New());
   poseTransform->SetMatrixTransformToParent(mat);
@@ -818,7 +818,7 @@ void vtkSlicerRos2Logic::AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat
   this->GetMRMLScene()->AddNode(poseTransform);
 }
 
-void vtkSlicerRos2Logic::updateMRMLSceneFromSubs(void){
+void vtkSlicerROS2Logic::updateMRMLSceneFromSubs(void){
   // This should be activated on spin and should update that's attached to the vtkMRMLROS2SubscriberNode
   // Get lastMessage needs to work for this though
 #if 0

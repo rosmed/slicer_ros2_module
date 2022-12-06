@@ -15,41 +15,41 @@
 
 ==============================================================================*/
 
-// SlicerRos2 Logic includes
-#include <vtkSlicerRos2Logic.h>
+// SlicerROS2 Logic includes
+#include <vtkSlicerROS2Logic.h>
 
-// SlicerRos2 includes
-#include "qSlicerRos2Module.h"
-#include "qSlicerRos2ModuleWidget.h"
-
-//-----------------------------------------------------------------------------
-// qSlicerRos2Module methods
+// SlicerROS2 includes
+#include "qSlicerROS2Module.h"
+#include "qSlicerROS2ModuleWidget.h"
 
 //-----------------------------------------------------------------------------
-qSlicerRos2Module::qSlicerRos2Module(QObject* _parent)
+// qSlicerROS2Module methods
+
+//-----------------------------------------------------------------------------
+qSlicerROS2Module::qSlicerROS2Module(QObject* _parent)
   : Superclass(_parent)
 {
 }
 
 //-----------------------------------------------------------------------------
-qSlicerRos2Module::~qSlicerRos2Module()
+qSlicerROS2Module::~qSlicerROS2Module()
 {
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerRos2Module::helpText() const
+QString qSlicerROS2Module::helpText() const
 {
   return "ROS 2 Slicer Module.  See https://github.com/rosmed/slicer_ros2_module";
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerRos2Module::acknowledgementText() const
+QString qSlicerROS2Module::acknowledgementText() const
 {
   return "This work was partially funded by National Institutes of Health (USA) grant R01EB020667, the National Sciences and Engineering Research Council of Canada and the Canadian Institutes of Health Research";
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerRos2Module::contributors() const
+QStringList qSlicerROS2Module::contributors() const
 {
   QStringList moduleContributors;
   moduleContributors << QString("Laura Connolly (Queen’s University, Kingston, Canada), Anton Deguet (Johns Hopkins University, Baltimore, USA)");
@@ -57,38 +57,38 @@ QStringList qSlicerRos2Module::contributors() const
 }
 
 //-----------------------------------------------------------------------------
-QIcon qSlicerRos2Module::icon() const
+QIcon qSlicerROS2Module::icon() const
 {
   return QIcon(":/Icons/SlicerROS2.png");
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerRos2Module::categories() const
+QStringList qSlicerROS2Module::categories() const
 {
   return QStringList() << "Examples";
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerRos2Module::dependencies() const
+QStringList qSlicerROS2Module::dependencies() const
 {
   return QStringList();
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerRos2Module::setup()
+void qSlicerROS2Module::setup()
 {
   this->Superclass::setup();
 }
 
 //-----------------------------------------------------------------------------
-qSlicerAbstractModuleRepresentation* qSlicerRos2Module
+qSlicerAbstractModuleRepresentation* qSlicerROS2Module
 ::createWidgetRepresentation()
 {
-  return new qSlicerRos2ModuleWidget;
+  return new qSlicerROS2ModuleWidget;
 }
 
 //-----------------------------------------------------------------------------
-vtkMRMLAbstractLogic* qSlicerRos2Module::createLogic()
+vtkMRMLAbstractLogic* qSlicerROS2Module::createLogic()
 {
-  return vtkSlicerRos2Logic::New();
+  return vtkSlicerROS2Logic::New();
 }

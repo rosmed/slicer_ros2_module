@@ -31,8 +31,8 @@
 #include <QLabel>
 
 // Slicer includes
-#include "qSlicerRos2ModuleWidget.h"
-#include "ui_qSlicerRos2ModuleWidget.h"
+#include "qSlicerROS2ModuleWidget.h"
+#include "ui_qSlicerROS2ModuleWidget.h"
 #include "qSlicerApplication.h"
 
 #include <vtkMRMLScene.h>
@@ -42,31 +42,31 @@
 
 
 // reference to Logic
-#include "vtkSlicerRos2Logic.h"
+#include "vtkSlicerROS2Logic.h"
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class qSlicerRos2ModuleWidgetPrivate: public Ui_qSlicerRos2ModuleWidget
+class qSlicerROS2ModuleWidgetPrivate: public Ui_qSlicerROS2ModuleWidget
 {
 
 public:
-  qSlicerRos2ModuleWidgetPrivate();
-  vtkSlicerRos2Logic* logic() const;
+  qSlicerROS2ModuleWidgetPrivate();
+  vtkSlicerROS2Logic* logic() const;
 };
 
 
 //-----------------------------------------------------------------------------
-qSlicerRos2ModuleWidgetPrivate::qSlicerRos2ModuleWidgetPrivate()
+qSlicerROS2ModuleWidgetPrivate::qSlicerROS2ModuleWidgetPrivate()
 {
 }
 
 
 //-----------------------------------------------------------------------------
-// qSlicerRos2ModuleWidget methods
+// qSlicerROS2ModuleWidget methods
 
 //-----------------------------------------------------------------------------
-qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
+qSlicerROS2ModuleWidget::qSlicerROS2ModuleWidget(QWidget* _parent)
   : Superclass( _parent )
-  , d_ptr( new qSlicerRos2ModuleWidgetPrivate )
+  , d_ptr( new qSlicerROS2ModuleWidgetPrivate )
 {
   this->mTimer = new QTimer();
   mTimer->setSingleShot(false);
@@ -76,7 +76,7 @@ qSlicerRos2ModuleWidget::qSlicerRos2ModuleWidget(QWidget* _parent)
 
 
 //-----------------------------------------------------------------------------
-qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
+qSlicerROS2ModuleWidget::~qSlicerROS2ModuleWidget()
 {
   mTimer->stop();
   delete this->mTimer;
@@ -84,9 +84,9 @@ qSlicerRos2ModuleWidget::~qSlicerRos2ModuleWidget()
 
 
 //-----------------------------------------------------------------------------
-void qSlicerRos2ModuleWidget::setup(void)
+void qSlicerROS2ModuleWidget::setup(void)
 {
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
 
@@ -107,9 +107,9 @@ void qSlicerRos2ModuleWidget::setup(void)
 
 }
 
-void qSlicerRos2ModuleWidget::onNodeAddedButton()
+void qSlicerROS2ModuleWidget::onNodeAddedButton()
 {
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -125,9 +125,9 @@ void qSlicerRos2ModuleWidget::onNodeAddedButton()
 
 
 
-void qSlicerRos2ModuleWidget::onTimerTimeOut()
+void qSlicerROS2ModuleWidget::onTimerTimeOut()
 {
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -135,11 +135,11 @@ void qSlicerRos2ModuleWidget::onTimerTimeOut()
   logic->Spin();
 }
 
-void qSlicerRos2ModuleWidget::updateWidget()
+void qSlicerROS2ModuleWidget::updateWidget()
 {
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
   this->Superclass::setup();
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -151,7 +151,7 @@ void qSlicerRos2ModuleWidget::updateWidget()
   int subscriberRefs = logic->mROS2Node->GetNumberOfNodeReferences("subscriber");
   int publisherRefs = logic->mROS2Node->GetNumberOfNodeReferences("publisher");
 
-  // update subscriber table 
+  // update subscriber table
   if (visibleSubscriberRefs < subscriberRefs){
     refreshSubTable();
   }
@@ -161,11 +161,11 @@ void qSlicerRos2ModuleWidget::updateWidget()
   }
 }
 
-void qSlicerRos2ModuleWidget::refreshSubTable()
+void qSlicerROS2ModuleWidget::refreshSubTable()
 {
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
   this->Superclass::setup();
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -189,11 +189,11 @@ void qSlicerRos2ModuleWidget::refreshSubTable()
   }
 }
 
-void qSlicerRos2ModuleWidget::refreshPubTable()
+void qSlicerROS2ModuleWidget::refreshPubTable()
 {
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
   this->Superclass::setup();
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -217,10 +217,10 @@ void qSlicerRos2ModuleWidget::refreshPubTable()
   }
 }
 
-void qSlicerRos2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row){
-  Q_D(qSlicerRos2ModuleWidget);
+void qSlicerROS2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row){
+  Q_D(qSlicerROS2ModuleWidget);
   this->Superclass::setup();
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -245,10 +245,10 @@ void qSlicerRos2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
   row++;
 }
 
-void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row){
-  Q_D(qSlicerRos2ModuleWidget);
+void qSlicerROS2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row){
+  Q_D(qSlicerROS2ModuleWidget);
   this->Superclass::setup();
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -272,9 +272,9 @@ void qSlicerRos2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
   row++;
 }
 
-void qSlicerRos2ModuleWidget::onClearSceneSelected()
+void qSlicerROS2ModuleWidget::onClearSceneSelected()
 {
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -284,10 +284,10 @@ void qSlicerRos2ModuleWidget::onClearSceneSelected()
 
 
 
-void qSlicerRos2ModuleWidget::onSetSubscribers()
+void qSlicerROS2ModuleWidget::onSetSubscribers()
 {
-  Q_D(qSlicerRos2ModuleWidget);
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -301,13 +301,13 @@ void qSlicerRos2ModuleWidget::onSetSubscribers()
     QString message = "ROS2 node has not been added yet.";
     popupLabel->setText(message);
     popupLabel->show();
-  }    
+  }
 }
 
-void qSlicerRos2ModuleWidget::onSetPublishers()
+void qSlicerROS2ModuleWidget::onSetPublishers()
 {
-  Q_D(qSlicerRos2ModuleWidget);
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -324,11 +324,11 @@ void qSlicerRos2ModuleWidget::onSetPublishers()
   }
 }
 
-void qSlicerRos2ModuleWidget::subscriberClicked(int row, int col)
+void qSlicerROS2ModuleWidget::subscriberClicked(int row, int col)
 {
   // Row is a reference to the message index
-  Q_D(qSlicerRos2ModuleWidget);
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -351,11 +351,11 @@ void qSlicerRos2ModuleWidget::subscriberClicked(int row, int col)
   }
 }
 
-void qSlicerRos2ModuleWidget::publisherClicked(int row, int col)
+void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
 {
   // Row is a reference to the message index
-  Q_D(qSlicerRos2ModuleWidget);
-  vtkSlicerRos2Logic* logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -363,7 +363,7 @@ void qSlicerRos2ModuleWidget::publisherClicked(int row, int col)
   if (col == 1){ // only invoked when users click the number of messages cell
     QString pubName = d->rosPublisherTableWidget->item(row,0)->text();
     std::string referenceRole = pubName.toStdString();
-    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:pub:" + referenceRole).c_str())); 
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:pub:" + referenceRole).c_str()));
     if (!pub){
       std::cerr << "No publisher by this name in the scene" << std::endl;
       return;
@@ -379,18 +379,18 @@ void qSlicerRos2ModuleWidget::publisherClicked(int row, int col)
   }
 }
 
-void qSlicerRos2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+void qSlicerROS2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
   mTimer->stop();
 }
 
 
-void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
+void qSlicerROS2ModuleWidget::onStateSelection(const QString& text)
 {
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
   // Note: this logic part is repeated a lot there is probably a way to avoid that
-  vtkSlicerRos2Logic *
-    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic *
+    logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -401,9 +401,9 @@ void qSlicerRos2ModuleWidget::onStateSelection(const QString& text)
 }
 
 
-void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+void qSlicerROS2ModuleWidget::onDescriptionSelection(const QString& text) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
 
   if (text == "parameter") {
     d->descriptionWidgetGroupBox->setTitle("Param selected");
@@ -413,16 +413,16 @@ void qSlicerRos2ModuleWidget::onDescriptionSelection(const QString& text) // Sho
 }
 
 
-void qSlicerRos2ModuleWidget::onNodeOrParameterNameEntered(void)
+void qSlicerROS2ModuleWidget::onNodeOrParameterNameEntered(void)
 {
   // Get the parameter and node names (we will need it later)
-  Q_D(qSlicerRos2ModuleWidget);
+  Q_D(qSlicerROS2ModuleWidget);
   QString node = d->nodeLineEdit->text();
   QString param = d->paramLineEdit->text();
   if ((!node.isEmpty())
       && (!param.isEmpty())) {
-    vtkSlicerRos2Logic *
-      logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+    vtkSlicerROS2Logic *
+      logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
     if (!logic) {
       qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
       return;
@@ -436,7 +436,7 @@ void qSlicerRos2ModuleWidget::onNodeOrParameterNameEntered(void)
 }
 
 
-void qSlicerRos2ModuleWidget::onLoadModelButtonSelected(void)
+void qSlicerROS2ModuleWidget::onLoadModelButtonSelected(void)
 {
   // This function lets you access the name of the urdf file that was selected in the fileDialog
   // Get the topic name that was entered ( we will need it later)
@@ -446,8 +446,8 @@ void qSlicerRos2ModuleWidget::onLoadModelButtonSelected(void)
     return;
   }
   std::string selectedFile = files.at(0).toStdString();
-  vtkSlicerRos2Logic *
-    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic *
+    logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
@@ -456,10 +456,10 @@ void qSlicerRos2ModuleWidget::onLoadModelButtonSelected(void)
 }
 
 
-void qSlicerRos2ModuleWidget::onBroadcastButtonPressed()
+void qSlicerROS2ModuleWidget::onBroadcastButtonPressed()
 {
-  vtkSlicerRos2Logic *
-    logic = vtkSlicerRos2Logic::SafeDownCast(this->logic());
+  vtkSlicerROS2Logic *
+    logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
