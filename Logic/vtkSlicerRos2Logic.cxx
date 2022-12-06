@@ -786,8 +786,6 @@ void vtkSlicerRos2Logic::AddROS2Node(void)
 
 void vtkSlicerRos2Logic::AddToScene(void)
 {
-  
-
   vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
   this->GetMRMLScene()->AddNode(subString);
   subString->AddToROS2Node(mROS2Node->GetID(), "/string_sub");
