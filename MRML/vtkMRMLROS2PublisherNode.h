@@ -33,6 +33,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
 
   size_t mNumberOfMessages = 0;
 
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+
   /**
    * Get the latest ROS message in YAML format
    */

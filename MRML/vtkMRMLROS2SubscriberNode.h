@@ -31,6 +31,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
 
   size_t GetNumberOfMessages(void) const;
 
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+
   /**
    * Get the latest ROS message in YAML format
    */

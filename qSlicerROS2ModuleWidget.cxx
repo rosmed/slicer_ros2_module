@@ -35,10 +35,14 @@
 #include "ui_qSlicerROS2ModuleWidget.h"
 #include "qSlicerApplication.h"
 
+// MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
+
+// Native includes
+#include <iostream>
 
 
 // reference to Logic

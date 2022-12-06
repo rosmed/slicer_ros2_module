@@ -10,6 +10,11 @@ vtkMRMLROS2PublisherNode::~vtkMRMLROS2PublisherNode()
 {
 }
 
+void vtkMRMLROS2PublisherNode::PrintSelf(ostream& os, vtkIndent indent)
+{
+  Superclass::PrintSelf(os,indent);
+}
+
 bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
 					      const std::string & topic)
 {

@@ -35,6 +35,7 @@ public:
   vtkMRMLROS2SubscriberTemplatedInternals(vtkMRMLROS2SubscriberNode *  mrmlNode):
     vtkMRMLROS2SubscriberInternals(mrmlNode)
   {}
+  
 
 protected:
   _ros_type mLastMessageROS;

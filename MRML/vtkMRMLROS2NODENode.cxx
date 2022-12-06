@@ -23,6 +23,11 @@ vtkMRMLROS2NODENode::~vtkMRMLROS2NODENode()
 {
 }
 
+void vtkMRMLROS2NODENode::PrintSelf(ostream& os, vtkIndent indent)
+{
+  Superclass::PrintSelf(os,indent);
+}
+
 void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
 {
   // - this should be detected automatically by look for node of type ROS2Node in scene

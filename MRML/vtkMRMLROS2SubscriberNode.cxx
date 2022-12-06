@@ -11,6 +11,17 @@ vtkMRMLROS2SubscriberNode::~vtkMRMLROS2SubscriberNode()
 {
 }
 
+void vtkMRMLROS2SubscriberNode::PrintSelf(ostream& os, vtkIndent indent)
+{
+  Superclass::PrintSelf(os,indent);
+  // Custom prints
+  os << indent << "Topic: " << mTopic << "\n";
+  os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
+  os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
+  os << indent << "Number of Messages: " << mNumberOfMessages << "\n"; 
+  os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n"; 
+}
+
 bool vtkMRMLROS2SubscriberNode::AddToROS2Node(const char * nodeId,
 					      const std::string & topic)
 {

@@ -21,6 +21,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   typedef vtkMRMLROS2NODENode SelfType;
   vtkTypeMacro(vtkMRMLROS2NODENode, vtkMRMLNode);
   static SelfType * New(void);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
