@@ -69,12 +69,21 @@ protected:
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    mSubscription = nodePointer->create_subscription<_ros_type>(topic, 100,
-								std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
-    rosNodePtr->SetNthNodeReferenceID("subscriber",
-				      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
-				      mMRMLNode->GetID());
-    mMRMLNode->SetNodeReferenceID("node", nodeId);
+    // Check if the subscriber already exists
+    vtkMRMLNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
+    // if it doesn't instantiate the subscriber
+    if (sub == nullptr){
+      mSubscription = nodePointer->create_subscription<_ros_type>(topic, 100,
+                  std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
+      rosNodePtr->SetNthNodeReferenceID("subscriber",
+                rosNodePtr->GetNumberOfNodeReferences("subscriber"),
+                mMRMLNode->GetID());
+      mMRMLNode->SetNodeReferenceID("node", nodeId);
+    }
+    // Otherwise state that there is already a subscriber for that topic 
+    else{
+      std::cerr << "Subscriber already added for that topic" << std::endl;
+    }
     return true;
   }
 
