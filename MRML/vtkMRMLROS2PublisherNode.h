@@ -31,10 +31,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
 
   size_t GetNumberOfMessages(void) const;
 
+  size_t mNumberOfMessages = 0;
+
   /**
    * Get the latest ROS message in YAML format
    */
-  // std::string GetLastMessageYAML(void) const;
+  std::string GetLastMessageYAML(void) const;
   //
   // /**
   //  * Get the latest message as a vtkVariant.  This method will use the
@@ -52,7 +54,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
   vtkMRMLROS2PublisherInternals * mInternals;
   std::string mTopic = "undefined";
   std::string mMRMLNodeName = "ros2:sub:undefined";
-  size_t mNumberOfMessages = 0;
 };
 
 #endif // __vtkMRMLROS2PublisherNode_h

@@ -27,7 +27,7 @@ public:
 			     const std::string & topic, std::string & errorMessage) = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
-  // virtual std::string GetLastMessageYAML(void) const = 0;
+  virtual std::string GetLastMessageYAML(void) const = 0;
   vtkMRMLROS2NODENode * rosNodePtr;
   int nthRef = 0;
 
@@ -84,6 +84,13 @@ protected:
   const char * GetSlicerType(void) const override
   {
     return typeid(_slicer_type).name();
+  }
+
+  std::string GetLastMessageYAML(void) const override
+  {
+    std::stringstream out;
+    rosidl_generator_traits::to_yaml(mMessageROS, out);
+    return out.str();
   }
 
 };

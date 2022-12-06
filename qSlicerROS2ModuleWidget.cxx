@@ -368,13 +368,13 @@ void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
       std::cerr << "No publisher by this name in the scene" << std::endl;
       return;
     }
-    // QString message = pub->GetLastMessageYAML().c_str();
+    QString message = pub->GetLastMessageYAML().c_str();
     QString numMessages = QVariant(static_cast<int>(pub->GetNumberOfMessages())).toString(); // to convert to an int and then string
     std::cerr << pub->GetNumberOfMessages() << std::endl;
     QLabel *popupLabel = new QLabel();
     QString numMess = "Num messages:   ";
-    // QString mess = "   Message: ";
-    popupLabel->setText(numMess + numMessages);  //+ mess + message);
+    QString mess = "   Message: ";
+    popupLabel->setText(numMess + numMessages + mess + message);
     popupLabel->show();
   }
 }

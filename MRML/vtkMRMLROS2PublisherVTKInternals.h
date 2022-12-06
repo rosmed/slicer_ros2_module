@@ -22,6 +22,7 @@ public:
   {
     vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
+    this->mMRMLNode->mNumberOfMessages++;
   }
 
   // overload Publish to support pointers

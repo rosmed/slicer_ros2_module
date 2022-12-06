@@ -18,8 +18,9 @@ public:
 
   void Publish(const _slicer_type & msg)
   {
-      vtkSlicerToROS2(msg, this->mMessageROS);
+    vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
+    this->mMRMLNode->mNumberOfMessages++;
   }
 };
 
