@@ -22,7 +22,6 @@ public:
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0;
-
 protected:
   vtkMRMLROS2SubscriberNode * mMRMLNode;
 };

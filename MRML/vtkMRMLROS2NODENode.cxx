@@ -42,6 +42,22 @@ void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
+vtkMRMLNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic){
+    
+  int subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
+  for (int j = 0; j < subscriberRefs; j ++){
+    vtkMRMLNode * node = this->GetNthNodeReference("subscriber", j);
+    std::string nodeName = node->GetName(); // the node name has format "ros2:sub:/topicname"
+    std::string delimiter = ":"; // Split by this 
+    std::string substring = nodeName.substr((nodeName.find(delimiter)+1), nodeName.length()); // break the node name into the second half sub:/topicname
+    std::string topicName = substring.substr((substring.find(delimiter)+1), substring.length()); // break the node name again into just /topicname
+    if (topicName == topic){ // check if an existing nodes name matches the topic provided
+      return node; // if so return the node
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
 void vtkMRMLROS2NODENode::Spin(void)
 {
   if (rclcpp::ok()) {

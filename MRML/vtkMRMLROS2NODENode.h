@@ -26,6 +26,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 
   void Create(const std::string & nodeName, bool initialize = false);
   void Spin(void);
+  vtkMRMLNode* GetSubscriberNodeByTopic(const std::string & topic);
 
  protected:
   vtkMRMLROS2NODENode();
