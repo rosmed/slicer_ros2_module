@@ -15,14 +15,14 @@
 
 ==============================================================================*/
 
-// .NAME vtkSlicerRos2Logic - slicer logic class for volumes manipulation
+// .NAME vtkSlicerROS2Logic - slicer logic class for volumes manipulation
 // .SECTION Description
 // This class manages the logic associated with reading, saving,
 // and changing propertied of the volumes
 
 
-#ifndef __vtkSlicerRos2Logic_h
-#define __vtkSlicerRos2Logic_h
+#ifndef __vtkSlicerROS2Logic_h
+#define __vtkSlicerROS2Logic_h
 
 // Forward declarations
 namespace KDL {
@@ -35,15 +35,17 @@ namespace rclcpp {
 
 class vtkMRMLTransformNode;
 class vtkMRMLROS2SubscriberNode;
+class vtkMRMLROS2PublisherNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
-#include "vtkSlicerRos2ModuleLogicExport.h"
+#include "vtkSlicerROS2ModuleLogicExport.h"
 
-#include <vtkMRMLROS2SubscriberNode.h>
 #include "vtkMRML.h"
 #include "vtkMRMLNode.h"
+
+#include <vtkMatrix4x4.h>
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
@@ -52,14 +54,16 @@ class vtkMRMLROS2SubscriberNode;
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 
+class vtkMRMLROS2NODENode;
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerRos2Logic:
+class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   public vtkSlicerModuleLogic
 {
 public:
 
-  static vtkSlicerRos2Logic *New();
-  vtkTypeMacro(vtkSlicerRos2Logic, vtkSlicerModuleLogic);
+  static vtkSlicerROS2Logic *New();
+  vtkTypeMacro(vtkSlicerROS2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   // Logic methods
@@ -79,13 +83,22 @@ public:
   void Clear();
   void BroadcastTransform();
   void AddToScene(void);
+  void AddROS2Node(void);
+  void AddPublisher(void);
+  vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+  vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
+
+  // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
+  vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
+  void AddTransformForMatrix(vtkSmartPointer<vtkMatrix4x4> mat, std::string name);
+  void updateMRMLSceneFromSubs(void);
 
   // bool testSubNode( vtkMRMLNode* node );
   // vtkMRMLROS2SubscriberNode* CreateSubscriberNode();
 
 protected:
-  vtkSlicerRos2Logic();
-  ~vtkSlicerRos2Logic() override;
+  vtkSlicerROS2Logic();
+  ~vtkSlicerROS2Logic() override;
 
   void SetMRMLSceneInternal(vtkMRMLScene* newScene) override;
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
@@ -96,8 +109,8 @@ protected:
 
 private:
 
-  vtkSlicerRos2Logic(const vtkSlicerRos2Logic&); // Not implemented
-  void operator=(const vtkSlicerRos2Logic&); // Not implemented
+  vtkSlicerROS2Logic(const vtkSlicerROS2Logic&); // Not implemented
+  void operator=(const vtkSlicerROS2Logic&); // Not implemented
 
   KDL::ChainFkSolverPos_recursive * mKDLSolver = 0;
   size_t mKDLChainSize = 0;
@@ -106,7 +119,7 @@ private:
   void ModelParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future);
   std::shared_ptr<rclcpp::Node> mNodePointer;
   std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
-
+  // vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node
   bool parameterNodeCallbackFlag = false;
   std::vector<std::string> link_names_vector;
   std::vector<std::string> link_parent_names_vector;
@@ -133,6 +146,7 @@ private:
   } mModel;
 
   vtkSmartPointer<vtkMRMLNode> mTestSubscriber;
+
 
 
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::JointState>> mJointStateSubscription;

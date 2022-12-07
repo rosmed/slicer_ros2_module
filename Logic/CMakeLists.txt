@@ -10,12 +10,10 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}Logic.cxx
   vtkSlicer${MODULE_NAME}Logic.h
-  vtkMRMLROS2SubscriberNode.h
-  vtkMRMLROS2SubscriberNode.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES
-  ${ITK_LIBRARIES}
+  vtkSlicer${MODULE_NAME}ModuleMRML
   )
 
 #-----------------------------------------------------------------------------

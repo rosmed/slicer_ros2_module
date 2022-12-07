@@ -15,23 +15,23 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerRos2ModuleWidget_h
-#define __qSlicerRos2ModuleWidget_h
+#ifndef __qSlicerROS2ModuleWidget_h
+#define __qSlicerROS2ModuleWidget_h
 
 // Slicer includes
 #include "qSlicerAbstractModuleWidget.h"
-#include "qSlicerRos2ModuleExport.h"
+#include "qSlicerROS2ModuleExport.h"
 
 // Qt includes
-#include <QLineEdit>
 #include <QFileDialog>
-#include <QPushButton>
 
-class qSlicerRos2ModuleWidgetPrivate;
+class qSlicerROS2ModuleWidgetPrivate;
 class vtkMRMLNode;
+class vtkMRMLROS2SubscriberNode;
+class vtkMRMLROS2PublisherNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerRos2ModuleWidget :
+class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerROS2ModuleWidget :
   public qSlicerAbstractModuleWidget
 {
   Q_OBJECT
@@ -39,43 +39,48 @@ class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerRos2ModuleWidget :
 public:
 
   typedef qSlicerAbstractModuleWidget Superclass;
-  qSlicerRos2ModuleWidget(QWidget *parent=0);
-  virtual ~qSlicerRos2ModuleWidget();
+  qSlicerROS2ModuleWidget(QWidget *parent=0);
+  virtual ~qSlicerROS2ModuleWidget();
 
 public slots:
   void stopTimer(void);
 
 protected:
-  QScopedPointer<qSlicerRos2ModuleWidgetPrivate> d_ptr;
+  QScopedPointer<qSlicerROS2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
   QTimer* mTimer;
   bool timerOff = false;
+  int popupCounter = 0;
 
-  QLineEdit *topicLineEdit = new QLineEdit(tr("/joint_states"));
+  // QFileDialog is not available in Qt Designer!!
   QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html
-  QLineEdit *nodeLineEdit = new QLineEdit(tr("/robot_state_publisher"));
-  QLineEdit *paramLineEdit = new QLineEdit(tr("robot_description"));
-  QPushButton *loadModelButton = new QPushButton();
-  QPushButton *selectFileButton = new QPushButton();
+
 
 protected slots:
-  void onFileSelected(const QString&);
   void onStateSelection(const QString&);
   void onDescriptionSelection(const QString&);
   void onTimerTimeOut(void);
+  void updateWidget(void);
+  void updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row);
+  void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
   void onClearSceneSelected(void);
+  void onSetSubscribers(void);
+  void onSetPublishers(void);
+  void onNodeAddedButton(void);
+  void refreshSubTable(void);
+  void refreshPubTable(void);
 
   // Slots for dynamic widgets
-  void onTopicNameEntered(void);
   void onNodeOrParameterNameEntered(void);
   void onLoadModelButtonSelected(void);
-  void onSelectFile(void);
   void onBroadcastButtonPressed();
+  void subscriberClicked(int row, int col);
+  void publisherClicked(int row, int col);
 
 private:
-  Q_DECLARE_PRIVATE(qSlicerRos2ModuleWidget);
-  Q_DISABLE_COPY(qSlicerRos2ModuleWidget);
+  Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);
+  Q_DISABLE_COPY(qSlicerROS2ModuleWidget);
 };
 
 #endif
