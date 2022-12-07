@@ -77,7 +77,7 @@ protected:
     }
     // Otherwise state that there is already a subscriber for that topic 
     else{
-      std::cerr << "Publisher already added for that topic" << std::endl;
+      return false;
     }
     return true;
   }

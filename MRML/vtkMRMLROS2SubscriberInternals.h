@@ -71,7 +71,7 @@ protected:
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     // Check if the subscriber already exists
-    vtkMRMLNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
+    vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
     // if it doesn't instantiate the subscriber
     if (sub == nullptr){
       mSubscription = nodePointer->create_subscription<_ros_type>(topic, 100,
@@ -83,7 +83,7 @@ protected:
     }
     // Otherwise state that there is already a subscriber for that topic 
     else{
-      std::cerr << "Subscriber already added for that topic" << std::endl;
+      return false;
     }
     return true;
   }

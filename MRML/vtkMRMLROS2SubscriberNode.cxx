@@ -37,6 +37,9 @@ bool vtkMRMLROS2SubscriberNode::AddToROS2Node(const char * nodeId,
   if (mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
     return true;
   }
+  else{
+    vtkErrorMacro(<< "Subscriber by that name is already in the scene.");
+  }
   vtkWarningMacro(<< "AddToROS2Node, looking for ROS2 node: " << errorMessage);
   return false;
 }

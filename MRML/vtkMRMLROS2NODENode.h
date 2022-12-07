@@ -10,6 +10,8 @@
 class vtkMRMLROS2NodeInternals;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
+#include <vtkMRMLROS2SubscriberNode.h>
+#include <vtkMRMLROS2PublisherNode.h> // forward declaration alone doesn't seem to work here
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 {
@@ -27,8 +29,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 
   void Create(const std::string & nodeName, bool initialize = false);
   void Spin(void);
-  vtkMRMLNode* GetSubscriberNodeByTopic(const std::string & topic);
-  vtkMRMLNode* GetPublisherNodeByTopic(const std::string & topic);
+  vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
+  vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
 
  protected:
   vtkMRMLROS2NODENode();

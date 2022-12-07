@@ -30,6 +30,9 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
   if (mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
     return true;
   }
+  else{
+    vtkErrorMacro(<< "Publisher by that name is already in the scene.");
+  }
   vtkWarningMacro(<< "AddToROS2Node, looking for ROS2 node: " << errorMessage);
   return false;
 }

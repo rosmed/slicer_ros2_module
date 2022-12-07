@@ -47,15 +47,16 @@ void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
-vtkMRMLNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic){
+vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic){
     
   int subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
   for (int j = 0; j < subscriberRefs; j ++){
-    vtkMRMLNode * node = this->GetNthNodeReference("subscriber", j);
-    std::string nodeName = node->GetName(); // the node name has format "ros2:sub:/topicname"
-    std::string delimiter = ":"; // Split by this 
-    std::string substring = nodeName.substr((nodeName.find(delimiter)+1), nodeName.length()); // break the node name into the second half sub:/topicname
-    std::string topicName = substring.substr((substring.find(delimiter)+1), substring.length()); // break the node name again into just /topicname
+    
+    vtkMRMLROS2SubscriberNode * node = vtkMRMLROS2SubscriberNode::SafeDownCast(this->GetNthNodeReference("subscriber", j));
+    if (!node){
+      vtkWarningMacro(<< "Node referenced by role 'subscriber' is not a subscriber");
+    }
+    std::string topicName = node->GetTopic(); 
     if (topicName == topic){ // check if an existing nodes name matches the topic provided
       return node; // if so return the node
     }
@@ -63,15 +64,15 @@ vtkMRMLNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & t
   return nullptr; // otherwise return a null ptr
 }
 
-vtkMRMLNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std::string & topic){
+vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std::string & topic){
     
   int publisherRefs = this->GetNumberOfNodeReferences("publisher");
   for (int j = 0; j < publisherRefs; j ++){
-    vtkMRMLNode * node = this->GetNthNodeReference("publisher", j);
-    std::string nodeName = node->GetName(); // the node name has format "ros2:sub:/topicname"
-    std::string delimiter = ":"; // Split by this 
-    std::string substring = nodeName.substr((nodeName.find(delimiter)+1), nodeName.length()); // break the node name into the second half sub:/topicname
-    std::string topicName = substring.substr((substring.find(delimiter)+1), substring.length()); // break the node name again into just /topicname
+    vtkMRMLROS2PublisherNode * node = vtkMRMLROS2PublisherNode::SafeDownCast(this->GetNthNodeReference("publisher", j));
+    if (!node){
+      vtkWarningMacro(<< "Node referenced by role 'subscriber' is not a subscriber");
+    }
+    std::string topicName = node->GetTopic(); 
     if (topicName == topic){ // check if an existing nodes name matches the topic provided
       return node; // if so return the node
     }
