@@ -56,14 +56,15 @@ const char * vtkMRMLROS2PublisherNode::GetSlicerType(void) const
   return mInternals->GetSlicerType();
 }
 
-size_t vtkMRMLROS2PublisherNode::GetNumberOfMessages(void) const
+size_t vtkMRMLROS2PublisherNode::GetNumberOfCalls(void) const
 {
-  return mNumberOfMessages;
+  return mNumberOfCalls;
 }
 
-std::string vtkMRMLROS2PublisherNode::GetLastMessageYAML(void) const
+size_t vtkMRMLROS2PublisherNode::GetNumberOfMessagesSent(const char * nodeId, const std::string & topic)
 {
-  return mInternals->GetLastMessageYAML();
+  vtkMRMLScene * scene = this->GetScene();
+  return mInternals->GetNumberOfMessagesSent(scene, nodeId, topic);
 }
 
 void vtkMRMLROS2PublisherNode::WriteXML( ostream& of, int nIndent )

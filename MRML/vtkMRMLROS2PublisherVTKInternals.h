@@ -22,13 +22,14 @@ public:
   {
     vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
-    this->mMRMLNode->mNumberOfMessages++;
+    this->mMRMLNode->mNumberOfCalls++;
   }
 
   // overload Publish to support pointers
   void Publish(vtkSmartPointer<_slicer_type> msg)
   {
     this->Publish(msg.GetPointer());
+    this->mMRMLNode->mNumberOfCalls++;
   }
 };
 

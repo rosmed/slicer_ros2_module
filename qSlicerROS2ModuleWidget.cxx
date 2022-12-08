@@ -339,8 +339,8 @@ void qSlicerROS2ModuleWidget::subscriberClicked(int row, int col)
   }
   if (col == 1){ // only invoked when users click the number of messages cell
     QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
-    std::string referenceRole = subName.toStdString();
-    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + referenceRole).c_str()));
+    std::string topic = subName.toStdString();
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + topic).c_str()));
     if (!sub){
       std::cerr << "No subscriber by this name in the scene" << std::endl;
       return;
@@ -366,19 +366,19 @@ void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
   }
   if (col == 1){ // only invoked when users click the number of messages cell
     QString pubName = d->rosPublisherTableWidget->item(row,0)->text();
-    std::string referenceRole = pubName.toStdString();
-    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:pub:" + referenceRole).c_str()));
+    std::string topic = pubName.toStdString();
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:pub:" + topic).c_str()));
     if (!pub){
       std::cerr << "No publisher by this name in the scene" << std::endl;
       return;
     }
-    QString message = pub->GetLastMessageYAML().c_str();
-    QString numMessages = QVariant(static_cast<int>(pub->GetNumberOfMessages())).toString(); // to convert to an int and then string
-    std::cerr << pub->GetNumberOfMessages() << std::endl;
+    QString numMessages = QVariant(static_cast<int>(pub->GetNumberOfCalls())).toString(); // to convert to an int and then string
+    std::cerr << pub->GetNumberOfCalls() << std::endl;
     QLabel *popupLabel = new QLabel();
-    QString numMess = "Num messages:   ";
-    QString mess = "   Message: ";
-    popupLabel->setText(numMess + numMessages + mess + message);
+    QString numMess = "Num of calls:   ";
+    QString numSent = "     Num of messages sent: ";
+    QString numMessagesSent = QVariant(static_cast<int>(pub->GetNumberOfMessagesSent(logic->mROS2Node->GetID(), topic))).toString();
+    popupLabel->setText(numMess + numMessages + numSent + numMessagesSent);
     popupLabel->show();
   }
 }

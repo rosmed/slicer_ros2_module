@@ -27,7 +27,7 @@ public:
 			     const std::string & topic, std::string & errorMessage) = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
-  virtual std::string GetLastMessageYAML(void) const = 0;
+  virtual size_t GetNumberOfMessagesSent(vtkMRMLScene * scene, const char * nodeId, const std::string & topic) = 0;
   vtkMRMLROS2NODENode * rosNodePtr;
   int nthRef = 0;
 
@@ -93,11 +93,21 @@ protected:
     return typeid(_slicer_type).name();
   }
 
-  std::string GetLastMessageYAML(void) const override
+  size_t GetNumberOfMessagesSent(vtkMRMLScene * scene, const char * nodeId, const std::string & topic)
   {
-    std::stringstream out;
-    rosidl_generator_traits::to_yaml(mMessageROS, out);
-    return out.str();
+    vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
+    if (!rosNodeBasePtr) {
+      return false;
+    }
+    vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+    if (!rosNodePtr) {
+      return false;
+    }
+    if (rosNodePtr->GetPublisherNodeByTopic(topic) && rosNodePtr->GetSubscriberNodeByTopic(topic)) 
+    {
+      mMRMLNode->mNumberOfMessagesSent = (mMRMLNode->mNumberOfCalls) += (mMRMLNode->mNumberOfMessagesSent);
+    }
+    return mMRMLNode->mNumberOfMessagesSent;
   }
 
 };

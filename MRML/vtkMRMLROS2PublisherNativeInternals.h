@@ -20,7 +20,7 @@ public:
   {
     vtkSlicerToROS2(msg, this->mMessageROS);
     this->mPublisher->publish(this->mMessageROS);
-    this->mMRMLNode->mNumberOfMessages++;
+    this->mMRMLNode->mNumberOfCalls++;
   }
 };
 
