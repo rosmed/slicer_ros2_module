@@ -35,7 +35,7 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
     return true;
   }
   else{
-    vtkErrorMacro(<< "Publisher by that name is already in the scene.");
+    vtkWarningMacro(<< "Publisher for this topic: \"" << topic << "\" is already in the scene.");
   }
   vtkWarningMacro(<< "AddToROS2Node, looking for ROS2 node: " << errorMessage);
   return false;
@@ -88,7 +88,7 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
   std::cerr << "Publisher restored \n" << std::endl;
-  this->AddToROS2Node(parentNodeID.c_str(),mTopic);
+  // this->AddToROS2Node(parentNodeID.c_str(),mTopic);
 
   // AddtoROS2Node()
 }
@@ -96,5 +96,12 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
 void vtkMRMLROS2PublisherNode::UpdateScene(vtkMRMLScene *scene)
 {
     Superclass::UpdateScene(scene);
+    // if (!vtkMRMLROS2PublisherNode::SafeDownCast(scene->GetFirstNodeByName(("ros2:pub:" + mTopic).c_str()))){
+    //   scene->AddNode(this);
+    //   std::cerr << "Added to the scene" << std::endl;
+    // }
+    std::cerr << "Parent node id: " << parentNodeID.c_str() << std::endl;
+    std::cerr << "Topic: " << mTopic << std::endl;
+    this->AddToROS2Node(parentNodeID.c_str(), mTopic);
     std::cerr << "Publisher updated? \n" << std::endl;
 }

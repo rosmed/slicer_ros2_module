@@ -68,17 +68,17 @@ protected:
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     vtkMRMLNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
-    if (pub == nullptr){
-      mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
-      rosNodePtr->SetNthNodeReferenceID("publisher",
-                rosNodePtr->GetNumberOfNodeReferences("publisher"),
-                mMRMLNode->GetID());
-      mMRMLNode->SetNodeReferenceID("node", nodeId);
-    }
+    // if (pub == nullptr){
+    mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
+    rosNodePtr->SetNthNodeReferenceID("publisher",
+              rosNodePtr->GetNumberOfNodeReferences("publisher"),
+              mMRMLNode->GetID());
+    mMRMLNode->SetNodeReferenceID("node", nodeId);
+    // }
     // Otherwise state that there is already a subscriber for that topic 
-    else{
-      return false;
-    }
+    // else{
+    //   return false;
+    // }
     return true;
   }
 
