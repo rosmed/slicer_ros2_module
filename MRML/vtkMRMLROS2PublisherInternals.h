@@ -105,7 +105,7 @@ protected:
     }
     if (rosNodePtr->GetPublisherNodeByTopic(topic) && rosNodePtr->GetSubscriberNodeByTopic(topic)) 
     {
-      mMRMLNode->mNumberOfMessagesSent = (mMRMLNode->mNumberOfCalls) += (mMRMLNode->mNumberOfMessagesSent);
+      mMRMLNode->mNumberOfMessagesSent++;
     }
     return mMRMLNode->mNumberOfMessagesSent;
   }
