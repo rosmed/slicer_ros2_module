@@ -32,12 +32,22 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
 
+  // Save and load
+  virtual void ReadXMLAttributes( const char** atts ) override;
+  virtual void WriteXML( ostream& of, int indent ) override;
+
+  
+
  protected:
   vtkMRMLROS2NODENode();
   ~vtkMRMLROS2NODENode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
   std::string mMRMLNodeName = "ros2:node:undefined";
+  std::string mROS2NodeName = "undefined";
+
+  vtkGetMacro(mROS2NodeName, std::string);
+  vtkSetMacro(mROS2NodeName, std::string);
 };
 
 #endif // __vtkMRMLROS2NODENode_h

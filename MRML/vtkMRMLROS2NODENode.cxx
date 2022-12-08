@@ -42,6 +42,7 @@ void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
   }
 
   // create the ROS node
+  mROS2NodeName = nodeName;
   mMRMLNodeName = "ros2:node:" + nodeName;
   this->SetName(mMRMLNodeName.c_str());
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
@@ -85,4 +86,28 @@ void vtkMRMLROS2NODENode::Spin(void)
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);
   }
+}
+
+
+void vtkMRMLROS2NODENode::WriteXML( ostream& of, int nIndent )
+{
+  Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
+  vtkIndent indent(nIndent);
+
+  vtkMRMLWriteXMLBeginMacro(of);
+  vtkMRMLWriteXMLStdStringMacro(ROS2NodeName, mROS2NodeName);
+  vtkMRMLWriteXMLEndMacro();
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLROS2NODENode::ReadXMLAttributes( const char** atts )
+{
+  int wasModifying = this->StartModify();
+  Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
+  vtkMRMLReadXMLBeginMacro(atts);
+  vtkMRMLReadXMLStdStringMacro(ROS2NodeName, mROS2NodeName);
+  vtkMRMLReadXMLEndMacro();
+  this->EndModify(wasModifying);
+  std::cerr << "ROS2NODENode restored \n" << std::endl;
+  this->Create(mROS2NodeName,false);
 }

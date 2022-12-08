@@ -68,3 +68,24 @@ std::string vtkMRMLROS2SubscriberNode::GetLastMessageYAML(void) const
 {
   return mInternals->GetLastMessageYAML();
 }
+
+
+void vtkMRMLROS2SubscriberNode::WriteXML( ostream& of, int nIndent )
+{
+  Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
+  vtkIndent indent(nIndent);
+
+  vtkMRMLWriteXMLBeginMacro(of);
+  vtkMRMLWriteXMLEndMacro();
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLROS2SubscriberNode::ReadXMLAttributes( const char** atts )
+{
+  int wasModifying = this->StartModify();
+  Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
+  vtkMRMLReadXMLBeginMacro(atts);
+  vtkMRMLReadXMLEndMacro();
+  this->EndModify(wasModifying);
+  std::cerr << "Subscriber restored \n" << std::endl;
+}

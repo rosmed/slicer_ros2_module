@@ -61,3 +61,25 @@ std::string vtkMRMLROS2PublisherNode::GetLastMessageYAML(void) const
 {
   return mInternals->GetLastMessageYAML();
 }
+
+void vtkMRMLROS2PublisherNode::WriteXML( ostream& of, int nIndent )
+{
+  Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
+  vtkIndent indent(nIndent);
+
+  vtkMRMLWriteXMLBeginMacro(of);
+  vtkMRMLWriteXMLEndMacro();
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
+{
+  int wasModifying = this->StartModify();
+  Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
+  vtkMRMLReadXMLBeginMacro(atts);
+  vtkMRMLReadXMLEndMacro();
+  this->EndModify(wasModifying);
+  std::cerr << "Publisher restored \n" << std::endl;
+
+  // AddtoROS2Node()
+}
