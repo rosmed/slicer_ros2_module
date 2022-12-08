@@ -21,6 +21,7 @@ You can find more details regarding this module in `Bridging 3D Slicer and ROS2 
    pages/example-cases
    pages/usage
    pages/limitations
+   pages/python_features
 
 
 Useful Links
