@@ -87,21 +87,11 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
   vtkMRMLReadXMLStdStringMacro(parentNodeID, parentNodeID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
-  std::cerr << "Publisher restored \n" << std::endl;
-  // this->AddToROS2Node(parentNodeID.c_str(),mTopic);
-
-  // AddtoROS2Node()
 }
 
 void vtkMRMLROS2PublisherNode::UpdateScene(vtkMRMLScene *scene)
 {
     Superclass::UpdateScene(scene);
-    // if (!vtkMRMLROS2PublisherNode::SafeDownCast(scene->GetFirstNodeByName(("ros2:pub:" + mTopic).c_str()))){
-    //   scene->AddNode(this);
-    //   std::cerr << "Added to the scene" << std::endl;
-    // }
-    std::cerr << "Parent node id: " << parentNodeID.c_str() << std::endl;
-    std::cerr << "Topic: " << mTopic << std::endl;
     this->AddToROS2Node(parentNodeID.c_str(), mTopic);
-    std::cerr << "Publisher updated? \n" << std::endl;
+    std::cerr << "Publisher updated. " << std::endl;
 }

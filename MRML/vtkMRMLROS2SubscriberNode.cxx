@@ -94,12 +94,11 @@ void vtkMRMLROS2SubscriberNode::ReadXMLAttributes( const char** atts )
   vtkMRMLReadXMLStdStringMacro(parentNodeID, parentNodeID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
-  std::cerr << "Subscriber restored \n" << std::endl;
-  this->AddToROS2Node(parentNodeID.c_str(),mTopic);
 }
 
 void vtkMRMLROS2SubscriberNode::UpdateScene(vtkMRMLScene *scene)
 {
     Superclass::UpdateScene(scene);
-    std::cerr << "Subscriber updated? \n" << std::endl;
+    this->AddToROS2Node(parentNodeID.c_str(),mTopic);
+    std::cerr << "Subscriber updated" << std::endl;
 }
