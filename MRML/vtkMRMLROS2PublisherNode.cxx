@@ -92,3 +92,9 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
 
   // AddtoROS2Node()
 }
+
+void vtkMRMLROS2PublisherNode::UpdateScene(vtkMRMLScene *scene)
+{
+    Superclass::UpdateScene(scene);
+    std::cerr << "Publisher updated? \n" << std::endl;
+}

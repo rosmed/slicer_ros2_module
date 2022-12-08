@@ -111,3 +111,9 @@ void vtkMRMLROS2NODENode::ReadXMLAttributes( const char** atts )
   std::cerr << "ROS2NODENode restored \n" << std::endl;
   this->Create(mROS2NodeName,false);
 }
+
+void vtkMRMLROS2NODENode::UpdateScene(vtkMRMLScene *scene)
+{
+    Superclass::UpdateScene(scene);
+    std::cerr << "ROS2NODENode updated? \n" << std::endl;
+}
