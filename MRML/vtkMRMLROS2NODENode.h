@@ -10,8 +10,6 @@
 class vtkMRMLROS2NodeInternals;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
-#include <vtkMRMLROS2SubscriberNode.h>
-#include <vtkMRMLROS2PublisherNode.h> // forward declaration alone doesn't seem to work here
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 {

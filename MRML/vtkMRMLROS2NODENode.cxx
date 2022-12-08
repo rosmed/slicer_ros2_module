@@ -1,6 +1,8 @@
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include "vtkCommand.h"
+#include <vtkMRMLROS2SubscriberNode.h>
+#include <vtkMRMLROS2PublisherNode.h> 
 
 vtkStandardNewMacro(vtkMRMLROS2NODENode);
 
