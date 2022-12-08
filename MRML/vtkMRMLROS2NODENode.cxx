@@ -108,12 +108,14 @@ void vtkMRMLROS2NODENode::ReadXMLAttributes( const char** atts )
   vtkMRMLReadXMLStdStringMacro(ROS2NodeName, mROS2NodeName);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
-  std::cerr << "ROS2NODENode restored \n" << std::endl;
+
+  // This is created before UpdateScene() for all other nodes is called.
+  // It handles cases where Publishers and Subscribers are Read before the ROS2Node
   this->Create(mROS2NodeName,false);
 }
 
 void vtkMRMLROS2NODENode::UpdateScene(vtkMRMLScene *scene)
 {
     Superclass::UpdateScene(scene);
-    std::cerr << "ROS2NODENode updated? \n" << std::endl;
+    std::cerr << "ROS2NODENode updated" << std::endl;
 }
