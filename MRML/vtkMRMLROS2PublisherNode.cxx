@@ -22,10 +22,14 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
   mMRMLNodeName = "ros2:pub:" + topic;
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
+
   if (!this->GetScene()) {
     vtkWarningMacro(<< "AddToROS2Node, Publisher MRML node for topic \"" << topic << "\" needs to be added to the scene first");
     return false;
   }
+
+  parentNodeID.assign(nodeId);
+
   std::string errorMessage;
   if (mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
     return true;
@@ -68,6 +72,8 @@ void vtkMRMLROS2PublisherNode::WriteXML( ostream& of, int nIndent )
   vtkIndent indent(nIndent);
 
   vtkMRMLWriteXMLBeginMacro(of);
+  vtkMRMLWriteXMLStdStringMacro(topicName, mTopic);
+  vtkMRMLWriteXMLStdStringMacro(parentNodeID, parentNodeID);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -77,9 +83,12 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
+  vtkMRMLReadXMLStdStringMacro(topicName, mTopic);
+  vtkMRMLReadXMLStdStringMacro(parentNodeID, parentNodeID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
   std::cerr << "Publisher restored \n" << std::endl;
+  this->AddToROS2Node(parentNodeID.c_str(),mTopic);
 
   // AddtoROS2Node()
 }

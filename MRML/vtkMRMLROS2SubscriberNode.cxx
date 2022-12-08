@@ -33,6 +33,9 @@ bool vtkMRMLROS2SubscriberNode::AddToROS2Node(const char * nodeId,
     vtkWarningMacro(<< "AddToROS2Node, subscriber MRML node for topic \"" << topic << "\" needs to be added to the scene first");
     return false;
   }
+
+  parentNodeID.assign(nodeId);
+
   std::string errorMessage;
   if (mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
     return true;
@@ -76,6 +79,8 @@ void vtkMRMLROS2SubscriberNode::WriteXML( ostream& of, int nIndent )
   vtkIndent indent(nIndent);
 
   vtkMRMLWriteXMLBeginMacro(of);
+  vtkMRMLWriteXMLStdStringMacro(topicName, mTopic);
+  vtkMRMLWriteXMLStdStringMacro(parentNodeID, parentNodeID);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -85,7 +90,10 @@ void vtkMRMLROS2SubscriberNode::ReadXMLAttributes( const char** atts )
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
+  vtkMRMLReadXMLStdStringMacro(topicName, mTopic);
+  vtkMRMLReadXMLStdStringMacro(parentNodeID, parentNodeID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
   std::cerr << "Subscriber restored \n" << std::endl;
+  this->AddToROS2Node(parentNodeID.c_str(),mTopic);
 }

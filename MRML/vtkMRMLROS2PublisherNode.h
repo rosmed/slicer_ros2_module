@@ -60,6 +60,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
   vtkMRMLROS2PublisherInternals * mInternals;
   std::string mTopic = "undefined";
   std::string mMRMLNodeName = "ros2:sub:undefined";
+  std::string parentNodeID = "undefined";
+
+  vtkGetMacro(mTopic, std::string);
+  vtkSetMacro(mTopic, std::string);
+  vtkGetMacro(parentNodeID, std::string);
+  vtkSetMacro(parentNodeID, std::string);
 };
 
 #endif // __vtkMRMLROS2PublisherNode_h
