@@ -82,11 +82,24 @@ public:
   void Spin(void);
   void Clear();
   void BroadcastTransform();
-  void AddToScene(void);
-  void AddROS2Node(void);
-  void AddPublisher(void);
+
+  /*! Helper method to create a subscriber given a subscriber type and
+    a topic. This method will create the corresponding MRML node if
+    there is no existing subscriber for the given topic and add it to
+    the default ROS2 node for this logic. It will return a nullptr a
+    new subscriber was not created. */
   vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+
+  /*! Helper method to create a publisher given a publisher type and
+    a topic. This method will create the corresponding MRML node if
+    there is no existing publisher for the given topic and add it to
+    the default ROS2 node for this logic. It will return a nullptr a
+    new publisher was not created. */
   vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
+
+  void AddROS2Node(void);
+  void AddSomePublishers(void);
+  void AddSomeSubscribers(void);
 
   // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
   vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
