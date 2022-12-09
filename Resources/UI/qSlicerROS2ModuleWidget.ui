@@ -138,7 +138,7 @@
            </attribute>
            <column>
             <property name="text">
-             <string>Publisher name</string>
+             <string>Topic</string>
             </property>
            </column>
            <column>
@@ -177,7 +177,7 @@
            </attribute>
            <column>
             <property name="text">
-             <string>Subscriber name</string>
+             <string>Topic</string>
             </property>
            </column>
            <column>
