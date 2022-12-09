@@ -13,6 +13,11 @@ vtkMRMLROS2PublisherNode::~vtkMRMLROS2PublisherNode()
 void vtkMRMLROS2PublisherNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
+  os << indent << "Topic: " << mTopic << "\n";
+  os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
+  os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
+  os << indent << "Number of calls: " << mNumberOfCalls << "\n"; 
+  os << indent << "Number of messages sent:" << mNumberOfMessagesSent << "\n"; // This should be replaced with GetLastMessage
 }
 
 bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,

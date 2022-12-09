@@ -19,7 +19,7 @@ void vtkMRMLROS2SubscriberNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
   os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
   os << indent << "Number of Messages: " << mNumberOfMessages << "\n"; 
-  os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n"; 
+  os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n"; // This should be replaced with GetLastMessage
 }
 
 bool vtkMRMLROS2SubscriberNode::AddToROS2Node(const char * nodeId,
