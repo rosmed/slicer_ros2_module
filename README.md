@@ -1,5 +1,6 @@
 This module is designed to enable direct communication between ROS 2 and 3D Slicer.  You can find more details regarding this module in [Bridging 3D Slicer and ROS2 for Image-Guided Robotic Interventions](https://pubmed.ncbi.nlm.nih.gov/35891016/).  This is an early prototype and we hope to add more features soon.
 
+Documentation: https://slicer-ros2.readthedocs.io/en/devel/index.html
 ## Features
 
 The main feature currently supported is the ability to visualize a robot within Slicer.  The default approach is similar to RViz, i.e.:
