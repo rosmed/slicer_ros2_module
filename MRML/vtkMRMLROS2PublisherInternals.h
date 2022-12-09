@@ -61,9 +61,10 @@ protected:
     }
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    vtkMRMLNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
-    if (pub != nullptr) {
-      errorMessage = "there is already a publisher for topic \"" + topic + "\"";
+    vtkMRMLROS2PublisherNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
+    if ((pub != nullptr)
+	&& pub->IsAddedToROS2Node()) {
+      errorMessage = "there is already a publisher for topic \"" + topic + "\" added to the ROS node";
       return false;
     }
     mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
