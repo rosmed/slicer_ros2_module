@@ -50,33 +50,32 @@ void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
-vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic){
-    
+vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic)
+{
   int subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
-  for (int j = 0; j < subscriberRefs; j ++){
-    
+  for (int j = 0; j < subscriberRefs; j ++) {
     vtkMRMLROS2SubscriberNode * node = vtkMRMLROS2SubscriberNode::SafeDownCast(this->GetNthNodeReference("subscriber", j));
-    if (!node){
+    if (!node) {
       vtkWarningMacro(<< "Node referenced by role 'subscriber' is not a subscriber");
     }
     std::string topicName = node->GetTopic(); 
-    if (topicName == topic){ // check if an existing nodes name matches the topic provided
+    if (topicName == topic) { // check if an existing nodes name matches the topic provided
       return node; // if so return the node
     }
   }
   return nullptr; // otherwise return a null ptr
 }
 
-vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std::string & topic){
-    
+vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std::string & topic)
+{    
   int publisherRefs = this->GetNumberOfNodeReferences("publisher");
-  for (int j = 0; j < publisherRefs; j ++){
+  for (int j = 0; j < publisherRefs; j ++) {
     vtkMRMLROS2PublisherNode * node = vtkMRMLROS2PublisherNode::SafeDownCast(this->GetNthNodeReference("publisher", j));
-    if (!node){
+    if (!node) {
       vtkWarningMacro(<< "Node referenced by role 'subscriber' is not a subscriber");
     }
     std::string topicName = node->GetTopic(); 
-    if (topicName == topic){ // check if an existing nodes name matches the topic provided
+    if (topicName == topic) { // check if an existing nodes name matches the topic provided
       return node; // if so return the node
     }
   }

@@ -18,18 +18,14 @@ public:
 
   vtkSmartPointer<_slicer_type> mLastMessageSlicer;
 
-  void Publish(_slicer_type * msg)
+  size_t Publish(_slicer_type * msg)
   {
-    vtkSlicerToROS2(msg, this->mMessageROS);
-    this->mPublisher->publish(this->mMessageROS);
-    this->mMRMLNode->mNumberOfCalls++;
-  }
-
-  // overload Publish to support pointers
-  void Publish(vtkSmartPointer<_slicer_type> msg)
-  {
-    this->Publish(msg.GetPointer());
-    this->mMRMLNode->mNumberOfCalls++;
+    const auto nbSubscriber = this->mPublisher->get_subscription_count();
+    if (nbSubscriber != 0) {
+      vtkSlicerToROS2(msg, this->mMessageROS);
+      this->mPublisher->publish(this->mMessageROS);
+    }
+    return nbSubscriber;
   }
 };
 
@@ -45,8 +41,8 @@ public:
     static SelfType * New(void);                                        \
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    void Publish(slicer_type* msg);				\
-    void Publish( vtkSmartPointer<slicer_type> message);	      \
+    size_t Publish(slicer_type* msg);				\
+    size_t Publish(vtkSmartPointer<slicer_type> message);	      \
     									\
   protected:								\
     vtkMRMLROS2Publisher##name##Node();                                \
@@ -81,14 +77,17 @@ public:
     return "ROS2Publisher"#name;					\
   }									\
  									\
-  void vtkMRMLROS2Publisher##name##Node::Publish(slicer_type * message)  \
+  size_t vtkMRMLROS2Publisher##name##Node::Publish(slicer_type * message) \
   {									\
-    (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
-  }       \
-            \
-   void vtkMRMLROS2Publisher##name##Node::Publish(vtkSmartPointer<slicer_type> message)  \
+    mNumberOfCalls++;							\
+    const auto justSent = (reinterpret_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
+    mNumberOfMessagesSent += justSent;					\
+    return justSent;							\
+  }									\
+									\
+  size_t  vtkMRMLROS2Publisher##name##Node::Publish(vtkSmartPointer<slicer_type> message) \
   {									\
-    (dynamic_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
-  }       
-  
+    return this->Publish(message.GetPointer());				\
+  }
+
 #endif // __vtkMRMLROS2PublisherVTKInternals_h

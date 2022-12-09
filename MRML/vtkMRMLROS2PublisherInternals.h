@@ -5,15 +5,8 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <vtkMRMLScene.h>
-#include <chrono>
-#include <functional>
-#include <memory>
-#include <std_msgs/msg/string.hpp>
-
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
-
-using namespace std::chrono_literals;
 
 class vtkMRMLROS2PublisherInternals
 {
@@ -25,11 +18,11 @@ public:
 
   virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 			     const std::string & topic, std::string & errorMessage) = 0;
+  virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
   virtual size_t GetNumberOfMessagesSent(vtkMRMLScene * scene, const char * nodeId, const std::string & topic) = 0;
   vtkMRMLROS2NODENode * rosNodePtr;
-  int nthRef = 0;
 
 protected:
   vtkMRMLROS2PublisherNode * mMRMLNode;
@@ -47,14 +40,15 @@ public:
 
 protected:
   _ros_type mMessageROS;
-  std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher;
+  std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher = nullptr;
 
   /**
    * Add the Publisher to the ROS2 node.  This methods searched the
    * vtkMRMLROS2NODENode by Id to locate the rclcpp::node
    */
   bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
-		     const std::string & topic, std::string & errorMessage) {
+		     const std::string & topic, std::string & errorMessage) override
+  {
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
       errorMessage = "unable to locate node";
@@ -67,25 +61,27 @@ protected:
     }
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    // vtkMRMLNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
-    // if (pub == nullptr){
+    vtkMRMLNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
+    if (pub != nullptr) {
+      errorMessage = "there is already a publisher for topic \"" + topic + "\"";
+      return false;
+    }
     mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
     rosNodePtr->SetNthNodeReferenceID("publisher",
-              rosNodePtr->GetNumberOfNodeReferences("publisher"),
-              mMRMLNode->GetID());
+				      rosNodePtr->GetNumberOfNodeReferences("publisher"),
+				      mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
-    // }
-    // Otherwise state that there is already a subscriber for that topic 
-    // else{
-    //   return false;
-    // }
     return true;
+  }
+
+  bool IsAddedToROS2Node(void) const override
+  {
+    return (mPublisher != nullptr);
   }
 
   const char * GetROSType(void) const override
   {
     return rosidl_generator_traits::name<_ros_type>();
-    // return typeid(_ros_type).name();
   }
 
   const char * GetSlicerType(void) const override
@@ -103,7 +99,7 @@ protected:
     if (!rosNodePtr) {
       return false;
     }
-    if (rosNodePtr->GetPublisherNodeByTopic(topic) && rosNodePtr->GetSubscriberNodeByTopic(topic)) 
+    if (rosNodePtr->GetPublisherNodeByTopic(topic) && rosNodePtr->GetSubscriberNodeByTopic(topic))
     {
       mMRMLNode->mNumberOfMessagesSent++;
     }

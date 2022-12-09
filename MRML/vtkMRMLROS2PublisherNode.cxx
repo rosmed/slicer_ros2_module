@@ -10,18 +10,18 @@ vtkMRMLROS2PublisherNode::~vtkMRMLROS2PublisherNode()
 {
 }
 
-void vtkMRMLROS2PublisherNode::PrintSelf(ostream& os, vtkIndent indent)
+void vtkMRMLROS2PublisherNode::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
   os << indent << "Topic: " << mTopic << "\n";
   os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
   os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
-  os << indent << "Number of calls: " << mNumberOfCalls << "\n"; 
-  os << indent << "Number of messages sent:" << mNumberOfMessagesSent << "\n"; // This should be replaced with GetLastMessage
+  os << indent << "Number of calls: " << mNumberOfCalls << "\n";
+  os << indent << "Number of messages sent:" << mNumberOfMessagesSent << "\n";
 }
 
 bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
-					      const std::string & topic)
+					     const std::string & topic)
 {
   mTopic = topic;
   mMRMLNodeName = "ros2:pub:" + topic;
@@ -29,26 +29,20 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
   vtkMRMLScene * scene = this->GetScene();
 
   if (!this->GetScene()) {
-    vtkWarningMacro(<< "AddToROS2Node, Publisher MRML node for topic \"" << topic << "\" needs to be added to the scene first");
+    vtkErrorMacro(<< "AddToROS2Node, publisher MRML node for topic \"" << topic << "\" needs to be added to the scene first");
     return false;
   }
-
-  parentNodeID.assign(nodeId);
-
   std::string errorMessage;
-  if (mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
-    return true;
+  if (!mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
+    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+    return false;
   }
-  else{
-    vtkWarningMacro(<< "Publisher for this topic: \"" << topic << "\" is already in the scene.");
-  }
-  vtkWarningMacro(<< "AddToROS2Node, looking for ROS2 node: " << errorMessage);
-  return false;
+  return true;
 }
 
-const char * vtkMRMLROS2PublisherNode::GetTopic(void) const
+bool vtkMRMLROS2PublisherNode::IsAddedToROS2Node(void) const
 {
-  return mTopic.c_str();
+  return mInternals->IsAddedToROS2Node();
 }
 
 const char * vtkMRMLROS2PublisherNode::GetROSType(void) const
@@ -61,43 +55,35 @@ const char * vtkMRMLROS2PublisherNode::GetSlicerType(void) const
   return mInternals->GetSlicerType();
 }
 
-size_t vtkMRMLROS2PublisherNode::GetNumberOfCalls(void) const
-{
-  return mNumberOfCalls;
-}
-
-size_t vtkMRMLROS2PublisherNode::GetNumberOfMessagesSent(const char * nodeId, const std::string & topic)
-{
-  vtkMRMLScene * scene = this->GetScene();
-  return mInternals->GetNumberOfMessagesSent(scene, nodeId, topic);
-}
-
-void vtkMRMLROS2PublisherNode::WriteXML( ostream& of, int nIndent )
+void vtkMRMLROS2PublisherNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
-  vtkIndent indent(nIndent);
-
+  // vtkIndent indent(nIndent);
   vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(topicName, mTopic);
-  vtkMRMLWriteXMLStdStringMacro(parentNodeID, parentNodeID);
+  vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
   vtkMRMLWriteXMLEndMacro();
 }
 
-//------------------------------------------------------------------------------
-void vtkMRMLROS2PublisherNode::ReadXMLAttributes( const char** atts )
+void vtkMRMLROS2PublisherNode::ReadXMLAttributes(const char** atts)
 {
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(topicName, mTopic);
-  vtkMRMLReadXMLStdStringMacro(parentNodeID, parentNodeID);
+  vtkMRMLReadXMLStdStringMacro(topicName, Topic);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }
 
 void vtkMRMLROS2PublisherNode::UpdateScene(vtkMRMLScene *scene)
 {
-    Superclass::UpdateScene(scene);
-    this->AddToROS2Node(parentNodeID.c_str(), mTopic);
-    std::cerr << "Publisher updated. " << std::endl;
+  Superclass::UpdateScene(scene);
+  if (!IsAddedToROS2Node()) {
+    int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+    if (nbNodeRefs != 1) {
+      vtkErrorMacro(<< "No ROS2 node reference defined for publisher \"" << GetName() << "\"");
+    } else {
+      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
+			  mTopic);
+    }
+  }
 }
