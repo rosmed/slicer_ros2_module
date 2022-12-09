@@ -39,7 +39,14 @@ Publish from python:
 
 .. code-block:: python
 
-    pub.Publisher('String message')
+    pub.Publisher('String message') # native implementation
+    # To test the vtk implementation try the following
+    ros2 = slicer.util.getModuleLogic('ROS2')
+    pub = ros2.CreateAndAddPublisher('vtkMRMLROS2PublisherPoseStampedNode', '/pose_pub')
+    # run ros2 topic echo /pose_pub in a terminal to see the output
+    mat = vtk.vtkMatrix4x4()
+    mat.SetElement(0,3,100) # Modify the matrix so we can see something changing
+    pub.Publish(mat) 
 
 Print the node to see references
 
