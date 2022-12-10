@@ -3,14 +3,6 @@
 
 #include <vtkMRMLROS2SubscriberInternals.h>
 
-vtkMRMLROS2SubscriberNode::vtkMRMLROS2SubscriberNode()
-{
-}
-
-vtkMRMLROS2SubscriberNode::~vtkMRMLROS2SubscriberNode()
-{
-}
-
 void vtkMRMLROS2SubscriberNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -18,8 +10,8 @@ void vtkMRMLROS2SubscriberNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Topic: " << mTopic << "\n";
   os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
   os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
-  os << indent << "Number of Messages: " << mNumberOfMessages << "\n"; 
-  os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n"; // This should be replaced with GetLastMessage
+  os << indent << "Number of messages: " << mNumberOfMessages << "\n";
+  os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n";
 }
 
 bool vtkMRMLROS2SubscriberNode::AddToROS2Node(const char * nodeId,
@@ -33,23 +25,17 @@ bool vtkMRMLROS2SubscriberNode::AddToROS2Node(const char * nodeId,
     vtkWarningMacro(<< "AddToROS2Node, subscriber MRML node for topic \"" << topic << "\" needs to be added to the scene first");
     return false;
   }
-
-  parentNodeID.assign(nodeId);
-
   std::string errorMessage;
-  if (mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
-    return true;
+  if (!mInternals->AddToROS2Node(scene, nodeId, topic, errorMessage)) {
+    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+    return false;
   }
-  else{
-    vtkErrorMacro(<< "Subscriber by that name is already in the scene.");
-  }
-  vtkWarningMacro(<< "AddToROS2Node, looking for ROS2 node: " << errorMessage);
-  return false;
+  return true;
 }
 
-const char * vtkMRMLROS2SubscriberNode::GetTopic(void) const
+bool vtkMRMLROS2SubscriberNode::IsAddedToROS2Node(void) const
 {
-  return mTopic.c_str();
+  return mInternals->IsAddedToROS2Node();
 }
 
 const char * vtkMRMLROS2SubscriberNode::GetROSType(void) const
@@ -62,43 +48,37 @@ const char * vtkMRMLROS2SubscriberNode::GetSlicerType(void) const
   return mInternals->GetSlicerType();
 }
 
-size_t vtkMRMLROS2SubscriberNode::GetNumberOfMessages(void) const
-{
-  return mNumberOfMessages;
-}
-
 std::string vtkMRMLROS2SubscriberNode::GetLastMessageYAML(void) const
 {
   return mInternals->GetLastMessageYAML();
 }
 
-
-void vtkMRMLROS2SubscriberNode::WriteXML( ostream& of, int nIndent )
+void vtkMRMLROS2SubscriberNode::WriteXML(std::ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
-  vtkIndent indent(nIndent);
-
   vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(topicName, mTopic);
-  vtkMRMLWriteXMLStdStringMacro(parentNodeID, parentNodeID);
+  vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
   vtkMRMLWriteXMLEndMacro();
 }
 
-//------------------------------------------------------------------------------
-void vtkMRMLROS2SubscriberNode::ReadXMLAttributes( const char** atts )
+void vtkMRMLROS2SubscriberNode::ReadXMLAttributes(const char** atts)
 {
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(topicName, mTopic);
-  vtkMRMLReadXMLStdStringMacro(parentNodeID, parentNodeID);
+  vtkMRMLReadXMLStdStringMacro(topicName, Topic);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }
 
 void vtkMRMLROS2SubscriberNode::UpdateScene(vtkMRMLScene *scene)
 {
-    Superclass::UpdateScene(scene);
-    this->AddToROS2Node(parentNodeID.c_str(),mTopic);
-    std::cerr << "Subscriber updated" << std::endl;
+  Superclass::UpdateScene(scene);
+  int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+  if (nbNodeRefs != 1) {
+    vtkErrorMacro(<< "No ROS2 node reference defined for subscriber \"" << GetName() << "\"");
+  } else {
+    this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
+			mTopic);
+  }
 }

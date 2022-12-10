@@ -11,12 +11,31 @@ set(${KIT}_INCLUDE_DIRECTORIES
 # --------------------------------------------------------------------------
 # Sources
 
-set(${KIT}_SRCS
+set(_SRCS_INTERNAL
   # conversion methods
   vtkROS2ToSlicer.h
   vtkROS2ToSlicer.cxx
   vtkSlicerToROS2.h
   vtkSlicerToROS2.cxx
+  # node internals
+  vtkMRMLROS2NodeInternals.h
+  vtkMRMLROS2PublisherInternals.h
+  vtkMRMLROS2PublisherNativeInternals.h
+  vtkMRMLROS2PublisherVTKInternals.h
+  vtkMRMLROS2SubscriberInternals.h
+  vtkMRMLROS2SubscriberNativeInternals.h
+  vtkMRMLROS2SubscriberVTKInternals.h
+  )
+
+set_source_files_properties(
+  ${_SRCS_INTERNAL}
+  PROPERTIES
+  WRAP_EXCLUDE_PYTHON 1
+  )
+
+set(${KIT}_SRCS
+  # private classes
+  ${_SRCS_INTERNAL}
   # public classes
   vtkMRMLROS2NODENode.h
   vtkMRMLROS2NODENode.cxx
@@ -28,7 +47,6 @@ set(${KIT}_SRCS
   vtkMRMLROS2SubscriberVTKNode.cxx
   vtkMRMLROS2PublisherNode.h
   vtkMRMLROS2PublisherNode.cxx
-  vtkMRMLROS2PublisherInternals.h
   vtkMRMLROS2PublisherNativeNode.h
   vtkMRMLROS2PublisherNativeNode.cxx
   vtkMRMLROS2PublisherVTKNode.h

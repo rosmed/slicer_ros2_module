@@ -12,6 +12,7 @@ class vtkMRMLROS2SubscriberInternals;
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMRMLNode
 {
 
+  // friend declarations
   friend class vtkMRMLROS2SubscriberInternals;
 
   template <typename _ros_type, typename _slicer_type>
@@ -23,13 +24,19 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
   bool AddToROS2Node(const char * nodeId,
 		     const std::string & topic);
 
-  const char * GetTopic(void) const;
+  bool IsAddedToROS2Node(void) const;
+
+  const std::string & GetTopic(void) const {
+    return mTopic;
+  }
 
   const char * GetROSType(void) const;
 
   const char * GetSlicerType(void) const;
 
-  size_t GetNumberOfMessages(void) const;
+  size_t GetNumberOfMessages(void) const {
+    return mNumberOfMessages;
+  }
 
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
@@ -47,25 +54,24 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
    */
   virtual vtkVariant GetLastMessageVariant(void) = 0;
 
-    // Save and load
-  virtual void ReadXMLAttributes( const char** atts ) override;
-  virtual void WriteXML( ostream& of, int indent ) override;
+  // Save and load
+  virtual void ReadXMLAttributes(const char** atts) override;
+  virtual void WriteXML(std::ostream& of, int indent) override;
   void UpdateScene(vtkMRMLScene *scene) override;
 
  protected:
-  vtkMRMLROS2SubscriberNode();
-  ~vtkMRMLROS2SubscriberNode();
+  vtkMRMLROS2SubscriberNode() = default;
+  ~vtkMRMLROS2SubscriberNode() = default;
 
   vtkMRMLROS2SubscriberInternals * mInternals = nullptr;
   std::string mTopic = "undefined";
   std::string mMRMLNodeName = "ros2:sub:undefined";
   size_t mNumberOfMessages = 0;
-  std::string parentNodeID = "undefined";
 
-  vtkGetMacro(mTopic, std::string);
-  vtkSetMacro(mTopic, std::string);
-  vtkGetMacro(parentNodeID, std::string);
-  vtkSetMacro(parentNodeID, std::string);
+  // For ReadXMLAttributes
+  inline void SetTopic(const std::string & topic) {
+    mTopic = topic;
+  }
 };
 
 #endif // __vtkMRMLROS2SubscriberNode_h

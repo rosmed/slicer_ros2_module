@@ -14,19 +14,17 @@ public:
   vtkMRMLROS2PublisherInternals(vtkMRMLROS2PublisherNode * mrmlNode):
     mMRMLNode(mrmlNode)
   {}
-  virtual ~vtkMRMLROS2PublisherInternals() {};
+  virtual ~vtkMRMLROS2PublisherInternals() = default;
 
   virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 			     const std::string & topic, std::string & errorMessage) = 0;
   virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
-  virtual size_t GetNumberOfMessagesSent(vtkMRMLScene * scene, const char * nodeId, const std::string & topic) = 0;
-  vtkMRMLROS2NODENode * rosNodePtr;
-
 protected:
   vtkMRMLROS2PublisherNode * mMRMLNode;
 };
+
 
 template <typename _slicer_type, typename _ros_type>
 class vtkMRMLROS2PublisherTemplatedInternals: public vtkMRMLROS2PublisherInternals
@@ -39,7 +37,6 @@ public:
   {}
 
 protected:
-  _ros_type mMessageROS;
   std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher = nullptr;
 
   /**
@@ -89,24 +86,6 @@ protected:
   {
     return typeid(_slicer_type).name();
   }
-
-  size_t GetNumberOfMessagesSent(vtkMRMLScene * scene, const char * nodeId, const std::string & topic)
-  {
-    vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
-    if (!rosNodeBasePtr) {
-      return false;
-    }
-    vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
-    if (!rosNodePtr) {
-      return false;
-    }
-    if (rosNodePtr->GetPublisherNodeByTopic(topic) && rosNodePtr->GetSubscriberNodeByTopic(topic))
-    {
-      mMRMLNode->mNumberOfMessagesSent++;
-    }
-    return mMRMLNode->mNumberOfMessagesSent;
-  }
-
 };
 
 #endif // __vtkMRMLROS2PublisherInternals_h

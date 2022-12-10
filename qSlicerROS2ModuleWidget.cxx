@@ -237,7 +237,7 @@ void qSlicerROS2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
   if (!topic_item) {
     topic_item = new QTableWidgetItem;
     d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
-    topic_item->setText(sub->GetTopic());
+    topic_item->setText(sub->GetTopic().c_str());
     type_item = new QTableWidgetItem;
     d->rosSubscriberTableWidget->setItem(row, 1, type_item);
     type_item->setText(sub->GetROSType());

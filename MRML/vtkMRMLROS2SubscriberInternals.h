@@ -5,7 +5,6 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <vtkMRMLScene.h>
-
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 
@@ -15,16 +14,18 @@ public:
   vtkMRMLROS2SubscriberInternals(vtkMRMLROS2SubscriberNode * mrmlNode):
     mMRMLNode(mrmlNode)
   {}
-  virtual ~vtkMRMLROS2SubscriberInternals() {};
+  virtual ~vtkMRMLROS2SubscriberInternals() = default;
 
   virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 			     const std::string & topic, std::string & errorMessage) = 0;
+  virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
   virtual std::string GetLastMessageYAML(void) const = 0;
 protected:
   vtkMRMLROS2SubscriberNode * mMRMLNode;
 };
+
 
 template <typename _ros_type, typename _slicer_type>
 class vtkMRMLROS2SubscriberTemplatedInternals: public vtkMRMLROS2SubscriberInternals
@@ -35,11 +36,10 @@ public:
   vtkMRMLROS2SubscriberTemplatedInternals(vtkMRMLROS2SubscriberNode *  mrmlNode):
     vtkMRMLROS2SubscriberInternals(mrmlNode)
   {}
-  
 
 protected:
   _ros_type mLastMessageROS;
-  std::shared_ptr<rclcpp::Subscription<_ros_type>> mSubscription;
+  std::shared_ptr<rclcpp::Subscription<_ros_type>> mSubscription = nullptr;
 
   /**
    * This is the ROS callback for the subscription.  This methods
@@ -70,28 +70,30 @@ protected:
       return false;
     }
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-    // Check if the subscriber already exists
-    // if it doesn't instantiate the subscriber
-    // if (rosNodePtr->GetSubscriberNodeByTopic(topic) == nullptr){
-    mSubscription = nodePointer->create_subscription<_ros_type>(topic, 100,
-                  std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
+    vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
+    if ((sub != nullptr)
+	&& sub->IsAddedToROS2Node()) {
+      errorMessage = "there is already a subscriber for topic \"" + topic + "\" added to the ROS node";
+      return false;
+    }
+    mSubscription
+      = nodePointer->create_subscription<_ros_type>(topic, 100,
+						    std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
     rosNodePtr->SetNthNodeReferenceID("subscriber",
-                rosNodePtr->GetNumberOfNodeReferences("subscriber"),
-                mMRMLNode->GetID());
+				      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
+				      mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
-    // }
-    // // Otherwise state that there is already a subscriber for that topic 
-    // else{
-    //   errorMessage = std::string(rosNodeBasePtr->GetName()) + " already has a reference to a subscriber for that topic.";
-    //   return false;
-    // }
     return true;
+  }
+
+  bool IsAddedToROS2Node(void) const override
+  {
+    return (mSubscription != nullptr);
   }
 
   const char * GetROSType(void) const override
   {
     return rosidl_generator_traits::name<_ros_type>();
-    // return typeid(_ros_type).name();
   }
 
   const char * GetSlicerType(void) const override
@@ -107,5 +109,5 @@ protected:
   }
 };
 
-#endif 
+#endif
 // __vtkMRMLROS2SubscriberInternals_h

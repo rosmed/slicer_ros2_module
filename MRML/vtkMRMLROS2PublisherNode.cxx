@@ -2,14 +2,6 @@
 
 #include <vtkMRMLROS2PublisherInternals.h>
 
-vtkMRMLROS2PublisherNode::vtkMRMLROS2PublisherNode()
-{
-}
-
-vtkMRMLROS2PublisherNode::~vtkMRMLROS2PublisherNode()
-{
-}
-
 void vtkMRMLROS2PublisherNode::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -27,7 +19,6 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
   mMRMLNodeName = "ros2:pub:" + topic;
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
-
   if (!this->GetScene()) {
     vtkErrorMacro(<< "AddToROS2Node, publisher MRML node for topic \"" << topic << "\" needs to be added to the scene first");
     return false;
@@ -58,7 +49,6 @@ const char * vtkMRMLROS2PublisherNode::GetSlicerType(void) const
 void vtkMRMLROS2PublisherNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
-  // vtkIndent indent(nIndent);
   vtkMRMLWriteXMLBeginMacro(of);
   vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
   vtkMRMLWriteXMLEndMacro();

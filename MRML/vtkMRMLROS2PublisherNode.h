@@ -49,8 +49,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
   void UpdateScene(vtkMRMLScene *scene) override;
 
  protected:
-  vtkMRMLROS2PublisherNode();
-  ~vtkMRMLROS2PublisherNode();
+  vtkMRMLROS2PublisherNode() = default;
+  ~vtkMRMLROS2PublisherNode() = default;
 
   vtkMRMLROS2PublisherInternals * mInternals;
   std::string mTopic = "undefined";

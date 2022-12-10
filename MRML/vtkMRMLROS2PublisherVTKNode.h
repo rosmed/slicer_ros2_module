@@ -2,7 +2,7 @@
 #define __vtkMRMLROS2PublisherVTKNode_h
 
 #include <vtkMRMLROS2PublisherNode.h>
-#include <vtkMRMLROS2PublisherVTKInternals.h>
+#include <vtkMRMLROS2PublisherVTKMacros.h>
 
 #include <vtkMatrix4x4.h>
 
