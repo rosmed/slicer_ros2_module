@@ -21,21 +21,21 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   typedef vtkMRMLROS2NODENode SelfType;
   vtkTypeMacro(vtkMRMLROS2NODENode, vtkMRMLNode);
   static SelfType * New(void);
-  void PrintSelf(ostream& os, vtkIndent indent) override;
+  void PrintSelf(std::ostream& os, vtkIndent indent) override;
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
   void Create(const std::string & nodeName, bool initialize = false);
+  inline const std::string GetROS2NodeName(void) const {
+    return mROS2NodeName;
+  }
   void Spin(void);
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
 
   // Save and load
-  virtual void ReadXMLAttributes( const char** atts ) override;
-  virtual void WriteXML( ostream& of, int indent ) override;
-  void UpdateScene(vtkMRMLScene *scene) override;
-
-  
+  virtual void ReadXMLAttributes(const char** atts) override;
+  virtual void WriteXML(std::ostream& of, int indent) override;
 
  protected:
   vtkMRMLROS2NODENode();
@@ -45,8 +45,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";
 
-  vtkGetMacro(mROS2NodeName, std::string);
-  vtkSetMacro(mROS2NodeName, std::string);
+  // For ReadXMLAttributes
+  inline void SetROS2NodeName(const std::string & name) {
+    mROS2NodeName = name;
+  }
 };
 
 #endif // __vtkMRMLROS2NODENode_h

@@ -9,12 +9,15 @@ vtkStandardNewMacro(vtkMRMLROS2NODENode);
 vtkMRMLNode * vtkMRMLROS2NODENode::CreateNodeInstance(void)
 {
   return SelfType::New();
+
 }
+
 
 const char * vtkMRMLROS2NODENode::GetNodeTagName(void)
 {
   return "ROS2Node";
 }
+
 
 vtkMRMLROS2NODENode::vtkMRMLROS2NODENode()
 {
@@ -25,10 +28,12 @@ vtkMRMLROS2NODENode::~vtkMRMLROS2NODENode()
 {
 }
 
+
 void vtkMRMLROS2NODENode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
 }
+
 
 void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
 {
@@ -50,6 +55,7 @@ void vtkMRMLROS2NODENode::Create(const std::string & nodeName, bool initialize)
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
+
 vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic)
 {
   int subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
@@ -65,6 +71,7 @@ vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const s
   }
   return nullptr; // otherwise return a null ptr
 }
+
 
 vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std::string & topic)
 {    
@@ -82,6 +89,7 @@ vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std
   return nullptr; // otherwise return a null ptr
 }
 
+
 void vtkMRMLROS2NODENode::Spin(void)
 {
   if (rclcpp::ok()) {
@@ -96,27 +104,21 @@ void vtkMRMLROS2NODENode::WriteXML( ostream& of, int nIndent )
   vtkIndent indent(nIndent);
 
   vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(ROS2NodeName, mROS2NodeName);
+  vtkMRMLWriteXMLStdStringMacro(ROS2NodeName, ROS2NodeName);
   vtkMRMLWriteXMLEndMacro();
 }
 
-//------------------------------------------------------------------------------
+
 void vtkMRMLROS2NODENode::ReadXMLAttributes( const char** atts )
 {
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(ROS2NodeName, mROS2NodeName);
+  vtkMRMLReadXMLStdStringMacro(ROS2NodeName, ROS2NodeName);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 
   // This is created before UpdateScene() for all other nodes is called.
   // It handles cases where Publishers and Subscribers are Read before the ROS2Node
   this->Create(mROS2NodeName,false);
-}
-
-void vtkMRMLROS2NODENode::UpdateScene(vtkMRMLScene *scene)
-{
-    Superclass::UpdateScene(scene);
-    std::cerr << "ROS2NODENode updated" << std::endl;
 }
