@@ -33,8 +33,8 @@
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLModelDisplayNode.h>
 
-#include <vtkMRMLROS2SubscriberNativeNode.h>
-#include <vtkMRMLROS2PublisherNativeNode.h>
+#include <vtkMRMLROS2SubscriberDefaultNodes.h>
+#include <vtkMRMLROS2PublisherDefaultNodes.h>
 
 #include<vtkMRMLNode.h>
 
@@ -69,8 +69,8 @@
 #include <sstream>
 
 #include <vtkMRMLROS2NODENode.h>
-#include <vtkMRMLROS2SubscriberVTKNode.h>
-#include <vtkMRMLROS2PublisherVTKNode.h>
+#include <vtkMRMLROS2SubscriberDefaultNodes.h>
+#include <vtkMRMLROS2PublisherDefaultNodes.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 

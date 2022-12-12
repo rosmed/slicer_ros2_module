@@ -20,11 +20,7 @@ set(_SRCS_INTERNAL
   # node internals
   vtkMRMLROS2NodeInternals.h
   vtkMRMLROS2PublisherInternals.h
-  vtkMRMLROS2PublisherNativeInternals.h
-  vtkMRMLROS2PublisherVTKInternals.h
   vtkMRMLROS2SubscriberInternals.h
-  vtkMRMLROS2SubscriberNativeInternals.h
-  vtkMRMLROS2SubscriberVTKInternals.h
   )
 
 set_source_files_properties(
@@ -41,16 +37,12 @@ set(${KIT}_SRCS
   vtkMRMLROS2NODENode.cxx
   vtkMRMLROS2SubscriberNode.h
   vtkMRMLROS2SubscriberNode.cxx
-  vtkMRMLROS2SubscriberNativeNode.h
-  vtkMRMLROS2SubscriberNativeNode.cxx
-  vtkMRMLROS2SubscriberVTKNode.h
-  vtkMRMLROS2SubscriberVTKNode.cxx
+  vtkMRMLROS2SubscriberDefaultNodes.h
+  vtkMRMLROS2SubscriberDefaultNodes.cxx
   vtkMRMLROS2PublisherNode.h
   vtkMRMLROS2PublisherNode.cxx
-  vtkMRMLROS2PublisherNativeNode.h
-  vtkMRMLROS2PublisherNativeNode.cxx
-  vtkMRMLROS2PublisherVTKNode.h
-  vtkMRMLROS2PublisherVTKNode.cxx
+  vtkMRMLROS2PublisherDefaultNodes.h
+  vtkMRMLROS2PublisherDefaultNodes.cxx
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
