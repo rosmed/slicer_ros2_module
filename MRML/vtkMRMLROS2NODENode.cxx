@@ -3,6 +3,7 @@
 #include "vtkCommand.h"
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h> 
+#include <vtkMRMLROS2ParameterNode.h> 
 
 vtkStandardNewMacro(vtkMRMLROS2NODENode);
 
@@ -89,6 +90,21 @@ vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std
   return nullptr; // otherwise return a null ptr
 }
 
+vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByTopic(const std::string & topic)
+{
+  int parameterRefs = this->GetNumberOfNodeReferences("parameter");
+  for (int j = 0; j < parameterRefs; j ++) {
+    vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
+    if (!node) {
+      vtkWarningMacro(<< "Node referenced by role 'parameter' is not a parameter");
+    }
+    std::string topicName = node->GetTopic(); 
+    if (topicName == topic) { // check if an existing nodes name matches the topic provided
+      return node; // if so return the node
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
 
 void vtkMRMLROS2NODENode::Spin(void)
 {

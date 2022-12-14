@@ -10,12 +10,14 @@
 class vtkMRMLROS2NodeInternals;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
+class vtkMRMLROS2ParameterNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 {
 
   template <typename _ros_type, typename _slicer_type> friend class vtkMRMLROS2SubscriberTemplatedInternals;
   template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2PublisherTemplatedInternals;
+  template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2ParameterTemplatedInternals;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;
@@ -32,6 +34,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   void Spin(void);
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
+  vtkMRMLROS2ParameterNode* GetParameterNodeByTopic(const std::string & topic);
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;

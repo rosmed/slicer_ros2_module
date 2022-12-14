@@ -36,6 +36,9 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 
+//to be changed
+#include <vtkMRMLROS2ParameterNativeNode.h>
+
 #include<vtkMRMLNode.h>
 
 // VTK includes
@@ -186,6 +189,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   // Publishers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
+
+  // Parameters
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterStringNode>::New());
 }
 
 
@@ -761,6 +767,35 @@ vtkMRMLROS2PublisherNode * vtkSlicerROS2Logic::CreateAndAddPublisher(const char 
   return nullptr;
 }
 
+vtkMRMLROS2ParameterNode * vtkSlicerROS2Logic::CreateAndAddParameter(const char * className, const std::string & trackedNodeName)
+{
+  // First make sure that we have a ROS2Node node
+  if (mROS2Node == nullptr) {
+    vtkErrorMacro(<< "the default ROS node has not been created yet");
+    return nullptr;
+  }
+
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLNode> node = this->GetMRMLScene()->CreateNodeByClass(className);
+
+  // Check that this is a Parameter so we can add it
+  vtkMRMLROS2ParameterNode * parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(node);
+  if (parameterNode == nullptr) {
+    vtkErrorMacro(<< "\"" << className << "\" is not derived from vtkMRMLROS2ParameterNode");
+    return nullptr;
+  }
+
+  // Add to the scene so the ROS2Node node can find it
+  this->GetMRMLScene()->AddNode(parameterNode);
+  if (parameterNode->AddToROS2Node(mROS2Node->GetID(), trackedNodeName)) {
+    return parameterNode;
+  }
+  // Something went wrong, cleanup
+  this->GetMRMLScene()->RemoveNode(node);
+  node->Delete();
+  return nullptr;
+}
+
 
 void vtkSlicerROS2Logic::AddROS2Node(void)
 {
@@ -793,6 +828,14 @@ void vtkSlicerROS2Logic::AddSomeSubscribers(void)
   subPose->AddToROS2Node(mROS2Node->GetID(), "/pose_sub");
   // the fast way
   this->CreateAndAddSubscriber("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
+}
+
+void vtkSlicerROS2Logic::AddSomeParameters(void)
+{
+  // the long way
+  vtkSmartPointer<vtkMRMLROS2ParameterStringNode> subString = vtkMRMLROS2ParameterStringNode::New();
+  this->GetMRMLScene()->AddNode(subString);
+  subString->AddToROS2Node(mROS2Node->GetID(), "/string_param");
 }
 
 
