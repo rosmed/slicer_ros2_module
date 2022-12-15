@@ -334,13 +334,11 @@ void qSlicerROS2ModuleWidget::subscriberClicked(int row, int col)
       std::cerr << "No subscriber by this name in the scene" << std::endl;
       return;
     }
-    QString message = sub->GetLastMessageYAML().c_str();
-    QString numMessages = QVariant(static_cast<int>(sub->GetNumberOfMessages())).toString(); // to convert to an int and then string
-    QLabel *popupLabel = new QLabel();
-    QString numMess = "Num messages:   ";
-    QString mess = "   Message: ";
-    popupLabel->setText(numMess + numMessages + mess + message);
-    popupLabel->show();
+    QMessageBox msgBox;
+    msgBox.setText(QStringLiteral("Number of messages: %1\nLast message: %2")
+		   .arg(sub->GetNumberOfMessages())
+		   .arg(sub->GetLastMessageYAML().c_str()));
+    msgBox.exec();
   }
 }
 
