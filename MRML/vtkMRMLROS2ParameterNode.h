@@ -18,6 +18,13 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
  public:
   vtkTypeMacro(vtkMRMLROS2ParameterNode, vtkMRMLNode);
 
+  //newly added
+
+  typedef vtkMRMLROS2ParameterNode SelfType;
+  static SelfType * New(void);
+  vtkMRMLNode * CreateNodeInstance(void) override;
+  const char * GetNodeTagName(void) override;
+
   bool AddToROS2Node(const char * nodeId,
 		     const std::string & trackedNodeName);
 
@@ -37,13 +44,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
   void UpdateScene(vtkMRMLScene *scene) override;
-
-  //newly added
-
-  typedef vtkMRMLROS2ParameterNode SelfType;
-  static SelfType * New(void);
-  vtkMRMLNode * CreateNodeInstance(void) override;
-  const char * GetNodeTagName(void) override;
 
  protected:
   vtkMRMLROS2ParameterNode();

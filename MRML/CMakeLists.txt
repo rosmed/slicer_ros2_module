@@ -13,21 +13,10 @@ set(${KIT}_INCLUDE_DIRECTORIES
 
 set(_SRCS_INTERNAL
   # conversion methods
-  vtkROS2ToSlicer.h
+  # vtkROS2ToSlicer.h
   vtkROS2ToSlicer.cxx
-  vtkSlicerToROS2.h
+  # vtkSlicerToROS2.h
   vtkSlicerToROS2.cxx
-  # node internals
-  vtkMRMLROS2NodeInternals.h
-  vtkMRMLROS2PublisherInternals.h
-  vtkMRMLROS2SubscriberInternals.h
-  vtkMRMLROS2ParameterInternals.h
-  )
-
-set_source_files_properties(
-  ${_SRCS_INTERNAL}
-  PROPERTIES
-  WRAP_EXCLUDE_PYTHON 1
   )
 
 set(${KIT}_SRCS
@@ -46,8 +35,6 @@ set(${KIT}_SRCS
   vtkMRMLROS2PublisherDefaultNodes.cxx
   vtkMRMLROS2ParameterNode.h
   vtkMRMLROS2ParameterNode.cxx 
-  # vtkMRMLROS2ParameterNativeNode.h
-  # vtkMRMLROS2ParameterNativeNode.cxx 
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)

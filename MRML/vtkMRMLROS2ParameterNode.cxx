@@ -1,6 +1,4 @@
-
 #include <vtkMRMLROS2ParameterNode.h>
-
 #include <vtkMRMLROS2ParameterInternals.h>
 
 vtkStandardNewMacro(vtkMRMLROS2ParameterNode);
