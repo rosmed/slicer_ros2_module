@@ -37,6 +37,7 @@ class vtkMRMLTransformNode;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
+class vtkMRMLROS2Tf2BroadcasterNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>

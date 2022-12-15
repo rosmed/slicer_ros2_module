@@ -39,7 +39,7 @@ Publish from python:
 
 .. code-block:: python
 
-    pub.Publisher('String message') # native implementation
+    pub.Publish('String message') # native implementation
     # To test the vtk implementation try the following
     ros2 = slicer.util.getModuleLogic('ROS2')
     pub = ros2.CreateAndAddPublisher('vtkMRMLROS2PublisherPoseStampedNode', '/pose_pub')

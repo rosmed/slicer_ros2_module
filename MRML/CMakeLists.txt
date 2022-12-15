@@ -35,6 +35,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2PublisherDefaultNodes.cxx
   vtkMRMLROS2ParameterNode.h
   vtkMRMLROS2ParameterNode.cxx 
+  vtkMRMLROS2Tf2BroadcasterNode.h
+  vtkMRMLROS2Tf2BroadcasterNode.cxx
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
@@ -52,5 +54,5 @@ SlicerMacroBuildModuleMRML(
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES}
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES}
   )

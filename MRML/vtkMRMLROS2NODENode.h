@@ -11,6 +11,7 @@ class vtkMRMLROS2NodeInternals;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
+class vtkMRMLROS2Tf2BroadcasterNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 {
@@ -18,6 +19,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   template <typename _ros_type, typename _slicer_type> friend class vtkMRMLROS2SubscriberTemplatedInternals;
   template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2PublisherTemplatedInternals;
   friend class vtkMRMLROS2ParameterInternals;
+  friend class vtkMRMLROS2Tf2BroadcasterInternals;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;

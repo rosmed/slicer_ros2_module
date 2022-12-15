@@ -39,6 +39,9 @@
 //to be changed
 #include <vtkMRMLROS2ParameterNode.h>
 
+// same 
+#include <vtkMRMLROS2Tf2BroadcasterNode.h>
+
 #include<vtkMRMLNode.h>
 
 // VTK includes
@@ -802,6 +805,11 @@ void vtkSlicerROS2Logic::AddROS2Node(void)
   mROS2Node = vtkMRMLROS2NODENode::New();
   this->GetMRMLScene()->AddNode(mROS2Node);
   mROS2Node->Create("testNode");
+
+  // // Add Tf2 Broadcaster
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
+  this->GetMRMLScene()->AddNode(tfBroadcaster);
+  tfBroadcaster->AddToROS2Node(mROS2Node->GetID());
 }
 
 

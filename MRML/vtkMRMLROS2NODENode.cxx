@@ -4,6 +4,7 @@
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h> 
 #include <vtkMRMLROS2ParameterNode.h> 
+#include <vtkMRMLROS2Tf2BroadcasterNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NODENode);
 
