@@ -37,7 +37,7 @@
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 
 //to be changed
-#include <vtkMRMLROS2ParameterNativeNode.h>
+#include <vtkMRMLROS2ParameterNode.h>
 
 #include<vtkMRMLNode.h>
 
@@ -191,7 +191,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
 
   // Parameters
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterStringNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
 }
 
 
@@ -833,7 +833,7 @@ void vtkSlicerROS2Logic::AddSomeSubscribers(void)
 void vtkSlicerROS2Logic::AddSomeParameters(void)
 {
   // the long way
-  vtkSmartPointer<vtkMRMLROS2ParameterStringNode> subString = vtkMRMLROS2ParameterStringNode::New();
+  vtkSmartPointer<vtkMRMLROS2ParameterNode> subString = vtkMRMLROS2ParameterNode::New();
   this->GetMRMLScene()->AddNode(subString);
   subString->AddToROS2Node(mROS2Node->GetID(), "/string_param");
 }

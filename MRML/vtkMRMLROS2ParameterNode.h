@@ -15,9 +15,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   // friend declarations
   friend class vtkMRMLROS2ParameterInternals;
 
-  template <typename _ros_type, typename _slicer_type>
-    friend class vtkMRMLROS2ParameterTemplatedInternals;
-
  public:
   vtkTypeMacro(vtkMRMLROS2ParameterNode, vtkMRMLNode);
 
@@ -30,38 +27,27 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
     return mTopic;
   }
 
-  const char * GetROSType(void) const;
-
-  const char * GetSlicerType(void) const;
-
   size_t GetNumberOfMessages(void) const {
     return mNumberOfMessages;
   }
 
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  /**
-   * Get the latest ROS message in YAML format
-   */
-  std::string GetLastMessageYAML(void) const;
-
-  /**
-   * Get the latest message as a vtkVariant.  This method will use the
-   * latest ROS message received and convert it to the internal
-   * Slicer/VTK type if needed.  The result of the conversion is
-   * cached so future calls to GetLastMessage don't require converting
-   * again
-   */
-  virtual vtkVariant GetLastMessageVariant(void) = 0;
-
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
   void UpdateScene(vtkMRMLScene *scene) override;
 
+  //newly added
+
+  typedef vtkMRMLROS2ParameterNode SelfType;
+  static SelfType * New(void);
+  vtkMRMLNode * CreateNodeInstance(void) override;
+  const char * GetNodeTagName(void) override;
+
  protected:
-  vtkMRMLROS2ParameterNode() = default;
-  ~vtkMRMLROS2ParameterNode() = default;
+  vtkMRMLROS2ParameterNode();
+  ~vtkMRMLROS2ParameterNode();
 
   vtkMRMLROS2ParameterInternals * mInternals = nullptr;
   std::string mTopic = "undefined";

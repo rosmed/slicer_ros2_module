@@ -3,15 +3,19 @@
 
 #include <vtkMRMLROS2ParameterInternals.h>
 
+vtkStandardNewMacro(vtkMRMLROS2ParameterNode);
+
+// typedef vtkMRMLROS2ParameterNativeInternals<ros_type, slicer_type>	vtkMRMLROS2ParameterInternals;
+
 void vtkMRMLROS2ParameterNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
   // Custom prints
-  os << indent << "Topic: " << mTopic << "\n";
-  os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
-  os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
-  os << indent << "Number of messages: " << mNumberOfMessages << "\n";
-  os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n";
+  // os << indent << "Topic: " << mTopic << "\n";
+  // os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
+  // os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
+  // os << indent << "Number of messages: " << mNumberOfMessages << "\n";
+  // os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n";
 }
 
 bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char * nodeId,
@@ -36,21 +40,6 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char * nodeId,
 bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const
 {
   return mInternals->IsAddedToROS2Node();
-}
-
-const char * vtkMRMLROS2ParameterNode::GetROSType(void) const
-{
-  return mInternals->GetROSType();
-}
-
-const char * vtkMRMLROS2ParameterNode::GetSlicerType(void) const
-{
-  return mInternals->GetSlicerType();
-}
-
-std::string vtkMRMLROS2ParameterNode::GetLastMessageYAML(void) const
-{
-  return mInternals->GetLastMessageYAML();
 }
 
 void vtkMRMLROS2ParameterNode::WriteXML(std::ostream& of, int nIndent)
@@ -82,3 +71,19 @@ void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
 			mTopic);
   }
 }
+
+ vtkMRMLROS2ParameterNode::vtkMRMLROS2ParameterNode()	{									
+   mInternals = new vtkMRMLROS2ParameterInternals(this);	
+ }									
+									
+ vtkMRMLROS2ParameterNode::~vtkMRMLROS2ParameterNode() {									
+   delete mInternals;							
+ }									
+									
+ vtkMRMLNode * vtkMRMLROS2ParameterNode::CreateNodeInstance(void) {									
+   return SelfType::New();						
+ }									
+									
+ const char * vtkMRMLROS2ParameterNode::GetNodeTagName(void)	{									
+   return "ROS2Parameter";					
+ }	

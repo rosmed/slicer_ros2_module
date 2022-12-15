@@ -14,47 +14,7 @@ public:
   vtkMRMLROS2ParameterInternals(vtkMRMLROS2ParameterNode * mrmlNode):
     mMRMLNode(mrmlNode)
   {}
-  virtual ~vtkMRMLROS2ParameterInternals() = default;
-
-  virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
-			     const std::string & trackedNodeName, std::string & errorMessage) = 0;
-  virtual bool IsAddedToROS2Node(void) const = 0;
-  virtual const char * GetROSType(void) const = 0;
-  virtual const char * GetSlicerType(void) const = 0;
-  virtual std::string GetLastMessageYAML(void) const = 0;
-
-protected:
-  vtkMRMLROS2ParameterNode * mMRMLNode;
-};
-
-
-template <typename _ros_type, typename _slicer_type>
-class vtkMRMLROS2ParameterTemplatedInternals: public vtkMRMLROS2ParameterInternals
-{
-public:
-  typedef vtkMRMLROS2ParameterTemplatedInternals<_ros_type, _slicer_type> SelfType;
-
-  vtkMRMLROS2ParameterTemplatedInternals(vtkMRMLROS2ParameterNode *  mrmlNode):
-    vtkMRMLROS2ParameterInternals(mrmlNode)
-  {}
-
-protected:
-  _ros_type mLastMessageROS;
-  std::shared_ptr<rclcpp::Subscription<_ros_type>> mSubscription = nullptr;
-  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_ = nullptr;
-  std::shared_ptr<rclcpp::ParameterEventCallbackHandle> cb_handle;
-
-  /**
-   * This is the ROS callback for the subscription.  This methods
-   * saves the ROS message as-is and set the modified flag for the
-   * MRML node
-   */
-  void ParameterCallback(const _ros_type & message) {
-    // \todo is there a timestamp in MRML nodes we can update from the ROS message?
-    mLastMessageROS = message;
-    mMRMLNode->mNumberOfMessages++;
-    mMRMLNode->Modified();
-  }
+  // virtual ~vtkMRMLROS2ParameterInternals() = default;
 
   /**
    * Add the subscriber to the ROS2 node.  This methods searched the
@@ -101,10 +61,6 @@ protected:
 
     cb_handle = param_subscriber_->add_parameter_event_callback(cb);
 
-    // mSubscription
-    //   = nodePointer->create_subscription<_ros_type>(topic, 100,
-		// 				    std::bind(&SelfType::ParameterCallback, this, std::placeholders::_1));
-
     rosNodePtr->SetNthNodeReferenceID("parameter",
 				      rosNodePtr->GetNumberOfNodeReferences("parameter"),
 				      mMRMLNode->GetID());
@@ -115,28 +71,17 @@ protected:
 
   }
 
-  bool IsAddedToROS2Node(void) const override
+  bool IsAddedToROS2Node(void) const
   {
-    return (mSubscription != nullptr);
+    return (param_subscriber_ != nullptr);
   }
 
-  const char * GetROSType(void) const override
-  {
-    return rosidl_generator_traits::name<_ros_type>();
-  }
-
-  const char * GetSlicerType(void) const override
-  {
-    return typeid(_slicer_type).name();
-  }
-
-  std::string GetLastMessageYAML(void) const override
-  {
-    std::stringstream out;
-    rosidl_generator_traits::to_yaml(mLastMessageROS, out);
-    return out.str();
-  }
+protected:
+  vtkMRMLROS2ParameterNode * mMRMLNode;
+  std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_ = nullptr;
+  std::shared_ptr<rclcpp::ParameterEventCallbackHandle> cb_handle;
 };
+
 
 #endif
 // __vtkMRMLROS2ParameterInternals_h

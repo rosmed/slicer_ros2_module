@@ -46,8 +46,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2PublisherDefaultNodes.cxx
   vtkMRMLROS2ParameterNode.h
   vtkMRMLROS2ParameterNode.cxx 
-  vtkMRMLROS2ParameterNativeNode.h
-  vtkMRMLROS2ParameterNativeNode.cxx 
+  # vtkMRMLROS2ParameterNativeNode.h
+  # vtkMRMLROS2ParameterNativeNode.cxx 
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)

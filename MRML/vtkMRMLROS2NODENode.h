@@ -17,7 +17,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 
   template <typename _ros_type, typename _slicer_type> friend class vtkMRMLROS2SubscriberTemplatedInternals;
   template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2PublisherTemplatedInternals;
-  template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2ParameterTemplatedInternals;
+  friend class vtkMRMLROS2ParameterInternals;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;
