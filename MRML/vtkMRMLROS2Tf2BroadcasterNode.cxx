@@ -41,7 +41,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
     return false;
   }
   std::string errorMessage;
-  if (!mInternals->AddToROS2Node(scene, nodeId, errorMessage)) {
+  if (!mInternals->AddToROS2Node(this, scene, nodeId, errorMessage)) {
     vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
     return false;
   }

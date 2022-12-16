@@ -19,19 +19,14 @@ auto const MM_TO_M_CONVERSION = 1000.00;
 
 class vtkMRMLROS2Tf2BroadcasterInternals
 {
- protected:
-//   vtkMRMLROS2Tf2BroadcasterNode * mMRMLNode;
 
  public:
 
-//   vtkMRMLROS2Tf2BroadcasterInternals(vtkMRMLROS2Tf2BroadcasterNode *  mrmlNode):
-//     mMRMLNode(mrmlNode)
-//   {}
   virtual ~vtkMRMLROS2Tf2BroadcasterInternals() = default;
   std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   std::shared_ptr<rclcpp::Node> mNodePointer;
 
-  bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage)
+  bool AddToROS2Node(vtkMRMLNode * mMRMLNode, vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage)
   {
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
@@ -47,10 +42,10 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
     mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*mNodePointer);
     // This isn't working for some reason
-    // rosNodePtr->SetNthNodeReferenceID("tf2broadcaster",
-	// 			      rosNodePtr->GetNumberOfNodeReferences("tf2broadcaster"),
-	// 			      mMRMLNode->GetID());
-    // mMRMLNode->SetNodeReferenceID("broadcaster", nodeId);
+    rosNodePtr->SetNthNodeReferenceID("tf2 broadcaster",
+				      rosNodePtr->GetNumberOfNodeReferences("tf2 broadcaster"),
+				      mMRMLNode->GetID());
+    mMRMLNode->SetNodeReferenceID("tf2 broadcaster", nodeId);
     return true;
   }
 
