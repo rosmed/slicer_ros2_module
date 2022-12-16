@@ -11,9 +11,6 @@
 
 // Slicer includes
 #include <vtkMRMLScene.h>
-#include <vtkMRMLTransformNode.h>
-#include <vtkNew.h>
-#include <vtkMatrix4x4.h>
 #include <vtkSlicerToROS2.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
@@ -21,13 +18,14 @@ auto const MM_TO_M_CONVERSION = 1000.00;
 class vtkMRMLROS2Tf2BroadcasterInternals
 {
  protected:
-  vtkMRMLROS2Tf2BroadcasterNode * mMRMLNode;
+//   vtkMRMLROS2Tf2BroadcasterNode * mMRMLNode;
 
  public:
-//   vtkMRMLROS2Tf2BroadcasterInternals(vtkMRMLROS2Tf2BroadcasterNode * mrmlNode):
+
+//   vtkMRMLROS2Tf2BroadcasterInternals(vtkMRMLROS2Tf2BroadcasterNode *  mrmlNode):
 //     mMRMLNode(mrmlNode)
 //   {}
-  ~vtkMRMLROS2Tf2BroadcasterInternals() = default;
+  virtual ~vtkMRMLROS2Tf2BroadcasterInternals() = default;
   std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   std::shared_ptr<rclcpp::Node> mNodePointer;
 
@@ -50,7 +48,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     // rosNodePtr->SetNthNodeReferenceID("tf2broadcaster",
 	// 			      rosNodePtr->GetNumberOfNodeReferences("tf2broadcaster"),
 	// 			      mMRMLNode->GetID());
-    // mMRMLNode->SetNodeReferenceID("node", nodeId);
+    // mMRMLNode->SetNodeReferenceID("broadcaster", nodeId);
     return true;
   }
 
@@ -67,6 +65,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     // Send the transform
     mTfBroadcaster->sendTransform(rosTransform);
   }
+
 };
 
 #endif // __vtkMRMLROS2Tf2BroadcasterInternals_h

@@ -810,6 +810,8 @@ void vtkSlicerROS2Logic::AddROS2Node(void)
   vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
   this->GetMRMLScene()->AddNode(tfBroadcaster);
   tfBroadcaster->AddToROS2Node(mROS2Node->GetID());
+  // vtkMRMLTransformNode *parentTransformNode; 
+  // tfBroadcaster->Broadcast(parentTransformNode);
 }
 
 

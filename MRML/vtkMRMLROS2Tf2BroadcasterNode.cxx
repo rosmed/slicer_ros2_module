@@ -27,7 +27,6 @@ vtkMRMLROS2Tf2BroadcasterNode::~vtkMRMLROS2Tf2BroadcasterNode()
 {
 }
 
-
 void vtkMRMLROS2Tf2BroadcasterNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -67,6 +66,16 @@ void vtkMRMLROS2Tf2BroadcasterNode::Create(const std::string & nodeName, bool in
   // mMRMLNodeName = "ros2:node:" + nodeName;
   // this->SetName(mMRMLNodeName.c_str());
   // mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
+}
+
+size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id)
+{
+  std::string errorMessage;
+  if (!mInternals->Broadcast(message, parent_id, child_id)) {
+    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+    return false;
+  }
+  return true;
 }
 
 

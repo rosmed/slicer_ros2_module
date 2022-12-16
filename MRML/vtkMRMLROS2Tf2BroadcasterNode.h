@@ -6,17 +6,15 @@
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
-// ROS includes 
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_broadcaster.h>
-
 // forward declaration for internals
 class vtkMRMLROS2Tf2BroadcasterInternals;
+class vtkMRMLTransformNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public vtkMRMLNode
 {
+
+  // friend declarations
+  friend class vtkMRMLROS2Tf2BroadcasterInternals;
 
  public:
   typedef vtkMRMLROS2Tf2BroadcasterNode SelfType;
@@ -30,6 +28,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
 
   bool AddToROS2Node(const char * nodeId);
 
+  size_t Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id);
+
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
@@ -37,7 +37,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
  protected:
   vtkMRMLROS2Tf2BroadcasterNode();
   ~vtkMRMLROS2Tf2BroadcasterNode();
-
+  
   std::unique_ptr<vtkMRMLROS2Tf2BroadcasterInternals> mInternals;
   std::string mMRMLNodeName = "ros2:tf2:broadcaster";
 
