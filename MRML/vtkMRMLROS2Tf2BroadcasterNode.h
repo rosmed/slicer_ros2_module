@@ -9,6 +9,7 @@
 // forward declaration for internals
 class vtkMRMLROS2Tf2BroadcasterInternals;
 class vtkMRMLTransformNode;
+class vtkMatrix4x4;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public vtkMRMLNode
 {
@@ -24,11 +25,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
-  void Create(const std::string & nodeName, bool initialize = false);
-
   bool AddToROS2Node(const char * nodeId);
 
   size_t Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id);
+  // overloaded to support a transform or a matrix
+  size_t Broadcast(vtkMatrix4x4 * message, const std::string & parent_id, const std::string & child_id);
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;

@@ -12,6 +12,8 @@
 // Slicer includes
 #include <vtkMRMLScene.h>
 #include <vtkSlicerToROS2.h>
+#include <vtkMRMLTransformNode.h> // should this go here 
+#include <vtkMatrix4x4.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
@@ -56,7 +58,9 @@ class vtkMRMLROS2Tf2BroadcasterInternals
   { 
 
     geometry_msgs::msg::TransformStamped rosTransform;
-    vtkSlicerToROS2(message, rosTransform);
+    vtkNew<vtkMatrix4x4> matrix;
+    message->GetMatrixTransformToParent(matrix);
+    vtkSlicerToROS2(matrix, rosTransform);
     rclcpp::Time now = mNodePointer->get_clock()->now();
     rosTransform.header.stamp = now;
     rosTransform.header.frame_id = parent_id; //"torso"; // should have header be torso and child be base
@@ -66,6 +70,19 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     mTfBroadcaster->sendTransform(rosTransform);
   }
 
+  size_t Broadcast(vtkMatrix4x4 * message, const std::string & parent_id, const std::string & child_id)
+  { 
+
+    geometry_msgs::msg::TransformStamped rosTransform;
+    vtkSlicerToROS2(message, rosTransform);
+    rclcpp::Time now = mNodePointer->get_clock()->now();
+    rosTransform.header.stamp = now;
+    rosTransform.header.frame_id = parent_id; //"torso"; // should have header be torso and child be base
+    rosTransform.child_frame_id = child_id;
+
+    // Send the transform
+    mTfBroadcaster->sendTransform(rosTransform);
+  }
 };
 
 #endif // __vtkMRMLROS2Tf2BroadcasterInternals_h

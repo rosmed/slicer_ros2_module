@@ -30,11 +30,9 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & re
 }
 
 
-void vtkSlicerToROS2(vtkMRMLTransformNode * message,  geometry_msgs::msg::TransformStamped & result)
+void vtkSlicerToROS2(vtkMatrix4x4 * matrix,  geometry_msgs::msg::TransformStamped & result)
 {
   double q[4] = {0.0, 0.0, 0.0, 0.0}; 
-  vtkNew<vtkMatrix4x4> matrix;
-  message->GetMatrixTransformToParent(matrix);
   vtkMatrix4x4ToQuaternion(matrix, q);
   
   result.transform.translation.x = matrix->GetElement(0,3)*M_TO_MM_CONVERSION;

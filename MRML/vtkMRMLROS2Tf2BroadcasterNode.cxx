@@ -48,26 +48,6 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
   return true;
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::Create(const std::string & nodeName, bool initialize)
-{
-  // - this should be detected automatically by look for node of type ROS2Node in scene
-  // - there might also be a rclcpp method to detect if the context has been initialized
-  // if (initialize) {
-  //   typedef char * char_pointer;
-  //   char_pointer * argv = new char_pointer[1];
-  //   argv[0]= new char[nodeName.size() + 1];
-  //   strcpy(argv[0], nodeName.c_str());
-  //   int argc = 1;
-  //   rclcpp::init(argc, argv);
-  // }
-
-  // create the ROS node
-  // mROS2NodeName = nodeName;
-  // mMRMLNodeName = "ros2:node:" + nodeName;
-  // this->SetName(mMRMLNodeName.c_str());
-  // mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
-}
-
 size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id)
 {
   std::string errorMessage;
@@ -79,6 +59,15 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message, 
 }
 
 
+size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message, const std::string & parent_id, const std::string & child_id)
+{
+  std::string errorMessage;
+  if (!mInternals->Broadcast(message, parent_id, child_id)) {
+    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+    return false;
+  }
+  return true;
+}
 
 
 void vtkMRMLROS2Tf2BroadcasterNode::WriteXML( ostream& of, int nIndent )
