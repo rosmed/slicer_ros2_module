@@ -83,7 +83,7 @@ public:
     ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
     if (parameterStore.find(parameterPair) != parameterStore.end()) {
       std::cerr << "stored val =" << parameterStore[parameterPair].get_type_name() <<std::endl; 
-      return parameterStore[parameterPair].value_to_string();
+      return parameterStore[parameterPair].get_type_name();
     } else {
       std::cerr << "nodeName : " << nodeName << ":" << parameterName << "is not tracked " << std::endl;
       return "undefined";
@@ -102,19 +102,41 @@ public:
     }
   }
 
+  // for debugging only
   void listTrackedParameters(){
       for (const auto& [key, value] : parameterStore) {
           std::cerr << "-->" << key.first << ", " << key.second << " -- " << value.value_to_string() << std::endl; 
       }
   }
 
-  // std::string GetParameterString(std::string nodeName, std::string parameterName){
+// helps check for value currently stored 
+  std::string GetParameterValueAsString(std::string nodeName, std::string parameterName){
+    ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
+    if (parameterStore.find(parameterPair) == parameterStore.end()) {
+      std::cerr << "Parameter is not tracked" <<std::endl;
+      return " ";                // TODO : Handle error?
+    } 
+    std::cerr << "Parameter " << parameterStore[parameterPair].get_name() << "'s type is" << parameterStore[parameterPair].get_type_name() << std::endl;
+    return parameterStore[parameterPair].value_to_string();
+  }
 
-  // }
+  std::string GetParameterString(std::string nodeName, std::string parameterName){
+    ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
+    if (parameterStore.find(parameterPair) == parameterStore.end()) {
+      std::cerr << "Parameter is not tracked" <<std::endl;
+      return " ";                // TODO : Handle error?
+    }  
+    return parameterStore[parameterPair].as_string(); // TODO : check if ParameterTypeException causes issues
+  }
 
-  // std::int GetParameterInt(std::string nodeName, std::string parameterName){
-
-  // }
+  int GetParameterInteger(std::string nodeName, std::string parameterName){
+    ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
+    if (parameterStore.find(parameterPair) == parameterStore.end()) {
+      std::cerr << "Parameter is not tracked" <<std::endl;
+      return -1;                // TODO : Handle error?
+    } 
+    return parameterStore[parameterPair].as_int();
+  }
 
 protected:
   vtkMRMLROS2ParameterNode * mMRMLNode;

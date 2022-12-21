@@ -23,6 +23,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   typedef vtkMRMLROS2ParameterNode SelfType;
   typedef std::pair<std::string,std::string> ParameterKey; // pair: {nodeName, parameterName}
   static SelfType * New(void);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
@@ -35,7 +36,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
 
   std::string GetParameterType(std::string nodeName, std::string parameterName);
 
-  void PrintSelf(ostream& os, vtkIndent indent) override;
+  std::string GetParameterValueAsString(std::string nodeName, std::string parameterName);
+  std::string GetParameterString(std::string nodeName, std::string parameterName);
+  int GetParameterInteger(std::string nodeName, std::string parameterName);
 
   // Save and load
   // virtual void ReadXMLAttributes(const char** atts) override;

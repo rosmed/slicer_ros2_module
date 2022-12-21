@@ -778,7 +778,7 @@ vtkMRMLROS2ParameterNode * vtkSlicerROS2Logic::CreateAndAddParameterNode()
     return nullptr;
   }
 
-  char * className = "vtkMRMLROS2ParameterNode";
+  const char * className = "vtkMRMLROS2ParameterNode";
 
   // CreateNodeByClass
   vtkSmartPointer<vtkMRMLNode> node = this->GetMRMLScene()->CreateNodeByClass(className);

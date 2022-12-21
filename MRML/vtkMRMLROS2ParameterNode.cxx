@@ -52,6 +52,18 @@ std::string vtkMRMLROS2ParameterNode::GetParameterType(std::string nodeName, std
   return mInternals->GetParameterType(nodeName, parameterName);
 }
 
+std::string vtkMRMLROS2ParameterNode::GetParameterValueAsString(std::string nodeName, std::string parameterName){
+  return mInternals->GetParameterValueAsString(nodeName, parameterName);
+}
+
+std::string vtkMRMLROS2ParameterNode::GetParameterString(std::string nodeName, std::string parameterName){
+  return mInternals->GetParameterString(nodeName, parameterName);
+}
+
+int vtkMRMLROS2ParameterNode::GetParameterInteger(std::string nodeName, std::string parameterName){
+  return mInternals->GetParameterInteger(nodeName, parameterName);
+}
+
 // for debugging only - will be removed
 void vtkMRMLROS2ParameterNode::listTrackedParameters(){
   mInternals->listTrackedParameters();
