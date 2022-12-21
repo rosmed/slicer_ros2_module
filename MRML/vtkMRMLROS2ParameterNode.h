@@ -3,7 +3,7 @@
 
 // MRML includes
 #include <vtkMRMLNode.h>
-
+#include <utility>
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
 // forward declaration for internals
@@ -21,43 +21,44 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   //newly added
 
   typedef vtkMRMLROS2ParameterNode SelfType;
+  typedef std::pair<std::string,std::string> ParameterKey; // pair: {nodeName, parameterName}
   static SelfType * New(void);
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
-  bool AddToROS2Node(const char * nodeId,
-		     const std::string & trackedNodeName);
+  bool AddToROS2Node(const char * nodeId);
 
   bool IsAddedToROS2Node(void) const;
 
-  const std::string & GetTopic(void) const {
-    return mTopic;
-  }
+  /*! Add a node and parameter to monitor */
+  bool AddParameter(std::string nodeName, std::string parameterName);
 
-  size_t GetNumberOfMessages(void) const {
-    return mNumberOfMessages;
-  }
+  std::string GetParameterType(std::string nodeName, std::string parameterName);
 
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   // Save and load
-  virtual void ReadXMLAttributes(const char** atts) override;
-  virtual void WriteXML(std::ostream& of, int indent) override;
-  void UpdateScene(vtkMRMLScene *scene) override;
+  // virtual void ReadXMLAttributes(const char** atts) override;
+  // virtual void WriteXML(std::ostream& of, int indent) override;
+  // void UpdateScene(vtkMRMLScene *scene) override;
+
+  // for debugging only - will be removed
+  void listTrackedParameters();
 
  protected:
   vtkMRMLROS2ParameterNode();
   ~vtkMRMLROS2ParameterNode();
 
   vtkMRMLROS2ParameterInternals * mInternals = nullptr;
-  std::string mTopic = "undefined";
-  std::string mMRMLNodeName = "ros2:sub:undefined";
-  size_t mNumberOfMessages = 0;
+  std::string mMRMLNodeName = "ros2:parameterNode";
 
   // For ReadXMLAttributes
-  inline void SetTopic(const std::string & trackedNodeName) {
-    mTopic = trackedNodeName;
-  }
+  // inline void SetTopic(const std::string & trackedNodeName) {
+  //   mTopic = trackedNodeName;
+  // }
+
+
+
 };
 
 #endif // __vtkMRMLROS2ParameterNode_h

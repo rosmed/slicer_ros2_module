@@ -16,59 +16,77 @@ void vtkMRMLROS2ParameterNode::PrintSelf(ostream& os, vtkIndent indent)
   // os << indent << "Last message:" << mInternals->GetLastMessageYAML() << "\n";
 }
 
-bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char * nodeId,
-					      const std::string & trackedNodeName)
-{
-  mTopic = trackedNodeName;
-  mMRMLNodeName = "ros2:par:" + trackedNodeName;
-  this->SetName(mMRMLNodeName.c_str());
-  vtkMRMLScene * scene = this->GetScene();
-  if (!this->GetScene()) {
-    vtkWarningMacro(<< "AddToROS2Node, parameter MRML node for trackedNodeName \"" << trackedNodeName << "\" needs to be added to the scene first");
-    return false;
-  }
-  std::string errorMessage;
-  if (!mInternals->AddToROS2Node(scene, nodeId, trackedNodeName, errorMessage)) {
-    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
-    return false;
-  }
-  return true;
+ vtkMRMLNode * vtkMRMLROS2ParameterNode::CreateNodeInstance(void){									
+   return SelfType::New();						
+ }									
+									
+ const char * vtkMRMLROS2ParameterNode::GetNodeTagName(void){									
+   return "ROS2Parameter";					
+ }	
+
+bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char * nodeId) {
+    this->SetName(mMRMLNodeName.c_str());
+    vtkMRMLScene * scene = this->GetScene();
+    if (!this->GetScene()) {
+      vtkWarningMacro(<< "AddToROS2Node, parameter MRML node needs to be added to the scene first");
+      return false;
+    }
+    std::string errorMessage;
+    if (!mInternals->AddToROS2Node(scene, nodeId, errorMessage)) {
+      vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+      return false;
+    }
+    return true;
 }
 
-bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const
-{
+bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
   return mInternals->IsAddedToROS2Node();
 }
 
-void vtkMRMLROS2ParameterNode::WriteXML(std::ostream& of, int nIndent)
-{
-  Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
-  vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
-  vtkMRMLWriteXMLEndMacro();
+ bool vtkMRMLROS2ParameterNode::AddParameter(std::string nodeName, std::string parameterName) {
+  return mInternals->AddParameter(nodeName, parameterName);
+ }
+
+
+std::string vtkMRMLROS2ParameterNode::GetParameterType(std::string nodeName, std::string parameterName) {
+  return mInternals->GetParameterType(nodeName, parameterName);
 }
 
-void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char** atts)
-{
-  int wasModifying = this->StartModify();
-  Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
-  vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(topicName, Topic);
-  vtkMRMLReadXMLEndMacro();
-  this->EndModify(wasModifying);
+// for debugging only - will be removed
+void vtkMRMLROS2ParameterNode::listTrackedParameters(){
+  mInternals->listTrackedParameters();
 }
 
-void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
-{
-  Superclass::UpdateScene(scene);
-  int nbNodeRefs = this->GetNumberOfNodeReferences("node");
-  if (nbNodeRefs != 1) {
-    vtkErrorMacro(<< "No ROS2 node reference defined for subscriber \"" << GetName() << "\"");
-  } else {
-    this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
-			mTopic);
-  }
-}
+
+ // void vtkMRMLROS2ParameterNode::WriteXML(std::ostream& of, int nIndent)
+// {
+//   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
+//   vtkMRMLWriteXMLBeginMacro(of);
+//   vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
+//   vtkMRMLWriteXMLEndMacro();
+// }
+
+// void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char** atts)
+// {
+//   int wasModifying = this->StartModify();
+//   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
+//   vtkMRMLReadXMLBeginMacro(atts);
+//   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
+//   vtkMRMLReadXMLEndMacro();
+//   this->EndModify(wasModifying);
+// }
+
+// void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
+// {
+//   Superclass::UpdateScene(scene);
+//   int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+//   if (nbNodeRefs != 1) {
+//     vtkErrorMacro(<< "No ROS2 node reference defined for subscriber \"" << GetName() << "\"");
+//   } else {
+//     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
+// 			mTopic);
+//   }
+// }
 
  vtkMRMLROS2ParameterNode::vtkMRMLROS2ParameterNode()	{									
    mInternals = new vtkMRMLROS2ParameterInternals(this);	
@@ -78,10 +96,4 @@ void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
    delete mInternals;							
  }									
 									
- vtkMRMLNode * vtkMRMLROS2ParameterNode::CreateNodeInstance(void) {									
-   return SelfType::New();						
- }									
-									
- const char * vtkMRMLROS2ParameterNode::GetNodeTagName(void)	{									
-   return "ROS2Parameter";					
- }	
+

@@ -36,7 +36,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   void Spin(void);
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
-  vtkMRMLROS2ParameterNode* GetParameterNodeByTopic(const std::string & topic);
+  vtkMRMLROS2ParameterNode* GetParameterNodeByTopic();
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;

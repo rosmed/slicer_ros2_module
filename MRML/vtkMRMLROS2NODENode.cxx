@@ -91,7 +91,7 @@ vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std
   return nullptr; // otherwise return a null ptr
 }
 
-vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByTopic(const std::string & topic)
+vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByTopic()
 {
   int parameterRefs = this->GetNumberOfNodeReferences("parameter");
   for (int j = 0; j < parameterRefs; j ++) {
@@ -99,10 +99,11 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByTopic(const std
     if (!node) {
       vtkWarningMacro(<< "Node referenced by role 'parameter' is not a parameter");
     }
-    std::string topicName = node->GetTopic(); 
-    if (topicName == topic) { // check if an existing nodes name matches the topic provided
-      return node; // if so return the node
-    }
+    // TODO: Fix this
+    // std::string topicName = node->GetTopic(); 
+    // if (topicName == topic) { // check if an existing nodes name matches the topic provided
+    return node; // if so return the node
+    // }
   }
   return nullptr; // otherwise return a null ptr
 }

@@ -99,12 +99,12 @@ public:
     new publisher was not created. */
   vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
 
-  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const char * className, const std::string & topic);
+  vtkMRMLROS2ParameterNode * CreateAndAddParameterNode();
 
   void AddROS2Node(void);
   void AddSomePublishers(void);
   void AddSomeSubscribers(void);
-  void AddSomeParameters(void);
+  // void AddSomeParameters(void);
 
   // std::vector<vtkSmartPointer<vtkMRMLROS2SubscriberNode>> mSubs; // This is a list of the subscribers to update the widget
   vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node; // proper MRML node // Moved to public which might be wrong!!
