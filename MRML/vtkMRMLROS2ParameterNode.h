@@ -32,21 +32,44 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   bool IsAddedToROS2Node(void) const;
 
   /*! Add a node and parameter to monitor */
-  bool AddParameter(std::string nodeName, std::string parameterName);
+  bool AddParameter(const std::string &nodeName, const std::string &parameterName);
 
-  std::string GetParameterType(std::string nodeName, std::string parameterName);
+  std::string GetParameterType(const std::string &nodeName, const std::string &parameterName);
 
-  std::string GetParameterValueAsString(std::string nodeName, std::string parameterName);
-  std::string GetParameterString(std::string nodeName, std::string parameterName);
-  int GetParameterInteger(std::string nodeName, std::string parameterName);
+  /*! convenience methods for users to skip pair creation, mostly for Python users */
+  inline std::string PrintParameterValue(const std::string &nodeName, const std::string &parameterName) {
+    std::string result;
+    PrintParameterValue(ParameterKey(nodeName, parameterName), result);
+    return result;
+  }
+
+  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+  bool PrintParameterValue(const ParameterKey & key, std::string & result);
+
+  inline std::string GetParameterAsString(const std::string &nodeName, const std::string &parameterName) {
+    std::string result;
+    GetParameterAsString(ParameterKey(nodeName, parameterName), result);
+    return result;
+  }
+
+  bool GetParameterAsString(const ParameterKey & key, std::string & result);
+
+  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+  inline int GetParameterAsInteger(const std::string &nodeName, const std::string &parameterName) {
+    int result;
+    GetParameterAsInteger(ParameterKey(nodeName, parameterName), result);
+    return result;
+  }
+
+  /*! Users should always make sure the key exists and the parameter type is an integer with GetParameterType before calling this method. */
+  bool GetParameterAsInteger(const ParameterKey & key, int & result);
+
+  void listTrackedParameters();
 
   // Save and load
   // virtual void ReadXMLAttributes(const char** atts) override;
   // virtual void WriteXML(std::ostream& of, int indent) override;
   // void UpdateScene(vtkMRMLScene *scene) override;
-
-  // for debugging only - will be removed
-  void listTrackedParameters();
 
  protected:
   vtkMRMLROS2ParameterNode();

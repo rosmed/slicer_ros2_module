@@ -43,26 +43,55 @@ bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
   return mInternals->IsAddedToROS2Node();
 }
 
- bool vtkMRMLROS2ParameterNode::AddParameter(std::string nodeName, std::string parameterName) {
-  return mInternals->AddParameter(nodeName, parameterName);
+bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &nodeName, const std::string &parameterName) {
+  std::string warningMessage;
+  if (!mInternals->AddParameter(nodeName, parameterName, warningMessage)) {
+    vtkErrorMacro(<< warningMessage);
+    return false;
+  }
+  return true;
  }
 
-
-std::string vtkMRMLROS2ParameterNode::GetParameterType(std::string nodeName, std::string parameterName) {
-  return mInternals->GetParameterType(nodeName, parameterName);
+std::string vtkMRMLROS2ParameterNode::GetParameterType(const std::string &nodeName, const std::string &parameterName) {
+  std::string warningMessage;
+  std::string parameterType = mInternals->GetParameterType(nodeName, parameterName, warningMessage);
+  if (parameterType.empty()) {
+    vtkErrorMacro(<< warningMessage);
+  }
+  return parameterType;
 }
 
-std::string vtkMRMLROS2ParameterNode::GetParameterValueAsString(std::string nodeName, std::string parameterName){
-  return mInternals->GetParameterValueAsString(nodeName, parameterName);
+bool vtkMRMLROS2ParameterNode::PrintParameterValue(const ParameterKey & key, std::string & result)
+{
+  std::string errorMessage;
+  if (!mInternals->PrintParameterValue(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
 }
 
-std::string vtkMRMLROS2ParameterNode::GetParameterString(std::string nodeName, std::string parameterName){
-  return mInternals->GetParameterString(nodeName, parameterName);
+/*! Users should always make sure the key exists and the parameter type is a string with GetParameterType before calling this method. */
+bool vtkMRMLROS2ParameterNode::GetParameterAsString(const ParameterKey & key, std::string & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsString(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
 }
 
-int vtkMRMLROS2ParameterNode::GetParameterInteger(std::string nodeName, std::string parameterName){
-  return mInternals->GetParameterInteger(nodeName, parameterName);
+bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const ParameterKey & key, int & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsInteger(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
 }
+
 
 // for debugging only - will be removed
 void vtkMRMLROS2ParameterNode::listTrackedParameters(){
