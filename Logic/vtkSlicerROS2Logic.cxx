@@ -192,9 +192,11 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   // Publishers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
-
   // Parameters
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
+  // Broadcasters
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
+
 }
 
 
@@ -812,8 +814,6 @@ void vtkSlicerROS2Logic::AddROS2Node(void)
   vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
   this->GetMRMLScene()->AddNode(tfBroadcaster);
   tfBroadcaster->AddToROS2Node(mROS2Node->GetID());
-  // vtkMRMLTransformNode *parentTransformNode; 
-  // tfBroadcaster->Broadcast(parentTransformNode);
 }
 
 

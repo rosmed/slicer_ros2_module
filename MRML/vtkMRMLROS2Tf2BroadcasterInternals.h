@@ -15,8 +15,6 @@
 #include <vtkMRMLTransformNode.h> // should this go here 
 #include <vtkMatrix4x4.h>
 
-auto const MM_TO_M_CONVERSION = 1000.00;
-
 class vtkMRMLROS2Tf2BroadcasterInternals
 {
 
@@ -30,7 +28,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
   {
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
-      errorMessage = "unable to locate node";
+      errorMessage = "Unable to locate ros2 node in the scene";
       return false;
     }
     vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
@@ -40,43 +38,43 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     }
 
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
+    // Should we have a GetTf2BroadcasterNodeByName (probably child and parent id's)
     mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*mNodePointer);
-    // This isn't working for some reason
-    rosNodePtr->SetNthNodeReferenceID("tf2 broadcaster",
-				      rosNodePtr->GetNumberOfNodeReferences("tf2 broadcaster"),
+    rosNodePtr->SetNthNodeReferenceID("tf2broadcaster",
+				      rosNodePtr->GetNumberOfNodeReferences("tf2broadcaster"),
 				      mMRMLNode->GetID());
-    mMRMLNode->SetNodeReferenceID("tf2 broadcaster", nodeId);
+    mMRMLNode->SetNodeReferenceID("node", nodeId);
     return true;
   }
 
   size_t Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id)
   { 
-
     geometry_msgs::msg::TransformStamped rosTransform;
     vtkNew<vtkMatrix4x4> matrix;
     message->GetMatrixTransformToParent(matrix);
     vtkSlicerToROS2(matrix, rosTransform);
     rclcpp::Time now = mNodePointer->get_clock()->now();
     rosTransform.header.stamp = now;
-    rosTransform.header.frame_id = parent_id; //"torso"; // should have header be torso and child be base
+    rosTransform.header.frame_id = parent_id;
     rosTransform.child_frame_id = child_id;
 
     // Send the transform
     mTfBroadcaster->sendTransform(rosTransform);
+    return true;
   }
 
   size_t Broadcast(vtkMatrix4x4 * message, const std::string & parent_id, const std::string & child_id)
   { 
-
     geometry_msgs::msg::TransformStamped rosTransform;
     vtkSlicerToROS2(message, rosTransform);
     rclcpp::Time now = mNodePointer->get_clock()->now();
     rosTransform.header.stamp = now;
-    rosTransform.header.frame_id = parent_id; //"torso"; // should have header be torso and child be base
+    rosTransform.header.frame_id = parent_id;
     rosTransform.child_frame_id = child_id;
 
     // Send the transform
     mTfBroadcaster->sendTransform(rosTransform);
+    return true;
   }
 };
 
