@@ -108,7 +108,8 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
     vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
     return false;
   }
-  return true;
+  mNumberOfBroadcasts++;
+  return mNumberOfBroadcasts;
 }
 
 void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformNode(vtkMRMLTransformNode * node )
