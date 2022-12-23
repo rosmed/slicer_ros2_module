@@ -1,10 +1,8 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2BroadcasterInternals.h>
-#include <vtkCommand.h>
 #include <vtkSlicerToROS2.h>
 #include <vtkObject.h>
 #include <vtkMRMLTransformNode.h>
-#include <vtkEventForwarderCommand.h>
 #include <vtkEventBroker.h>
 
 vtkStandardNewMacro(vtkMRMLROS2Tf2BroadcasterNode);
@@ -76,7 +74,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()
 {
   // Might not be the best idea - ask Anton
   std::string mMRMLNodeName = "ros2:tf2broadcaster:" + mParentID + "To" + mChildID;
-  if (mParentID.empty() | mChildID.empty()){
+  if (mParentID.empty() || mChildID.empty()){
     std::string mMRMLNodeName = "ros2:tf2broadcaster:empty";
   }
   this->SetName(mMRMLNodeName.c_str());

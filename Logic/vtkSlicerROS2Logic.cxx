@@ -41,6 +41,7 @@
 
 // same 
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
 
 #include<vtkMRMLNode.h>
 
@@ -194,8 +195,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
   // Parameters
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
-  // Broadcasters
+  // Tf2
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>::New());
 
 }
 
@@ -814,6 +816,11 @@ void vtkSlicerROS2Logic::AddROS2Node(void)
   vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
   this->GetMRMLScene()->AddNode(tfBroadcaster);
   tfBroadcaster->AddToROS2Node(mROS2Node->GetID());
+
+  // Add Tf2 Buffer
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
+  this->GetMRMLScene()->AddNode(tfBuffer);
+  tfBuffer->AddToROS2Node(mROS2Node->GetID());
 }
 
 
