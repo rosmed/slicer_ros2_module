@@ -40,15 +40,15 @@ public:
     auto cb = [this, nodePointer](const rcl_interfaces::msg::ParameterEvent &event)
     {
         // Obtain list of parameters that changed
-        std::string eventNodeName(event.node.c_str());
+        const std::string eventNodeName(event.node.c_str());
         if(this->mTrackedNodes.find(eventNodeName) != mTrackedNodes.end()){
           auto parameterList = rclcpp::ParameterEventHandler::get_parameters_from_event(event);
-            // Iterate through every parameter in the list
-          for (auto &p : parameterList)
+          // Iterate through every parameter in the list
+          for (const auto &p : parameterList)
           { 
               this->mAllParametersCount++;
-              std::string parameterName(p.get_name());
-              ParameterKey parameterPair = std::make_pair(eventNodeName, parameterName);
+              const std::string parameterName(p.get_name());
+              const ParameterKey parameterPair = std::make_pair(eventNodeName, parameterName); // map of maps
               if(this->mParameterStore.find(parameterPair) != this->mParameterStore.end()){
                 std::cerr << "Tracked Parameter (Updated)"  << parameterPair.first << " " << parameterPair.second << " " << p.value_to_string() << std::endl;
                 this->mParameterStore[parameterPair] = p;
@@ -74,6 +74,7 @@ public:
     return (mParameterSubscriber != nullptr);
   }
 
+// modify to use pairs
   bool AddParameter(const std::string &nodeName, const std::string &parameterName, std::string & warningMessage) {
     ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
@@ -126,6 +127,7 @@ bool GetParameterAsString(const ParameterKey & parameterPair, std::string & resu
       }
       return parameterRetrievalStatus;
     }
+    // print error message
     return false;
 }
 

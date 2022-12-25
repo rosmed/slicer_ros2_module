@@ -45,13 +45,15 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
 
   /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
   bool PrintParameterValue(const ParameterKey & key, std::string & result);
-
+  
+ /*! convenience methods for users to skip pair creation, mostly for Python users */
   inline std::string GetParameterAsString(const std::string &nodeName, const std::string &parameterName) {
     std::string result;
     GetParameterAsString(ParameterKey(nodeName, parameterName), result);
     return result;
   }
 
+/*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
   bool GetParameterAsString(const ParameterKey & key, std::string & result);
 
   /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
