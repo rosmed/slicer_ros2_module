@@ -99,6 +99,66 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const ParameterKey & key, i
   return true;
 }
 
+bool vtkMRMLROS2ParameterNode::GetParameterAsDouble(const ParameterKey & key, double & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsDouble(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
+}
+
+bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const ParameterKey & key, bool & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsBool(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
+}
+
+bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfBools(const ParameterKey & key, std::vector<bool> & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsVectorOfBools(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
+}
+
+bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfDoubles(const ParameterKey & key, std::vector<double> & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsVectorOfDoubles(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
+}
+
+bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const ParameterKey & key, std::vector<int> & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsVectorOfIntegers(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
+}
+
+bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfStrings(const ParameterKey & key, std::vector<std::string> & result)
+{
+  std::string errorMessage;
+  if (!mInternals->GetParameterAsVectorOfStrings(key, result, errorMessage)) {
+    vtkErrorMacro(<< errorMessage);
+    return false;
+  }
+  return true;
+}
+
 // for debugging only - will be removed
 void vtkMRMLROS2ParameterNode::listTrackedParameters(){
   mInternals->listTrackedParameters();

@@ -163,6 +163,102 @@ bool GetParameterAsInteger(const ParameterKey & parameterPair, int & result, std
     return false;
 }
 
+bool GetParameterAsDouble(const ParameterKey & parameterPair, double & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_double();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsDouble caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
+
+bool GetParameterAsBool(const ParameterKey & parameterPair, bool & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_bool();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsBoolean caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
+
+bool GetParameterAsVectorOfBools(const ParameterKey & parameterPair, std::vector<bool> & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_bool_array();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsVectorOfBools caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
+
+bool GetParameterAsVectorOfIntegers(const ParameterKey & parameterPair, std::vector<int> & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_int_array();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsVectorOfIntegers caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
+
+bool GetParameterAsVectorOfDoubles(const ParameterKey & parameterPair, std::vector<double> & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_double_array();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsVectorOfDoubles caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
+
+bool GetParameterAsVectorOfStrings(const ParameterKey & parameterPair, std::vector<std::string> & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_string_array();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsVectorOfStrings caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
+
 void listTrackedParameters(){ // rename GetParameterList -> vector<ParameterKeys>
     for (const auto& [key, value] : mParameterStore) {
         std::cerr << "-->" << key.first << ", " << key.second << " -- " << value.value_to_string() << std::endl; 
@@ -196,9 +292,6 @@ std::vector<ParameterKey>  GetTrackedNodesAndParametersList() {
   }
   return nodesAndParametersList;
 }
-
-  // Read and Write XML
-  // print all tracked 
 
 protected:
   vtkMRMLROS2ParameterNode * mMRMLNode;
