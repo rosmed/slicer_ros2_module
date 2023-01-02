@@ -74,7 +74,6 @@ public:
     return (mParameterSubscriber != nullptr);
   }
 
-// modify to use pairs
   bool AddParameter(const std::string &nodeName, const std::string &parameterName, std::string & warningMessage) {
     ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
@@ -90,14 +89,30 @@ public:
     return true;
   }
 
-  std::string GetParameterType(const std::string &nodeName, const std::string &parameterName, std::string & warningMessage){
-  ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
+  bool RemoveParameter(const std::string &nodeName, const std::string &parameterName, std::string & warningMessage) {
+    ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      mParameterStore.erase(parameterPair);
+      if (mTrackedNodes.find(nodeName) != mTrackedNodes.end()) {
+        mTrackedNodes[nodeName]--;
+        if (mTrackedNodes[nodeName] == 0) {
+          mTrackedNodes.erase(nodeName);
+        }
+      }
+    } else {
+      warningMessage = "Parameter not tracked";
+    }
+    return true;
+  }
+
+  std::string GetParameterType(const ParameterKey &parameterPair, std::string &result, std::string & warningMessage){
   if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
-    return mParameterStore[parameterPair].get_type_name();
+    result = mParameterStore[parameterPair].get_type_name();
   } else {
     warningMessage =  "nodeName : " + nodeName + ":" + parameterName + "is not tracked"; 
-    return ""; //does not exist
+    result = ""; //does not exist
   }
+  return result;
 }
 
 bool PrintParameterValue(const ParameterKey & parameterPair, std::string & result, std::string & errorMessage) {
@@ -112,6 +127,7 @@ bool PrintParameterValue(const ParameterKey & parameterPair, std::string & resul
       }
       return parameterRetrievalStatus;
     }
+    errorMessage = "Parameter not tracked";
     return false;
 }
 
@@ -127,7 +143,7 @@ bool GetParameterAsString(const ParameterKey & parameterPair, std::string & resu
       }
       return parameterRetrievalStatus;
     }
-    // print error message
+    errorMessage = "Parameter not tracked";
     return false;
 }
 
@@ -143,6 +159,7 @@ bool GetParameterAsInteger(const ParameterKey & parameterPair, int & result, std
       }
       return parameterRetrievalStatus;
     }
+    errorMessage = "Parameter not tracked";
     return false;
 }
 
@@ -152,12 +169,14 @@ void listTrackedParameters(){ // rename GetParameterList -> vector<ParameterKeys
     }
 }
 
+std::vector<std::string> GetTrackedNodeList() {
+    std::vector<std::string> nodeList;
+    for (const auto& [key, value] : mTrackedNodes) {
+        nodeList.push_back(key);
+    }
+    return nodeList;
+}
 
-//TODO: 
-
-  // add documentation in header files - empty if "" else a param type (list them)
-  // document the public and protected methods and data members
-  // DeleteParameters()
   // Read and Write XML
   // print all tracked 
 
@@ -166,7 +185,7 @@ protected:
   std::shared_ptr<rclcpp::ParameterEventHandler> mParameterSubscriber = nullptr;
   std::shared_ptr<rclcpp::ParameterEventCallbackHandle> cb_handle;
   std::map<ParameterKey , rclcpp::Parameter> mParameterStore; // Parameters  mParameters  this->Parameter  VTK: GetValue()  qt: getValue()
-  std::unordered_map<std::string, int> mTrackedNodes; // change to map of counts
+  std::unordered_map<std::string, int> mTrackedNodes; // change to map of counts?
   rclcpp::Parameter emptyParameter;
   int mTrackedParametersCount = 0;
   int mAllParametersCount = 0;
