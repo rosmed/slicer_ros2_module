@@ -3,8 +3,6 @@
 
 vtkStandardNewMacro(vtkMRMLROS2ParameterNode);
 
-// typedef vtkMRMLROS2ParameterNativeInternals<ros_type, slicer_type>	vtkMRMLROS2ParameterInternals;
-
 void vtkMRMLROS2ParameterNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -46,7 +44,7 @@ bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
 bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &nodeName, const std::string &parameterName) {
   std::string warningMessage;
   if (!mInternals->AddParameter(nodeName, parameterName, warningMessage)) {
-    vtkWarnMacro(<< warningMessage);
+    vtkWarningMacro(<< warningMessage);
     return false;
   }
   return true;
@@ -55,7 +53,7 @@ bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &nodeName, const s
  bool vtkMRMLROS2ParameterNode::RemoveParameter(const std::string &nodeName, const std::string &parameterName) {
   std::string warningMessage;
   if (!mInternals->RemoveParameter(nodeName, parameterName, warningMessage)) {
-    vtkWarnMacro(<< warningMessage);
+    vtkWarningMacro(<< warningMessage);
     return false;
   }
   return true;
@@ -65,7 +63,7 @@ std::string vtkMRMLROS2ParameterNode::GetParameterType(const ParameterKey & key,
   std::string warningMessage;
   std::string parameterType = mInternals->GetParameterType(key, result, warningMessage);
   if (parameterType.empty()) {
-    vtkWarnMacro(<< warningMessage);
+    vtkWarningMacro(<< warningMessage);
   }
   return parameterType;
 }
@@ -101,48 +99,49 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const ParameterKey & key, i
   return true;
 }
 
-
 // for debugging only - will be removed
 void vtkMRMLROS2ParameterNode::listTrackedParameters(){
   mInternals->listTrackedParameters();
 }
 
-std::vector<std::pair<ParameterKey, std::string>> GetTrackedNodeList(){
+std::vector<std::string> vtkMRMLROS2ParameterNode::GetTrackedNodeList(){
   return mInternals->GetTrackedNodeList();
 }
 
+std::vector<vtkMRMLROS2ParameterNode::ParameterKey>  vtkMRMLROS2ParameterNode::GetTrackedNodesAndParametersList(){
+  return mInternals->GetTrackedNodesAndParametersList();
+}
 
+ void vtkMRMLROS2ParameterNode::WriteXML(std::ostream& of, int nIndent)
+{
+  Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
+  vtkMRMLWriteXMLBeginMacro(of);
+  vtkMRMLWriteXMLStdStringMacro(nodeName, mMRMLNodeName);
+  vtkMRMLWriteXMLEndMacro();
+}
 
+void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char** atts)
+{
+  int wasModifying = this->StartModify();
+  Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
+  vtkMRMLReadXMLBeginMacro(atts);
+  vtkMRMLReadXMLStdStringMacro(nodeName, mMRMLNodeName);
+  vtkMRMLReadXMLEndMacro();
+  this->EndModify(wasModifying);
+}
 
- // void vtkMRMLROS2ParameterNode::WriteXML(std::ostream& of, int nIndent)
-// {
-//   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
-//   vtkMRMLWriteXMLBeginMacro(of);
-//   vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
-//   vtkMRMLWriteXMLEndMacro();
-// }
-
-// void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char** atts)
-// {
-//   int wasModifying = this->StartModify();
-//   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
-//   vtkMRMLReadXMLBeginMacro(atts);
-//   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
-//   vtkMRMLReadXMLEndMacro();
-//   this->EndModify(wasModifying);
-// }
-
-// void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
-// {
-//   Superclass::UpdateScene(scene);
-//   int nbNodeRefs = this->GetNumberOfNodeReferences("node");
-//   if (nbNodeRefs != 1) {
-//     vtkErrorMacro(<< "No ROS2 node reference defined for subscriber \"" << GetName() << "\"");
-//   } else {
-//     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
-// 			mTopic);
-//   }
-// }
+// TODO : Handle references?? 
+void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
+{
+  Superclass::UpdateScene(scene);
+  // int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+  // if (nbNodeRefs != 1) {
+  //   vtkErrorMacro(<< "No ROS2 node reference defined for parameter subscriber \"" << GetName() << "\"");
+  // } else {
+  //   this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
+	// 		mTopic);
+  // }
+}
 
  vtkMRMLROS2ParameterNode::vtkMRMLROS2ParameterNode()	{									
    mInternals = new vtkMRMLROS2ParameterInternals(this);	

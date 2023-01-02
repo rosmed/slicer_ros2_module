@@ -109,7 +109,7 @@ public:
   if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
     result = mParameterStore[parameterPair].get_type_name();
   } else {
-    warningMessage =  "nodeName : " + nodeName + ":" + parameterName + "is not tracked"; 
+    warningMessage =  "nodeName : " + parameterPair.first + ":" + parameterPair.second + "is not tracked"; 
     result = ""; //does not exist
   }
   return result;
@@ -167,6 +167,18 @@ void listTrackedParameters(){ // rename GetParameterList -> vector<ParameterKeys
     for (const auto& [key, value] : mParameterStore) {
         std::cerr << "-->" << key.first << ", " << key.second << " -- " << value.value_to_string() << std::endl; 
     }
+
+    std::cerr << "List all tracked nodes " << std::endl;
+    std::vector<std::string> nodeList = GetTrackedNodeList();
+    for (auto nodeName : nodeList){
+      std::cerr << "-->" << nodeName <<std::endl;
+    }
+
+    std::cerr << "List all tracked nodes and parameters" << std::endl;
+    std::vector<ParameterKey> nodesAndParametersList = GetTrackedNodesAndParametersList();
+    for (auto key : nodesAndParametersList){
+      std::cerr << "-->" << key.first << " " << key.second <<std::endl;
+    }
 }
 
 std::vector<std::string> GetTrackedNodeList() {
@@ -175,6 +187,14 @@ std::vector<std::string> GetTrackedNodeList() {
         nodeList.push_back(key);
     }
     return nodeList;
+}
+
+std::vector<ParameterKey>  GetTrackedNodesAndParametersList() {
+  std::vector<ParameterKey> nodesAndParametersList;
+  for (const auto& [key, value] : mParameterStore) {
+      nodesAndParametersList.push_back(key);
+  }
+  return nodesAndParametersList;
 }
 
   // Read and Write XML
