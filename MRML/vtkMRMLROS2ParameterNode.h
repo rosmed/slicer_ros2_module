@@ -34,7 +34,18 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   /*! Add a node and parameter to monitor */
   bool AddParameter(const std::string &nodeName, const std::string &parameterName);
 
-  std::string GetParameterType(const std::string &nodeName, const std::string &parameterName);
+  bool RemoveParameter(const std::string &nodeName, const std::string &parameterName);
+
+
+  /*! convenience methods for users to skip pair creation, mostly for Python users */
+  inline std::string GetParameterType(const std::string &nodeName, const std::string &parameterName) {
+    std::string result;
+    GetParameterType(ParameterKey(nodeName, parameterName), result);
+    return result;
+  }
+
+  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+  bool GetParameterType(const ParameterKey & key, std::string & result);
 
   /*! convenience methods for users to skip pair creation, mostly for Python users */
   inline std::string PrintParameterValue(const std::string &nodeName, const std::string &parameterName) {
@@ -63,10 +74,13 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
     return result;
   }
 
-  /*! Users should always make sure the key exists and the parameter type is an integer with GetParameterType before calling this method. */
+  /*! Users should always make sure the key exists and the parameter type is an integer with GetParameterType 
+  before calling this method.  Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
   bool GetParameterAsInteger(const ParameterKey & key, int & result);
 
   void listTrackedParameters();
+
+  std::vector<std::pair<ParameterKey, std::string>> GetTrackedNodeList();
 
   // Save and load
   // virtual void ReadXMLAttributes(const char** atts) override;

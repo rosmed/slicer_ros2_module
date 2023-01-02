@@ -46,17 +46,26 @@ bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
 bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &nodeName, const std::string &parameterName) {
   std::string warningMessage;
   if (!mInternals->AddParameter(nodeName, parameterName, warningMessage)) {
-    vtkErrorMacro(<< warningMessage);
+    vtkWarnMacro(<< warningMessage);
     return false;
   }
   return true;
  }
 
-std::string vtkMRMLROS2ParameterNode::GetParameterType(const std::string &nodeName, const std::string &parameterName) {
+ bool vtkMRMLROS2ParameterNode::RemoveParameter(const std::string &nodeName, const std::string &parameterName) {
   std::string warningMessage;
-  std::string parameterType = mInternals->GetParameterType(nodeName, parameterName, warningMessage);
+  if (!mInternals->RemoveParameter(nodeName, parameterName, warningMessage)) {
+    vtkWarnMacro(<< warningMessage);
+    return false;
+  }
+  return true;
+ }
+
+std::string vtkMRMLROS2ParameterNode::GetParameterType(const ParameterKey & key, std::string & result) {
+  std::string warningMessage;
+  std::string parameterType = mInternals->GetParameterType(key, result, warningMessage);
   if (parameterType.empty()) {
-    vtkErrorMacro(<< warningMessage);
+    vtkWarnMacro(<< warningMessage);
   }
   return parameterType;
 }
@@ -97,6 +106,12 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const ParameterKey & key, i
 void vtkMRMLROS2ParameterNode::listTrackedParameters(){
   mInternals->listTrackedParameters();
 }
+
+std::vector<std::pair<ParameterKey, std::string>> GetTrackedNodeList(){
+  return mInternals->GetTrackedNodeList();
+}
+
+
 
 
  // void vtkMRMLROS2ParameterNode::WriteXML(std::ostream& of, int nIndent)
