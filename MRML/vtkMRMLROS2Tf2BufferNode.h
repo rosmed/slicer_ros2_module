@@ -37,8 +37,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
 
   bool CheckIfParentAndChildSet();
 
-  void UpdateMRMLNodeName();
-
   bool AddLookupAndCreateNode();
 
   bool AddLookupForExistingNode(const std::string transformID);
@@ -52,6 +50,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   ~vtkMRMLROS2Tf2BufferNode();
   
   void ObserveTransformCallback( vtkObject* caller, unsigned long event, void* callData );
+  
+  void UpdateMRMLNodeName();
 
   std::unique_ptr<vtkMRMLROS2Tf2BufferInternals> mInternals;
   std::string mMRMLNodeName = "ros2:tf2buffer:empty";

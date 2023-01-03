@@ -82,7 +82,6 @@ class vtkMRMLROS2Tf2BufferInternals
       vtkNew<vtkMatrix4x4> matrix;
       vtkROS2ToSlicer(transformStamped, matrix);
       transform->SetMatrixTransformToParent(matrix);
-      transform->SetName((parent_id + "To" + child_id).c_str());
       transform->Modified();
       return true;
     } 

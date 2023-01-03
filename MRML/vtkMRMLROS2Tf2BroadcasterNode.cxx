@@ -70,12 +70,23 @@ const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetChildID() const
   return mChildID;
 }
 
+bool vtkMRMLROS2Tf2BroadcasterNode::CheckIfParentAndChildSet()
+{
+  if (mParentID.empty() || mChildID.empty()){
+    return false;
+  }
+  else{
+    return true; 
+  }
+}
+
 void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()// Should be a protected method
 {
-  // TODO: need to fix the name setting when parent and child aren't set
   std::string mMRMLNodeName = "ros2:tf2broadcaster:" + mParentID + "To" + mChildID;
-  if (mParentID.empty() || mChildID.empty()){
-    std::string mMRMLNodeName = "ros2:tf2broadcaster:empty";
+  if (!CheckIfParentAndChildSet()){
+    std::string emptyName = "ros2:tf2broadcaster:empty";
+    this->SetName(emptyName.c_str());
+    return;
   }
   this->SetName(mMRMLNodeName.c_str());
 }
@@ -83,7 +94,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()// Should be a protected
 bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
 {
   std::string errorMessage;
-  if (mParentID.empty() || mChildID.empty()){ // could be a method isIDSet (bool)
+  if (!CheckIfParentAndChildSet()){ // could be a method isIDSet (bool)
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }
@@ -98,7 +109,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
 bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
 {
   std::string errorMessage;
-  if (mParentID.empty() || mChildID.empty()){
+  if (!CheckIfParentAndChildSet()){
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }

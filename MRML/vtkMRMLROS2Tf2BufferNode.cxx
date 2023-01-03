@@ -82,10 +82,11 @@ bool vtkMRMLROS2Tf2BufferNode::CheckIfParentAndChildSet()
 
 void vtkMRMLROS2Tf2BufferNode::UpdateMRMLNodeName()
 {
-  // Might not be the best idea - ask Anton
   std::string mMRMLNodeName = "ros2:tf2buffer:" + mParentID + "To" + mChildID;
   if (mParentID.empty() || mChildID.empty()){
-    std::string mMRMLNodeName = "ros2:tf2buffer:empty";
+    std::string emptyName = "ros2:tf2buffer:empty";
+    this->SetName(emptyName.c_str());
+    return;
   }
   this->SetName(mMRMLNodeName.c_str());
 }
