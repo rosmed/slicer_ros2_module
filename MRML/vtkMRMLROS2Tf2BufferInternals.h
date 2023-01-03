@@ -4,6 +4,7 @@
 // ROS2 includes
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 
 // SlicerROS2 includes
 #include <vtkMRMLROS2NODENode.h>
@@ -22,6 +23,7 @@ class vtkMRMLROS2Tf2BufferInternals
 
   virtual ~vtkMRMLROS2Tf2BufferInternals() = default;
   std::shared_ptr<tf2_ros::Buffer> mTfBuffer;
+  std::shared_ptr<tf2_ros::TransformListener> mTfListener;
   std::shared_ptr<rclcpp::Node> mNodePointer;
 
   bool AddToROS2Node(vtkMRMLNode * mMRMLNode, vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage)
@@ -40,6 +42,7 @@ class vtkMRMLROS2Tf2BufferInternals
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
     // Should we have a GetTf2BufferNodeByName (probably child and parent id's)
     mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
+    mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
     rosNodePtr->SetNthNodeReferenceID("tf2buffer",
 				      rosNodePtr->GetNumberOfNodeReferences("tf2buffer"),
 				      mMRMLNode->GetID());
@@ -49,15 +52,19 @@ class vtkMRMLROS2Tf2BufferInternals
 
   bool AddLookupAndCreateNode(vtkMRMLScene * scene, const std::string & parent_id, const std::string & child_id)
   {
-    geometry_msgs::msg::TransformStamped transformStamped;
-    transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
-    vtkNew<vtkMatrix4x4> matrix;
-    vtkROS2ToSlicer(transformStamped, matrix);
-    vtkSmartPointer<vtkMRMLLinearTransformNode> transform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
-    transform->SetMatrixTransformToParent(matrix);
-    transform->SetName((parent_id + "To" + child_id).c_str());
-    scene->AddNode(transform);
-    return true;
+    try {
+        geometry_msgs::msg::TransformStamped transformStamped;
+        transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
+        vtkNew<vtkMatrix4x4> matrix;
+        vtkROS2ToSlicer(transformStamped, matrix);
+        vtkSmartPointer<vtkMRMLLinearTransformNode> transform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+        transform->SetMatrixTransformToParent(matrix);
+        transform->SetName((parent_id + "To" + child_id).c_str());
+        scene->AddNode(transform);
+        return true;
+    } catch (tf2::TransformException & ex) {
+      std::cout << " Transform exception" << std::endl;
+    }
   }
 };
 
