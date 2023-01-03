@@ -100,7 +100,24 @@ bool vtkMRMLROS2Tf2BufferNode::AddLookupAndCreateNode()
   }
   if(CheckIfParentAndChildSet()){
     std::string errorMessage;
-    if (!mInternals->AddLookupAndCreateNode(scene, mParentID, mChildID)) {
+    if (!mInternals->AddLookupAndCreateNode(scene, mParentID, mChildID, errorMessage)) {
+      vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+      return false;
+    }
+  }
+}
+
+bool vtkMRMLROS2Tf2BufferNode::AddLookupForExistingNode(const std::string transformID)
+{
+  this->SetName(mMRMLNodeName.c_str());
+  vtkMRMLScene * scene = this->GetScene();
+  if (!this->GetScene()) {
+    vtkErrorMacro(<< "AddToROS2Node, tf2 broadcaster MRML node needs to be added to the scene first");
+    return false;
+  }
+  if(CheckIfParentAndChildSet()){
+    std::string errorMessage;
+    if (!mInternals->AddLookupForExistingNode(scene, mParentID, mChildID, transformID, errorMessage)) {
       vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
       return false;
     }

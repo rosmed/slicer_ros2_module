@@ -41,12 +41,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
 
   bool AddLookupAndCreateNode();
 
-  // void AddLookupForExistingNode();
-
-//   size_t LookupTransform(); // This will be a function that looks up the transform by parent and child id
-// Will need to implement ROS2ToSlicer function to convert a TransformStamped to a Slicer Transform
-
-//   void ObserveTransformNode(vtkMRMLTransformNode* node); // maybe do the inverse
+  bool AddLookupForExistingNode(const std::string transformID);
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;

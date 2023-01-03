@@ -50,20 +50,45 @@ class vtkMRMLROS2Tf2BufferInternals
     return true;
   }
 
-  bool AddLookupAndCreateNode(vtkMRMLScene * scene, const std::string & parent_id, const std::string & child_id)
+  bool AddLookupAndCreateNode(vtkMRMLScene * scene, const std::string & parent_id, const std::string & child_id, std::string & errorMessage)
   {
     try {
-        geometry_msgs::msg::TransformStamped transformStamped;
-        transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
-        vtkNew<vtkMatrix4x4> matrix;
-        vtkROS2ToSlicer(transformStamped, matrix);
-        vtkSmartPointer<vtkMRMLLinearTransformNode> transform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
-        transform->SetMatrixTransformToParent(matrix);
-        transform->SetName((parent_id + "To" + child_id).c_str());
-        scene->AddNode(transform);
-        return true;
-    } catch (tf2::TransformException & ex) {
-      std::cout << " Transform exception" << std::endl;
+      geometry_msgs::msg::TransformStamped transformStamped;
+      transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
+      vtkNew<vtkMatrix4x4> matrix;
+      vtkROS2ToSlicer(transformStamped, matrix);
+      vtkSmartPointer<vtkMRMLLinearTransformNode> transform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+      transform->SetMatrixTransformToParent(matrix);
+      transform->SetName((parent_id + "To" + child_id).c_str());
+      scene->AddNode(transform);
+      return true;
+    } 
+    catch (tf2::TransformException & ex) {
+      errorMessage = "Could not find the transform between " + parent_id + " and " +  child_id; 
+      return false;
+    }
+  }
+
+  bool AddLookupForExistingNode(vtkMRMLScene * scene, const std::string & parent_id, const std::string & child_id, const std::string transformID, std::string & errorMessage )
+  {
+    vtkMRMLTransformNode *transform = vtkMRMLTransformNode::SafeDownCast(scene->GetNodeByID(transformID));
+    if (!transform){
+        errorMessage = "Transform does not exist for provided ID.";
+        return false;
+    }
+    try {
+      geometry_msgs::msg::TransformStamped transformStamped;
+      transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
+      vtkNew<vtkMatrix4x4> matrix;
+      vtkROS2ToSlicer(transformStamped, matrix);
+      transform->SetMatrixTransformToParent(matrix);
+      transform->SetName((parent_id + "To" + child_id).c_str());
+      transform->Modified();
+      return true;
+    } 
+    catch (tf2::TransformException & ex) {
+      errorMessage = "Could not find the transform between " + parent_id + " and " + child_id; 
+      return false;
     }
   }
 };
