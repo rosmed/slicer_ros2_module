@@ -30,16 +30,16 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
   bool AddToROS2Node(const char * nodeId);
 
   void SetParentID(const std::string & parent_id);
-  std::string GetParentID();
+  const std::string& GetParentID() const;
 
   void SetChildID(const std::string & child_id);
-  std::string GetChildID();
+  const std::string& GetChildID() const;
 
   void UpdateMRMLNodeName();
 
-  size_t Broadcast(vtkMRMLTransformNode * message);
+  bool Broadcast(vtkMRMLTransformNode * message);
   // overloaded to support a transform or a matrix
-  size_t Broadcast(vtkMatrix4x4 * message);
+  bool Broadcast(vtkMatrix4x4 * message);
 
   void ObserveTransformNode(vtkMRMLTransformNode* node);
 

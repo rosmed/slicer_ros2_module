@@ -67,7 +67,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
   { 
     geometry_msgs::msg::TransformStamped rosTransform;
     vtkSlicerToROS2(message, rosTransform);
-    rclcpp::Time now = mNodePointer->get_clock()->now();
+    rclcpp::Time now = mNodePointer->get_clock()->now(); // SlicerToROS2 could do this
     rosTransform.header.stamp = now;
     rosTransform.header.frame_id = parent_id;
     rosTransform.child_frame_id = child_id;

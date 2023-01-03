@@ -54,7 +54,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::SetParentID(const std::string & parent_id)
   UpdateMRMLNodeName();
 }
 
-std::string vtkMRMLROS2Tf2BroadcasterNode::GetParentID()
+const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetParentID() const
 {
   return mParentID;
 }
@@ -65,14 +65,14 @@ void vtkMRMLROS2Tf2BroadcasterNode::SetChildID(const std::string & child_id)
   UpdateMRMLNodeName();
 }
 
-std::string vtkMRMLROS2Tf2BroadcasterNode::GetChildID()
+const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetChildID() const
 {
   return mChildID;
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()
+void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()// Should be a protected method
 {
-  // Might not be the best idea - ask Anton
+  // TODO: need to fix the name setting when parent and child aren't set
   std::string mMRMLNodeName = "ros2:tf2broadcaster:" + mParentID + "To" + mChildID;
   if (mParentID.empty() || mChildID.empty()){
     std::string mMRMLNodeName = "ros2:tf2broadcaster:empty";
@@ -80,10 +80,10 @@ void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()
   this->SetName(mMRMLNodeName.c_str());
 }
 
-size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
+bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
 {
   std::string errorMessage;
-  if (mParentID.empty() || mChildID.empty()){
+  if (mParentID.empty() || mChildID.empty()){ // could be a method isIDSet (bool)
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }
@@ -92,10 +92,10 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
     return false;
   }
   mNumberOfBroadcasts++;
-  return mNumberOfBroadcasts;
+  return true; // just return a bool
 }
 
-size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
+bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
 {
   std::string errorMessage;
   if (mParentID.empty() || mChildID.empty()){
@@ -107,7 +107,7 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
     return false;
   }
   mNumberOfBroadcasts++;
-  return mNumberOfBroadcasts;
+  return true;
 }
 
 void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformNode(vtkMRMLTransformNode * node )

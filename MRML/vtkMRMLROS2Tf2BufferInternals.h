@@ -11,8 +11,8 @@
 
 // Slicer includes
 #include <vtkMRMLScene.h>
-#include <vtkSlicerToROS2.h>
-#include <vtkMRMLTransformNode.h> // should this go here 
+#include <vtkROS2ToSlicer.h>
+#include <vtkMRMLLinearTransformNode.h> // should this go here 
 #include <vtkMatrix4x4.h>
 
 class vtkMRMLROS2Tf2BufferInternals
@@ -47,35 +47,18 @@ class vtkMRMLROS2Tf2BufferInternals
     return true;
   }
 
-//   size_t Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id)
-//   { 
-//     geometry_msgs::msg::TransformStamped rosTransform;
-//     vtkNew<vtkMatrix4x4> matrix;
-//     message->GetMatrixTransformToParent(matrix);
-//     vtkSlicerToROS2(matrix, rosTransform);
-//     rclcpp::Time now = mNodePointer->get_clock()->now();
-//     rosTransform.header.stamp = now;
-//     rosTransform.header.frame_id = parent_id;
-//     rosTransform.child_frame_id = child_id;
-
-//     // Send the transform
-//     mTfBuffer->sendTransform(rosTransform);
-//     return true;
-//   }
-
-//   size_t Broadcast(vtkMatrix4x4 * message, const std::string & parent_id, const std::string & child_id)
-//   { 
-//     geometry_msgs::msg::TransformStamped rosTransform;
-//     vtkSlicerToROS2(message, rosTransform);
-//     rclcpp::Time now = mNodePointer->get_clock()->now();
-//     rosTransform.header.stamp = now;
-//     rosTransform.header.frame_id = parent_id;
-//     rosTransform.child_frame_id = child_id;
-
-//     // Send the transform
-//     mTfBuffer->sendTransform(rosTransform);
-//     return true;
-//   }
+  bool AddLookupAndCreateNode(vtkMRMLScene * scene, const std::string & parent_id, const std::string & child_id)
+  {
+    geometry_msgs::msg::TransformStamped transformStamped;
+    transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
+    vtkNew<vtkMatrix4x4> matrix;
+    vtkROS2ToSlicer(transformStamped, matrix);
+    vtkSmartPointer<vtkMRMLLinearTransformNode> transform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+    transform->SetMatrixTransformToParent(matrix);
+    transform->SetName((parent_id + "To" + child_id).c_str());
+    scene->AddNode(transform);
+    return true;
+  }
 };
 
 #endif // __vtkMRMLROS2Tf2BufferInternals_h

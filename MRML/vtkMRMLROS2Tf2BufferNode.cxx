@@ -70,6 +70,16 @@ std::string vtkMRMLROS2Tf2BufferNode::GetChildID()
   return mChildID;
 }
 
+bool vtkMRMLROS2Tf2BufferNode::CheckIfParentAndChildSet()
+{
+  if (mParentID.empty() || mChildID.empty()){
+    return false;
+  }
+  else{
+    return true; 
+  }
+}
+
 void vtkMRMLROS2Tf2BufferNode::UpdateMRMLNodeName()
 {
   // Might not be the best idea - ask Anton
@@ -80,6 +90,22 @@ void vtkMRMLROS2Tf2BufferNode::UpdateMRMLNodeName()
   this->SetName(mMRMLNodeName.c_str());
 }
 
+bool vtkMRMLROS2Tf2BufferNode::AddLookupAndCreateNode()
+{
+  this->SetName(mMRMLNodeName.c_str());
+  vtkMRMLScene * scene = this->GetScene();
+  if (!this->GetScene()) {
+    vtkErrorMacro(<< "AddToROS2Node, tf2 broadcaster MRML node needs to be added to the scene first");
+    return false;
+  }
+  if(CheckIfParentAndChildSet()){
+    std::string errorMessage;
+    if (!mInternals->AddLookupAndCreateNode(scene, mParentID, mChildID)) {
+      vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+      return false;
+    }
+  }
+}
 
 void vtkMRMLROS2Tf2BufferNode::WriteXML( ostream& of, int nIndent )
 {
