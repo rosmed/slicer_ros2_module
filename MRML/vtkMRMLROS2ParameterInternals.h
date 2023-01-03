@@ -131,13 +131,13 @@ bool PrintParameterValue(const ParameterKey & parameterPair, std::string & resul
     return false;
 }
 
-bool GetParameterAsString(const ParameterKey & parameterPair, std::string & result, std::string & errorMessage) {
+bool GetParameterAsBool(const ParameterKey & parameterPair, bool & result, std::string & errorMessage) {
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
       bool parameterRetrievalStatus = true;
       try {
-      result = mParameterStore[parameterPair].as_string();
+      result = mParameterStore[parameterPair].as_bool();
       } catch (const std::runtime_error & e) {
-        errorMessage = "GetParameterAsString caught exception :";
+        errorMessage = "GetParameterAsBoolean caught exception :";
         errorMessage.append(e.what());
         parameterRetrievalStatus = false;
       }
@@ -179,13 +179,13 @@ bool GetParameterAsDouble(const ParameterKey & parameterPair, double & result, s
     return false;
 }
 
-bool GetParameterAsBool(const ParameterKey & parameterPair, bool & result, std::string & errorMessage) {
+bool GetParameterAsString(const ParameterKey & parameterPair, std::string & result, std::string & errorMessage) {
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
       bool parameterRetrievalStatus = true;
       try {
-      result = mParameterStore[parameterPair].as_bool();
+      result = mParameterStore[parameterPair].as_string();
       } catch (const std::runtime_error & e) {
-        errorMessage = "GetParameterAsBoolean caught exception :";
+        errorMessage = "GetParameterAsString caught exception :";
         errorMessage.append(e.what());
         parameterRetrievalStatus = false;
       }
@@ -195,27 +195,27 @@ bool GetParameterAsBool(const ParameterKey & parameterPair, bool & result, std::
     return false;
 }
 
-bool GetParameterAsVectorOfBools(const ParameterKey & parameterPair, std::vector<bool> & result, std::string & errorMessage) {
-    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
-      bool parameterRetrievalStatus = true;
-      try {
-      result = mParameterStore[parameterPair].as_bool_array();
-      } catch (const std::runtime_error & e) {
-        errorMessage = "GetParameterAsVectorOfBools caught exception :";
-        errorMessage.append(e.what());
-        parameterRetrievalStatus = false;
-      }
-      return parameterRetrievalStatus;
-    }
-    errorMessage = "Parameter not tracked";
-    return false;
-}
+// bool GetParameterAsVectorOfBools(const ParameterKey & parameterPair, std::vector<bool> & result, std::string & errorMessage) {
+//     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+//       bool parameterRetrievalStatus = true;
+//       try {
+//       result = mParameterStore[parameterPair].as_bool_array();
+//       } catch (const std::runtime_error & e) {
+//         errorMessage = "GetParameterAsVectorOfBools caught exception :";
+//         errorMessage.append(e.what());
+//         parameterRetrievalStatus = false;
+//       }
+//       return parameterRetrievalStatus;
+//     }
+//     errorMessage = "Parameter not tracked";
+//     return false;
+// }
 
-bool GetParameterAsVectorOfIntegers(const ParameterKey & parameterPair, std::vector<int> & result, std::string & errorMessage) {
+bool GetParameterAsVectorOfIntegers(const ParameterKey & parameterPair, std::vector<int64_t> & result, std::string & errorMessage) {
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
       bool parameterRetrievalStatus = true;
       try {
-      result = mParameterStore[parameterPair].as_int_array();
+      result = mParameterStore[parameterPair].as_integer_array();
       } catch (const std::runtime_error & e) {
         errorMessage = "GetParameterAsVectorOfIntegers caught exception :";
         errorMessage.append(e.what());

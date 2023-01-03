@@ -67,17 +67,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
     return result;
   }
 
-  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. 
-  Returns the value of the parameter if it is a string. Users should always make sure that the key exists 
-  and the parameter type is string before calling this method*/
-  bool GetParameterAsString(const ParameterKey & key, std::string & result);
- /*! convenience methods for users to skip pair creation, mostly for Python users */
-  inline std::string GetParameterAsString(const std::string &nodeName, const std::string &parameterName) {
-    std::string result;
-    GetParameterAsString(ParameterKey(nodeName, parameterName), result);
-    return result;
-  }
-
   /*! Returns the value of the parameter if it is an Integer . Users should always make sure the key exists and 
   the parameter type is an integer with GetParameterType before calling this method.  
   Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
@@ -100,25 +89,38 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
     return result;
   }
 
+  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. 
+  Returns the value of the parameter if it is a string. Users should always make sure that the key exists 
+  and the parameter type is string before calling this method*/
+  bool GetParameterAsString(const ParameterKey & key, std::string & result);
+ /*! convenience methods for users to skip pair creation, mostly for Python users */
+  inline std::string GetParameterAsString(const std::string &nodeName, const std::string &parameterName) {
+    std::string result;
+    GetParameterAsString(ParameterKey(nodeName, parameterName), result);
+    return result;
+  }
+
   /*! Returns the value of the parameter if it is a vector of bools. Users should always make sure the key exists and
   the parameter type is a vector of bools with GetParameterType before calling this method.
   Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
   bool GetParameterAsVectorOfBools(const ParameterKey & key, std::vector<bool> & result);
   /*! convenience methods for users to skip pair creation, mostly for Python users */
-  inline std::vector<bool> GetParameterAsVectorOfBools(const std::string &nodeName, const std::string &parameterName) {
-    std::vector<bool> result;
-    GetParameterAsVectorOfBools(ParameterKey(nodeName, parameterName), result);
-    return result;
-  }
+
+  // TODO : unable to build for some reasong
+  // inline std::vector<bool> GetParameterAsVectorOfBools(const std::string &nodeName, const std::string &parameterName) {
+  //   std::vector<bool> result;
+  //   // GetParameterAsVectorOfBools(ParameterKey(nodeName, parameterName), result);
+  //   return result;
+  // }
 
   /*! Returns the value of the parameter if it is a vector of ints. Users should always make sure the key exists and  
   the parameter type is a vector of ints with GetParameterType before calling this method.
   Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
-  bool GetParameterAsVectorOfInts(const ParameterKey & key, std::vector<int> & result);
+  bool GetParameterAsVectorOfIntegers(const ParameterKey & key, std::vector<int64_t> & result);
   /*! convenience methods for users to skip pair creation, mostly for Python users */
-  inline std::vector<int> GetParameterAsVectorOfInts(const std::string &nodeName, const std::string &parameterName) {
-    std::vector<int> result;
-    GetParameterAsVectorOfInts(ParameterKey(nodeName, parameterName), result);
+  inline std::vector<int64_t> GetParameterAsVectorOfIntegers(const std::string &nodeName, const std::string &parameterName) {
+    std::vector<int64_t> result;
+    GetParameterAsVectorOfIntegers(ParameterKey(nodeName, parameterName), result);
     return result;
   }
 

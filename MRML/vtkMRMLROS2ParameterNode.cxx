@@ -79,10 +79,10 @@ bool vtkMRMLROS2ParameterNode::PrintParameterValue(const ParameterKey & key, std
 }
 
 /*! Users should always make sure the key exists and the parameter type is a string with GetParameterType before calling this method. */
-bool vtkMRMLROS2ParameterNode::GetParameterAsString(const ParameterKey & key, std::string & result)
+bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const ParameterKey & key, bool & result)
 {
   std::string errorMessage;
-  if (!mInternals->GetParameterAsString(key, result, errorMessage)) {
+  if (!mInternals->GetParameterAsBool(key, result, errorMessage)) {
     vtkErrorMacro(<< errorMessage);
     return false;
   }
@@ -109,10 +109,10 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsDouble(const ParameterKey & key, do
   return true;
 }
 
-bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const ParameterKey & key, bool & result)
+bool vtkMRMLROS2ParameterNode::GetParameterAsString(const ParameterKey & key, std::string & result)
 {
   std::string errorMessage;
-  if (!mInternals->GetParameterAsBool(key, result, errorMessage)) {
+  if (!mInternals->GetParameterAsString(key, result, errorMessage)) {
     vtkErrorMacro(<< errorMessage);
     return false;
   }
@@ -121,8 +121,18 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const ParameterKey & key, bool
 
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfBools(const ParameterKey & key, std::vector<bool> & result)
 {
+  // std::string errorMessage;
+  // if (!mInternals->GetParameterAsVectorOfBools(key, result, errorMessage)) {
+  //   vtkErrorMacro(<< errorMessage);
+  //   return false;
+  // }
+  return true;
+}
+
+bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const ParameterKey & key, std::vector<int64_t> & result)
+{
   std::string errorMessage;
-  if (!mInternals->GetParameterAsVectorOfBools(key, result, errorMessage)) {
+  if (!mInternals->GetParameterAsVectorOfIntegers(key, result, errorMessage)) {
     vtkErrorMacro(<< errorMessage);
     return false;
   }
@@ -139,15 +149,6 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfDoubles(const ParameterKey 
   return true;
 }
 
-bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const ParameterKey & key, std::vector<int> & result)
-{
-  std::string errorMessage;
-  if (!mInternals->GetParameterAsVectorOfIntegers(key, result, errorMessage)) {
-    vtkErrorMacro(<< errorMessage);
-    return false;
-  }
-  return true;
-}
 
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfStrings(const ParameterKey & key, std::vector<std::string> & result)
 {
