@@ -128,7 +128,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NODENode::CreateAndAddParameter(const char
   }
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(parameterNode);
-  if (parameterNode->AddToROS2Node(this->GetID(), trackedNodeName)) {
+  if (parameterNode->AddToROS2Node(this->GetID())) {
     return parameterNode;
   }
   // Something went wrong, cleanup
@@ -174,13 +174,15 @@ vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std
 
 vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByNode(const std::string & nodeName)
 {
+  vtkErrorMacro("vtkMRMLROS2NODENode::GetParameterNodeByNode is not implemented yet.  It assumes we will use the rclcpp async client but this is not decided yet"); 
   int parameterRefs = this->GetNumberOfNodeReferences("parameter");
   for (int j = 0; j < parameterRefs; j ++) {
     vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
     if (!node) {
       vtkWarningMacro(<< "Node referenced by role 'parameter' is not a parameter");
     }
-    std::string topicName = node->GetTopic();
+    // commented out until we know how we will support parameters
+    std::string topicName = "this is not actual code"; // node->GetTopic();
     if (topicName == nodeName) { // check if an existing nodes name matches the topic provided
       return node; // if so return the node
     }
@@ -191,7 +193,6 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByNode(const std:
 
 void vtkMRMLROS2NODENode::Spin(void)
 {
-  vtkWarningMacro(<< ".");
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);
   }

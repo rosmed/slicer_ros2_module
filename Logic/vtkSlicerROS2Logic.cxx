@@ -37,6 +37,7 @@
 
 // same 
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
 
 #include<vtkMRMLNode.h>
 
@@ -99,9 +100,12 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   // Publishers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
-
   // Parameters
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
+  // Tf2
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>::New());
+
 }
 
 
@@ -145,9 +149,14 @@ void vtkSlicerROS2Logic::AddROS2Node(void)
     this->GetMRMLScene()->AddNode(mTestROS2Node);
     mTestROS2Node->Create("test_node");
     mROS2Nodes.push_back(mTestROS2Node);
+    // Add Tf2 Broadcaster
+    vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
+    this->GetMRMLScene()->AddNode(tfBroadcaster);
+    tfBroadcaster->AddToROS2Node(mTestROS2Node->GetID());
+    // vtkMRMLTransformNode *parentTransformNode; 
+    // tfBroadcaster->Broadcast(parentTransformNode);
   }
 }
-
 
 void vtkSlicerROS2Logic::AddSomePublishers(void)
 {
@@ -187,7 +196,7 @@ void vtkSlicerROS2Logic::AddSomeParameters(void)
     AddROS2Node();
   }
   // the long way
-  vtkSmartPointer<vtkMRMLROS2ParameterNode> subString = vtkMRMLROS2ParameterNode::New();
-  this->GetMRMLScene()->AddNode(subString);
-  subString->AddToROS2Node(mTestROS2Node->GetID(), "/string_param");
+  vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
+  this->GetMRMLScene()->AddNode(param);
+  param->AddToROS2Node(mTestROS2Node->GetID());
 }

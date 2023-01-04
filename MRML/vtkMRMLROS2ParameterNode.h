@@ -3,7 +3,7 @@
 
 // MRML includes
 #include <vtkMRMLNode.h>
-
+#include <utility>
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
 // forward declaration for internals
@@ -21,43 +21,70 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   //newly added
 
   typedef vtkMRMLROS2ParameterNode SelfType;
+  typedef std::pair<std::string,std::string> ParameterKey; // pair: {nodeName, parameterName}
   static SelfType * New(void);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
-  bool AddToROS2Node(const char * nodeId,
-		     const std::string & trackedNodeName);
+  bool AddToROS2Node(const char * nodeId);
 
   bool IsAddedToROS2Node(void) const;
 
-  const std::string & GetTopic(void) const {
-    return mTopic;
+  /*! Add a node and parameter to monitor */
+  bool AddParameter(const std::string &nodeName, const std::string &parameterName);
+
+  std::string GetParameterType(const std::string &nodeName, const std::string &parameterName);
+
+  /*! convenience methods for users to skip pair creation, mostly for Python users */
+  inline std::string PrintParameterValue(const std::string &nodeName, const std::string &parameterName) {
+    std::string result;
+    PrintParameterValue(ParameterKey(nodeName, parameterName), result);
+    return result;
   }
 
-  size_t GetNumberOfMessages(void) const {
-    return mNumberOfMessages;
+  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+  bool PrintParameterValue(const ParameterKey & key, std::string & result);
+
+  inline std::string GetParameterAsString(const std::string &nodeName, const std::string &parameterName) {
+    std::string result;
+    GetParameterAsString(ParameterKey(nodeName, parameterName), result);
+    return result;
   }
 
-  void PrintSelf(ostream& os, vtkIndent indent) override;
+  bool GetParameterAsString(const ParameterKey & key, std::string & result);
+
+  /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+  inline int GetParameterAsInteger(const std::string &nodeName, const std::string &parameterName) {
+    int result;
+    GetParameterAsInteger(ParameterKey(nodeName, parameterName), result);
+    return result;
+  }
+
+  /*! Users should always make sure the key exists and the parameter type is an integer with GetParameterType before calling this method. */
+  bool GetParameterAsInteger(const ParameterKey & key, int & result);
+
+  void listTrackedParameters();
 
   // Save and load
-  virtual void ReadXMLAttributes(const char** atts) override;
-  virtual void WriteXML(std::ostream& of, int indent) override;
-  void UpdateScene(vtkMRMLScene *scene) override;
+  // virtual void ReadXMLAttributes(const char** atts) override;
+  // virtual void WriteXML(std::ostream& of, int indent) override;
+  // void UpdateScene(vtkMRMLScene *scene) override;
 
  protected:
   vtkMRMLROS2ParameterNode();
   ~vtkMRMLROS2ParameterNode();
 
   vtkMRMLROS2ParameterInternals * mInternals = nullptr;
-  std::string mTopic = "undefined";
-  std::string mMRMLNodeName = "ros2:sub:undefined";
-  size_t mNumberOfMessages = 0;
+  std::string mMRMLNodeName = "ros2:parameterNode";
 
   // For ReadXMLAttributes
-  inline void SetTopic(const std::string & trackedNodeName) {
-    mTopic = trackedNodeName;
-  }
+  // inline void SetTopic(const std::string & trackedNodeName) {
+  //   mTopic = trackedNodeName;
+  // }
+
+
+
 };
 
 #endif // __vtkMRMLROS2ParameterNode_h
