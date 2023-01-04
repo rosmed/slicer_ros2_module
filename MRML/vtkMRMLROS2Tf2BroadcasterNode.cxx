@@ -70,7 +70,7 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message, const st
 }
 
 
-void vtkMRMLROS2Tf2BroadcasterNode::WriteXML( ostream& of, int nIndent )
+void vtkMRMLROS2Tf2BroadcasterNode::WriteXML(ostream& of, int nIndent)
 {
   // Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   // vtkIndent indent(nIndent);
@@ -81,7 +81,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::WriteXML( ostream& of, int nIndent )
 }
 
 
-void vtkMRMLROS2Tf2BroadcasterNode::ReadXMLAttributes( const char** atts )
+void vtkMRMLROS2Tf2BroadcasterNode::ReadXMLAttributes(const char** atts)
 {
   // int wasModifying = this->StartModify();
   // Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes

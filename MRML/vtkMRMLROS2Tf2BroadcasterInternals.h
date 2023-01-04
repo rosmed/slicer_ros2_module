@@ -38,7 +38,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
       errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
       return false;
     }
-
+    
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
     mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*mNodePointer);
     // This isn't working for some reason
@@ -49,9 +49,9 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     return true;
   }
 
+  
   size_t Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id)
   { 
-
     geometry_msgs::msg::TransformStamped rosTransform;
     vtkNew<vtkMatrix4x4> matrix;
     message->GetMatrixTransformToParent(matrix);

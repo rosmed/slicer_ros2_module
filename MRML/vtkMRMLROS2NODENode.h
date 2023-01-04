@@ -29,18 +29,38 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
-  void Create(const std::string & nodeName, bool initialize = false);
+  /*! Calls rclcpp::init if needed and then create the internal ROS
+    node. */
+  void Create(const std::string & nodeName);
   inline const std::string GetROS2NodeName(void) const {
     return mROS2NodeName;
   }
+
+  /*! Helper method to create a subscriber given a subscriber type and
+    a topic. This method will create the corresponding MRML node if
+    there is no existing subscriber for the given topic and add it to
+    the default ROS2 node for this logic. It will return a nullptr a
+    new subscriber was not created. */
+  vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+  
+  /*! Helper method to create a publisher given a publisher type and
+    a topic. This method will create the corresponding MRML node if
+    there is no existing publisher for the given topic and add it to
+    the default ROS2 node for this logic. It will return a nullptr a
+    new publisher was not created. */
+  vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
+  
+  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const char * className, const std::string & topic);
+
   void Spin(void);
+
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
-  vtkMRMLROS2ParameterNode* GetParameterNodeByTopic(const std::string & topic);
+  vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
 
   // Save and load
-  virtual void ReadXMLAttributes(const char** atts) override;
-  virtual void WriteXML(std::ostream& of, int indent) override;
+  void ReadXMLAttributes(const char** atts) override;
+  void WriteXML(std::ostream& of, int indent) override;
 
  protected:
   vtkMRMLROS2NODENode();
