@@ -8,6 +8,7 @@
 
 // forward declaration for internals
 class vtkMRMLROS2Tf2BufferInternals;
+class vtkMRMLROS2Tf2BufferLookupNode;
 class vtkMRMLTransformNode;
 class vtkMatrix4x4;
 class vtkObject;
@@ -29,17 +30,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   
   bool AddToROS2Node(const char * nodeId);
 
-  void SetParentID(const std::string & parent_id);
-  std::string GetParentID();
+  bool AddLookupAndCreateNode(vtkMRMLROS2Tf2BufferLookupNode * lookupNode);
 
-  void SetChildID(const std::string & child_id);
-  std::string GetChildID();
-
-  bool CheckIfParentAndChildSet();
-
-  bool AddLookupAndCreateNode();
-
-  bool AddLookupForExistingNode(const std::string transformID);
+  bool AddLookupForExistingNode(const std::string transformID, vtkMRMLROS2Tf2BufferLookupNode * lookupNode);
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
@@ -48,15 +41,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
  protected:
   vtkMRMLROS2Tf2BufferNode();
   ~vtkMRMLROS2Tf2BufferNode();
-  
-  void ObserveTransformCallback( vtkObject* caller, unsigned long event, void* callData );
-  
-  void UpdateMRMLNodeName();
 
   std::unique_ptr<vtkMRMLROS2Tf2BufferInternals> mInternals;
-  std::string mMRMLNodeName = "ros2:tf2buffer:empty";
-  std::string mParentID = "";
-  std::string mChildID = "";
+  std::string mMRMLNodeName = "ros2:tf2buffer";
   size_t mNumberOfBroadcasts = 0;
 
 };

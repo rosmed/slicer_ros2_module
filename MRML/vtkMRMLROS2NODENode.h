@@ -21,6 +21,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   friend class vtkMRMLROS2ParameterInternals;
   friend class vtkMRMLROS2Tf2BroadcasterInternals;
   friend class vtkMRMLROS2Tf2BufferInternals;
+  friend class vtkMRMLROS2Tf2BufferLookupInternals;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;

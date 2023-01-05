@@ -38,6 +38,7 @@
 // same 
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2BufferNode.h>
+#include <vtkMRMLROS2Tf2BufferLookupNode.h>
 
 #include<vtkMRMLNode.h>
 
@@ -105,7 +106,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   // Tf2
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>::New());
-
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BufferLookupNode>::New());
 }
 
 
@@ -153,6 +154,15 @@ void vtkSlicerROS2Logic::AddROS2Node(void)
     vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
     this->GetMRMLScene()->AddNode(tfBroadcaster);
     tfBroadcaster->AddToROS2Node(mTestROS2Node->GetID());
+
+    // Add Tf2 Buffer
+    vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
+    this->GetMRMLScene()->AddNode(tfBuffer);
+    tfBuffer->AddToROS2Node(mTestROS2Node->GetID());
+    vtkSmartPointer<vtkMRMLROS2Tf2BufferLookupNode> tfBufferLookup = vtkMRMLROS2Tf2BufferLookupNode::New();
+    this->GetMRMLScene()->AddNode(tfBufferLookup);
+    tfBufferLookup->AddToROS2Node(mTestROS2Node->GetID());
+
     // vtkMRMLTransformNode *parentTransformNode; 
     // tfBroadcaster->Broadcast(parentTransformNode);
   }
