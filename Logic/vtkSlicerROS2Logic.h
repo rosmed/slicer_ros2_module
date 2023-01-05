@@ -61,6 +61,7 @@ public:
   void AddSomePublishers(void);
   void AddSomeSubscribers(void);
   void AddSomeParameters(void);
+  void AddSomeTf2Nodes(void);
 
 protected:
   vtkSlicerROS2Logic();
