@@ -36,7 +36,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
       errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
       return false;
     }
-
+    
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
     // Should we have a GetTf2BroadcasterNodeByName (probably child and parent id's)
     mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*mNodePointer);
@@ -47,6 +47,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
     return true;
   }
 
+  
   size_t Broadcast(vtkMRMLTransformNode * message, const std::string & parent_id, const std::string & child_id)
   { 
     geometry_msgs::msg::TransformStamped rosTransform;
@@ -67,7 +68,7 @@ class vtkMRMLROS2Tf2BroadcasterInternals
   { 
     geometry_msgs::msg::TransformStamped rosTransform;
     vtkSlicerToROS2(message, rosTransform);
-    rclcpp::Time now = mNodePointer->get_clock()->now();
+    rclcpp::Time now = mNodePointer->get_clock()->now(); // SlicerToROS2 could do this
     rosTransform.header.stamp = now;
     rosTransform.header.frame_id = parent_id;
     rosTransform.child_frame_id = child_id;

@@ -54,7 +54,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::SetParentID(const std::string & parent_id)
   UpdateMRMLNodeName();
 }
 
-std::string vtkMRMLROS2Tf2BroadcasterNode::GetParentID()
+const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetParentID() const
 {
   return mParentID;
 }
@@ -65,25 +65,36 @@ void vtkMRMLROS2Tf2BroadcasterNode::SetChildID(const std::string & child_id)
   UpdateMRMLNodeName();
 }
 
-std::string vtkMRMLROS2Tf2BroadcasterNode::GetChildID()
+const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetChildID() const
 {
   return mChildID;
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()
+bool vtkMRMLROS2Tf2BroadcasterNode::CheckIfParentAndChildSet()
 {
-  // Might not be the best idea - ask Anton
-  std::string mMRMLNodeName = "ros2:tf2broadcaster:" + mParentID + "To" + mChildID;
   if (mParentID.empty() || mChildID.empty()){
-    std::string mMRMLNodeName = "ros2:tf2broadcaster:empty";
+    return false;
+  }
+  else{
+    return true; 
+  }
+}
+
+void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()// Should be a protected method
+{
+  std::string mMRMLNodeName = "ros2:tf2broadcaster:" + mParentID + "To" + mChildID;
+  if (!CheckIfParentAndChildSet()){
+    std::string emptyName = "ros2:tf2broadcaster:empty";
+    this->SetName(emptyName.c_str());
+    return;
   }
   this->SetName(mMRMLNodeName.c_str());
 }
 
-size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
+bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
 {
   std::string errorMessage;
-  if (mParentID.empty() || mChildID.empty()){
+  if (!CheckIfParentAndChildSet()){ // could be a method isIDSet (bool)
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }
@@ -92,13 +103,13 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
     return false;
   }
   mNumberOfBroadcasts++;
-  return mNumberOfBroadcasts;
+  return true; // just return a bool
 }
 
-size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
+bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
 {
   std::string errorMessage;
-  if (mParentID.empty() || mChildID.empty()){
+  if (!CheckIfParentAndChildSet()){
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }
@@ -107,7 +118,7 @@ size_t vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
     return false;
   }
   mNumberOfBroadcasts++;
-  return mNumberOfBroadcasts;
+  return true;
 }
 
 void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformNode(vtkMRMLTransformNode * node )
@@ -137,7 +148,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformCallback( vtkObject* caller,
   }
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::WriteXML( ostream& of, int nIndent )
+void vtkMRMLROS2Tf2BroadcasterNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
@@ -147,7 +158,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::WriteXML( ostream& of, int nIndent )
 }
 
 
-void vtkMRMLROS2Tf2BroadcasterNode::ReadXMLAttributes( const char** atts )
+void vtkMRMLROS2Tf2BroadcasterNode::ReadXMLAttributes(const char** atts)
 {
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes

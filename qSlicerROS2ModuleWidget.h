@@ -53,18 +53,11 @@ protected:
   bool timerOff = false;
   int popupCounter = 0;
 
-  // QFileDialog is not available in Qt Designer!!
-  QFileDialog *urdfFileSelector = new QFileDialog(); // Was a QComboBox we populated - is the File dialog too complicated? - should we do this: https://doc.qt.io/qt-5/qtwidgets-dialogs-findfiles-example.html
-
-
 protected slots:
-  void onStateSelection(const QString&);
-  void onDescriptionSelection(const QString&);
   void onTimerTimeOut(void);
   void updateWidget(void);
   void updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row);
   void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
-  void onClearSceneSelected(void);
   void onSetSubscribers(void);
   void onSetPublishers(void);
   void onNodeAddedButton(void);
@@ -72,9 +65,6 @@ protected slots:
   void refreshPubTable(void);
 
   // Slots for dynamic widgets
-  void onNodeOrParameterNameEntered(void);
-  void onLoadModelButtonSelected(void);
-  void onBroadcastButtonPressed();
   void subscriberClicked(int row, int col);
   void publisherClicked(int row, int col);
 

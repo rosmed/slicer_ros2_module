@@ -39,6 +39,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2Tf2BroadcasterNode.cxx
   vtkMRMLROS2Tf2BufferNode.h
   vtkMRMLROS2Tf2BufferNode.cxx
+  vtkMRMLROS2Tf2BufferLookupNode.h
+  vtkMRMLROS2Tf2BufferLookupNode.cxx
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)

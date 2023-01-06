@@ -1,5 +1,6 @@
 #include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2BufferInternals.h>
+#include <vtkMRMLROS2Tf2BufferLookupNode.h>
 #include <vtkSlicerToROS2.h>
 #include <vtkObject.h>
 #include <vtkMRMLTransformNode.h>
@@ -48,45 +49,44 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   return true;
 }
 
-void vtkMRMLROS2Tf2BufferNode::SetParentID(const std::string & parent_id)
+bool vtkMRMLROS2Tf2BufferNode::AddLookupAndCreateNode(vtkMRMLROS2Tf2BufferLookupNode * lookupNode)
 {
-  mParentID = parent_id;
-  UpdateMRMLNodeName();
-}
-
-std::string vtkMRMLROS2Tf2BufferNode::GetParentID()
-{
-  return mParentID;
-}
-
-void vtkMRMLROS2Tf2BufferNode::SetChildID(const std::string & child_id)
-{
-  mChildID = child_id;
-  UpdateMRMLNodeName();
-}
-
-std::string vtkMRMLROS2Tf2BufferNode::GetChildID()
-{
-  return mChildID;
-}
-
-void vtkMRMLROS2Tf2BufferNode::UpdateMRMLNodeName()
-{
-  // Might not be the best idea - ask Anton
-  std::string mMRMLNodeName = "ros2:tf2buffer:" + mParentID + "To" + mChildID;
-  if (mParentID.empty() || mChildID.empty()){
-    std::string mMRMLNodeName = "ros2:tf2buffer:empty";
-  }
   this->SetName(mMRMLNodeName.c_str());
+  vtkMRMLScene * scene = this->GetScene();
+  if (!this->GetScene()) {
+    vtkErrorMacro(<< "AddToROS2Node, tf2 broadcaster MRML node needs to be added to the scene first");
+    return false;
+  }
+  if(lookupNode->CheckIfParentAndChildSet()){
+    std::string errorMessage;
+    if (!mInternals->AddLookupAndCreateNode(scene, lookupNode->GetParentID(), lookupNode->GetChildID(), errorMessage)) {
+      vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+      return false;
+    }
+  }
 }
 
+bool vtkMRMLROS2Tf2BufferNode::AddLookupForExistingNode(const std::string transformID, vtkMRMLROS2Tf2BufferLookupNode * lookupNode)
+{
+  this->SetName(mMRMLNodeName.c_str());
+  vtkMRMLScene * scene = this->GetScene();
+  if (!this->GetScene()) {
+    vtkErrorMacro(<< "AddToROS2Node, tf2 broadcaster MRML node needs to be added to the scene first");
+    return false;
+  }
+  if(lookupNode->CheckIfParentAndChildSet()){
+    std::string errorMessage;
+    if (!mInternals->AddLookupForExistingNode(scene, lookupNode->GetParentID(), lookupNode->GetChildID(), transformID, errorMessage)) {
+      vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+      return false;
+    }
+  }
+}
 
 void vtkMRMLROS2Tf2BufferNode::WriteXML( ostream& of, int nIndent )
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(mChildID, ChildID);
-  vtkMRMLWriteXMLStdStringMacro(mParentID, ParentID);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -96,8 +96,6 @@ void vtkMRMLROS2Tf2BufferNode::ReadXMLAttributes( const char** atts )
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(mChildID, ChildID);
-  vtkMRMLReadXMLStdStringMacro(mParentID, ParentID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }
