@@ -36,21 +36,47 @@ public:
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
 
-    
+    std::string nodeName = "/turtlesim";
+    std::string parameterName = "background_b";
 
+    mParameterClient = std::make_shared<rclcpp::AsyncParametersClient>(nodePointer, nodeName);
 
-    rosNodePtr->SetNthNodeReferenceID("parameter",
-				      rosNodePtr->GetNumberOfNodeReferences("parameter"),
+    std::chrono::seconds sec(1);
+    if(mParameterClient->wait_for_service(sec)){
+      std::cerr << "Parameter Client Set up successful" << std::endl;
+    } else {
+      std::cerr << "Error setting up Parameter Client" << std::endl;
+    }
+
+    //     // Register the callback function
+    // param_client_->on_parameter_event(
+    //   std::bind(&MyParameterCallback, this, std::placeholders::_1));
+
+    auto parameters_future = mParameterClient->get_parameters({parameterName}, 
+        std::bind(&vtkMRMLROS2ParameterInternals::MyParameterCallback, this, std::placeholders::_1));
+
+    rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
 				      mMRMLNode->GetID());
               
     mMRMLNode->SetNodeReferenceID("node", nodeId);
 
     return true;
-
   }
 
   bool IsAddedToROS2Node(void) const {
     return (mParameterSubscriber != nullptr);
+  }
+
+  void MyParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future)
+  {
+    std::cerr << "Test print " << std::endl;
+    // get the URDF as a single string
+    auto result = future.get();
+    // Anton: we should make sure there is a result
+    auto param = result.at(0);
+
+    std::cerr << " Received param value " << param.value_to_string() << std::endl;
+
   }
 
   // bool AddParameter(const std::string &nodeName, const std::string &parameterName, std::string & warningMessage) {
@@ -284,6 +310,8 @@ protected:
   rclcpp::Parameter mEmptyParameter;
   int mTrackedParametersCount = 0;
   int mAllParametersCount = 0;
+
+  std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
   // 
 };
 
