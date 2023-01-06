@@ -42,18 +42,18 @@ public:
     mParameterClient = std::make_shared<rclcpp::AsyncParametersClient>(nodePointer, nodeName);
 
     std::chrono::seconds sec(1);
-    if(mParameterClient->wait_for_service(sec)){
-      std::cerr << "Parameter Client Set up successful" << std::endl;
-    } else {
-      std::cerr << "Error setting up Parameter Client" << std::endl;
-    }
 
-    //     // Register the callback function
-    // param_client_->on_parameter_event(
-    //   std::bind(&MyParameterCallback, this, std::placeholders::_1));
+    while (!mParameterClient->wait_for_service(sec)) {
+      if (!rclcpp::ok()) {
+         std::cerr <<  "Interrupted while waiting for the service. Exiting." << std::endl;
+      }
+       std::cerr <<  "service not available, waiting again..." << std::endl;
+    }
 
     auto parameters_future = mParameterClient->get_parameters({parameterName}, 
         std::bind(&vtkMRMLROS2ParameterInternals::MyParameterCallback, this, std::placeholders::_1));
+
+    mParameterClient->on_parameter_event(std::bind(&vtkMRMLROS2ParameterInternals::on_parameter_event_callback, this, std::placeholders::_1));
 
     rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
 				      mMRMLNode->GetID());
@@ -77,6 +77,25 @@ public:
 
     std::cerr << " Received param value " << param.value_to_string() << std::endl;
 
+  }
+
+  void on_parameter_event_callback(const rcl_interfaces::msg::ParameterEvent::SharedPtr event)
+  {
+    // Iterate over the new parameters
+    std::cerr << "parameter event" << std::endl;
+    for (const auto & new_param : event->new_parameters) {
+      std::cerr <<"New parameter: " << new_param.name.c_str()<< std::endl;
+    }
+
+    // Iterate over the changed parameters
+    for (const auto & changed_param : event->changed_parameters) {
+      std::cerr <<"Changed parameter: " << changed_param.name.c_str()<< std::endl;
+    }
+
+    // Iterate over the deleted parameters
+    for (const auto & deleted_param : event->deleted_parameters) {
+      std::cerr <<"Deleted parameter: " << deleted_param.name.c_str()<< std::endl;
+    }
   }
 
   // bool AddParameter(const std::string &nodeName, const std::string &parameterName, std::string & warningMessage) {
