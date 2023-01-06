@@ -78,13 +78,15 @@ public:
     ParameterKey parameterPair = std::make_pair(nodeName, parameterName);
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
       warningMessage = "Parameter already tracked";
+      return false;
     } else {
       if (mTrackedNodes.find(nodeName) == mTrackedNodes.end()) {
         mTrackedNodes.emplace(nodeName,1);
       } else {
         mTrackedNodes[nodeName]++;
       }
-      mParameterStore.emplace(parameterPair, emptyParameter);
+      mParameterStore.emplace(parameterPair, mEmptyParameter); //rclcpp::Parameter() - remove empty
+      
     }
     return true;
   }
@@ -101,6 +103,7 @@ public:
       }
     } else {
       warningMessage = "Parameter not tracked";
+      return false;
     }
     return true;
   }
@@ -135,7 +138,7 @@ bool GetParameterAsBool(const ParameterKey & parameterPair, bool & result, std::
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
       bool parameterRetrievalStatus = true;
       try {
-      result = mParameterStore[parameterPair].as_bool();
+        result = mParameterStore[parameterPair].as_bool(); // if not set add another excep
       } catch (const std::runtime_error & e) {
         errorMessage = "GetParameterAsBoolean caught exception :";
         errorMessage.append(e.what());
@@ -151,7 +154,7 @@ bool GetParameterAsInteger(const ParameterKey & parameterPair, int & result, std
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
       bool parameterRetrievalStatus = true;
       try {
-      result = mParameterStore[parameterPair].as_int();
+        result = mParameterStore[parameterPair].as_int();
       } catch (const std::runtime_error & e) {
         errorMessage = "GetParameterAsInteger caught exception :";
         errorMessage.append(e.what());
@@ -195,21 +198,21 @@ bool GetParameterAsString(const ParameterKey & parameterPair, std::string & resu
     return false;
 }
 
-// bool GetParameterAsVectorOfBools(const ParameterKey & parameterPair, std::vector<bool> & result, std::string & errorMessage) {
-//     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
-//       bool parameterRetrievalStatus = true;
-//       try {
-//       result = mParameterStore[parameterPair].as_bool_array();
-//       } catch (const std::runtime_error & e) {
-//         errorMessage = "GetParameterAsVectorOfBools caught exception :";
-//         errorMessage.append(e.what());
-//         parameterRetrievalStatus = false;
-//       }
-//       return parameterRetrievalStatus;
-//     }
-//     errorMessage = "Parameter not tracked";
-//     return false;
-// }
+bool GetParameterAsVectorOfBools(const ParameterKey & parameterPair, std::vector<bool> & result, std::string & errorMessage) {
+    if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
+      bool parameterRetrievalStatus = true;
+      try {
+      result = mParameterStore[parameterPair].as_bool_array();
+      } catch (const std::runtime_error & e) {
+        errorMessage = "GetParameterAsVectorOfBools caught exception :";
+        errorMessage.append(e.what());
+        parameterRetrievalStatus = false;
+      }
+      return parameterRetrievalStatus;
+    }
+    errorMessage = "Parameter not tracked";
+    return false;
+}
 
 bool GetParameterAsVectorOfIntegers(const ParameterKey & parameterPair, std::vector<int64_t> & result, std::string & errorMessage) {
     if (mParameterStore.find(parameterPair) != mParameterStore.end()) {
@@ -299,7 +302,7 @@ protected:
   std::shared_ptr<rclcpp::ParameterEventCallbackHandle> cb_handle;
   std::map<ParameterKey , rclcpp::Parameter> mParameterStore; // Parameters  mParameters  this->Parameter  VTK: GetValue()  qt: getValue()
   std::unordered_map<std::string, int> mTrackedNodes; // change to map of counts?
-  rclcpp::Parameter emptyParameter;
+  rclcpp::Parameter mEmptyParameter;
   int mTrackedParametersCount = 0;
   int mAllParametersCount = 0;
   // 

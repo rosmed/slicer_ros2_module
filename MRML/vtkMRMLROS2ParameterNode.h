@@ -36,12 +36,15 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode: public vtkMRM
   /*! Remove a parameter that is being monitored. If no parameters are being monitored for a node, stop monitoring the node as well*/
   bool RemoveParameter(const std::string &nodeName, const std::string &parameterName);
 
+  // TODO : bool IsParameterSet()  ??
+
   /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result.
    Returns data type if the parameter is tracked. Else it returns an empty string */
   std::string GetParameterType(const ParameterKey & key, std::string & result);
   /*! convenience methods for users to skip pair creation, mostly for Python users */
   inline std::string GetParameterType(const std::string &nodeName, const std::string &parameterName) {
     std::string result;
+    // TODO : Add Warning
     GetParameterType(ParameterKey(nodeName, parameterName), result);
     return result;
   }
