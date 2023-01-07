@@ -52,7 +52,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
     new publisher was not created. */
   vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
   
-  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const char * className, const std::string & topic);
+  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const std::string & topic);
 
   void Spin(void);
 

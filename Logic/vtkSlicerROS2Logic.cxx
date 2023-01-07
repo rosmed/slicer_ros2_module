@@ -200,7 +200,7 @@ void vtkSlicerROS2Logic::AddSomeParameters(void)
   // the long way
   vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
   this->GetMRMLScene()->AddNode(param);
-  param->AddToROS2Node(mTestROS2Node->GetID());
+  param->AddToROS2Node(mTestROS2Node->GetID(), "/dummy_node_name");
 }
 
 void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
