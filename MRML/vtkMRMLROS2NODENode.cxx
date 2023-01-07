@@ -111,8 +111,9 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NODENode::CreateAndAddPublisher(const char
   return nullptr;
 }
 
-vtkMRMLROS2ParameterNode * vtkMRMLROS2NODENode::CreateAndAddParameter(const char * className, const std::string & trackedNodeName)
+vtkMRMLROS2ParameterNode * vtkMRMLROS2NODENode::CreateAndAddParameter(const std::string & trackedNodeName)
 {
+  const char * className = "vtkMRMLROS2ParameterNode";
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
     vtkErrorMacro(<< "\"" << className << "\" is not added to a MRML scene yet");
@@ -128,7 +129,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NODENode::CreateAndAddParameter(const char
   }
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(parameterNode);
-  if (parameterNode->AddToROS2Node(this->GetID())) {
+  if (parameterNode->AddToROS2Node(this->GetID(), trackedNodeName)) {
     return parameterNode;
   }
   // Something went wrong, cleanup
