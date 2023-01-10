@@ -63,6 +63,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 
   void AddBuffer(vtkMRMLROS2Tf2BufferNode * node);
   std::vector<vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>> mBuffers;
+  void SpinBuffers();
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;

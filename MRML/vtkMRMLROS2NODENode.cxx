@@ -215,13 +215,19 @@ void vtkMRMLROS2NODENode::AddBuffer(vtkMRMLROS2Tf2BufferNode * node)
   mBuffers.push_back(node);
 }
 
+void vtkMRMLROS2NODENode::SpinBuffers(){
+  for (size_t index = 0; index < mBuffers.size(); ++index) {
+      vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> bufferNode = mBuffers[index];
+      bufferNode->InitiateLookup();
+  }
+}
+
 void vtkMRMLROS2NODENode::Spin(void)
 {
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);
   }
 }
-
 
 void vtkMRMLROS2NODENode::WriteXML( ostream& of, int nIndent )
 {

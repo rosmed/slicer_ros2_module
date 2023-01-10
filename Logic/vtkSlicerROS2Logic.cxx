@@ -214,5 +214,9 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   tfBuffer->AddToROS2Node(mTestROS2Node->GetID());
   vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> tfLookup = vtkMRMLROS2Tf2LookupNode::New();
   this->GetMRMLScene()->AddNode(tfLookup);
+  tfLookup->SetParentID("world");
+  tfLookup->SetChildID("turtle1");
+  tfBuffer->AddLookupNode(tfLookup);
+  mTestROS2Node->SpinBuffers();
   // tfBufferLookup->AddToROS2Node(mTestROS2Node->GetID());
 }
