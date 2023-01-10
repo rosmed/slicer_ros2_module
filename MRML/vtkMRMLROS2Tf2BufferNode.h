@@ -30,9 +30,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   
   bool AddToROS2Node(const char * nodeId);
 
-  bool AddLookupAndCreateNode(vtkMRMLROS2Tf2LookupNode * lookupNode);
-
-  bool AddLookupForExistingNode(const std::string transformID, vtkMRMLROS2Tf2LookupNode * lookupNode);
+  bool AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode);
+  bool InitiateLookup();
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
