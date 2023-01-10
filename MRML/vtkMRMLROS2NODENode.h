@@ -12,6 +12,7 @@ class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
+class vtkMRMLROS2Tf2BufferNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
 {
@@ -21,7 +22,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   friend class vtkMRMLROS2ParameterInternals;
   friend class vtkMRMLROS2Tf2BroadcasterInternals;
   friend class vtkMRMLROS2Tf2BufferInternals;
-  friend class vtkMRMLROS2Tf2BufferLookupInternals;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;
@@ -59,6 +59,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
+  vtkMRMLROS2Tf2BufferNode* GetBufferNodeByID(const std::string bufferNodeID);
+
+  void AddBuffer(vtkMRMLROS2Tf2BufferNode * node);
+  std::vector<vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>> mBuffers;
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
@@ -69,6 +73,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   ~vtkMRMLROS2NODENode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
+  
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";
 

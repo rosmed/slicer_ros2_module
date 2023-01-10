@@ -5,6 +5,7 @@
 #include <vtkMRMLROS2PublisherNode.h>
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NODENode);
 
@@ -191,6 +192,28 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByNode(const std:
   return nullptr; // otherwise return a null ptr
 }
 
+vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBufferNodeByID(const std::string bufferNodeID)
+{
+  vtkErrorMacro("vtkMRMLROS2NODENode::GetParameterNodeByNode is not implemented yet.  It assumes we will use the rclcpp async client but this is not decided yet"); 
+  int bufferRefs = this->GetNumberOfNodeReferences("Tf2buffers");
+  for (int j = 0; j < bufferRefs; j ++) {
+    vtkMRMLROS2Tf2BufferNode * node = vtkMRMLROS2Tf2BufferNode::SafeDownCast(this->GetNthNodeReference("Tf2buffers", j));
+    if (!node) {
+      vtkWarningMacro(<< "Node referenced by role 'Tf2buffer' is not a Tf2 buffer");
+    }
+    // commented out until we know how we will support parameters
+    std::string nodeID = node->GetID();
+    if (bufferNodeID == nodeID) { // check if an existing nodes name matches the topic provided
+      return node; // if so return the node
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
+void vtkMRMLROS2NODENode::AddBuffer(vtkMRMLROS2Tf2BufferNode * node)
+{
+  mBuffers.push_back(node);
+}
 
 void vtkMRMLROS2NODENode::Spin(void)
 {

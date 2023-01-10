@@ -15,6 +15,7 @@
 #include <vtkROS2ToSlicer.h>
 #include <vtkMRMLLinearTransformNode.h> // should this go here 
 #include <vtkMatrix4x4.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
 
 class vtkMRMLROS2Tf2BufferInternals
 {
@@ -26,7 +27,7 @@ class vtkMRMLROS2Tf2BufferInternals
   std::shared_ptr<tf2_ros::TransformListener> mTfListener;
   std::shared_ptr<rclcpp::Node> mNodePointer;
 
-  bool AddToROS2Node(vtkMRMLNode * mMRMLNode, vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage)
+  bool AddToROS2Node(vtkMRMLNode * mMRMLNode, vtkMRMLROS2Tf2BufferNode * buff, vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage)
   {
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
@@ -40,13 +41,18 @@ class vtkMRMLROS2Tf2BufferInternals
     }
 
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
-    // Should we have a GetTf2BufferNodeByName (probably child and parent id's)
+    vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBufferNodeByID(mMRMLNode->GetID());
+    if (buffer != nullptr){
+      errorMessage = "This buffer has already been added to the ROS2 node.";
+      return false;
+    }
     mTfBuffer = std::make_unique<tf2_ros::Buffer>(mNodePointer->get_clock());
     mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
-    rosNodePtr->SetNthNodeReferenceID("tf2buffer",
-				      rosNodePtr->GetNumberOfNodeReferences("tf2buffer"),
+    rosNodePtr->SetNthNodeReferenceID("Tf2buffers",
+				      rosNodePtr->GetNumberOfNodeReferences("Tf2buffers"),
 				      mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
+    rosNodePtr->AddBuffer(buff);
     return true;
   }
 

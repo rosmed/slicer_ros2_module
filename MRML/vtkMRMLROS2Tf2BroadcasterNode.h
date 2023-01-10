@@ -37,8 +37,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
 
   bool CheckIfParentAndChildSet();
 
-  
-
   bool Broadcast(vtkMRMLTransformNode * message);
   // overloaded to support a transform or a matrix
   bool Broadcast(vtkMatrix4x4 * message);
