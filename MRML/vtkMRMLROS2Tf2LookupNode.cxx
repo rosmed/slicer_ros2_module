@@ -52,7 +52,7 @@ std::string vtkMRMLROS2Tf2LookupNode::GetChildID()
   return mChildID;
 }
 
-bool vtkMRMLROS2Tf2LookupNode::CheckIfParentAndChildSet()
+bool vtkMRMLROS2Tf2LookupNode::isParentAndChildSet()
 {
   if (mParentID.empty() || mChildID.empty()){
     return false;
@@ -64,9 +64,9 @@ bool vtkMRMLROS2Tf2LookupNode::CheckIfParentAndChildSet()
 
 void vtkMRMLROS2Tf2LookupNode::UpdateMRMLNodeName()
 {
-  std::string mMRMLNodeName = "ros2:tf2bufferlookup:" + mParentID + "To" + mChildID;
+  std::string mMRMLNodeName = "ros2:tf2lookup:" + mParentID + "To" + mChildID;
   if (mParentID.empty() || mChildID.empty()){
-    std::string emptyName = "ros2:tf2bufferlookup:empty";
+    std::string emptyName = "ros2:tf2lookup:empty";
     this->SetName(emptyName.c_str());
     return;
   }

@@ -1,6 +1,7 @@
 #include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2BufferInternals.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
+#include <vtkMRMLROS2NODENode.h>
 #include <vtkSlicerToROS2.h>
 #include <vtkObject.h>
 #include <vtkMRMLTransformNode.h>
@@ -51,20 +52,48 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
 }
 
 bool vtkMRMLROS2Tf2BufferNode::AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode){
+  
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
   if (!this->GetScene()) {
     vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
     return false;
   }
-  if(lookupNode->CheckIfParentAndChildSet()){
+  if(lookupNode->isParentAndChildSet()){
     mLookupNodes.push_back(lookupNode);
     this->SetNodeReferenceID("Lookups", lookupNode->GetID());
     return true;
   }
+  else{
+    vtkErrorMacro(<< "Lookup child and parent not set");
+    return false;
+  }
 }
 
-bool vtkMRMLROS2Tf2BufferNode::InitiateLookup(){
+vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::CreateAndAddLookupNode(const std::string & parent_id, const std::string & child_id){
+  
+  vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::New();
+  vtkMRMLScene * scene = this->GetScene();
+  if (!this->GetScene()) {
+    vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
+    return nullptr;
+  }
+  this->GetScene()->AddNode(lookupNode);
+  lookupNode->SetParentID(parent_id);
+  lookupNode->SetChildID(child_id);
+  if(lookupNode->isParentAndChildSet()){
+    mLookupNodes.push_back(lookupNode);
+    this->SetNodeReferenceID("Lookups", lookupNode->GetID());
+    return lookupNode;
+  }
+  else{
+    vtkErrorMacro(<< "Parent or child id is an empty string");
+    return nullptr;
+  }
+  return lookupNode;
+}
+
+bool vtkMRMLROS2Tf2BufferNode::Spin(){ 
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
   if (!this->GetScene()) {
@@ -73,7 +102,7 @@ bool vtkMRMLROS2Tf2BufferNode::InitiateLookup(){
   }
   for (size_t index = 0; index < mLookupNodes.size(); ++index) {
       vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = mLookupNodes[index];
-      if(lookupNode->CheckIfParentAndChildSet()){
+      if(lookupNode->isParentAndChildSet()){
         std::string errorMessage;
         if (!mInternals->InstantiateLookups(scene, lookupNode->GetParentID(), lookupNode->GetChildID(), errorMessage, lookupNode)) {
           vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);

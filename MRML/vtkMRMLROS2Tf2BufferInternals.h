@@ -28,7 +28,7 @@ class vtkMRMLROS2Tf2BufferInternals
   std::shared_ptr<tf2_ros::TransformListener> mTfListener;
   std::shared_ptr<rclcpp::Node> mNodePointer;
 
-  bool AddToROS2Node(vtkMRMLNode * mMRMLNode, vtkMRMLROS2Tf2BufferNode * buff, vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage)
+  bool AddToROS2Node(vtkMRMLNode * mMRMLNode, vtkMRMLROS2Tf2BufferNode * buff, vtkMRMLScene * scene, const char * nodeId, std::string & errorMessage) // did something weird here with buff - use mMRMLNode instead
   {
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
@@ -42,7 +42,7 @@ class vtkMRMLROS2Tf2BufferInternals
     }
 
     mNodePointer = rosNodePtr->mInternals->mNodePointer;
-    vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBufferNodeByID(mMRMLNode->GetID());
+    vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBufferNodeByID(mMRMLNode->GetID()); // check if ptr is set ( don't need to check ID ) - should also have a GetBuffer method
     if (buffer != nullptr){
       errorMessage = "This buffer has already been added to the ROS2 node.";
       return false;
@@ -53,7 +53,7 @@ class vtkMRMLROS2Tf2BufferInternals
 				      rosNodePtr->GetNumberOfNodeReferences("Tf2buffers"),
 				      mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
-    rosNodePtr->AddBuffer(buff);
+    rosNodePtr->mBuffer = buff;
     return true;
   }
 
@@ -67,7 +67,7 @@ class vtkMRMLROS2Tf2BufferInternals
     }
     try {
       geometry_msgs::msg::TransformStamped transformStamped;
-      transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  
+      transformStamped = mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);  // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
       vtkNew<vtkMatrix4x4> matrix;
       vtkROS2ToSlicer(transformStamped, matrix);
       transform->SetMatrixTransformToParent(matrix);
@@ -78,6 +78,12 @@ class vtkMRMLROS2Tf2BufferInternals
       errorMessage = "Could not find the transform between " + parent_id + " and " + child_id; 
       return false;
     }
+    catch(...){
+      errorMessage = "Got an undefined exception.";
+      return false;
+    }
+    return false;
+    // can do a cascaded  catch - other exceptions check documentation
   }
 };
 
