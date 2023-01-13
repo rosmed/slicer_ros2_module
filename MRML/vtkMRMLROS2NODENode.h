@@ -80,6 +80,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";
 
+  std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
+
   // For ReadXMLAttributes
   inline void SetROS2NodeName(const std::string & name) {
     mROS2NodeName = name;

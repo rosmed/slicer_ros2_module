@@ -89,12 +89,9 @@ bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &parameterName) {
         vtkWarningMacro(<< "Parameter already tracked");
         return false;
     } else {
+        mInternals->mParameterStore[parameterName] = rcl_interfaces::msg::Parameter();
         auto parameters_future = mInternals->mParameterClient->get_parameters({parameterName},
                                                                               std::bind(&vtkMRMLROS2ParameterInternals::GetParameterCallback, mInternals, std::placeholders::_1));
-    }
-    if (mInternals->ROS2ParamMsgToParameter(mInternals->mParameterStore[parameterName]).get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) {
-        vtkWarningMacro(<< "Parameter not found");
-        return false;
     }
     return true;
 }

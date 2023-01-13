@@ -163,6 +163,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
 
     vtkMRMLROS2ParameterInternals *mInternals = nullptr;
     std::string mMRMLNodeName = "ros2:param:undefined";
+    bool mIsInitialized = false;
 
     // For ReadXMLAttributes
     vtkGetMacro(mMRMLNodeName, std::string);
