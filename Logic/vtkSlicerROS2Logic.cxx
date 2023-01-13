@@ -209,6 +209,7 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
     AddROS2Node();
   }
   // Add Tf2 Buffer
+  // keep this as the long way 
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
   this->GetMRMLScene()->AddNode(tfBuffer);
   tfBuffer->AddToROS2Node(mTestROS2Node->GetID());
@@ -217,6 +218,7 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   tfLookup->SetParentID("world");
   tfLookup->SetChildID("turtle1");
   tfBuffer->AddLookupNode(tfLookup);
-  mTestROS2Node->SpinBuffers();
-  // tfBufferLookup->AddToROS2Node(mTestROS2Node->GetID());
+
+  // add the short way 
+  // we're enforcing a single buffer 
 }

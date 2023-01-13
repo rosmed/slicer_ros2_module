@@ -210,22 +210,15 @@ vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBufferNodeByID(const std::stri
   return nullptr; // otherwise return a null ptr
 }
 
-void vtkMRMLROS2NODENode::AddBuffer(vtkMRMLROS2Tf2BufferNode * node)
-{
-  mBuffers.push_back(node);
-}
-
-void vtkMRMLROS2NODENode::SpinBuffers(){
-  for (size_t index = 0; index < mBuffers.size(); ++index) {
-      vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> bufferNode = mBuffers[index];
-      bufferNode->InitiateLookup();
-  }
-}
-
 void vtkMRMLROS2NODENode::Spin(void)
 {
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);
+    if (mBuffer != nullptr){
+      if (!mBuffer->mLookupNodes.empty()){
+        mBuffer->Spin();
+      } 
+    }
   }
 }
 

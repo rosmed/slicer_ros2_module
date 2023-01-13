@@ -22,6 +22,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   friend class vtkMRMLROS2ParameterInternals;
   friend class vtkMRMLROS2Tf2BroadcasterInternals;
   friend class vtkMRMLROS2Tf2BufferInternals;
+  friend class vtkMRMLROS2Tf2BuffferNode;
 
   friend class vtkMRMLROS2ParameterNode; // allowed?
 
@@ -63,9 +64,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
   vtkMRMLROS2Tf2BufferNode* GetBufferNodeByID(const std::string bufferNodeID);
 
-  void AddBuffer(vtkMRMLROS2Tf2BufferNode * node);
-  std::vector<vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>> mBuffers;
-  void SpinBuffers();
+  // void AddBuffer(vtkMRMLROS2Tf2BufferNode * node); // if buffer has lookup - add it to the node (otherwise don't)
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
@@ -76,6 +75,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   ~vtkMRMLROS2NODENode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBuffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
   
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";
