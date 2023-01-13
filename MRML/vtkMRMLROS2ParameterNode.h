@@ -13,6 +13,7 @@ class vtkMRMLROS2ParameterInternals;
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMRMLNode {
     // friend declarations
     friend class vtkMRMLROS2ParameterInternals;
+    friend class vtkMRMLROS2NODENode;
 
    public:
     vtkTypeMacro(vtkMRMLROS2ParameterNode, vtkMRMLNode);
@@ -27,6 +28,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     const char *GetNodeTagName(void) override;
 
     bool AddToROS2Node(const char *nodeId, const std::string &trackedNodeName);
+
+    bool SetupParameterEventSubscriber();
 
     bool IsAddedToROS2Node(void) const;
 

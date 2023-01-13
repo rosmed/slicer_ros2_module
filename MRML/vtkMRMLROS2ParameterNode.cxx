@@ -57,20 +57,41 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
 
     std::chrono::seconds sec(1);
 
-    while (!mInternals->mParameterClient->wait_for_service(sec)) {
-        if (!rclcpp::ok()) {
-            std::cerr << "Interrupted while waiting for the service. Exiting." << std::endl;
-        }
-        std::cerr << "service not available, waiting again..." << std::endl;
-    }
+    rosNodePtr->mParameterNodes.push_back(this);
 
-    mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
-        std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
+    // while (!mInternals->mParameterClient->wait_for_service(sec)) {
+    //     if (!rclcpp::ok()) {
+    //         std::cerr << "Interrupted while waiting for the service. Exiting." << std::endl;
+    //     }
+    //     std::cerr << "service not available, waiting again..." << std::endl;
+    // }
+
+    // mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
+    //     std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
 
     rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
                                       mInternals->mMRMLNode->GetID());
 
     mInternals->mMRMLNode->SetNodeReferenceID("node", nodeId);
+
+    return true;
+}
+
+bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber(){
+
+    std::cerr << "trying to setup" << std::endl;
+
+    if (!mInternals->mParameterClient->service_is_ready()) {
+        vtkWarningMacro(<< "Async Parameters Client not ready");
+        return false;
+    }
+
+    this->mIsInitialized = true;
+
+    std::cerr << "service is ready" << std::endl;
+
+    mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
+        std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
 
     return true;
 }

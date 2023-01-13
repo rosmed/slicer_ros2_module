@@ -219,6 +219,12 @@ void vtkMRMLROS2NODENode::Spin(void)
         mBuffer->Spin();
       } 
     }
+
+    for (auto & node : this->mParameterNodes) {
+      if (!node->mIsInitialized) {
+        node->SetupParameterEventSubscriber();
+      }
+    }
   }
 }
 
