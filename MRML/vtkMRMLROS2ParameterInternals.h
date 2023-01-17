@@ -15,10 +15,10 @@ class vtkMRMLROS2ParameterInternals {
     vtkMRMLROS2ParameterInternals(vtkMRMLROS2ParameterNode *mrmlNode) : mMRMLNode(mrmlNode) {
     }
 
-    friend class vtkMRMLROS2ParameterNode;
+  friend class vtkMRMLROS2ParameterNode;
 
    protected:
-    rclcpp::Parameter ROS2ParamMsgToParameter(const rcl_interfaces::msg::Parameter &parameter) {
+    static rclcpp::Parameter ROS2ParamMsgToParameter(const rcl_interfaces::msg::Parameter &parameter) {
         rclcpp::Parameter param;
         switch (parameter.value.type) {
             case rcl_interfaces::msg::ParameterType::PARAMETER_BOOL:
@@ -55,7 +55,7 @@ class vtkMRMLROS2ParameterInternals {
         return param;
     }
 
-    rcl_interfaces::msg::Parameter ROS2ParamToParameterMsg(const rclcpp::Parameter &parameter) {
+    static rcl_interfaces::msg::Parameter ROS2ParamToParameterMsg(const rclcpp::Parameter &parameter) {
         rcl_interfaces::msg::Parameter param;
         param.name = parameter.get_name();
         switch (parameter.get_type()) {
@@ -102,11 +102,12 @@ class vtkMRMLROS2ParameterInternals {
         return param;
     }
 
-    void GetParameterCallback(std::shared_future<std::vector<rclcpp::Parameter>> future) {
+    void GetParametersCallback(std::shared_future<std::vector<rclcpp::Parameter>> future) {
         try {
             auto result = future.get();
-            auto param = result.at(0);
-            mParameterStore[param.get_name()] = ROS2ParamToParameterMsg(param);
+            for (const auto &param : result) {
+                mParameterStore[param.get_name()] = ROS2ParamToParameterMsg(param);
+            }
         } catch (std::exception &e) {
             std::cerr << "Exception: " << e.what() << std::endl;
         }
@@ -135,8 +136,6 @@ class vtkMRMLROS2ParameterInternals {
 
    protected:
     rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr mParameterEventSubscriber = nullptr;
-
-    // protected:
     vtkMRMLROS2ParameterNode *mMRMLNode;
     rclcpp::Parameter mEmptyParameter;
     std::map<std::string, rcl_interfaces::msg::Parameter> mParameterStore;
