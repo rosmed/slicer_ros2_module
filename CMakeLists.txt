@@ -99,6 +99,16 @@ slicerMacroBuildLoadableModule(
   )
 
 #-----------------------------------------------------------------------------
+# hack to copy python test script, not the proper place to copy this!
+set (PY_TEST_FILE_DEST ${Slicer_DIR}/bin/Python/slicer_ros2_module_test.py)
+set (PY_TEST_FILE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/slicer_ros2_module_test.py)
+add_custom_target(copy-test-file ALL DEPENDS ${PY_TEST_FILE_DEST})
+add_custom_command(
+  OUTPUT ${PY_TEST_FILE_DEST}
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PY_TEST_FILE_SRC} ${PY_TEST_FILE_DEST}
+  DEPENDS ${PY_TEST_FILE_SRC})
+
+#-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()

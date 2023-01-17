@@ -10,7 +10,7 @@ Get the Slicer ROS2 Module logic to access functions:
 
     ros2 = slicer.util.getModuleLogic('ROS2')
 
-Create a subscriber/ publisher in python: 
+Create a subscriber/ publisher in python:
 
 .. code-block:: python
 
@@ -19,7 +19,7 @@ Create a subscriber/ publisher in python:
     # or
     ros2.CreateAddAddSubscriber('vtkMRMLROS2SubscriberStringNode', '/new_sub')
 
-Get a subscriber / publisher by topic: 
+Get a subscriber / publisher by topic:
 
 .. code-block:: python
 
@@ -29,13 +29,13 @@ Get a subscriber / publisher by topic:
     # or
     pub = node.GetPublisherNodeByTopic('/new_pub')
 
-Print the last message: 
+Print the last message:
 
 .. code-block:: python
 
     sub.GetLastMessageYAML()
 
-Publish from python: 
+Publish from python:
 
 .. code-block:: python
 
@@ -46,15 +46,25 @@ Publish from python:
     # run ros2 topic echo /pose_pub in a terminal to see the output
     mat = vtk.vtkMatrix4x4()
     mat.SetElement(0,3,100) # Modify the matrix so we can see something changing
-    pub.Publish(mat) 
+    pub.Publish(mat)
 
 Print the node to see references
 
 .. code-block:: python
 
-    ## Get the node
+    # Get the node
     node = slicer.mrmlScene.GetFirstNodeByName('ros2:node:testNode')
     print(node)
 
+Run the simple test script
 
+.. code-block:: python
 
+    # First import and run
+    import slicer_ros2_module_test
+    slicer_ros2_module_test.run()
+    # Reload the script if it was modified, don't forget colcon build
+    from importlib import reload
+    reload(slicer_ros2_module_test)
+    # Run the tests again
+    slicer_ros2_module_test.run()
