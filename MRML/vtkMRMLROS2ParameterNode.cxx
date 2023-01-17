@@ -88,7 +88,7 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
 }
 
 bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
-  return mInternals->mParameterEventSubscriber != nullptr;
+  return this->mIsInitialized; //mInternals->mParameterEventSubscriber != nullptr;
 }
 
 bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &parameterName) {
