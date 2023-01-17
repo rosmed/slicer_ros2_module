@@ -2,6 +2,7 @@
 #include <vtkMRMLROS2Tf2BufferInternals.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeInternals.h>
 #include <vtkSlicerToROS2.h>
 #include <vtkObject.h>
 #include <vtkMRMLTransformNode.h>
@@ -44,10 +45,33 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   }
   std::string errorMessage;
   mBufferNode = this;
-  if (!mInternals->AddToROS2Node(this, mBufferNode, scene, nodeId, errorMessage)) {
-    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+
+  vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
+  if (!rosNodeBasePtr) {
+    vtkErrorMacro(<< "Unable to locate ros2 node in the scene");
     return false;
   }
+
+  vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+  if (!rosNodePtr) {
+    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode");
+    return false;
+  }
+
+  mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;
+  vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBufferNodeByID(this->GetID()); // check if ptr is set ( don't need to check ID ) - should also have a GetBuffer method
+  if (buffer != nullptr){
+    errorMessage = "This buffer has already been added to the ROS2 node.";
+    return false;
+  }
+
+  mInternals->mTfBuffer = std::make_unique<tf2_ros::Buffer>(mInternals->mNodePointer->get_clock());
+  mInternals->mTfListener = std::make_shared<tf2_ros::TransformListener>(*mInternals->mTfBuffer);
+  rosNodePtr->SetNthNodeReferenceID("Tf2buffers",
+				      rosNodePtr->GetNumberOfNodeReferences("Tf2buffers"),
+				      this->GetID());
+  this->SetNodeReferenceID("node", nodeId);
+  rosNodePtr->mBuffer = this;
   return true;
 }
 
@@ -104,7 +128,12 @@ bool vtkMRMLROS2Tf2BufferNode::Spin(){
       vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = mLookupNodes[index];
       if(lookupNode->isParentAndChildSet()){
         std::string errorMessage;
-        if (!mInternals->InstantiateLookups(scene, lookupNode->GetParentID(), lookupNode->GetChildID(), errorMessage, lookupNode)) {
+        vtkMRMLTransformNode *transform = vtkMRMLTransformNode::SafeDownCast(scene->GetNodeByID(lookupNode->GetID()));
+        if (!transform){
+          vtkErrorMacro(<< "Transform does not exist for provided ID.");
+          return false;
+        } 
+        if (!mInternals->lookupTryCatch(lookupNode->GetParentID(), lookupNode->GetChildID(), errorMessage, lookupNode, transform)) {
           vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
           return false;
         }
@@ -117,7 +146,8 @@ bool vtkMRMLROS2Tf2BufferNode::Spin(){
   }
 }
 
-void vtkMRMLROS2Tf2BufferNode::WriteXML( ostream& of, int nIndent )
+void vtkMRMLROS2Tf2BufferNode::WriteXML( ostream& of, int nIndent ) // double check save and restore - lookups should have a reference role to the buffer - try save and restore - open module should trigger spin
+// will need to define the roles 
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
