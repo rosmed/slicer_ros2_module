@@ -53,14 +53,10 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
   }
 
   std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
-
   mInternals->mParameterClient = std::make_shared<rclcpp::AsyncParametersClient>(nodePointer, trackedNodeName);
-
   rosNodePtr->mParameterNodes.push_back(this);
-
   rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
                                     this->GetID());
-
   this->SetNodeReferenceID("node", nodeId);
 
   return true;
@@ -76,7 +72,6 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
   std::cerr << "service is ready" << std::endl;
 
   // get a vector of std::string from the map
-
   std::vector<std::string> parameterNames;
   for (auto &parameter : mInternals->mParameterStore) {
     parameterNames.push_back(parameter.first);
@@ -86,7 +81,6 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
       mInternals->mParameterClient->get_parameters(parameterNames,
                                                    std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
                                                              mInternals, std::placeholders::_1));
-
   mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
       std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
 
@@ -105,12 +99,11 @@ bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &parameterName) {
   mInternals->mParameterStore[parameterName] = rcl_interfaces::msg::Parameter();
   if (!mInternals->mParameterClient->service_is_ready()) {
     vtkWarningMacro(<< "Parameter Node for " << this->mTrackedNodeName << " doesnt seem to be available. ");
-    return vtkMRMLROS2Tf2BufferNode;
+    // return false;
   } else {
-    mInternals->mParameterStore[parameterName] = rcl_interfaces::msg::Parameter();
     auto parameters_future =
         mInternals->mParameterClient->get_parameters({parameterName},
-                                                     std::bind(&vtkMRMLROS2ParameterInternals::GetParameterCallback, mInternals, std::placeholders::_1));
+                                                     std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback, mInternals, std::placeholders::_1));
   }
   return true;
 }
@@ -165,7 +158,6 @@ bool vtkMRMLROS2ParameterNode::PrintParameterValue(const std::string &parameterN
       parameterRetrievalStatus = false;
       vtkErrorMacro(<< errorMessage);
     }
-
     return parameterRetrievalStatus;
   }
   vtkErrorMacro(<< "Parameter not tracked");
@@ -216,7 +208,6 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const std::string &paramete
 void vtkMRMLROS2ParameterNode::listTrackedParameters() {
   for (const auto &[key, value] : mInternals->mParameterStore) {
     auto param = mInternals->ROS2ParamMsgToParameter(value);
-
     std::cerr << "-->" << key << ", " << param.value_to_string() << std::endl;
   }
 }

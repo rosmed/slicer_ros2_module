@@ -139,7 +139,7 @@ class vtkMRMLROS2ParameterInternals {
     vtkMRMLROS2ParameterNode *mMRMLNode;
     rclcpp::Parameter mEmptyParameter;
     std::map<std::string, rcl_interfaces::msg::Parameter> mParameterStore;
-    std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient;
+    std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient = nullptr;
 };
 
 #endif
