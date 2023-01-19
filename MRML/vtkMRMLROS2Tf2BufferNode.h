@@ -28,13 +28,17 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
+  inline const std::string GetBufferNodeName(void) const {
+    return mBufferNodeName;
+  }
   
   bool AddToROS2Node(const char * nodeId);
 
   bool AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode);
   vtkMRMLROS2Tf2LookupNode * CreateAndAddLookupNode(const std::string & parent_id, const std::string & child_id);
 
-  bool Spin(); 
+  bool Spin(void); 
+  bool LookupTryCatch(const std::string & parent_id, const std::string & child_id, vtkMRMLROS2Tf2LookupNode * lookupNode);
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
@@ -46,11 +50,16 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   vtkMRMLROS2Tf2BufferNode();
   ~vtkMRMLROS2Tf2BufferNode();
 
-
   std::unique_ptr<vtkMRMLROS2Tf2BufferInternals> mInternals;
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBufferNode;
   std::string mMRMLNodeName = "ros2:tf2buffer";
   size_t mNumberOfBroadcasts = 0;
+  std::string mBufferNodeName = "undefined";
+
+  // For ReadXMLAttributes
+  inline void SetBufferNodeName(const std::string & name) {
+    mBufferNodeName = name;
+  }
 
 };
 

@@ -134,7 +134,7 @@ void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformNode(vtkMRMLTransformNode * 
   // broker->AddObservation(node, vtkMRMLTransformNode::TransformModifiedEvent, this, &vtkMRMLROS2Tf2BroadcasterNode::ProcessMRMLNodesEvents)
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformCallback( vtkObject* caller, unsigned long event, void* vtkNotUsed(callData))
+void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData))
 {
   vtkMRMLTransformNode* transformNode = vtkMRMLTransformNode::SafeDownCast(caller);
   if (!transformNode)

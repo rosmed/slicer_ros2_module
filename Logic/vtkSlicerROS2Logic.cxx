@@ -216,7 +216,7 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> tfLookup = vtkMRMLROS2Tf2LookupNode::New();
   this->GetMRMLScene()->AddNode(tfLookup);
   tfLookup->SetParentID("world");
-  tfLookup->SetChildID("turtle1");
+  tfLookup->SetChildID("turtle2");
   tfBuffer->AddLookupNode(tfLookup);
 
   // add the short way 
