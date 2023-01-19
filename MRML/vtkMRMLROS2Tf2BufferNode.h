@@ -36,6 +36,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
 
   bool AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode);
   vtkMRMLROS2Tf2LookupNode * CreateAndAddLookupNode(const std::string & parent_id, const std::string & child_id);
+  vtkMRMLROS2Tf2LookupNode * GetLookupNodeByID(const std::string & nodeID);
 
   bool Spin(void); 
   bool LookupTryCatch(const std::string & parent_id, const std::string & child_id, vtkMRMLROS2Tf2LookupNode * lookupNode);

@@ -30,10 +30,15 @@ void vtkMRMLROS2Tf2LookupNode::PrintSelf(ostream& os, vtkIndent indent)
   Superclass::PrintSelf(os,indent);
 }
 
-void vtkMRMLROS2Tf2LookupNode::SetParentID(const std::string & parent_id)
+bool vtkMRMLROS2Tf2LookupNode::SetParentID(const std::string & parent_id)
 {
+  if (parent_id.empty()){
+    vtkErrorMacro(<< "Parent ID cannot be empty string.");
+    return false;
+  }
   mParentID = parent_id;
   UpdateMRMLNodeName();
+  return true;
 }
 
 const std::string vtkMRMLROS2Tf2LookupNode::GetParentID() const
@@ -41,10 +46,15 @@ const std::string vtkMRMLROS2Tf2LookupNode::GetParentID() const
   return mParentID;
 }
 
-void vtkMRMLROS2Tf2LookupNode::SetChildID(const std::string & child_id)
+bool vtkMRMLROS2Tf2LookupNode::SetChildID(const std::string & child_id)
 {
+  if (child_id.empty()){
+    vtkErrorMacro(<< "Child ID cannot be empty string.");
+    return false;
+  }
   mChildID = child_id;
   UpdateMRMLNodeName();
+  return true;
 }
 
 const std::string vtkMRMLROS2Tf2LookupNode::GetChildID() const

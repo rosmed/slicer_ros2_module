@@ -201,7 +201,6 @@ vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBuffer()
     vtkErrorMacro(<< "ROS2 Node node does not have a buffer yet.");
     return nullptr; // otherwise return a null ptr
   }
-
 }
 
 void vtkMRMLROS2NODENode::Spin(void)

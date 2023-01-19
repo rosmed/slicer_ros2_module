@@ -22,10 +22,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   const char * GetNodeTagName(void) override;
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
 
-  void SetParentID(const std::string & parent_id);
+  bool SetParentID(const std::string & parent_id);
   const std::string GetParentID(void) const;
 
-  void SetChildID(const std::string & child_id);
+  bool SetChildID(const std::string & child_id);
   const std::string GetChildID(void) const;
 
   bool isParentAndChildSet(void);
