@@ -203,6 +203,21 @@ vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBuffer()
   }
 }
 
+vtkMRMLROS2Tf2BroadcasterNode* vtkMRMLROS2NODENode::GetBroadcasterByID(const std::string & nodeID){
+  int broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
+  for (int j = 0; j < broadcasterRefs; j ++) {
+    vtkMRMLROS2Tf2BroadcasterNode * node = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(this->GetNthNodeReference("broadcaster", j));
+    std::string bufferNodeID = node->GetID();
+    if (bufferNodeID == nodeID){
+      return node;
+    }
+    else{
+      return nullptr;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
 void vtkMRMLROS2NODENode::Spin(void)
 {
   if (rclcpp::ok()) {

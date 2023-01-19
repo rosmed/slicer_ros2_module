@@ -20,9 +20,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   template <typename _ros_type, typename _slicer_type> friend class vtkMRMLROS2SubscriberTemplatedInternals;
   template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2PublisherTemplatedInternals;
   friend class vtkMRMLROS2ParameterInternals;
-  friend class vtkMRMLROS2Tf2BroadcasterInternals;
   friend class vtkMRMLROS2Tf2BufferNode;
   friend class vtkMRMLROS2ParameterNode; // allowed?
+  friend class vtkMRMLROS2Tf2BroadcasterNode;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;
@@ -60,6 +60,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
+  vtkMRMLROS2Tf2BroadcasterNode* GetBroadcasterByID(const std::string & nodeID);
   vtkMRMLROS2Tf2BufferNode* GetBuffer(void);
 
   // void AddBuffer(vtkMRMLROS2Tf2BufferNode * node); // if buffer has lookup - add it to the node (otherwise don't)

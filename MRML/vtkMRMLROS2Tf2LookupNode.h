@@ -23,10 +23,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
 
   bool SetParentID(const std::string & parent_id);
-  const std::string GetParentID(void) const;
+  const std::string& GetParentID(void) const;
 
   bool SetChildID(const std::string & child_id);
-  const std::string GetChildID(void) const;
+  const std::string& GetChildID(void) const;
 
   bool isParentAndChildSet(void);
 

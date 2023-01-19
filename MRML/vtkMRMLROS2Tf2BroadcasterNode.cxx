@@ -4,6 +4,8 @@
 #include <vtkObject.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkEventBroker.h>
+#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeInternals.h>
 
 vtkStandardNewMacro(vtkMRMLROS2Tf2BroadcasterNode);
 
@@ -34,24 +36,54 @@ void vtkMRMLROS2Tf2BroadcasterNode::PrintSelf(ostream& os, vtkIndent indent)
 
 bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
 {
+  // Check that the broadcaster is in the scene
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
   if (!this->GetScene()) {
     vtkErrorMacro(<< "AddToROS2Node, tf2 broadcaster MRML node needs to be added to the scene first");
     return false;
   }
-  std::string errorMessage;
-  if (!mInternals->AddToROS2Node(this, scene, nodeId, errorMessage)) {
-    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
+
+  // Check that the ROS2 node is in the scene
+  vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
+  if (!rosNodeBasePtr) {
+    vtkErrorMacro(<<"Unable to locate ros2 node in the scene");
     return false;
   }
+
+  // Check that the ROS2 node is of the type that's expected
+  vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+  if (!rosNodePtr) {
+    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode");
+    return false;
+  }
+
+  // Check that the buffer hasn't already been added to the node
+  vtkMRMLROS2Tf2BroadcasterNode * broadcaster = rosNodePtr->GetBroadcasterByID(this->GetID());
+  if (broadcaster != nullptr){
+    vtkErrorMacro(<< "This buffer has already been added to the ROS2 node.");
+    return false;
+  }
+
+  // Add the broadcaster to the node and set up references
+  mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;
+  mInternals->mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*mInternals->mNodePointer);
+  rosNodePtr->SetNthNodeReferenceID("broadcaster",
+				    rosNodePtr->GetNumberOfNodeReferences("broadcaster"),
+				    this->GetID());
+  this->SetNodeReferenceID("node", nodeId);
   return true;
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::SetParentID(const std::string & parent_id)
+bool vtkMRMLROS2Tf2BroadcasterNode::SetParentID(const std::string & parent_id)
 {
+  if (parent_id.empty()){
+    vtkErrorMacro(<< "Parent ID cannot be empty string.");
+    return false;
+  }
   mParentID = parent_id;
   UpdateMRMLNodeName();
+  return true;
 }
 
 const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetParentID() const
@@ -59,10 +91,15 @@ const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetParentID() const
   return mParentID;
 }
 
-void vtkMRMLROS2Tf2BroadcasterNode::SetChildID(const std::string & child_id)
+bool vtkMRMLROS2Tf2BroadcasterNode::SetChildID(const std::string & child_id)
 {
+  if (child_id.empty()){
+    vtkErrorMacro(<< "Child ID cannot be empty string.");
+    return false;
+  }
   mChildID = child_id;
   UpdateMRMLNodeName();
+  return true;
 }
 
 const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetChildID() const
@@ -70,7 +107,7 @@ const std::string& vtkMRMLROS2Tf2BroadcasterNode::GetChildID() const
   return mChildID;
 }
 
-bool vtkMRMLROS2Tf2BroadcasterNode::CheckIfParentAndChildSet()
+bool vtkMRMLROS2Tf2BroadcasterNode::isParentAndChildSet()
 {
   if (mParentID.empty() || mChildID.empty()){
     return false;
@@ -83,7 +120,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::CheckIfParentAndChildSet()
 void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()// Should be a protected method
 {
   std::string mMRMLNodeName = "ros2:tf2broadcaster:" + mParentID + "To" + mChildID;
-  if (!CheckIfParentAndChildSet()){
+  if (!isParentAndChildSet()){
     std::string emptyName = "ros2:tf2broadcaster:empty";
     this->SetName(emptyName.c_str());
     return;
@@ -93,30 +130,47 @@ void vtkMRMLROS2Tf2BroadcasterNode::UpdateMRMLNodeName()// Should be a protected
 
 bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
 {
-  std::string errorMessage;
-  if (!CheckIfParentAndChildSet()){ // could be a method isIDSet (bool)
+  // Make sure the parent and child ids are set
+  if (!isParentAndChildSet()){ 
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }
-  if (!mInternals->Broadcast(message, mParentID, mChildID)) {
-    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
-    return false;
-  }
+  
+  // Prepare the transform
+  geometry_msgs::msg::TransformStamped rosTransform;
+  vtkNew<vtkMatrix4x4> matrix;
+  message->GetMatrixTransformToParent(matrix); // Note this is an overloaded method (definition below don't need to get matrix from transform)
+  vtkSlicerToROS2(matrix, rosTransform);
+  rclcpp::Time now = mInternals->mNodePointer->get_clock()->now(); // SlicerToROS2 could do this
+  rosTransform.header.stamp = now;
+  rosTransform.header.frame_id = mParentID;
+  rosTransform.child_frame_id = mChildID;
+
+  // Send the transform
+  mInternals->mTfBroadcaster->sendTransform(rosTransform);
   mNumberOfBroadcasts++;
   return true; // just return a bool
 }
 
 bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
 {
+  // Make sure the parent and child ids are set
   std::string errorMessage;
-  if (!CheckIfParentAndChildSet()){
+  if (!isParentAndChildSet()){
     vtkErrorMacro(<< "Child or parent ID not set.");
     return false;
   }
-  if (!mInternals->Broadcast(message, mParentID, mChildID)) {
-    vtkErrorMacro(<< "AddToROS2Node, " << errorMessage);
-    return false;
-  }
+  
+  // Prepare the transform
+  geometry_msgs::msg::TransformStamped rosTransform;
+  vtkSlicerToROS2(message, rosTransform);
+  rclcpp::Time now = mInternals->mNodePointer->get_clock()->now(); // SlicerToROS2 could do this
+  rosTransform.header.stamp = now;
+  rosTransform.header.frame_id = mParentID;
+  rosTransform.child_frame_id = mChildID;
+
+  // Send the transform
+  mInternals->mTfBroadcaster->sendTransform(rosTransform);
   mNumberOfBroadcasts++;
   return true;
 }
@@ -129,9 +183,6 @@ void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformNode(vtkMRMLTransformNode * 
   }
   node->AddObserver(vtkMRMLTransformNode::TransformModifiedEvent, this, &vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformCallback);
   this->SetAndObserveNodeReferenceID("ObservedTransform", node->GetID());
-  // Might be worth investigating this event broker
-  // vtkEventBroker *broker = vtkEventBroker::GetInstance();
-  // broker->AddObservation(node, vtkMRMLTransformNode::TransformModifiedEvent, this, &vtkMRMLROS2Tf2BroadcasterNode::ProcessMRMLNodesEvents)
 }
 
 void vtkMRMLROS2Tf2BroadcasterNode::ObserveTransformCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData))

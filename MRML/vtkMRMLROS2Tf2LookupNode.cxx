@@ -41,7 +41,7 @@ bool vtkMRMLROS2Tf2LookupNode::SetParentID(const std::string & parent_id)
   return true;
 }
 
-const std::string vtkMRMLROS2Tf2LookupNode::GetParentID() const
+const std::string& vtkMRMLROS2Tf2LookupNode::GetParentID() const
 {
   return mParentID;
 }
@@ -57,7 +57,7 @@ bool vtkMRMLROS2Tf2LookupNode::SetChildID(const std::string & child_id)
   return true;
 }
 
-const std::string vtkMRMLROS2Tf2LookupNode::GetChildID() const
+const std::string& vtkMRMLROS2Tf2LookupNode::GetChildID() const
 {
   return mChildID;
 }
