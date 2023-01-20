@@ -6,7 +6,8 @@
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
-// forward declaration for internals
+class vtkMRMLROS2NODENode;
+class vtkMRMLROS2ParameterNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNode
 {
@@ -19,15 +20,15 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
-  /*! Calls rclcpp::init if needed and then create the internal ROS
-    node. */
   inline const std::string GetROS2RobotName(void) const {
     return mROS2RobotName;
   }
 
   void SetRobotName(const std::string & robotName);
 
-//   void InitializeRobotDescription();
+  bool AddToROS2Node(const char * nodeId);
+  bool InitializeRobotDescription(void);
+  void PrintRobotDescription(void);
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
@@ -42,6 +43,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   
 //   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2RobotName = "undefined";
+  std::string mRobotDescription = "";
+  std::string mMRMLNodeName = "ros2:robotnode";
+  vtkSmartPointer<vtkMRMLROS2NODENode> mROS2Node;
+  vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
 
 //   std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
 

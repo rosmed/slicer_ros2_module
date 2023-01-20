@@ -41,6 +41,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2Tf2BufferNode.cxx
   vtkMRMLROS2Tf2LookupNode.h
   vtkMRMLROS2Tf2LookupNode.cxx
+  vtkMRMLROS2RobotNode.h
+  vtkMRMLROS2RobotNode.cxx
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)

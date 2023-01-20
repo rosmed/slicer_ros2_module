@@ -23,6 +23,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   friend class vtkMRMLROS2Tf2BufferNode;
   friend class vtkMRMLROS2ParameterNode; // allowed?
   friend class vtkMRMLROS2Tf2BroadcasterNode;
+  friend class vtkMRMLROS2RobotNode;
 
  public:
   typedef vtkMRMLROS2NODENode SelfType;

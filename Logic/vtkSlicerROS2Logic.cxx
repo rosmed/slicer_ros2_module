@@ -40,6 +40,9 @@
 #include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 
+// robot
+#include <vtkMRMLROS2RobotNode.h>
+
 #include<vtkMRMLNode.h>
 
 // VTK includes
@@ -107,6 +110,8 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>::New());
+  // Robot
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
 }
 
 
@@ -218,4 +223,13 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
 
   // add the short way 
   // we're enforcing a single buffer 
+}
+
+void vtkSlicerROS2Logic::AddRobot(void){
+  if (!mTestROS2Node) {
+    AddROS2Node();
+  }
+  vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
+  this->GetMRMLScene()->AddNode(robot);
+  robot->AddToROS2Node(mTestROS2Node->GetID());
 }

@@ -29,6 +29,7 @@ class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
+class vtkMRMLROS2RobotNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
@@ -62,6 +63,7 @@ public:
   void AddSomeSubscribers(void);
   void AddSomeParameters(void);
   void AddSomeTf2Nodes(void);
+  void AddRobot(void);
 
 protected:
   vtkSlicerROS2Logic();
