@@ -18,6 +18,7 @@ class vtkMRMLROS2ParameterInternals {
   friend class vtkMRMLROS2ParameterNode;
 
    protected:
+// Converting a ROS2 parameter message to a ROS2 parameter.
     static rclcpp::Parameter ROS2ParamMsgToParameter(const rcl_interfaces::msg::Parameter &parameter) {
         rclcpp::Parameter param;
         switch (parameter.value.type) {
@@ -55,6 +56,7 @@ class vtkMRMLROS2ParameterInternals {
         return param;
     }
 
+// Converting a ROS2 parameter to a ROS2 parameter message.
     static rcl_interfaces::msg::Parameter ROS2ParamToParameterMsg(const rclcpp::Parameter &parameter) {
         rcl_interfaces::msg::Parameter param;
         param.name = parameter.get_name();
@@ -102,6 +104,7 @@ class vtkMRMLROS2ParameterInternals {
         return param;
     }
 
+// A callback function that is called when the parameter server responds to the request for parameters.
     void GetParametersCallback(std::shared_future<std::vector<rclcpp::Parameter>> future) {
         try {
             auto result = future.get();
@@ -113,6 +116,7 @@ class vtkMRMLROS2ParameterInternals {
         }
     }
 
+// A callback function that is called when the parameter server responds to the request for parameters.
     void ParameterEventCallback(const rcl_interfaces::msg::ParameterEvent::SharedPtr event) {
         std::cerr << "New parameter event!" << std::endl;
         // Iterate over the new parameters
