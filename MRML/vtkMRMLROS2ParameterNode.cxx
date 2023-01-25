@@ -23,6 +23,7 @@ void vtkMRMLROS2ParameterNode::PrintSelf(ostream &os, vtkIndent indent) {
     // os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
 
     // print contents of mParameterStore
+    os << indent << "Tracked Parameters : " << "\n";
     for (const auto &[key, value] : mInternals->mParameterStore) {
         auto param = mInternals->ROS2ParamMsgToParameter(value);
         os << indent << indent << key << ": " << param.value_to_string() << "\n";
@@ -48,24 +49,21 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
     }
 
     vtkMRMLNode *rosNodeBasePtr = scene->GetNodeByID(nodeId);
-
-    std::string errorMessage;
     if (!rosNodeBasePtr) {
-        errorMessage = "AddToROS2Node, ROS node with id " + std::string(nodeId) + " not found in the scene";
-        vtkWarningMacro(<< errorMessage);
+        vtkWarningMacro(<< "AddToROS2Node, ROS node with id " + std::string(nodeId) + " not found in the scene");
         return false;
     }
 
     vtkMRMLROS2NODENode *rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
-
     if (!rosNodePtr) {
-        errorMessage = "AddToROS2Node, ROS node with id " + std::string(nodeId) + " is not a vtkMRMLROS2NODENode";
-        vtkWarningMacro(<< errorMessage);
+        vtkWarningMacro(<< "AddToROS2Node, ROS node with id " + std::string(nodeId) + " is not a vtkMRMLROS2NODENode");
         return false;
     }
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
+    // create a parameter client
     mInternals->mParameterClient = std::make_shared<rclcpp::AsyncParametersClient>(nodePointer, trackedNodeName);
+    // add this parameter node to the ROS node, so that it can be spin in the same thread as the ROS node
     rosNodePtr->mParameterNodes.push_back(this);
     rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
                                       this->GetID());
@@ -74,10 +72,13 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
     return true;
 }
 
-// Setting up the parameter event subscriber.
+// Setting up the parameter event subscriber. If the service is ready, add all tracked parameter values to the parameter server.
 bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
     if (!mInternals->mParameterClient->service_is_ready()) {
-        vtkWarningMacro(<< "Parameter Node for " << this->mTrackedNodeName << " doesnt seem to be available");
+        // Print warning macros only once in every 10000 spins
+        if (mInternals->serviceNotReadyCounter++ % 10000 == 0) {
+            vtkWarningMacro(<< "Parameter service for " << this->mTrackedNodeName << " is not ready. Please verify if the node is running.");
+        }
         return false;
     }
 
@@ -92,11 +93,18 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
         parameterNames.push_back(parameter.first);
     }
 
-    auto parameters_future =
-        mInternals->mParameterClient->get_parameters(parameterNames,
-                                                     std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
-                                                               mInternals, std::placeholders::_1));
+    for (auto &parameter : mInternals->mParameterStore) {
+    // use get_parameters to get the parameter value from the parameter server
+        auto parameters_future =
+            mInternals->mParameterClient->get_parameters({parameter.first},
+                                                         std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
+                                                                   mInternals, std::placeholders::_1));
+    }
 
+    // auto parameters_future =
+    //     mInternals->mParameterClient->get_parameters(parameterNames,
+    //                                                  std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
+    //                                                            mInternals, std::placeholders::_1));
     // Setting up the parameter event subscriber.
     mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
         std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
@@ -104,15 +112,17 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
     return true;
 }
 
+// Check if parameter node has been added to Ros2Node
 bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
-    return mInternals->mParameterEventSubscriber != nullptr;
+    return mInternals->mParameterClient != nullptr;
 }
 
+// Check if parameter server is ready 
 bool vtkMRMLROS2ParameterNode::IsParameterServerReady(void) const {
     return mInternals->mParameterClient->service_is_ready();
 }
 
-bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &parameterName) {
+bool vtkMRMLROS2ParameterNode::AddParameterForTracking(const std::string &parameterName) {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         vtkWarningMacro(<< "Parameter " << parameterName << " already exists");
         return false;
@@ -129,7 +139,7 @@ bool vtkMRMLROS2ParameterNode::AddParameter(const std::string &parameterName) {
     return true;
 }
 
-bool vtkMRMLROS2ParameterNode::RemoveParameter(const std::string &parameterName) {
+bool vtkMRMLROS2ParameterNode::RemoveParameterFromTracking(const std::string &parameterName) {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         mInternals->mParameterStore.erase(parameterName);
         return true;
@@ -139,7 +149,7 @@ bool vtkMRMLROS2ParameterNode::RemoveParameter(const std::string &parameterName)
     }
 }
 
-bool vtkMRMLROS2ParameterNode::IsParameterSet(const std::string &parameterName) const {
+bool vtkMRMLROS2ParameterNode::IsParameterValueSet(const std::string &parameterName) const {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         return mInternals->ROS2ParamMsgToParameter(mInternals->mParameterStore[parameterName]).get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET;
     } else {
@@ -148,6 +158,7 @@ bool vtkMRMLROS2ParameterNode::IsParameterSet(const std::string &parameterName) 
     }
 }
 
+// Method for getting the type of the parameter as string. If the parameter is not set, then it returns an empty string.
 std::string vtkMRMLROS2ParameterNode::GetParameterType(const std::string &parameterName, std::string &result) {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         result = mInternals->ROS2ParamMsgToParameter(mInternals->mParameterStore[parameterName]).get_type_name();
@@ -158,6 +169,7 @@ std::string vtkMRMLROS2ParameterNode::GetParameterType(const std::string &parame
     return result;
 }
 
+// A method that prints the value of a parameter. If the parameter is not set or if the parameter is not tracked, then it returns false.
 bool vtkMRMLROS2ParameterNode::PrintParameterValue(const std::string &parameterName, std::string &result) {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         bool parameterRetrievalStatus = true;
@@ -180,7 +192,8 @@ bool vtkMRMLROS2ParameterNode::PrintParameterValue(const std::string &parameterN
     return false;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = false */
 bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const std::string &parameterName, bool &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");
@@ -203,7 +216,8 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const std::string &parameterNa
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = 0 */
 bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const std::string &parameterName, int &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");
@@ -226,7 +240,8 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const std::string &paramete
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = 0 */
 bool vtkMRMLROS2ParameterNode::GetParameterAsDouble(const std::string &parameterName, double &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");
@@ -249,7 +264,8 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsDouble(const std::string &parameter
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = "" */
 bool vtkMRMLROS2ParameterNode::GetParameterAsString(const std::string &parameterName, std::string &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");
@@ -272,7 +288,8 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsString(const std::string &parameter
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = {} */
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const std::string &parameterName, std::vector<int64_t> &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");
@@ -295,7 +312,8 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const std::string 
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = {} */
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfDoubles(const std::string &parameterName, std::vector<double> &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");
@@ -318,7 +336,8 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfDoubles(const std::string &
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. */
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = {} */
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfStrings(const std::string &parameterName, std::vector<std::string> &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
         vtkErrorMacro(<< "Parameter " << parameterName << " not tracked");

@@ -139,11 +139,15 @@ class vtkMRMLROS2ParameterInternals {
     }
 
    protected:
+    
+    //  A pointer to a ROS2 parameter event subscriber.
     rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr mParameterEventSubscriber = nullptr;
     vtkMRMLROS2ParameterNode *mMRMLNode;
     rclcpp::Parameter mEmptyParameter;
+    // A map of parameters - specifically, parameter messages.
     std::map<std::string, rcl_interfaces::msg::Parameter> mParameterStore;
     std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient = nullptr;
+    int serviceNotReadyCounter = 0;
 };
 
 #endif

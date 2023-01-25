@@ -69,7 +69,7 @@ bool vtkMRMLROS2RobotNode::InitializeRobotDescription()
   vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
   this->GetScene()->AddNode(param);
   param->AddToROS2Node(mROS2Node->GetID(), "/robot_state_publisher");
-  param->AddParameter("robot_description");
+  param->AddParameterForTracking("robot_description");
   param->PrintParameterValue("robot_description");
   mRobotDescriptionParameterNode = param;
   return true;

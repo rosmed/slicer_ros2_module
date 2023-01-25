@@ -37,11 +37,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     bool IsParameterServerReady(void) const;
 
     /*! Add a node and parameter to monitor */
-    bool AddParameter(const std::string& parameterName);
+    bool AddParameterForTracking(const std::string& parameterName);
     /*! Remove a parameter that is being monitored. If no parameters are being monitored for a node, stop monitoring the node as well*/
-    bool RemoveParameter(const std::string& parameterName);
+    bool RemoveParameterFromTracking(const std::string& parameterName);
 
-    bool IsParameterSet(const std::string& parameterName) const;
+    bool IsParameterValueSet(const std::string& parameterName) const;
 
     /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result.
      Returns data type if the parameter is tracked. Else it returns an empty string */
