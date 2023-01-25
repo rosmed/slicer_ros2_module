@@ -101,10 +101,6 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
                                                                    mInternals, std::placeholders::_1));
     }
 
-    // auto parameters_future =
-    //     mInternals->mParameterClient->get_parameters(parameterNames,
-    //                                                  std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
-    //                                                            mInternals, std::placeholders::_1));
     // Setting up the parameter event subscriber.
     mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
         std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
@@ -361,9 +357,15 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfStrings(const std::string &
 }
 
 void vtkMRMLROS2ParameterNode::WriteXML(std::ostream &of, int nIndent) {
+    // add all parameter names from mParameterStore to mTrackedNodeNames
+    for (auto it = mInternals->mParameterStore.begin(); it != mInternals->mParameterStore.end(); ++it) {
+        mTrackedParameterNames.push_back(it->first);
+    }
     Superclass::WriteXML(of, nIndent);  // This will take care of referenced nodes
     vtkMRMLWriteXMLBeginMacro(of);
-    vtkMRMLWriteXMLStdStringMacro(nodeName, mMRMLNodeName);
+    vtkMRMLWriteXMLStdStringMacro(MRMLNodeName, mMRMLNodeName);
+    vtkMRMLWriteXMLStdStringMacro(TrackedNodeName, mTrackedNodeName);
+    vtkMRMLWriteXMLStdStringVectorMacro(trackedParameterNames, mTrackedParameterNames)
     vtkMRMLWriteXMLEndMacro();
 }
 
@@ -372,8 +374,13 @@ void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char **atts) {
     Superclass::ReadXMLAttributes(atts);  // This will take care of referenced nodes
     vtkMRMLReadXMLBeginMacro(atts);
     vtkMRMLReadXMLStdStringMacro(nodeName, mMRMLNodeName);
+    vtkMRMLReadXMLStdStringMacro(trackedParameterNames, mTrackedParameterNames);
     vtkMRMLReadXMLEndMacro();
     this->EndModify(wasModifying);
+    // add an empty parameter msg corresponding to each tracked node name to mParameterStore
+    for (auto parameterName : mTrackedParameterNames) {
+        mInternals->mParameterStore[parameterName] = ROS2ParamtoROS2ParamMsg(rclcpp::Parameter(parameterName));
+    }
 }
 
 // TODO : Handle references??
