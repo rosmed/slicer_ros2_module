@@ -58,21 +58,15 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId)
   return true;
 }
 
-bool vtkMRMLROS2RobotNode::InitializeRobotDescription()
+bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(vtkMRMLROS2ParameterNode * param)
 {
   // Check if the node is in the scene
   if (!this->GetScene()) {
     vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
     return false;
   }
-  
-
-  vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
-  this->GetScene()->AddNode(param);
-  param->AddToROS2Node(mROS2Node->GetID(), "/robot_state_publisher");
-  param->AddParameterForTracking("robot_description");
-  param->PrintParameterValue("robot_description");
   mRobotDescriptionParameterNode = param;
+  ObserveParameterNode(param);
   return true;
 }
 
