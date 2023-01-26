@@ -148,8 +148,6 @@ class vtkMRMLROS2ParameterInternals {
     std::map<std::string, rcl_interfaces::msg::Parameter> mParameterStore;
     std::shared_ptr<rclcpp::AsyncParametersClient> mParameterClient = nullptr;
     int serviceNotReadyCounter = 0;
-    // vector to store all parameter names that are tracked by the node. This is used for saving and reloading state.
-    std::vector<std::string> mTrackedParameterNames = {};
 };
 
 #endif

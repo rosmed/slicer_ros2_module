@@ -4,7 +4,7 @@
 // MRML includes
 #include <vtkMRMLNode.h>
 #include <vtkSlicerROS2ModuleMRMLExport.h>
-
+#include <deque>
 #include <utility>
 
 // forward declaration for internals
@@ -164,6 +164,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     virtual void ReadXMLAttributes(const char** atts) override;
     virtual void WriteXML(std::ostream& of, int indent) override;
     void UpdateScene(vtkMRMLScene* scene) override;
+    // vector to store all parameter names that are tracked by the node. This is used for saving and reloading state.
+    std::vector<std::string> mTrackedParameterNamesList = {}; // move to protected
 
    protected:
     vtkMRMLROS2ParameterInternals* mInternals = nullptr;
@@ -171,11 +173,15 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     std::string mTrackedNodeName = "undefined";
     bool mIsInitialized = false;
 
+    void SetmTrackedParameterNamesList(const std::deque<std::string>& mTrackedParameterNamesList);
+    std::deque<std::string> GetmTrackedParameterNamesList();
+
     // For ReadXMLAttributes
     vtkGetMacro(mMRMLNodeName, std::string);
     vtkSetMacro(mMRMLNodeName, std::string);
     vtkGetMacro(mTrackedNodeName, std::string);
     vtkSetMacro(mTrackedNodeName, std::string);
+
 };
 
 #endif  // __vtkMRMLROS2ParameterNode_h
