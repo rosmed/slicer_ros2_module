@@ -131,6 +131,7 @@ bool vtkMRMLROS2ParameterNode::AddParameterForTracking(const std::string &parame
         auto parameters_future =
             mInternals->mParameterClient->get_parameters({parameterName},
                                                          std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback, mInternals, std::placeholders::_1));
+        this->InvokeCustomModifiedEvent(ParameterModifiedEvent);
     }
     return true;
 }

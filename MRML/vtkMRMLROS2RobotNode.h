@@ -30,6 +30,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   bool InitializeRobotDescription(void);
   void PrintRobotDescription(void);
 
+  void ObserveParameterNode(vtkMRMLROS2ParameterNode * node);
+
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
   void WriteXML(std::ostream& of, int indent) override;
@@ -42,6 +44,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 //   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBuffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
   
 //   std::string mMRMLNodeName = "ros2:node:undefined";
+  void ObserveParameterNodeCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData));
+  
   std::string mROS2RobotName = "undefined";
   std::string mRobotDescription = "";
   std::string mMRMLNodeName = "ros2:robotnode";

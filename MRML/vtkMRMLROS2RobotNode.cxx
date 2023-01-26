@@ -2,6 +2,7 @@
 #include <vtkMRMLROS2RobotNode.h>
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLScene.h>
+#include <vtkEventBroker.h>
 #include <vtkMRMLROS2NODENode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2RobotNode);
@@ -75,11 +76,40 @@ bool vtkMRMLROS2RobotNode::InitializeRobotDescription()
   return true;
 }
 
+// robot node - create paramater
+// add observer to parameter node and check when it's ready -> Call IsParameterSet() - paramater node has multiple params that it tracks
+// has a callback that uses paramater (robot description)  to parse urdf
+// should set t
+
 void vtkMRMLROS2RobotNode::PrintRobotDescription()
 {
   std::string paramValue;
   mRobotDescriptionParameterNode->PrintParameterValue("robot_description", paramValue);
   std::cerr << "Parameter value:" << paramValue << std::endl;
+}
+
+void vtkMRMLROS2RobotNode::ObserveParameterNode(vtkMRMLROS2ParameterNode * node )
+{
+  if (!this->GetScene()->GetNodeByID(node->GetID())){
+    vtkErrorMacro(<< "Transform is not in the scene.");
+    return;
+  }
+  node->AddObserver(vtkMRMLROS2ParameterNode::ParameterModifiedEvent, this, &vtkMRMLROS2RobotNode::ObserveParameterNodeCallback);
+  this->SetAndObserveNodeReferenceID("ObservedParameter", node->GetID());
+}
+
+void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData))
+{
+  vtkMRMLROS2ParameterNode* parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(caller);
+  if (!parameterNode)
+  {
+    return;
+  }
+  else
+  {
+    std::cerr << "Parameter node is modified." << std::endl; // for debugging
+    // ParseRobotDescription(parameterNode);
+  }
 }
 
 void vtkMRMLROS2RobotNode::SetRobotName(const std::string & robotName)
