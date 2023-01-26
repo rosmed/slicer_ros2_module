@@ -23,8 +23,7 @@ void vtkMRMLROS2ParameterNode::PrintSelf(ostream &os, vtkIndent indent) {
     // os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
 
     // print contents of mParameterStore
-    os << indent << "Tracked Parameters : "
-       << "\n";
+    os << indent << "Tracked Parameters : " << "\n";
     for (const auto &[key, value] : mInternals->mParameterStore) {
         auto param = mInternals->ROS2ParamMsgToParameter(value);
         os << indent << indent << key << ": " << param.value_to_string() << "\n";
