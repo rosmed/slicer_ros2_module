@@ -237,4 +237,6 @@ void vtkSlicerROS2Logic::AddRobot(void){
   this->GetMRMLScene()->AddNode(param);
   param->AddToROS2Node(mTestROS2Node->GetID(), "/robot_state_publisher");
   robot->SetRobotDescriptionParameterNode(param);
+  param->AddParameterForTracking("robot_description");
+  robot->ParseRobotDescription();
 }

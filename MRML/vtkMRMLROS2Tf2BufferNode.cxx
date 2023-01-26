@@ -129,8 +129,12 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::CreateAndAddLookupNode(cons
 
   // Add to list of lookup nodes and assigned references
   mLookupNodes.push_back(lookupNode);
-  this->SetNodeReferenceID("lookups", lookupNode->GetID());
+  // this->SetNodeReferenceID("lookups", lookupNode->GetID());
   lookupNode->SetNodeReferenceID("buffer", this->GetID());
+
+  this->SetNthNodeReferenceID("lookups",
+				    this->GetNumberOfNodeReferences("lookups"),
+				    lookupNode->GetID());
   
   return lookupNode;
 }
@@ -158,10 +162,7 @@ bool vtkMRMLROS2Tf2BufferNode::Spin(){
   for (auto lookupNode: mLookupNodes){
       if(lookupNode->isParentAndChildSet()){
         if (!LookupTryCatch(lookupNode->GetParentID(), lookupNode->GetChildID(), lookupNode)) {
-          return false;
-        }
-        else{
-          return true;
+          vtkErrorMacro(<< "Transform exception"); 
         }
       }
   }

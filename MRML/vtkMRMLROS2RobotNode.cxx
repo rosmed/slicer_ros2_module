@@ -1,9 +1,16 @@
 #include <vtkMRMLScene.h>
 #include <vtkMRMLROS2RobotNode.h>
 #include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLScene.h>
 #include <vtkEventBroker.h>
 #include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeInternals.h>
+#include <vtkMRMLROS2RobotNodeInternals.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
+#include <regex>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 
 vtkStandardNewMacro(vtkMRMLROS2RobotNode);
 
@@ -20,6 +27,7 @@ const char * vtkMRMLROS2RobotNode::GetNodeTagName(void)
 
 vtkMRMLROS2RobotNode::vtkMRMLROS2RobotNode()
 {
+  mInternals = std::make_unique<vtkMRMLROS2RobotNodeInternals>();
 }
 
 vtkMRMLROS2RobotNode::~vtkMRMLROS2RobotNode()
@@ -75,12 +83,12 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(vtkMRMLROS2Parameter
 // has a callback that uses paramater (robot description)  to parse urdf
 // should set t
 
-void vtkMRMLROS2RobotNode::PrintRobotDescription()
-{
-  std::string paramValue;
-  mRobotDescriptionParameterNode->PrintParameterValue("robot_description", paramValue);
-  std::cerr << "Parameter value:" << paramValue << std::endl;
-}
+// void vtkMRMLROS2RobotNode::PrintRobotDescription()
+// {
+//   std::string paramValue;
+//   mRobotDescriptionParameterNode->PrintParameterValue("robot_description", paramValue);
+//   std::cerr << "Parameter value:" << paramValue << std::endl;
+// }
 
 void vtkMRMLROS2RobotNode::ObserveParameterNode(vtkMRMLROS2ParameterNode * node )
 {
@@ -102,9 +110,98 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   else
   {
     std::cerr << "Parameter node is modified." << std::endl; // for debugging
-    // ParseRobotDescription(parameterNode);
+    ParseRobotDescription();
   }
 }
+
+bool vtkMRMLROS2RobotNode::ParseRobotDescription()
+{
+  // This doesn't work the first time? works the second time
+  mRobotDescription = mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
+  std::cerr << "Robot description:" << mRobotDescription << std::endl;
+
+  // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
+  if (!mInternals->mModel.initString(mRobotDescription)) {
+      return false;
+  }
+  return true;
+}
+
+void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF()
+{
+  // Get the names of each joint
+  // Start with the root (base of the robot)
+  std::shared_ptr<const urdf::Link> root = mInternals->mModel.getRoot();
+  std::string root_name = root->name;
+  mLinkNames.push_back(root_name);
+  mLinkParentNames.push_back(root_name);
+//   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
+  mInternals->mVisualVector.push_back(root->visual);
+
+  // Go through the rest of the robot and save to list
+  size_t lastExplored = 0;
+  while (lastExplored != mInternals->mVisualVector.size()){
+    mInternals->mParentLinkPointer = mInternals->mModel.getLink(mLinkNames[lastExplored]);
+    mInternals->mChildLinkPointer =  mInternals->mParentLinkPointer->child_links;
+
+    for (std::shared_ptr<urdf::Link> i: mInternals->mChildLinkPointer) { // should I get rid of this
+      mLinkNames.push_back(i->name);
+      mLinkParentNames.push_back(mInternals->mParentLinkPointer->name);
+      mInternals->mVisualVector.push_back(i->visual); // need to get the origin from the visual
+    }
+    lastExplored++;
+  }
+
+  mLookups.resize(mLinkNames.size());
+  std::cerr << "Lookup list size" << mLookups.size() << std::endl;
+}
+
+void vtkMRMLROS2RobotNode::InitializeOffsets()
+{
+  //Get the origin and rpy
+  mLinkModelFiles.resize(mInternals->mVisualVector.size());
+  mInternals->mLinkOrigins.resize(mInternals->mVisualVector.size());
+  // This was causing a big issue before - dvrk showing up in the wrong places
+  for (size_t index = 0; index < mInternals->mVisualVector.size(); ++index) {
+    std::shared_ptr<urdf::Visual> i = mInternals->mVisualVector[index];
+    if (i == nullptr) {
+      std::cerr << "no visual" << std::endl;
+    } else {
+      urdf::Pose origin;
+      origin = i->origin;
+      mInternals->mLinkOrigins[index] = origin;
+      // Get stl file name and add it to a list of vectors for python parsing later
+      std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry);
+      if (mesh != nullptr) {
+        // See if the file name uses a package url
+        std::string filename = mesh->filename;
+        std::cerr << index << ": " << filename << std::endl;
+        std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
+        std::smatch match;
+        if (std::regex_search(filename, match, param_regex)) {
+          const std::string package = match[1];
+          const std::string relativeFile = match[2];
+          // Anton: add try/catch here in case the package is not found!
+          const std::string packageShareDirectory
+             = ament_index_cpp::get_package_share_directory(package);
+          filename = packageShareDirectory + "/" + relativeFile;
+        }
+        mLinkModelFiles[index] = filename;
+        std::cerr << index << ": " << filename << std::endl;
+      } else {
+        std::cerr << "link " << index << " has a visual, but not from file" << std::endl;
+      }
+    }
+  }
+}
+
+void vtkMRMLROS2RobotNode::InitializeLookups()
+{
+  for (size_t i = 0; i < (mInternals->mVisualVector.size()); i++){
+    mROS2Node->mBuffer->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
+  }
+}
+
 
 void vtkMRMLROS2RobotNode::SetRobotName(const std::string & robotName)
 {
