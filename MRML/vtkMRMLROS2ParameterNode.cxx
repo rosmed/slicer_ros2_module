@@ -94,17 +94,13 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
     }
 
     for (auto &parameter : mInternals->mParameterStore) {
-    // use get_parameters to get the parameter value from the parameter server
+        // use get_parameters to get the parameter value from the parameter server
         auto parameters_future =
             mInternals->mParameterClient->get_parameters({parameter.first},
                                                          std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
                                                                    mInternals, std::placeholders::_1));
     }
 
-    // auto parameters_future =
-    //     mInternals->mParameterClient->get_parameters(parameterNames,
-    //                                                  std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback,
-    //                                                            mInternals, std::placeholders::_1));
     // Setting up the parameter event subscriber.
     mInternals->mParameterEventSubscriber = mInternals->mParameterClient->on_parameter_event(
         std::bind(&vtkMRMLROS2ParameterInternals::ParameterEventCallback, mInternals, std::placeholders::_1));
@@ -117,7 +113,7 @@ bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
     return mInternals->mParameterClient != nullptr;
 }
 
-// Check if parameter server is ready 
+// Check if parameter server is ready
 bool vtkMRMLROS2ParameterNode::IsParameterServerReady(void) const {
     return mInternals->mParameterClient->service_is_ready();
 }
@@ -192,7 +188,7 @@ bool vtkMRMLROS2ParameterNode::PrintParameterValue(const std::string &parameterN
     return false;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
 If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = false */
 bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const std::string &parameterName, bool &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
@@ -216,7 +212,7 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsBool(const std::string &parameterNa
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
 If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = 0 */
 bool vtkMRMLROS2ParameterNode::GetParameterAsInteger(const std::string &parameterName, int &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
@@ -288,7 +284,7 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsString(const std::string &parameter
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
 If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = {} */
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const std::string &parameterName, std::vector<int64_t> &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
@@ -312,7 +308,7 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const std::string 
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
 If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = {} */
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfDoubles(const std::string &parameterName, std::vector<double> &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
@@ -336,7 +332,7 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfDoubles(const std::string &
     return true;
 }
 
-/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method. 
+/*! Users should always make sure the parameterName exists and the parameter type is a string with GetParameterType before calling this method.
 If the Parameter is not tracked or if the parameter value is not set, it returns false with output value of result variable = {} */
 bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfStrings(const std::string &parameterName, std::vector<std::string> &result) {
     if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {
@@ -361,9 +357,15 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfStrings(const std::string &
 }
 
 void vtkMRMLROS2ParameterNode::WriteXML(std::ostream &of, int nIndent) {
+    // add all parameter names from mParameterStore to mTrackedNodeNames
+    for (auto it = mInternals->mParameterStore.begin(); it != mInternals->mParameterStore.end(); ++it) {
+        mTrackedParameterNamesList.push_back(it->first);
+    }
     Superclass::WriteXML(of, nIndent);  // This will take care of referenced nodes
     vtkMRMLWriteXMLBeginMacro(of);
-    vtkMRMLWriteXMLStdStringMacro(nodeName, mMRMLNodeName);
+    vtkMRMLWriteXMLStdStringMacro(MRMLNodeName, mMRMLNodeName);
+    vtkMRMLWriteXMLStdStringMacro(TrackedNodeName, mTrackedNodeName);
+    vtkMRMLWriteXMLStdStringVectorMacro(trackedParameterNames, mTrackedParameterNamesList, std::deque);
     vtkMRMLWriteXMLEndMacro();
 }
 
@@ -372,8 +374,14 @@ void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char **atts) {
     Superclass::ReadXMLAttributes(atts);  // This will take care of referenced nodes
     vtkMRMLReadXMLBeginMacro(atts);
     vtkMRMLReadXMLStdStringMacro(nodeName, mMRMLNodeName);
+    vtkMRMLReadXMLStdStringMacro(TrackedNodeName, mTrackedNodeName);
+    vtkMRMLReadXMLStdStringVectorMacro(trackedParameterNames, mTrackedParameterNamesList, std::deque);
     vtkMRMLReadXMLEndMacro();
     this->EndModify(wasModifying);
+    // add an empty parameter msg corresponding to each tracked node name to mParameterStore
+    for (auto parameterName : mTrackedParameterNamesList) {
+        mInternals->mParameterStore[parameterName] = mInternals->ROS2ParamToParameterMsg(rclcpp::Parameter(parameterName));
+    }
 }
 
 // TODO : Handle references??
@@ -385,4 +393,24 @@ void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene) {
     } else {
         this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(), mTrackedNodeName);
     }
+}
+
+/* Custom Setter for the vector ParameterNamesList */
+void vtkMRMLROS2ParameterNode::SetmTrackedParameterNamesList(const std::deque<std::string> &trackedParameterNames) {
+    this->mTrackedParameterNamesList.clear();
+    // iterate through the vector and add each parameter name to the list
+    for (const auto parameter : trackedParameterNames) {
+        this->mTrackedParameterNamesList.push_back(parameter);
+    }
+    this->Modified();
+    // this->InvokeCustomModifiedEvent(vtkMRMLROS2ParameterNode::InputDataModifiedEvent);
+}
+
+/* Custom Setter for the vector ParameterNamesList */
+std::deque<std::string> vtkMRMLROS2ParameterNode::GetmTrackedParameterNamesList() {
+    std::deque<std::string> trackedParameterNames;
+    for (const auto parameter : this->mTrackedParameterNamesList) {
+        trackedParameterNames.push_back(parameter);
+    }
+    return trackedParameterNames;
 }
