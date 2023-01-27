@@ -39,9 +39,9 @@ const char *vtkMRMLROS2ParameterNode::GetNodeTagName(void) {
 }
 
 bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::string &trackedNodeName) {
-    this->SetName(mMRMLNodeName.c_str());
     mTrackedNodeName = trackedNodeName;
     mMRMLNodeName = "ros2:param:" + trackedNodeName;
+    this->SetName(mMRMLNodeName.c_str());
     vtkMRMLScene *scene = this->GetScene();
     if (!this->GetScene()) {
         vtkWarningMacro(<< "AddToROS2Node, parameter MRML node needs to be added to the scene first");
@@ -368,6 +368,8 @@ void vtkMRMLROS2ParameterNode::WriteXML(std::ostream &of, int nIndent) {
     vtkMRMLWriteXMLStdStringMacro(TrackedNodeName, mTrackedNodeName);
     vtkMRMLWriteXMLStdStringVectorMacro(trackedParameterNames, mTrackedParameterNamesList, std::deque);
     vtkMRMLWriteXMLEndMacro();
+    // clear mTrackedNodeNames
+    mTrackedParameterNamesList.clear();
 }
 
 void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char **atts) {
