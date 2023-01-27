@@ -388,6 +388,7 @@ void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char **atts) {
 // TODO : Handle references??
 void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene) {
     Superclass::UpdateScene(scene);
+    std::cout << "vtkMRMLROS2ParameterNode::UpdateScene : "<< mTrackedNodeName << std::endl;
     int nbNodeRefs = this->GetNumberOfNodeReferences("node");
     if (nbNodeRefs != 1) {
         vtkErrorMacro(<< "No ROS2 node reference defined for parameter subscriber \"" << GetName() << "\"");

@@ -172,22 +172,22 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
      this->InvokeCustomModifiedEvent(vtkMRMLROS2ParameterNode::ParameterModifiedEvent);
     }
  
-
     // Save and load
     virtual void ReadXMLAttributes(const char** atts) override;
     virtual void WriteXML(std::ostream& of, int indent) override;
     void UpdateScene(vtkMRMLScene* scene) override;
-    // vector to store all parameter names that are tracked by the node. This is used for saving and reloading state.
-    std::vector<std::string> mTrackedParameterNamesList = {}; // move to protected
+
+   protected:
+// vector to store all parameter names that are tracked by the node. This is used for saving and reloading state.
+    std::vector<std::string> mTrackedParameterNamesList = {}; 
+    void SetmTrackedParameterNamesList(const std::deque<std::string>& mTrackedParameterNamesList);
+    std::deque<std::string> GetmTrackedParameterNamesList();
 
    protected:
     vtkMRMLROS2ParameterInternals* mInternals = nullptr;
     std::string mMRMLNodeName = "ros2:param:undefined";
     std::string mTrackedNodeName = "undefined";
     bool mIsInitialized = false;
-
-    void SetmTrackedParameterNamesList(const std::deque<std::string>& mTrackedParameterNamesList);
-    std::deque<std::string> GetmTrackedParameterNamesList();
 
     // For ReadXMLAttributes
     vtkGetMacro(mMRMLNodeName, std::string);
