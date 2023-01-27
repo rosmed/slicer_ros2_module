@@ -3,6 +3,7 @@
 
 // MRML includes
 #include <vtkMRMLNode.h>
+#include <vtkCommand.h>
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 #include <deque>
 #include <utility>
@@ -20,6 +21,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     ~vtkMRMLROS2ParameterNode(void);
 
    public:
+
+    enum Events
+    {
+      ParameterModifiedEvent = vtkCommand::UserEvent + 54
+    };
+
     vtkTypeMacro(vtkMRMLROS2ParameterNode, vtkMRMLNode);
 
     // newly added
@@ -159,6 +166,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
         GetParameterAsVectorOfStrings(parameterName, result);
         return result;
     }
+
+    virtual void ParameterSet()
+    {
+     this->InvokeCustomModifiedEvent(vtkMRMLROS2ParameterNode::ParameterModifiedEvent);
+    }
+ 
 
     // Save and load
     virtual void ReadXMLAttributes(const char** atts) override;
