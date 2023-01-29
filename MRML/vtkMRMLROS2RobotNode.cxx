@@ -107,16 +107,14 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   else
   {
     std::cerr << "Parameter node is modified." << std::endl; // for debug
-    // 
+    mRobotDescription = mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
+    std::cerr << "Robot description:" << mRobotDescription << std::endl;
     ParseRobotDescription();
   }
 }
 
 bool vtkMRMLROS2RobotNode::ParseRobotDescription()
 {
-  // This doesn't work the first time? works the second time
-  mRobotDescription = mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
-  std::cerr << "Robot description:" << mRobotDescription << std::endl;
 
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   if (!mInternals->mModel.initString(mRobotDescription)) {
@@ -268,8 +266,7 @@ void vtkMRMLROS2RobotNode::LoadLinkModels(){
   }
 }
 
-void vtkMRMLROS2RobotNode::RunAll(){
-  ParseRobotDescription();
+void vtkMRMLROS2RobotNode::SetupRobotVisualization(){
   InitializeLookupListFromURDF();
   InitializeOffsetListFromURDF();
   InitializeOffsets();

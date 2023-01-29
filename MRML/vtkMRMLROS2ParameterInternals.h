@@ -5,10 +5,12 @@
 #include <vtkMRMLROS2NODENode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLScene.h>
-
 #include <rclcpp/rclcpp.hpp>
 #include <stdexcept>
 #include <utility>  // for std::pair
+// Added for modified event
+#include <vtkCommand.h>
+#include <vtkMRMLROS2ParameterNode.h>
 
 class vtkMRMLROS2ParameterInternals {
    public:
@@ -16,6 +18,12 @@ class vtkMRMLROS2ParameterInternals {
     }
 
   friend class vtkMRMLROS2ParameterNode;
+
+  enum Events
+    {
+      ParameterModifiedEvent = vtkCommand::UserEvent + 54
+    };
+
 
    protected:
 // Converting a ROS2 parameter message to a ROS2 parameter.
@@ -111,6 +119,7 @@ class vtkMRMLROS2ParameterInternals {
             for (const auto &param : result) {
                 mParameterStore[param.get_name()] = ROS2ParamToParameterMsg(param);
             }
+            mMRMLNode->InvokeCustomModifiedEvent(ParameterModifiedEvent);
         } catch (std::exception &e) {
             std::cerr << "Exception: " << e.what() << std::endl;
         }
@@ -124,12 +133,14 @@ class vtkMRMLROS2ParameterInternals {
             std::cerr << "New parameter: " << new_param.name.c_str() << std::endl;
             // rclcpp::Parameter param(new_param);
             mParameterStore[new_param.name] = new_param;
+            mMRMLNode->InvokeCustomModifiedEvent(ParameterModifiedEvent);
         }
         // Iterate over the changed parameters
         for (const auto &changed_param : event->changed_parameters) {
             std::cerr << "Changed parameter: " << changed_param.name.c_str() << std::endl;
             // rclcpp::Parameter param(changed_param);
             mParameterStore[changed_param.name] = changed_param;
+            mMRMLNode->InvokeCustomModifiedEvent(ParameterModifiedEvent);
         }
         // Iterate over the deleted parameters
         for (const auto &deleted_param : event->deleted_parameters) {
@@ -137,6 +148,7 @@ class vtkMRMLROS2ParameterInternals {
             mParameterStore.erase(deleted_param.name);
         }
     }
+
 
    protected:
     

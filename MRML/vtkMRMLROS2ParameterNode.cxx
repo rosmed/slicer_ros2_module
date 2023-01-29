@@ -68,7 +68,7 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
     rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
                                       this->GetID());
     this->SetNodeReferenceID("node", nodeId);
-
+    mInternals->mMRMLNode = this;
     return true;
 }
 
@@ -131,7 +131,6 @@ bool vtkMRMLROS2ParameterNode::AddParameterForTracking(const std::string &parame
         auto parameters_future =
             mInternals->mParameterClient->get_parameters({parameterName},
                                                          std::bind(&vtkMRMLROS2ParameterInternals::GetParametersCallback, mInternals, std::placeholders::_1));
-        this->InvokeCustomModifiedEvent(ParameterModifiedEvent);
     }
     return true;
 }
@@ -418,3 +417,4 @@ std::deque<std::string> vtkMRMLROS2ParameterNode::GetmTrackedParameterNamesList(
     }
     return trackedParameterNames;
 }
+

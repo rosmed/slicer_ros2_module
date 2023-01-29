@@ -41,7 +41,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   void InitializeOffsets(void);
   void LoadLinkModels(void);
   void SetupTransformTree(void);
-  void RunAll(void);
+  void SetupRobotVisualization(void);
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
