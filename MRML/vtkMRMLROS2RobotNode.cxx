@@ -8,8 +8,17 @@
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLROS2RobotNodeInternals.h>
 #include <vtkMRMLROS2Tf2BufferNode.h>
+#include <vtkMRMLTransformNode.h>
+#include <vtkMatrix4x4.h>
+#include <vtkTransform.h>
+#include <vtkPointSet.h>
+#include <vtkMRMLModelNode.h>
+#include <vtkMRMLModelDisplayNode.h>
+#include <vtkSTLReader.h>
 #include <regex>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+
+auto const MM_TO_M_CONVERSION = 1000.00;
 
 
 vtkStandardNewMacro(vtkMRMLROS2RobotNode);
@@ -78,18 +87,6 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(vtkMRMLROS2Parameter
   return true;
 }
 
-// robot node - create paramater
-// add observer to parameter node and check when it's ready -> Call IsParameterSet() - paramater node has multiple params that it tracks
-// has a callback that uses paramater (robot description)  to parse urdf
-// should set t
-
-// void vtkMRMLROS2RobotNode::PrintRobotDescription()
-// {
-//   std::string paramValue;
-//   mRobotDescriptionParameterNode->PrintParameterValue("robot_description", paramValue);
-//   std::cerr << "Parameter value:" << paramValue << std::endl;
-// }
-
 void vtkMRMLROS2RobotNode::ObserveParameterNode(vtkMRMLROS2ParameterNode * node )
 {
   if (!this->GetScene()->GetNodeByID(node->GetID())){
@@ -109,7 +106,8 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   }
   else
   {
-    std::cerr << "Parameter node is modified." << std::endl; // for debugging
+    std::cerr << "Parameter node is modified." << std::endl; // for debug
+    // 
     ParseRobotDescription();
   }
 }
@@ -135,7 +133,6 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF()
   std::string root_name = root->name;
   mLinkNames.push_back(root_name);
   mLinkParentNames.push_back(root_name);
-//   std::vector< std::shared_ptr< urdf::Visual > > visual_vector;
   mInternals->mVisualVector.push_back(root->visual);
 
   // Go through the rest of the robot and save to list
@@ -153,10 +150,11 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF()
   }
 
   mLookups.resize(mLinkNames.size());
-  std::cerr << "Lookup list size" << mLookups.size() << std::endl;
+  mNumberOfLinks = mLinkNames.size();
+  std::cerr << "Lookup list size" << mNumberOfLinks << std::endl;
 }
 
-void vtkMRMLROS2RobotNode::InitializeOffsets()
+void vtkMRMLROS2RobotNode::InitializeOffsetListFromURDF()
 {
   //Get the origin and rpy
   mLinkModelFiles.resize(mInternals->mVisualVector.size());
@@ -201,6 +199,120 @@ void vtkMRMLROS2RobotNode::InitializeLookups()
     mROS2Node->mBuffer->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
   }
 }
+
+void vtkMRMLROS2RobotNode::InitializeOffsets(){
+
+  for (size_t i = 0; i < (mInternals->mVisualVector.size()); i++){
+
+    // from origin list initiate the offset transforms
+
+    // Initial transform node
+    vtkSmartPointer<vtkMRMLTransformNode> transformNode = vtkMRMLTransformNode::New();
+    this->GetScene()->AddNode(transformNode);
+    transformNode->SetName((mLinkNames[i] + "_offset").c_str());
+
+    // Translate
+    urdf::Pose origin = mInternals->mLinkOrigins[i];
+    vtkSmartPointer<vtkTransform> transform = vtkTransform::New();
+    transform->Translate(origin.position.x*MM_TO_M_CONVERSION, origin.position.y*MM_TO_M_CONVERSION, origin.position.z*MM_TO_M_CONVERSION);
+    transform->Modified();
+    transformNode->SetAndObserveTransformToParent(transform);
+
+    // Rotate
+    double r = 0.0;
+    double p = 0.0;
+    double y = 0.0;
+    origin.rotation.getRPY(r, p, y);
+    transform->RotateZ(y * (180.0/M_PI)); // RAD to degree conversion - use math.pi instead
+    transform->RotateY(p * (180.0/M_PI));
+    transform->RotateX(r * (180.0/M_PI));
+    transform->Modified();
+
+    // Scale
+    vtkNew<vtkMatrix4x4> offsetMatrix;
+    transformNode->GetMatrixTransformToParent(offsetMatrix);
+    vtkNew<vtkMatrix4x4> MmToM_Transform;
+    MmToM_Transform->SetElement(0, 0, MM_TO_M_CONVERSION);
+    MmToM_Transform->SetElement(1, 1, MM_TO_M_CONVERSION);
+    MmToM_Transform->SetElement(2, 2, MM_TO_M_CONVERSION);
+    MmToM_Transform->Multiply4x4(offsetMatrix, MmToM_Transform, offsetMatrix);
+
+    transformNode->SetAndObserveTransformToParent(transform);
+    transformNode->SetMatrixTransformToParent(offsetMatrix);
+    transform->Modified();
+  } 
+}
+
+void vtkMRMLROS2RobotNode::LoadLinkModels(){ 
+  for (size_t i = 0; i < (mInternals->mVisualVector.size()); i++){
+    std::string filename = mLinkModelFiles[i];
+    vtkNew<vtkSTLReader> reader; // default is STL
+    reader->SetFileName(mLinkModelFiles[i].c_str());
+    reader->Update();
+
+    vtkSmartPointer<vtkPointSet> meshFromFile;
+    meshFromFile = reader->GetOutput();
+    vtkSmartPointer<vtkPointSet> meshToSetInNode;
+
+    vtkSmartPointer<vtkMRMLModelNode> modelNode = vtkMRMLModelNode::New();
+    this->GetScene()->AddNode( modelNode.GetPointer() );
+    modelNode->SetName((mLinkNames[i] + "_model").c_str());
+    modelNode->SetAndObserveMesh(meshFromFile);
+    // Create display node
+    if (modelNode->GetDisplayNode() == NULL){
+        vtkNew< vtkMRMLModelDisplayNode > displayNode;
+        this->GetScene()->AddNode( displayNode.GetPointer() );
+        displayNode->SetName((mLinkNames[i] + "_model_display_node").c_str());
+        modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
+    }
+  }
+}
+
+void vtkMRMLROS2RobotNode::RunAll(){
+  ParseRobotDescription();
+  InitializeLookupListFromURDF();
+  InitializeOffsetListFromURDF();
+  InitializeOffsets();
+  InitializeLookups();
+  LoadLinkModels();
+  SetupTransformTree();
+}
+
+void vtkMRMLROS2RobotNode::SetupTransformTree(){
+  
+  // Add models to offset transforms
+  for (size_t i = 0; i < mNumberOfLinks; i++){
+    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str()));
+    vtkSmartPointer<vtkMRMLTransformNode> transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_offset").c_str()));
+    linkModel->SetAndObserveTransformNodeID(transformNode->GetID());
+  }
+
+  // Cascade the lookups
+  for (size_t i = 0; i < mNumberOfLinks; i++){
+    auto lookup = mROS2Node->mBuffer->mLookupNodes[i];
+    std::string parent = lookup->GetParentID();
+    for (size_t j = 0; j < mNumberOfLinks; j++){
+      auto potentialParent = mROS2Node->mBuffer->mLookupNodes[j];
+      std::string child = potentialParent->GetChildID();
+      if (child == parent){
+        lookup->SetAndObserveTransformNodeID(potentialParent->GetID());
+      }
+    }
+  }
+
+  // Add offsets to lookups
+  for (size_t i = 0; i < (mNumberOfLinks); i++){
+    auto lookupNode = mROS2Node->mBuffer->mLookupNodes[i];
+    std::string linkName = lookupNode->GetChildID();
+    std::string p = lookupNode->GetParentID();
+    vtkSmartPointer<vtkMRMLTransformNode> offsetTransform = vtkMRMLTransformNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((linkName + "_offset").c_str()));
+    if(offsetTransform){
+      offsetTransform->SetAndObserveTransformNodeID(lookupNode->GetID());
+    }
+  }
+
+}
+
 
 
 void vtkMRMLROS2RobotNode::SetRobotName(const std::string & robotName)

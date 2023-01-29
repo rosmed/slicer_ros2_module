@@ -3,7 +3,6 @@
 
 // urdf
 #include <urdf/model.h>
-#include <rclcpp/rclcpp.hpp>
 
 class vtkMRMLROS2RobotNodeInternals
 {

@@ -36,8 +36,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   bool ParseRobotDescription(void);
 //   void SetupURDF(void);
   void InitializeLookupListFromURDF(void);
-  void InitializeOffsets(void);
+  void InitializeOffsetListFromURDF(void);
   void InitializeLookups(void);
+  void InitializeOffsets(void);
+  void LoadLinkModels(void);
+  void SetupTransformTree(void);
+  void RunAll(void);
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
@@ -49,7 +53,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 
 //   std::unique_ptr<vtkMRMLROS2RobotInternals> mInternals;
 //   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBuffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
-  
 //   std::string mMRMLNodeName = "ros2:node:undefined";
   void ObserveParameterNodeCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData));
   
@@ -63,6 +66,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   std::unique_ptr<vtkMRMLROS2RobotNodeInternals> mInternals;
   std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> > mLookups;
   std::vector<std::string> mLinkModelFiles;
+  size_t mNumberOfLinks;
 
 //   std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
 

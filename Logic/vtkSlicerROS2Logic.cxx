@@ -215,11 +215,11 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
   this->GetMRMLScene()->AddNode(tfBuffer);
   tfBuffer->AddToROS2Node(mTestROS2Node->GetID());
-  vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> tfLookup = vtkMRMLROS2Tf2LookupNode::New();
-  this->GetMRMLScene()->AddNode(tfLookup);
-  tfLookup->SetParentID("world");
-  tfLookup->SetChildID("turtle2");
-  tfBuffer->AddLookupNode(tfLookup);
+  // vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> tfLookup = vtkMRMLROS2Tf2LookupNode::New();
+  // this->GetMRMLScene()->AddNode(tfLookup);
+  // tfLookup->SetParentID("world");
+  // tfLookup->SetChildID("turtle2");
+  // tfBuffer->AddLookupNode(tfLookup);
 
   // add the short way 
   // we're enforcing a single buffer 
@@ -236,7 +236,7 @@ void vtkSlicerROS2Logic::AddRobot(void){
   vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
   this->GetMRMLScene()->AddNode(param);
   param->AddToROS2Node(mTestROS2Node->GetID(), "/robot_state_publisher");
+  // This order (because we wait for modified flag)
   robot->SetRobotDescriptionParameterNode(param);
   param->AddParameterForTracking("robot_description");
-  robot->ParseRobotDescription();
 }
