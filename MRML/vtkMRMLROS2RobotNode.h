@@ -30,13 +30,13 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 
   bool AddToROS2Node(const char * nodeId);
   bool SetRobotDescriptionParameterNode(vtkMRMLROS2ParameterNode * param);
-//   void PrintRobotDescription(void);
-
   void ObserveParameterNode(vtkMRMLROS2ParameterNode * node);
+
+
   bool ParseRobotDescription(void);
-//   void SetupURDF(void);
   void InitializeLookupListFromURDF(void);
-  void InitializeOffsetListFromURDF(void);
+  void InitializeOffsetListAndModelFilesFromURDF(void);
+
   void InitializeLookups(void);
   void InitializeOffsets(void);
   void LoadLinkModels(void);
