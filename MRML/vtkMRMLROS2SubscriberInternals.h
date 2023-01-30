@@ -5,7 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <vtkMRMLScene.h>
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 
 class vtkMRMLROS2SubscriberInternals
@@ -24,6 +24,7 @@ public:
   virtual std::string GetLastMessageYAML(void) const = 0;
 protected:
   vtkMRMLROS2SubscriberNode * mMRMLNode;
+  std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
 };
 
 
@@ -56,7 +57,7 @@ protected:
 
   /**
    * Add the subscriber to the ROS2 node.  This methods searched the
-   * vtkMRMLROS2NODENode by Id to locate the rclcpp::node
+   * vtkMRMLROS2NodeNode by Id to locate the rclcpp::node
    */
   bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 		     const std::string & topic, std::string & errorMessage) {
@@ -65,21 +66,21 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
-      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
+      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
       return false;
     }
-    std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
     if ((sub != nullptr)
 	&& sub->IsAddedToROS2Node()) {
       errorMessage = "there is already a subscriber for topic \"" + topic + "\" added to the ROS node";
       return false;
     }
+    mROSNode = rosNodePtr->mInternals->mNodePointer;
     mSubscription
-      = nodePointer->create_subscription<_ros_type>(topic, 100,
-						    std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
+      = mROSNode->create_subscription<_ros_type>(topic, 100,
+						 std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
     rosNodePtr->SetNthNodeReferenceID("subscriber",
 				      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
 				      mMRMLNode->GetID());

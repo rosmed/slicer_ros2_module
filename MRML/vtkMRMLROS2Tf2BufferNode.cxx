@@ -8,7 +8,7 @@
 #include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2BufferInternals.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkROS2ToSlicer.h>
 
@@ -57,9 +57,9 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
     vtkErrorMacro(<< "Unable to locate ros2 node in the scene");
     return false;
   }
-  vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+  vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
   if (!rosNodePtr) {
-    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode");
+    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode");
     return false;
   }
 

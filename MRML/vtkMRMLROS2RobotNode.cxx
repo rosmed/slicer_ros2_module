@@ -4,7 +4,7 @@
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLScene.h>
 #include <vtkEventBroker.h>
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLROS2RobotNodeInternals.h>
 #include <vtkMRMLROS2Tf2BufferNode.h>
@@ -60,9 +60,9 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId)
     vtkErrorMacro(<< "Unable to locate ros2 node in the scene");
     return false;
   }
-  vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+  vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
   if (!rosNodePtr) {
-    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode");
+    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode");
     return false;
   }
 

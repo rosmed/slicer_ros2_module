@@ -9,7 +9,7 @@
 // forward declaration for internals
 class vtkMRMLROS2Tf2BufferInternals;
 class vtkMRMLROS2Tf2LookupNode;
-class vtkMRMLROS2NODENode;
+class vtkMRMLROS2NodeNode;
 class vtkMRMLTransformNode;
 class vtkMatrix4x4;
 class vtkObject;

@@ -5,7 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <vtkMRMLScene.h>
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 
 class vtkMRMLROS2PublisherInternals
@@ -23,6 +23,7 @@ public:
   virtual const char * GetSlicerType(void) const = 0;
 protected:
   vtkMRMLROS2PublisherNode * mMRMLNode;
+  std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
 };
 
 
@@ -42,7 +43,7 @@ protected:
 
   /**
    * Add the Publisher to the ROS2 node.  This methods searched the
-   * vtkMRMLROS2NODENode by Id to locate the rclcpp::node
+   * vtkMRMLROS2NodeNode by Id to locate the rclcpp::node
    */
   bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 		     const std::string & topic, std::string & errorMessage) override
@@ -52,20 +53,20 @@ protected:
       errorMessage = "unable to locate node";
       return false;
     }
-    vtkMRMLROS2NODENode * rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
-      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NODENode";
+      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
       return false;
     }
 
-    std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     vtkMRMLROS2PublisherNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
     if ((pub != nullptr)
 	&& pub->IsAddedToROS2Node()) {
       errorMessage = "there is already a publisher for topic \"" + topic + "\" added to the ROS node";
       return false;
     }
-    mPublisher = nodePointer->create_publisher<_ros_type>(topic, 10);
+    mROSNode = rosNodePtr->mInternals->mNodePointer;
+    mPublisher = mROSNode->create_publisher<_ros_type>(topic, 10);
     rosNodePtr->SetNthNodeReferenceID("publisher",
 				      rosNodePtr->GetNumberOfNodeReferences("publisher"),
 				      mMRMLNode->GetID());
@@ -109,7 +110,7 @@ public:
     const auto nbSubscriber = this->mPublisher->get_subscription_count();
     if (nbSubscriber != 0) {
       _ros_type rosMessage;
-      vtkSlicerToROS2(message, rosMessage);
+      vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
       this->mPublisher->publish(rosMessage);
     }
     return nbSubscriber;
@@ -138,7 +139,7 @@ public:
     const auto nbSubscriber = this->mPublisher->get_subscription_count();
     if (nbSubscriber != 0) {
       _ros_type rosMessage;
-      vtkSlicerToROS2(message, rosMessage);
+      vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
       this->mPublisher->publish(rosMessage);
     }
     return nbSubscriber;

@@ -53,7 +53,7 @@
 #include <vtkSTLReader.h>
 #include <vtkOBJReader.h>
 
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 
@@ -96,7 +96,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 {
   assert(this->GetMRMLScene() != 0);
   // ROS2 node
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NODENode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
   // Subscribers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberBoolNode>::New());
@@ -124,7 +124,7 @@ void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
-  vtkMRMLROS2NODENode * rosNode = dynamic_cast<vtkMRMLROS2NODENode *>(node);
+  vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
   if (rosNode != nullptr) {
     if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node)
 	== mROS2Nodes.end()) {
@@ -151,7 +151,7 @@ void vtkSlicerROS2Logic::Spin(void)
 void vtkSlicerROS2Logic::AddROS2Node(void)
 {
   if (!mTestROS2Node) {
-    mTestROS2Node = vtkMRMLROS2NODENode::New();
+    mTestROS2Node = vtkMRMLROS2NodeNode::New();
     this->GetMRMLScene()->AddNode(mTestROS2Node);
     mTestROS2Node->Create("test_node");
     mROS2Nodes.push_back(mTestROS2Node);

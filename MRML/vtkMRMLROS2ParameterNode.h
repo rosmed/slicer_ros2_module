@@ -14,7 +14,7 @@ class vtkMRMLROS2ParameterInternals;
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMRMLNode {
     // friend declarations
     friend class vtkMRMLROS2ParameterInternals;
-    friend class vtkMRMLROS2NODENode;
+    friend class vtkMRMLROS2NodeNode;
 
    protected:
     vtkMRMLROS2ParameterNode(void);

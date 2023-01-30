@@ -24,7 +24,7 @@
 #ifndef __vtkSlicerROS2Logic_h
 #define __vtkSlicerROS2Logic_h
 
-class vtkMRMLROS2NODENode;
+class vtkMRMLROS2NodeNode;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
@@ -57,7 +57,7 @@ public:
   void Spin(void);
 
   /*! Developement methods, to be removed */
-  vtkSmartPointer<vtkMRMLROS2NODENode> mTestROS2Node;
+  vtkSmartPointer<vtkMRMLROS2NodeNode> mTestROS2Node;
   void AddROS2Node(void);
   void AddSomePublishers(void);
   void AddSomeSubscribers(void);
@@ -81,7 +81,7 @@ private:
   vtkSlicerROS2Logic(const vtkSlicerROS2Logic&); // Not implemented
   void operator=(const vtkSlicerROS2Logic&); // Not implemented
 
-  std::vector<vtkMRMLROS2NODENode*> mROS2Nodes;
+  std::vector<vtkMRMLROS2NodeNode*> mROS2Nodes;
 };
 
 #endif

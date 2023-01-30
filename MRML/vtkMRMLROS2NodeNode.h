@@ -1,5 +1,5 @@
-#ifndef __vtkMRMLROS2NODENode_h
-#define __vtkMRMLROS2NODENode_h
+#ifndef __vtkMRMLROS2NodeNode_h
+#define __vtkMRMLROS2NodeNode_h
 
 // MRML includes
 #include <vtkMRMLNode.h>
@@ -14,7 +14,7 @@ class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2Tf2BufferNode;
 
-class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 {
 
   template <typename _ros_type, typename _slicer_type> friend class vtkMRMLROS2SubscriberTemplatedInternals;
@@ -26,8 +26,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   friend class vtkMRMLROS2RobotNode;
 
  public:
-  typedef vtkMRMLROS2NODENode SelfType;
-  vtkTypeMacro(vtkMRMLROS2NODENode, vtkMRMLNode);
+  typedef vtkMRMLROS2NodeNode SelfType;
+  vtkTypeMacro(vtkMRMLROS2NodeNode, vtkMRMLNode);
   static SelfType * New(void);
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
   vtkMRMLNode * CreateNodeInstance(void) override;
@@ -71,8 +71,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   void WriteXML(std::ostream& of, int indent) override;
 
  protected:
-  vtkMRMLROS2NODENode();
-  ~vtkMRMLROS2NODENode();
+  vtkMRMLROS2NodeNode();
+  ~vtkMRMLROS2NodeNode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBuffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
@@ -88,4 +88,4 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   }
 };
 
-#endif // __vtkMRMLROS2NODENode_h
+#endif // __vtkMRMLROS2NodeNode_h

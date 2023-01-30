@@ -23,8 +23,8 @@ set(${KIT}_SRCS
   # private classes
   ${_SRCS_INTERNAL}
   # public classes
-  vtkMRMLROS2NODENode.h
-  vtkMRMLROS2NODENode.cxx
+  vtkMRMLROS2NodeNode.h
+  vtkMRMLROS2NodeNode.cxx
   vtkMRMLROS2SubscriberNode.h
   vtkMRMLROS2SubscriberNode.cxx
   vtkMRMLROS2SubscriberDefaultNodes.h

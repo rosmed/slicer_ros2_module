@@ -54,7 +54,7 @@ class TestCreateAndAddPubSub(unittest.TestCase):
     def test_create_and_add_pub_sub(self):
         # Start the turtlesim node as a subprocess
         print('creating a ROS2 node')
-        ros2Node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLROS2NODENode')
+        ros2Node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLROS2NodeNode')
         print('initialize the ROS2 node')
         ros2Node.Create('testNode')
         print('add a publisher on topic test_string_xkcd')
@@ -74,12 +74,6 @@ def run():
 
 if __name__ == '__main__':
     slicer_ros2_module_test()
-    
+
 # remove pub sub and check scene to make sure they are gone
 # write a utility function to check if a node is running
-
-
-
-
-
-

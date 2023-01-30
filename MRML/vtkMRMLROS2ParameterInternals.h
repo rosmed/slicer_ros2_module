@@ -2,7 +2,7 @@
 #define __vtkMRMLROS2ParameterInternals_h
 
 // ROS2 includes
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLScene.h>
 #include <rclcpp/rclcpp.hpp>

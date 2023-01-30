@@ -1,5 +1,5 @@
 #include <vtkMRMLScene.h>
-#include <vtkMRMLROS2NODENode.h>
+#include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
@@ -7,38 +7,38 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2BufferNode.h>
 
-vtkStandardNewMacro(vtkMRMLROS2NODENode);
+vtkStandardNewMacro(vtkMRMLROS2NodeNode);
 
-vtkMRMLNode * vtkMRMLROS2NODENode::CreateNodeInstance(void)
+vtkMRMLNode * vtkMRMLROS2NodeNode::CreateNodeInstance(void)
 {
   return SelfType::New();
 
 }
 
 
-const char * vtkMRMLROS2NODENode::GetNodeTagName(void)
+const char * vtkMRMLROS2NodeNode::GetNodeTagName(void)
 {
   return "ROS2Node";
 }
 
 
-vtkMRMLROS2NODENode::vtkMRMLROS2NODENode()
+vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 {
   mInternals = std::make_unique<vtkMRMLROS2NodeInternals>();
 }
 
-vtkMRMLROS2NODENode::~vtkMRMLROS2NODENode()
+vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 {
 }
 
 
-void vtkMRMLROS2NODENode::PrintSelf(ostream& os, vtkIndent indent)
+void vtkMRMLROS2NodeNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
 }
 
 
-void vtkMRMLROS2NODENode::Create(const std::string & nodeName)
+void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
 {
   try {
     typedef char * char_pointer;
@@ -59,7 +59,7 @@ void vtkMRMLROS2NODENode::Create(const std::string & nodeName)
 }
 
 
-vtkMRMLROS2SubscriberNode * vtkMRMLROS2NODENode::CreateAndAddSubscriber(const char * className, const std::string & topic)
+vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriber(const char * className, const std::string & topic)
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
@@ -86,7 +86,7 @@ vtkMRMLROS2SubscriberNode * vtkMRMLROS2NODENode::CreateAndAddSubscriber(const ch
 }
 
 
-vtkMRMLROS2PublisherNode * vtkMRMLROS2NODENode::CreateAndAddPublisher(const char * className, const std::string & topic)
+vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char * className, const std::string & topic)
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
@@ -112,7 +112,7 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NODENode::CreateAndAddPublisher(const char
   return nullptr;
 }
 
-vtkMRMLROS2ParameterNode * vtkMRMLROS2NODENode::CreateAndAddParameter(const std::string & trackedNodeName)
+vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std::string & trackedNodeName)
 {
   const char * className = "vtkMRMLROS2ParameterNode";
   // Check if this has been added to the scene
@@ -140,7 +140,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NODENode::CreateAndAddParameter(const std:
 }
 
 
-vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const std::string & topic)
+vtkMRMLROS2SubscriberNode* vtkMRMLROS2NodeNode::GetSubscriberNodeByTopic(const std::string & topic)
 {
   int subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
   for (int j = 0; j < subscriberRefs; j ++) {
@@ -157,7 +157,7 @@ vtkMRMLROS2SubscriberNode* vtkMRMLROS2NODENode::GetSubscriberNodeByTopic(const s
 }
 
 
-vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std::string & topic)
+vtkMRMLROS2PublisherNode* vtkMRMLROS2NodeNode::GetPublisherNodeByTopic(const std::string & topic)
 {
   int publisherRefs = this->GetNumberOfNodeReferences("publisher");
   for (int j = 0; j < publisherRefs; j ++) {
@@ -174,9 +174,9 @@ vtkMRMLROS2PublisherNode* vtkMRMLROS2NODENode::GetPublisherNodeByTopic(const std
 }
 
 
-vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByNode(const std::string & nodeName)
+vtkMRMLROS2ParameterNode* vtkMRMLROS2NodeNode::GetParameterNodeByNode(const std::string & nodeName)
 {
-  vtkErrorMacro("vtkMRMLROS2NODENode::GetParameterNodeByNode is not implemented yet.  It assumes we will use the rclcpp async client but this is not decided yet"); 
+  vtkErrorMacro("vtkMRMLROS2NodeNode::GetParameterNodeByNode is not implemented yet.  It assumes we will use the rclcpp async client but this is not decided yet"); 
   int parameterRefs = this->GetNumberOfNodeReferences("parameter");
   for (int j = 0; j < parameterRefs; j ++) {
     vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
@@ -192,7 +192,7 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByNode(const std:
   return nullptr; // otherwise return a null ptr
 }
 
-vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBuffer()
+vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NodeNode::GetBuffer()
 {
   if (mBuffer != nullptr){
     return mBuffer; 
@@ -203,7 +203,7 @@ vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBuffer()
   }
 }
 
-vtkMRMLROS2Tf2BroadcasterNode* vtkMRMLROS2NODENode::GetBroadcasterByID(const std::string & nodeID){
+vtkMRMLROS2Tf2BroadcasterNode* vtkMRMLROS2NodeNode::GetBroadcasterByID(const std::string & nodeID){
   int broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
   for (int j = 0; j < broadcasterRefs; j ++) {
     vtkMRMLROS2Tf2BroadcasterNode * node = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(this->GetNthNodeReference("broadcaster", j));
@@ -218,7 +218,7 @@ vtkMRMLROS2Tf2BroadcasterNode* vtkMRMLROS2NODENode::GetBroadcasterByID(const std
   return nullptr; // otherwise return a null ptr
 }
 
-void vtkMRMLROS2NODENode::Spin(void)
+void vtkMRMLROS2NodeNode::Spin(void)
 {
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);
@@ -236,7 +236,7 @@ void vtkMRMLROS2NODENode::Spin(void)
   }
 }
 
-void vtkMRMLROS2NODENode::WriteXML( ostream& of, int nIndent )
+void vtkMRMLROS2NodeNode::WriteXML( ostream& of, int nIndent )
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
@@ -245,7 +245,7 @@ void vtkMRMLROS2NODENode::WriteXML( ostream& of, int nIndent )
 }
 
 
-void vtkMRMLROS2NODENode::ReadXMLAttributes(const char** atts)
+void vtkMRMLROS2NodeNode::ReadXMLAttributes(const char** atts)
 {
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes

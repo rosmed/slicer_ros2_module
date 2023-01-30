@@ -54,9 +54,9 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
         return false;
     }
 
-    vtkMRMLROS2NODENode *rosNodePtr = dynamic_cast<vtkMRMLROS2NODENode *>(rosNodeBasePtr);
+    vtkMRMLROS2NodeNode *rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
     if (!rosNodePtr) {
-        vtkWarningMacro(<< "AddToROS2Node, ROS node with id " + std::string(nodeId) + " is not a vtkMRMLROS2NODENode");
+        vtkWarningMacro(<< "AddToROS2Node, ROS node with id " + std::string(nodeId) + " is not a vtkMRMLROS2NodeNode");
         return false;
     }
 

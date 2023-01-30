@@ -14,7 +14,6 @@ class vtkObject;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public vtkMRMLNode
 {
-
   // friend declarations
   friend class vtkMRMLROS2Tf2BroadcasterInternals;
 
@@ -26,16 +25,16 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
-  
+
   bool AddToROS2Node(const char * nodeId);
 
   bool SetParentID(const std::string & parent_id);
-  const std::string& GetParentID(void) const;
+  const std::string & GetParentID(void) const;
 
   bool SetChildID(const std::string & child_id);
-  const std::string& GetChildID(void) const;
+  const std::string & GetChildID(void) const;
 
-  bool isParentAndChildSet(void);
+  bool IsParentAndChildSet(void);
 
   bool Broadcast(vtkMRMLTransformNode * message);
   // overloaded to support a transform or a matrix
@@ -50,7 +49,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
  protected:
   vtkMRMLROS2Tf2BroadcasterNode();
   ~vtkMRMLROS2Tf2BroadcasterNode();
-  
+
   void ObserveTransformCallback( vtkObject* caller, unsigned long event, void* callData );
 
   void UpdateMRMLNodeName();
