@@ -60,6 +60,9 @@ Run the simple test script
 
 .. code-block:: python
 
+    # Just the first time, test program will use psutil
+    pip_install('psutil')
+
     # First import and run
     import slicer_ros2_module_test
     slicer_ros2_module_test.run()
