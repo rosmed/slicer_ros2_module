@@ -208,40 +208,43 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NODENode::GetParameterNodeByNode(const std:
   return nullptr; // otherwise return a null ptr
 }
 
-void vtkMRMLROS2NODENode::RemoveSubscriberNode(const std::string & topic)
+bool vtkMRMLROS2NODENode::RemoveSubscriberNode(const std::string & topic)
 {
   vtkMRMLROS2SubscriberNode * node = this->GetSubscriberNodeByTopic(topic);
   if (!node) {
     vtkWarningMacro(<< "Node referenced by role 'subscriber' for Topic "<< topic << " does not exist");
-    return;
+    return false;
   }
 
   this->GetScene()->RemoveNode(node);
   node->Delete();
+  return true;
 }
 
-void vtkMRMLROS2NODENode::RemovePublisherNode(const std::string & topic)
+bool vtkMRMLROS2NODENode::RemovePublisherNode(const std::string & topic)
 {
   vtkMRMLROS2PublisherNode * node = this->GetPublisherNodeByTopic(topic);
   if (!node) {
     vtkWarningMacro(<< "Node referenced by role 'publisher' for Topic "<< topic << " does not exist");
-    return;
+    return false;
   }
 
   this->GetScene()->RemoveNode(node);
   node->Delete();
+  return true;
 }
 
-void vtkMRMLROS2NODENode::RemoveParameterNode(const std::string & nodeName)
+bool vtkMRMLROS2NODENode::RemoveParameterNode(const std::string & nodeName)
 {
   vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNode(nodeName);
   if (!node) {
     vtkWarningMacro(<< "Node referenced by role 'parameter' for Node "<< nodeName << " does not exist");
-    return;
+    return false;
   }
 
   this->GetScene()->RemoveNode(node);
   node->Delete();
+  return true;
 }
 
 vtkMRMLROS2Tf2BufferNode* vtkMRMLROS2NODENode::GetBuffer()

@@ -62,9 +62,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NODENode: public vtkMRMLNode
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
-  void RemoveSubscriberNode(const std::string & topic);
-  void RemovePublisherNode(const std::string & topic);
-  void RemoveParameterNode(const std::string & nodeName);
+  bool RemoveSubscriberNode(const std::string & topic);
+  bool RemovePublisherNode(const std::string & topic);
+  bool RemoveParameterNode(const std::string & nodeName);
   vtkMRMLROS2Tf2BroadcasterNode* GetBroadcasterByID(const std::string & nodeID);
   vtkMRMLROS2Tf2BufferNode* GetBuffer(void);
 
