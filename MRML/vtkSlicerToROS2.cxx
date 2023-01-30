@@ -1,28 +1,32 @@
 #include <vtkSlicerToROS2.h>
 #include <vtkMath.h>
 
-auto const M_TO_MM_CONVERSION = 0.001;
+const double M_TO_MM = 0.001;
 
-void vtkSlicerToROS2(const std::string & input,  std_msgs::msg::String & result)
+void vtkSlicerToROS2(const std::string & input,  std_msgs::msg::String & result,
+		     const std::shared_ptr<rclcpp::Node> &)
 {
   result.data = input;
 }
 
-void vtkSlicerToROS2(const bool & input,  std_msgs::msg::Bool & result)
+void vtkSlicerToROS2(const bool & input,  std_msgs::msg::Bool & result,
+		     const std::shared_ptr<rclcpp::Node> &)
 {
   result.data = input;
 }
 
 // Work in Progress
-void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result)
+void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
+		     const std::shared_ptr<rclcpp::Node> & rosNode)
 {
+  result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
+  result.header.stamp = rosNode->get_clock()->now();
+  
   double q[4] = {0.0, 0.0, 0.0, 0.0};
   vtkMatrix4x4ToQuaternion(input, q);
-
-  result.pose.position.x = input->GetElement(0,3)*M_TO_MM_CONVERSION;
-  result.pose.position.y = input->GetElement(1,3)*M_TO_MM_CONVERSION;
-  result.pose.position.z = input->GetElement(2,3)*M_TO_MM_CONVERSION;
-  result.header.frame_id = "slicer";
+  result.pose.position.x = input->GetElement(0, 3) * M_TO_MM;
+  result.pose.position.y = input->GetElement(1, 3) * M_TO_MM;
+  result.pose.position.z = input->GetElement(2, 3) * M_TO_MM;
   result.pose.orientation.w = q[0];
   result.pose.orientation.x = q[1];
   result.pose.orientation.y = q[2];
@@ -30,14 +34,17 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & re
 }
 
 
-void vtkSlicerToROS2(vtkMatrix4x4 * matrix,  geometry_msgs::msg::TransformStamped & result)
+void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::TransformStamped & result,
+		     const std::shared_ptr<rclcpp::Node> & rosNode)
 {
-  double q[4] = {0.0, 0.0, 0.0, 0.0}; 
-  vtkMatrix4x4ToQuaternion(matrix, q);
+  result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
+  result.header.stamp = rosNode->get_clock()->now();
   
-  result.transform.translation.x = matrix->GetElement(0,3)*M_TO_MM_CONVERSION;
-  result.transform.translation.y = matrix->GetElement(1,3)*M_TO_MM_CONVERSION;
-  result.transform.translation.z = matrix->GetElement(2,3)*M_TO_MM_CONVERSION;
+  double q[4] = {0.0, 0.0, 0.0, 0.0}; 
+  vtkMatrix4x4ToQuaternion(input, q);
+  result.transform.translation.x = input->GetElement(0, 3) * M_TO_MM;
+  result.transform.translation.y = input->GetElement(1, 3) * M_TO_MM;
+  result.transform.translation.z = input->GetElement(2, 3) * M_TO_MM;
   result.transform.rotation.w = q[0];
   result.transform.rotation.x = q[1];
   result.transform.rotation.y = q[2];
