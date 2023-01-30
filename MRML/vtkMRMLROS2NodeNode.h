@@ -36,6 +36,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   /*! Calls rclcpp::init if needed and then create the internal ROS
     node. */
   void Create(const std::string & nodeName);
+  void Destroy(void); // THIS IS KILLING SLICER
   inline const std::string GetROS2NodeName(void) const {
     return mROS2NodeName;
   }
@@ -61,6 +62,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
+  bool RemoveSubscriberNode(const std::string & topic);
+  bool RemovePublisherNode(const std::string & topic);
+  bool RemoveParameterNode(const std::string & nodeName);
   vtkMRMLROS2Tf2BroadcasterNode* GetBroadcasterByID(const std::string & nodeID);
   vtkMRMLROS2Tf2BufferNode* GetBuffer(void);
 

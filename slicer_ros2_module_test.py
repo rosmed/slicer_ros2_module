@@ -24,6 +24,7 @@ def kill(proc_pid):
     process.kill()
 
 
+# It creates a turtlesim node, checks if it's running, and then kills it
 class TestTurtlesimNode(unittest.TestCase):
 
     def setUp(self):
@@ -39,32 +40,55 @@ class TestTurtlesimNode(unittest.TestCase):
         kill(self.create_turtlesim_node_process.pid)
         time.sleep(1)
 
-
-# def TestParameterNode(unittest.TestCase):
-
-#     def setUp(self):
-#         pass
-
-#     def tearDown(self):
-#         pass
-
-
+# It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
 class TestCreateAndAddPubSub(unittest.TestCase):
 
-    def test_create_and_add_pub_sub(self):
-        # Start the turtlesim node as a subprocess
+    def setUp(self):
         print('creating a ROS2 node')
-        ros2Node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLROS2NodeNode')
+        self.ros2Node = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLROS2NodeNode')
         print('initialize the ROS2 node')
-        ros2Node.Create('testNode')
+        self.ros2Node.Create('testNode')
         print('add a publisher on topic test_string_xkcd')
-        testPub = ros2Node.CreateAndAddPublisher('vtkMRMLROS2PublisherStringNode', 'test_string_xkcd')
+    
+    def test_create_and_add_pub_sub(self):
+        testPub = self.ros2Node.CreateAndAddPublisher('vtkMRMLROS2PublisherStringNode', 'test_string_xkcd')
         print('add a subscriber on topic test_string_xkcd')
-        testSub = ros2Node.CreateAndAddSubscriber('vtkMRMLROS2SubscriberStringNode', 'test_string_xkcd')
+        testSub = self.ros2Node.CreateAndAddSubscriber('vtkMRMLROS2SubscriberStringNode', 'test_string_xkcd')
+
+        initSubMessageCount = testSub.GetNumberOfMessages()
+
         print('publish')
-        testPub.Publish('xkcd')
+        messageString = 'xkcd'
+        testPub.Publish(messageString)
         # assert true
-        self.assertTrue(True)
+        time.sleep(2);
+
+        finalSubMessageCount = testSub.GetNumberOfMessages()
+        receivedMessage = testSub.GetLastMessageYAML()
+        print(receivedMessage, initSubMessageCount, finalSubMessageCount)   # <-- UNABLE TO RECEIVE MESSAGE. 
+        
+        self.assertTrue(finalSubMessageCount - initSubMessageCount == 1)
+        # assert that the recceived message contains the string message - since YAML
+        self.assertTrue(messageString in receivedMessage)
+        self.assertTrue(self.ros2Node.RemovePublisherNode('test_string_xkcd'))
+        self.assertTrue(self.ros2Node.RemoveSubscriberNode('test_string_xkcd'))
+
+    def test_pub_sub_deletion(self):
+        testPub = self.ros2Node.CreateAndAddPublisher('vtkMRMLROS2PublisherStringNode', 'test_string_xkcd')
+        testSub = self.ros2Node.CreateAndAddSubscriber('vtkMRMLROS2SubscriberStringNode', 'test_string_xkcd')
+
+        self.assertTrue(self.ros2Node.RemovePublisherNode('test_string_xkcd'))
+        self.assertFalse(self.ros2Node.RemovePublisherNode('test_string_xkcd'))
+        self.assertFalse(self.ros2Node.RemovePublisherNode('random_name'))
+        self.assertTrue(self.ros2Node.RemoveSubscriberNode('test_string_xkcd'))
+        self.assertFalse(self.ros2Node.RemoveSubscriberNode('test_string_xkcd'))
+        self.assertFalse(self.ros2Node.RemoveSubscriberNode('random_name'))
+
+    def tearDown(self):
+        # Kill the turtlesim node
+        # self.ros2Node.Destroy()
+        # time.sleep(1)
+        pass
 
 def run():
     suite  = unittest.TestLoader()
@@ -77,3 +101,13 @@ if __name__ == '__main__':
 
 # remove pub sub and check scene to make sure they are gone
 # write a utility function to check if a node is running
+
+
+"""
+Notes: - Have not addressed yet.
+
+1. Adding a ros2 node to the scene using AddNewNodeByClass after the widget is used to add ros2 node to the scene causes a crash. This is because the widget is already using the ros2 node. The widget should be able to handle this case and not crash.
+2. Destroying a ros2 node in the scene causes a crash. 
+3. Creating publisher or subscriber twice leads to variable to the node being null on python terminal
+
+"""
