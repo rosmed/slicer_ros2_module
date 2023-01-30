@@ -24,6 +24,7 @@ def kill(proc_pid):
     process.kill()
 
 
+# It creates a turtlesim node, checks if it's running, and then kills it
 class TestTurtlesimNode(unittest.TestCase):
 
     def setUp(self):
@@ -39,16 +40,7 @@ class TestTurtlesimNode(unittest.TestCase):
         kill(self.create_turtlesim_node_process.pid)
         time.sleep(1)
 
-
-# def TestParameterNode(unittest.TestCase):
-
-#     def setUp(self):
-#         pass
-
-#     def tearDown(self):
-#         pass
-
-
+# It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
 class TestCreateAndAddPubSub(unittest.TestCase):
 
     def test_create_and_add_pub_sub(self):
@@ -79,7 +71,13 @@ if __name__ == '__main__':
 # write a utility function to check if a node is running
 
 
+"""
+Notes: - Have not addressed yet.
+
+1. Adding a ros2 node to the scene using AddNewNodeByClass after the widget is used to add ros2 node to the scene causes a crash. This is because the widget is already using the ros2 node. The widget should be able to handle this case and not crash.
+2. Destroying a ros2 node in the scene causes a crash. 
 
 
+"""
 
 
