@@ -66,7 +66,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   // Add the buffer to the ros2 node
   mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;
   vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBuffer();
-  if (buffer != nullptr){
+  if ((buffer != nullptr) && buffer->IsAddedToROS2Node()){
     vtkErrorMacro(<< "This buffer has already been added to the ROS2 node.");
     return false;
   }
@@ -78,6 +78,11 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   this->SetNodeReferenceID("node", nodeId);
   rosNodePtr->mBuffer = this;
   return true;
+}
+
+bool vtkMRMLROS2Tf2BufferNode::IsAddedToROS2Node(void) const
+{
+  return (mInternals->mTfBuffer != nullptr);
 }
 
 bool vtkMRMLROS2Tf2BufferNode::AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode){
@@ -207,4 +212,17 @@ void vtkMRMLROS2Tf2BufferNode::ReadXMLAttributes( const char** atts )
   vtkMRMLReadXMLStdStringMacro(BufferNodeName, BufferNodeName);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
+}
+
+void vtkMRMLROS2Tf2BufferNode::UpdateScene(vtkMRMLScene *scene)
+{
+  Superclass::UpdateScene(scene);
+  if (!IsAddedToROS2Node()) {
+    int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+    if (nbNodeRefs != 1) {
+      vtkErrorMacro(<< "No ROS2 node reference defined for buffer \"" << GetName() << "\"");
+    } else {
+      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
+    }
+  }
 }

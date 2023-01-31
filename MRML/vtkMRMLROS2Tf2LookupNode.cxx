@@ -1,9 +1,10 @@
 #include <vtkMRMLROS2Tf2LookupNode.h>
-// #include <vtkMRMLROS2Tf2LookupInternals.h>
 #include <vtkSlicerToROS2.h>
 #include <vtkObject.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkEventBroker.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
+#include <vtkMRMLScene.h>
 
 vtkStandardNewMacro(vtkMRMLROS2Tf2LookupNode);
 
@@ -72,6 +73,28 @@ bool vtkMRMLROS2Tf2LookupNode::isParentAndChildSet()
   }
 }
 
+bool vtkMRMLROS2Tf2LookupNode::AddToBuffer()
+{
+  // This doesn't actually seem to work at restoring the connection to the buffer
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> buffer = vtkMRMLROS2Tf2BufferNode::SafeDownCast(this->GetScene()->GetFirstNodeByClass("vtkMRMLROS2Tf2BufferNode"));
+  if (buffer == nullptr){
+    return false;
+  }
+  for (size_t j = 0; j < buffer->mLookupNodes.size(); j ++){
+    auto lookupID = buffer->mLookupNodes[j]->GetID();
+    if (lookupID == this->GetID()){
+      vtkErrorMacro(<< "Lookup node is already in the buffer.");
+      return false;
+    }
+    else{
+      this->SetNodeReferenceID("buffer", buffer->GetID());
+      buffer->AddLookupNode(this);
+      return true;
+    }
+  }
+  return false;
+}
+
 void vtkMRMLROS2Tf2LookupNode::UpdateMRMLNodeName()
 {
   std::string mMRMLNodeName = "ros2:tf2lookup:" + mParentID + "To" + mChildID;
@@ -102,4 +125,10 @@ void vtkMRMLROS2Tf2LookupNode::ReadXMLAttributes( const char** atts )
   vtkMRMLReadXMLStdStringMacro(mParentID, ParentID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
+}
+
+void vtkMRMLROS2Tf2LookupNode::UpdateScene(vtkMRMLScene *scene)
+{
+  Superclass::UpdateScene(scene);
+  this->AddToBuffer(); // This isn't working 
 }

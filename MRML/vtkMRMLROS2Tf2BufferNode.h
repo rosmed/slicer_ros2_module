@@ -33,6 +33,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   }
   
   bool AddToROS2Node(const char * nodeId);
+  bool IsAddedToROS2Node(void) const;
 
   bool AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode);
   vtkMRMLROS2Tf2LookupNode * CreateAndAddLookupNode(const std::string & parent_id, const std::string & child_id);
@@ -44,6 +45,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
+  void UpdateScene(vtkMRMLScene *scene) override;
 
   std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>> mLookupNodes;
 

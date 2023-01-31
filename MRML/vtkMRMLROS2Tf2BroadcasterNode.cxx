@@ -69,8 +69,8 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
 
   // Check that the buffer hasn't already been added to the node
   vtkMRMLROS2Tf2BroadcasterNode * broadcaster = rosNodePtr->GetBroadcasterByID(this->GetID());
-  if (broadcaster != nullptr) {
-    vtkErrorMacro(<< "This buffer has already been added to the ROS2 node.");
+  if ((broadcaster != nullptr) && broadcaster->IsAddedToROS2Node()) {
+    vtkErrorMacro(<< "This broadcaster has already been added to the ROS2 node.");
     return false;
   }
 
@@ -82,6 +82,11 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
 				    this->GetID());
   this->SetNodeReferenceID("node", nodeId);
   return true;
+}
+
+bool vtkMRMLROS2Tf2BroadcasterNode::IsAddedToROS2Node(void) const
+{
+  return (mInternals->mTfBroadcaster != nullptr);
 }
 
 
@@ -232,4 +237,17 @@ void vtkMRMLROS2Tf2BroadcasterNode::ReadXMLAttributes(const char** atts)
   vtkMRMLReadXMLStdStringMacro(mParentID, ParentID);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
+}
+
+void vtkMRMLROS2Tf2BroadcasterNode::UpdateScene(vtkMRMLScene *scene)
+{
+  Superclass::UpdateScene(scene);
+  if (!IsAddedToROS2Node()) {
+    int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+    if (nbNodeRefs != 1) {
+      vtkErrorMacro(<< "No ROS2 node reference defined for buffer \"" << GetName() << "\"");
+    } else {
+      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
+    }
+  }
 }

@@ -27,6 +27,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
 
   bool AddToROS2Node(const char * nodeId);
+  bool IsAddedToROS2Node(void) const;
 
   bool SetParentID(const std::string & parent_id);
   const std::string & GetParentID(void) const;
@@ -45,6 +46,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
+  void UpdateScene(vtkMRMLScene *scene) override;
 
  protected:
   vtkMRMLROS2Tf2BroadcasterNode();

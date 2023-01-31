@@ -30,9 +30,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
 
   bool isParentAndChildSet(void);
 
+  bool AddToBuffer(void);
+
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
+  void UpdateScene(vtkMRMLScene *scene) override;
 
  protected:
   vtkMRMLROS2Tf2LookupNode();
