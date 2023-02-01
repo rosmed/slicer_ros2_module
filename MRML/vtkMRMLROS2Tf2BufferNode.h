@@ -64,6 +64,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
     mBufferNodeName = name;
   }
 
+
 };
 
 #endif // _vtkMRMLROS2Tf2BufferNode_h

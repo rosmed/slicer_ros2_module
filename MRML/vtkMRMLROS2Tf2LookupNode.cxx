@@ -75,21 +75,25 @@ bool vtkMRMLROS2Tf2LookupNode::isParentAndChildSet()
 
 bool vtkMRMLROS2Tf2LookupNode::AddToBuffer()
 {
-  // This doesn't actually seem to work at restoring the connection to the buffer
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> buffer = vtkMRMLROS2Tf2BufferNode::SafeDownCast(this->GetScene()->GetFirstNodeByClass("vtkMRMLROS2Tf2BufferNode"));
   if (buffer == nullptr){
+    vtkErrorMacro(<< "No buffer in the scene.");
     return false;
   }
-  for (size_t j = 0; j < buffer->mLookupNodes.size(); j ++){
-    auto lookupID = buffer->mLookupNodes[j]->GetID();
-    if (lookupID == this->GetID()){
-      vtkErrorMacro(<< "Lookup node is already in the buffer.");
-      return false;
-    }
-    else{
-      this->SetNodeReferenceID("buffer", buffer->GetID());
-      buffer->AddLookupNode(this);
-      return true;
+  if (buffer->mLookupNodes.size() == 0){
+    buffer->AddLookupNode(this);
+  }
+  else{
+    for (size_t j = 0; j < buffer->mLookupNodes.size(); j ++){
+      auto lookupID = buffer->mLookupNodes[j]->GetID();
+      if (lookupID == this->GetID()){
+        vtkErrorMacro(<< "Lookup node is already in the buffer list.");
+        return false;
+      }
+      else{
+        buffer->AddLookupNode(this);
+        return true;
+      }
     }
   }
   return false;
@@ -130,5 +134,5 @@ void vtkMRMLROS2Tf2LookupNode::ReadXMLAttributes( const char** atts )
 void vtkMRMLROS2Tf2LookupNode::UpdateScene(vtkMRMLScene *scene)
 {
   Superclass::UpdateScene(scene);
-  this->AddToBuffer(); // This isn't working 
+  this->AddToBuffer(); 
 }
