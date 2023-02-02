@@ -231,8 +231,9 @@ void vtkSlicerROS2Logic::AddRobot(void){
   }
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
-  robot->AddToROS2Node(mTestROS2Node->GetID());
+  robot->AddToROS2Node(mTestROS2Node->GetID()); // two parameters - add the node we want to use, maybe pass parameter too - node & name of parameter
 
+  // All of this happens in the robot node
   vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
   this->GetMRMLScene()->AddNode(param);
   param->AddToROS2Node(mTestROS2Node->GetID(), "/robot_state_publisher");

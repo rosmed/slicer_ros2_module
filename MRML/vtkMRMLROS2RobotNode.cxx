@@ -109,7 +109,11 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   else
   {
     mRobotDescription = mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
-    ParseRobotDescription();
+    if (mNumberOfLinks == 0){
+      ParseRobotDescription();
+      SetupRobotVisualization();
+    }
+    
   }
 }
 
