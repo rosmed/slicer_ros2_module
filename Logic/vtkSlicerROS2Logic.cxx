@@ -35,7 +35,7 @@
 //to be changed
 #include <vtkMRMLROS2ParameterNode.h>
 
-// same 
+// same
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
@@ -126,8 +126,7 @@ void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
   vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
   if (rosNode != nullptr) {
-    if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node)
-	== mROS2Nodes.end()) {
+    if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node) == mROS2Nodes.end()) {
       mROS2Nodes.push_back(rosNode);
     }
   }
@@ -211,7 +210,7 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   this->GetMRMLScene()->AddNode(tfBroadcaster);
   tfBroadcaster->AddToROS2Node(mTestROS2Node->GetID());
   // Add Tf2 Buffer
-  // keep this as the long way 
+  // keep this as the long way
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
   this->GetMRMLScene()->AddNode(tfBuffer);
   tfBuffer->AddToROS2Node(mTestROS2Node->GetID());
@@ -221,14 +220,19 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   // tfLookup->SetChildID("turtle2");
   // tfBuffer->AddLookupNode(tfLookup);
 
-  // add the short way 
-  // we're enforcing a single buffer 
+  // add the short way
+  // we're enforcing a single buffer
 }
 
-void vtkSlicerROS2Logic::AddRobot(void){
+void vtkSlicerROS2Logic::AddRobot(void)
+{
   if (!mTestROS2Node) {
     AddROS2Node();
   }
+
+  // Sensable phantom, requires
+  // ros2 launch sensable_omni_model omni.launch.py  -- to get the model
+  // ros2 run sensable_omni_model pretend_omni_joint_state_publisher  -- wave the arm around
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
   robot->AddToROS2Node(mTestROS2Node->GetID()); // two parameters - add the node we want to use, maybe pass parameter too - node & name of parameter
@@ -240,4 +244,20 @@ void vtkSlicerROS2Logic::AddRobot(void){
   // This order (because we wait for modified flag)
   robot->SetRobotDescriptionParameterNode(param);
   param->AddParameterForTracking("robot_description");
+
+  // dVRK, requires
+  // ros2 run dvrk_robot dvrk_console_json -j ~/ros2_ws/src/cisst-saw/sawIntuitiveResearchKit/share/console/console-PSM1_KIN_SIMULATED.json  -- to run fake PSM1
+  // ros2 launch dvrk_model dvrk_state_publisher.launch.py arm:=PSM1  -- to get the model
+  // ros2 run dvrk_python dvrk_arm_test.py -a PSM1  -- to make the PSM1 move around
+  vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
+  this->GetMRMLScene()->AddNode(robot2);
+  robot2->AddToROS2Node(mTestROS2Node->GetID()); // two parameters - add the node we want to use, maybe pass parameter too - node & name of parameter
+
+  // All of this happens in the robot node
+  vtkSmartPointer<vtkMRMLROS2ParameterNode> param2 = vtkMRMLROS2ParameterNode::New();
+  this->GetMRMLScene()->AddNode(param2);
+  param2->AddToROS2Node(mTestROS2Node->GetID(), "/PSM1/robot_state_publisher");
+  // This order (because we wait for modified flag)
+  robot2->SetRobotDescriptionParameterNode(param2);
+  param2->AddParameterForTracking("robot_description");
 }

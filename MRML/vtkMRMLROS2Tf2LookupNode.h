@@ -11,7 +11,7 @@ class vtkMRMLNode;
 class vtkMatrix4x4;
 class vtkObject;
 
-class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRMLTransformNode 
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRMLTransformNode
 {
  public:
 
@@ -28,9 +28,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   bool SetChildID(const std::string & child_id);
   const std::string& GetChildID(void) const;
 
-  bool isParentAndChildSet(void);
+  bool IsParentAndChildSet(void) const;
 
   bool AddToBuffer(void);
+
+  void SetModifiedOnLookup(const bool & set);
+  bool GetModifiedOnLookup(void) const;
 
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
@@ -40,14 +43,14 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
  protected:
   vtkMRMLROS2Tf2LookupNode();
   ~vtkMRMLROS2Tf2LookupNode();
-  
+
   void UpdateMRMLNodeName();
 
   std::string mMRMLNodeName = "ros2:tf2lookup:empty";
   std::string mParentID = "";
   std::string mChildID = "";
   size_t mNumberOfBroadcasts = 0;
-
+  bool mModifiedOnLookup = true;
 };
 
 #endif // _vtkMRMLROS2Tf2LookupNode_h
