@@ -106,7 +106,7 @@ if __name__ == '__main__':
 """
 Notes: - Have not addressed yet.
 
-1. Adding a ros2 node to the scene using AddNewNodeByClass after the widget is used to add ros2 node to the scene causes a crash. This is because the widget is already using the ros2 node. The widget should be able to handle this case and not crash.
+1. Adding a ros2 node to the scene using AddNewNodeByClass after the widget is used to add ros2 node to the scene causes a crash. 
 2. Destroying a ros2 node in the scene causes a crash. 
 3. Creating publisher or subscriber twice leads to variable to the node being null on python terminal
 

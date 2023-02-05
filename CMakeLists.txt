@@ -109,6 +109,16 @@ add_custom_command(
   DEPENDS ${PY_TEST_FILE_SRC})
 
 #-----------------------------------------------------------------------------
+# hack to copy custom slicer startup script
+set (PY_STARTUP_FILE_DEST ${Slicer_DIR}/.slicerrc.py)
+set (PY_STARTUP_FILE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/slicer_startup_script.py)
+add_custom_target(copy-startup-file ALL DEPENDS ${PY_STARTUP_FILE_DEST})
+add_custom_command(
+  OUTPUT ${PY_STARTUP_FILE_DEST}
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PY_STARTUP_FILE_SRC} ${PY_STARTUP_FILE_DEST}
+  DEPENDS ${PY_STARTUP_FILE_SRC})
+
+#-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
