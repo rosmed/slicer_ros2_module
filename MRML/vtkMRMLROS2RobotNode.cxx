@@ -219,15 +219,13 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 }
 
 
-void vtkMRMLROS2RobotNode::InitializeOffsets(void)
+void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
 {
   // Initialize the offset transforms for each link
   for (size_t i = 0; i < mNumberOfLinks; i++) {
 
     // Create the transform node
     vtkSmartPointer<vtkMRMLTransformNode> transformNode = vtkMRMLTransformNode::New();
-    this->GetScene()->AddNode(transformNode);
-    transformNode->SetName((mLinkNames[i] + "_offset").c_str());
 
     // Translate
     auto origin = mInternals->mLinkOrigins[i];
@@ -257,14 +255,8 @@ void vtkMRMLROS2RobotNode::InitializeOffsets(void)
     transformNode->SetAndObserveTransformToParent(transform);
     transformNode->SetMatrixTransformToParent(offsetMatrix);
     transform->Modified();
-  }
-}
 
-
-void vtkMRMLROS2RobotNode::LoadLinkModels(void)
-{
-  // Load the stl models for each link
-  for (size_t i = 0; i < (mInternals->mVisualVector.size()); i++) {
+    // Load the model and apply the offset
     std::string filename = mLinkModelFiles[i];
     vtkNew<vtkSTLReader> reader; // default is STL
     reader->SetFileName(mLinkModelFiles[i].c_str());
@@ -286,9 +278,9 @@ void vtkMRMLROS2RobotNode::LoadLinkModels(void)
         displayNode->SetName((mLinkNames[i] + "_model_display_node").c_str());
         modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
     }
+    modelNode->ApplyTransform(transform); // instead of set and observe
   }
 }
-
 
 void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 {
@@ -297,13 +289,6 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
   // lookup has an offset associated with it. This offset corresponds to the transformation between that
   // link (the child of the lookup) to the base of the robot. The model for each link sits on (observes)
   // it's corresponding offset
-
-  // Setup models on their corresponding offsets
-  for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str()));
-    vtkSmartPointer<vtkMRMLTransformNode> transformNode = vtkMRMLTransformNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_offset").c_str()));
-    linkModel->SetAndObserveTransformNodeID(transformNode->GetID());
-  }
 
   // Cascade the lookups
   for (size_t i = 0; i < mNumberOfLinks; i++) {
@@ -319,16 +304,13 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
     }
   }
 
-  // Setup offsets (and models) on their corresponding lookups
-  for (size_t i = 0; i < (mNumberOfLinks); i++) {
+  // Setup models on their corresponding offsets
+  for (size_t i = 0; i < mNumberOfLinks; i++) {
+    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str()));
     auto lookupNode = mROS2Node->mBuffer->mLookupNodes[i];
-    std::string linkName = lookupNode->GetChildID();
-    std::string p = lookupNode->GetParentID();
-    vtkSmartPointer<vtkMRMLTransformNode> offsetTransform = vtkMRMLTransformNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((linkName + "_offset").c_str()));
-    if(offsetTransform) {
-      offsetTransform->SetAndObserveTransformNodeID(lookupNode->GetID());
-    }
+    linkModel->SetAndObserveTransformNodeID(lookupNode->GetID());
   }
+
 }
 
 
@@ -338,9 +320,9 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   // Initialize lookups and offsets, load models, setup the transform tree
   InitializeLookupListFromURDF();
   InitializeOffsetListAndModelFilesFromURDF();
-  InitializeOffsets();
+  InitializeOffsetsAndLinkModels();
   InitializeLookups();
-  LoadLinkModels();
+  // LoadLinkModels();
   SetupTransformTree();
 }
 

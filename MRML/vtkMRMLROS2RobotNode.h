@@ -38,8 +38,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   void InitializeOffsetListAndModelFilesFromURDF(void);
 
   void InitializeLookups(void);
-  void InitializeOffsets(void);
-  void LoadLinkModels(void);
+  void InitializeOffsetsAndLinkModels(void);
   void SetupTransformTree(void);
   void SetupRobotVisualization(void);
 
