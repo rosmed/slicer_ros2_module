@@ -5,7 +5,7 @@ Getting Started
 Pre-requisites
 ==============
 
-* `ROS 2 <https://www.ros.org>`_ (tested using ubuntu 20.04 and ROS2 Foxy or Galactic).
+* `ROS 2 <https://www.ros.org>`_ (tested using Ubuntu 20.04 with ROS Galactic and Ubuntu 22.04 and ROS Humble).
 * Slicer built from source is required to build an extension, see `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_. **Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.**
 
 .. warning::
