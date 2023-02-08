@@ -23,6 +23,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
 
   bool AddToROS2Node(const char * nodeId,
 		     const std::string & topic);
+  bool RemoveFromROS2Node(const char * nodeId,
+					     const std::string & topic);
   bool IsAddedToROS2Node(void) const;
 
   const std::string & GetTopic(void) const {

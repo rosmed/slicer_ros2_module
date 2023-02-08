@@ -233,6 +233,8 @@ bool vtkMRMLROS2NodeNode::RemovePublisherNode(const std::string & topic)
     return false;
   }
 
+  node->RemoveFromROS2Node(this->GetID(), topic);
+
   this->GetScene()->RemoveNode(node);
   node->Delete();
   return true;

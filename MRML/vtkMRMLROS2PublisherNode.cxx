@@ -31,6 +31,28 @@ bool vtkMRMLROS2PublisherNode::AddToROS2Node(const char * nodeId,
   return true;
 }
 
+bool vtkMRMLROS2PublisherNode::RemoveFromROS2Node(const char * nodeId,
+					     const std::string & topic)
+{
+  vtkMRMLScene * scene = this->GetScene();
+  if (!this->GetScene()) {
+    vtkErrorMacro(<< "AddToROS2Node, publisher MRML node for topic \"" << topic << "\" needs to be added to the scene first");
+    return false;
+  }
+
+  if (!mInternals->IsAddedToROS2Node()) {
+    vtkErrorMacro(<< "RemoveFromROS2Node, publisher MRML node for topic \"" << mTopic << "\" is not added to the ROS node");
+    return false;
+  }
+  std::string errorMessage;
+  if (!mInternals->RemoveFromROS2Node(scene, nodeId, topic, errorMessage)) {
+    vtkErrorMacro(<< "RemoveFromROS2Node, " << errorMessage);
+    return false;
+  }
+  std::cerr<<"RemoveFromROS2Node, topic: "<<topic<<std::endl;
+  return true;
+}
+
 bool vtkMRMLROS2PublisherNode::IsAddedToROS2Node(void) const
 {
   return mInternals->IsAddedToROS2Node();

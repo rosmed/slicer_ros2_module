@@ -18,6 +18,8 @@ public:
 
   virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 			     const std::string & topic, std::string & errorMessage) = 0;
+  virtual bool RemoveFromROS2Node(vtkMRMLScene * scene, const char * nodeId,
+          const std::string & topic, std::string & errorMessage) = 0;
   virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
@@ -70,7 +72,38 @@ protected:
     rosNodePtr->SetNthNodeReferenceID("publisher",
 				      rosNodePtr->GetNumberOfNodeReferences("publisher"),
 				      mMRMLNode->GetID());
+
     mMRMLNode->SetNodeReferenceID("node", nodeId);
+    return true;
+  }
+
+  bool RemoveFromROS2Node(vtkMRMLScene * scene, const char * nodeId,
+        const std::string & topic, std::string & errorMessage) override
+  {
+    vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
+    if (!rosNodeBasePtr) {
+      errorMessage = "unable to locate node";
+      return false;
+    }
+    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    if (!rosNodePtr) {
+      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
+      return false;
+    }
+
+    vtkMRMLROS2PublisherNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
+    if (pub == nullptr || !pub->IsAddedToROS2Node()) {
+      errorMessage = "there isn't a publisher for topic \"" + topic + "\" which can be deleted from the ROS node";
+      return false;
+    }
+
+    mMRMLNode->SetNodeReferenceID("node", nullptr);
+    rosNodePtr->RemoveNthNodeReferenceID("publisher",
+				      rosNodePtr->GetNumberOfNodeReferences("publisher"));
+
+    mPublisher.reset();
+    mROSNode.reset();
+
     return true;
   }
 
