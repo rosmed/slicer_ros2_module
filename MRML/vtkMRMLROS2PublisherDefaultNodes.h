@@ -10,5 +10,6 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Bool);
 #include <vtkMatrix4x4.h>
 
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, WrenchStamped);
 
 #endif // __vtkMRMLROS2PublisherDefaultsNodes_h

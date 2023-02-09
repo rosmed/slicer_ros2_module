@@ -13,6 +13,11 @@ void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result)
   result = input.data;
 }
 
+void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, std::string & result)
+{
+  result = std::to_string(input.buttons[0]);
+}
+
 void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result)
 {
   // Get individual elements from the ros message

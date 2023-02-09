@@ -228,6 +228,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     vtkSmartPointer<vtkMRMLTransformNode> transformNode = vtkMRMLTransformNode::New();
 
     // Translate
+    // put this and rpy in the ROS2ToSlicer
     auto origin = mInternals->mLinkOrigins[i];
     vtkSmartPointer<vtkTransform> transform = vtkTransform::New();
     transform->Translate(origin.position.x*MM_TO_M_CONVERSION, origin.position.y*MM_TO_M_CONVERSION, origin.position.z*MM_TO_M_CONVERSION);
@@ -306,7 +307,7 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 
   // Setup models on their corresponding offsets
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str()));
+    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str())); // shouldn't get from scene
     auto lookupNode = mROS2Node->mBuffer->mLookupNodes[i];
     linkModel->SetAndObserveTransformNodeID(lookupNode->GetID());
   }

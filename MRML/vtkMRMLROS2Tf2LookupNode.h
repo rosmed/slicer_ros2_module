@@ -2,7 +2,7 @@
 #define __vtkMRMLROS2Tf2LookupNode_h
 
 // MRML includes
-#include <vtkMRMLTransformNode.h>
+#include <vtkMRMLLinearTransformNode.h>
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
@@ -11,7 +11,7 @@ class vtkMRMLNode;
 class vtkMatrix4x4;
 class vtkObject;
 
-class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRMLTransformNode
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRMLLinearTransformNode
 {
  public:
 

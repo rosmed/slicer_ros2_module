@@ -51,6 +51,15 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::TransformStamped
   result.transform.rotation.z = q[3];
 }
 
+void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::WrenchStamped & result,
+		     const std::shared_ptr<rclcpp::Node> &)
+{
+   // Need to take the input and use it - get the value
+   result.wrench.force.x = 0; //input[0]; - hard coded to a null wrench - this will change
+   result.wrench.force.y = 0; //input[1];
+   result.wrench.force.z = 0; //input[2];
+}
+
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
   double A[3][3];
