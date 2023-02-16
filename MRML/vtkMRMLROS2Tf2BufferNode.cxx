@@ -18,6 +18,7 @@ vtkStandardNewMacro(vtkMRMLROS2Tf2BufferNode);
 vtkMRMLROS2Tf2BufferNode::vtkMRMLROS2Tf2BufferNode()
 {
   mInternals = std::make_unique<vtkMRMLROS2Tf2BufferInternals>();
+  mTemporaryMatrix = vtkMatrix4x4::New();
 }
 
 
@@ -188,11 +189,14 @@ bool vtkMRMLROS2Tf2BufferNode::LookupTryCatch(const std::string & parent_id, con
     geometry_msgs::msg::TransformStamped transformStamped;
     // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
     transformStamped = mInternals->mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
-    vtkNew<vtkMatrix4x4> matrix;
-    vtkROS2ToSlicer(transformStamped, matrix);
-    lookupNode->SetMatrixTransformToParent(matrix);
+    vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
     if (lookupNode->GetModifiedOnLookup()) {
+      lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
       lookupNode->Modified();
+    } else {
+      lookupNode->DisableModifiedEventOn();
+      lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+      lookupNode->DisableModifiedEventOff();
     }
     return true;
   }

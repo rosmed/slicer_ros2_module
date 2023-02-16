@@ -17,7 +17,8 @@
 
 
 // SlicerROS2 Logic includes
-#include "vtkSlicerROS2Logic.h"
+#include <vtkSlicerROS2Logic.h>
+#include <qSlicerCoreApplication.h>
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -46,12 +47,7 @@
 #include<vtkMRMLNode.h>
 
 // VTK includes
-#include <vtkMatrix4x4.h>
-#include <vtkStdString.h>
-#include <vtkMatrix3x3.h>
-#include <vtkTransform.h>
-#include <vtkSTLReader.h>
-#include <vtkOBJReader.h>
+#include <vtkTimerLog.h>
 
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
@@ -65,6 +61,7 @@ vtkStandardNewMacro(vtkSlicerROS2Logic);
 //----------------------------------------------------------------------------
 vtkSlicerROS2Logic::vtkSlicerROS2Logic()
 {
+  mTimerLog = vtkSmartPointer<vtkTimerLog>::New();
 }
 
 
@@ -143,9 +140,13 @@ void vtkSlicerROS2Logic::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
 
 void vtkSlicerROS2Logic::Spin(void)
 {
+  mTimerLog->StartTimer();
+  SlicerRenderBlocker renderBlocker;
   for (auto & n : mROS2Nodes) {
     n->Spin();
   }
+  mTimerLog->StopTimer();
+  std::cout << mTimerLog->GetElapsedTime() * 1000.0 << "ms" << std::endl;
 }
 
 
@@ -237,7 +238,7 @@ void vtkSlicerROS2Logic::AddRobot(void)
   // ros2 run sensable_omni_model pretend_omni_joint_state_publisher  -- wave the arm around
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
-  robot->AddToROS2Node(mTestROS2Node->GetID(), "/robot_state_publisher"); // two parameters - add the node we want to use, maybe pass parameter too - node & name of parameter
+  robot->AddToROS2Node(mTestROS2Node->GetID(), "/robot_state_publisher");
 
   // dVRK, requires
   // ros2 run dvrk_robot dvrk_console_json -j ~/ros2_ws/src/cisst-saw/sawIntuitiveResearchKit/share/console/console-PSM1_KIN_SIMULATED.json  -- to run fake PSM1
@@ -245,18 +246,5 @@ void vtkSlicerROS2Logic::AddRobot(void)
   // ros2 run dvrk_python dvrk_arm_test.py -a PSM1  -- to make the PSM1 move around
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot2);
-  robot2->AddToROS2Node(mTestROS2Node->GetID(), "/PSM1/robot_state_publisher"); // two parameters - add the node we want to use, maybe pass parameter too - node & name of parameter
-
-  // older code - in case I broke anything
-  // vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
-  // this->GetMRMLScene()->AddNode(robot2);
-  // robot2->AddToROS2Node(mTestROS2Node->GetID()); // two parameters - add the node we want to use, maybe pass parameter too - node & name of parameter
-
-  // // All of this happens in the robot node
-  // vtkSmartPointer<vtkMRMLROS2ParameterNode> param2 = vtkMRMLROS2ParameterNode::New();
-  // this->GetMRMLScene()->AddNode(param2);
-  // param2->AddToROS2Node(mTestROS2Node->GetID(), "/PSM1/robot_state_publisher");
-  // // This order (because we wait for modified flag)
-  // robot2->SetRobotDescriptionParameterNode(param2);
-  // param2->AddParameterForTracking("robot_description");
+  robot2->AddToROS2Node(mTestROS2Node->GetID(), "/PSM1/robot_state_publisher", "robot_description");
 }

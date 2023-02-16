@@ -54,7 +54,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BufferNode: public vtkMRM
   ~vtkMRMLROS2Tf2BufferNode();
 
   std::unique_ptr<vtkMRMLROS2Tf2BufferInternals> mInternals;
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBufferNode;
+  vtkSmartPointer<vtkMatrix4x4> mTemporaryMatrix;
   std::string mMRMLNodeName = "ros2:tf2buffer";
   size_t mNumberOfBroadcasts = 0;
   std::string mBufferNodeName = "undefined";

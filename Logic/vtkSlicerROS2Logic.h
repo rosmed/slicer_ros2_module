@@ -24,6 +24,11 @@
 #ifndef __vtkSlicerROS2Logic_h
 #define __vtkSlicerROS2Logic_h
 
+// foward declarations
+// VTK
+class vtkTimerLog;
+
+// Slicer
 class vtkMRMLROS2NodeNode;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
@@ -34,14 +39,7 @@ class vtkMRMLROS2RobotNode;
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
-#include "vtkSlicerROS2ModuleLogicExport.h"
-
-#include "vtkMRML.h"
-#include "vtkMRMLNode.h"
-
-#include <vtkMatrix4x4.h>
-
-
+#include <vtkSlicerROS2ModuleLogicExport.h>
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
@@ -82,6 +80,7 @@ private:
   void operator=(const vtkSlicerROS2Logic&); // Not implemented
 
   std::vector<vtkMRMLROS2NodeNode*> mROS2Nodes;
+  vtkSmartPointer<vtkTimerLog> mTimerLog;
 };
 
 #endif
