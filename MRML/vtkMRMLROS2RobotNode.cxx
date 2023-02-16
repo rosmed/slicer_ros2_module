@@ -45,7 +45,9 @@ vtkMRMLROS2RobotNode::~vtkMRMLROS2RobotNode()
 }
 
 
-bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId, const std::string & parameterName)
+bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
+					 const std::string & parameterNodeName,
+					 const std::string & parameterName)
 {
   this->SetName(mMRMLNodeName.c_str());
 
@@ -74,13 +76,14 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId, const std::string 
                                     this->GetID());
   this->SetNodeReferenceID("node", nodeId);
   mROS2Node = rosNodePtr;
+  mParameterNodeName = parameterNodeName;
   mParameterName = parameterName;
   SetRobotDescriptionParameterNode();
   return true;
 }
 
 
-bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode()
+bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(void)
 {
   // Check if the node is in the scene
   if (!this->GetScene()) {
@@ -88,12 +91,11 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode()
     return false;
   }
   // Create a new parameter node
-  vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
-  this->GetScene()->AddNode(param);
-  param->AddToROS2Node(mROS2Node->GetID(), mParameterName);
-  mRobotDescriptionParameterNode = param;
-  ObserveParameterNode(param);
-  param->AddParameterForTracking("robot_description");
+  mRobotDescriptionParameterNode = vtkMRMLROS2ParameterNode::New();
+  this->GetScene()->AddNode(mRobotDescriptionParameterNode);
+  mRobotDescriptionParameterNode->AddToROS2Node(mROS2Node->GetID(), mParameterNodeName);
+  mRobotDescriptionParameterNode->AddParameterForTracking(mParameterName);
+  ObserveParameterNode(mRobotDescriptionParameterNode);
   return true;
 }
 
@@ -294,7 +296,7 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
   // Cascade the lookups
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     auto lookup = mROS2Node->mBuffer->mLookupNodes[i];
-    lookup->SetModifiedOnLookup(false);
+    lookup->SetModifiedOnLookup(i == 0); // force modified only for the first link
     std::string parent = lookup->GetParentID();
     for (size_t j = 0; j < mNumberOfLinks; j++) {
       auto potentialParent = mROS2Node->mBuffer->mLookupNodes[j];
@@ -328,12 +330,6 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
 }
 
 
-void vtkMRMLROS2RobotNode::SetRobotName(const std::string & robotName)
-{
-  mROS2RobotName = robotName;
-}
-
-
 void vtkMRMLROS2RobotNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -344,7 +340,7 @@ void vtkMRMLROS2RobotNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(ROS2RobotName, ROS2RobotName);
+  vtkMRMLWriteXMLStdStringMacro(RobotName, RobotName);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -354,7 +350,7 @@ void vtkMRMLROS2RobotNode::ReadXMLAttributes(const char** atts)
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(ROS2RobotName, ROS2RobotName);
+  vtkMRMLReadXMLStdStringMacro(RobotName, RobotName);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }

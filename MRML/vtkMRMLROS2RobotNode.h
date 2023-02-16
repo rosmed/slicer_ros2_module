@@ -22,16 +22,16 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
-  inline const std::string GetROS2RobotName(void) const {
-    return mROS2RobotName;
+  inline const std::string GetRobotName(void) const {
+    return mRobotName;
   }
 
-  void SetRobotName(const std::string & robotName);
+  bool AddToROS2Node(const char * nodeId,
+		     const std::string & parameterNodeName,
+		     const std::string & parameterName = "robot_description");
 
-  bool AddToROS2Node(const char * nodeId, const std::string & parameterName);
   bool SetRobotDescriptionParameterNode();
   void ObserveParameterNode(vtkMRMLROS2ParameterNode * node);
-
 
   bool ParseRobotDescription(void);
   void InitializeLookupListFromURDF(void);
@@ -50,14 +50,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   vtkMRMLROS2RobotNode();
   ~vtkMRMLROS2RobotNode();
 
-//   std::unique_ptr<vtkMRMLROS2RobotInternals> mInternals;
-//   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBuffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
-//   std::string mMRMLNodeName = "ros2:node:undefined";
   void ObserveParameterNodeCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData));
 
-  std::string mROS2RobotName = "undefined";
+  std::string mRobotName = "undefined";
   std::string mRobotDescription = "";
-  std::string mMRMLNodeName = "ros2:robotnode";
+  std::string mMRMLNodeName = "ros2:robot";
   vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node;
   vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
   std::vector<std::string> mLinkNames;
@@ -66,13 +63,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> > mLookups;
   std::vector<std::string> mLinkModelFiles;
   size_t mNumberOfLinks = 0;
+  std::string mParameterNodeName;
   std::string mParameterName;
 
-//   std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
-
   // For ReadXMLAttributes
-  inline void SetROS2RobotName(const std::string & name) {
-    mROS2RobotName = name;
+  inline void SetRobotName(const std::string & name) {
+    mRobotName = name;
   }
 };
 
