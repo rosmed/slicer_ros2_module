@@ -52,19 +52,19 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   // Check if the node is in the scene
   vtkMRMLScene * scene = this->GetScene();
   if (!this->GetScene()) {
-    vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
+    vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": tf2 buffer MRML node needs to be added to the scene first");
     return false;
   }
 
   // Check that the ROS2 node node is in the scene and of the correct type
   vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
   if (!rosNodeBasePtr) {
-    vtkErrorMacro(<< "Unable to locate ros2 node in the scene");
+    vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": unable to locate the ROS 2 node in the scene (based on ID)");
     return false;
   }
   vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
   if (!rosNodePtr) {
-    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode");
+    vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": " << std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode");
     return false;
   }
 
@@ -72,7 +72,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;
   vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBuffer();
   if ((buffer != nullptr) && buffer->IsAddedToROS2Node()) {
-    vtkErrorMacro(<< "This buffer has already been added to the ROS2 node.");
+    vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": this buffer has already been added to the ROS2 node");
     return false;
   }
   mInternals->mTfBuffer = std::make_unique<tf2_ros::Buffer>(mInternals->mNodePointer->get_clock());
@@ -92,15 +92,16 @@ bool vtkMRMLROS2Tf2BufferNode::IsAddedToROS2Node(void) const
 }
 
 
-bool vtkMRMLROS2Tf2BufferNode::AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode){
+bool vtkMRMLROS2Tf2BufferNode::AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNode)
+{
   // Check that the buffer is in the scene
   if (!this->GetScene()) {
-    vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
+    vtkErrorMacro(<< "AddLookupNode on \""<< mMRMLNodeName << "\": tf2 buffer MRML node needs to be added to the scene first");
     return false;
   }
   // Check if the lookup node is already in the list of lookups
   if (GetLookupNodeByID(lookupNode->GetID()) != nullptr) {
-    vtkErrorMacro(<< "This lookup node has been added to the buffer already.");
+    vtkErrorMacro(<< "AddLookupNode on \"" << mMRMLNodeName << "\": this lookup node has been added to the buffer already (based on ID)");
     return false;
   }
   // Check that the parent and child of the lookup are set and then add to the buffer node and assign references
@@ -111,7 +112,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNo
     return true;
   }
   else {
-    vtkErrorMacro(<< "Lookup child and parent are not set yet.");
+    vtkErrorMacro(<< "AddLookupNode on \"" << mMRMLNodeName << "\": lookup child and parent are not set");
     return false;
   }
 }
@@ -121,7 +122,7 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::CreateAndAddLookupNode(cons
 {
   // Check the buffer node is in the scene
   if (!this->GetScene()) {
-    vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
+    vtkErrorMacro(<< "CreateAndAddLookupNode on \"" << mMRMLNodeName << "\": tf2 buffer MRML node needs to be added to the scene first");
     return nullptr;
   }
 
@@ -132,11 +133,11 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::CreateAndAddLookupNode(cons
 
   // Set the parent and child id
   if (!lookupNode->SetParentID(parent_id)) {
-    vtkErrorMacro(<< "Parent ID is an empty string.");
+    vtkErrorMacro(<< "CreateAndAddLookupNode on \"" << mMRMLNodeName << "\": parent ID is an empty string");
     return nullptr;
   }
   if (!lookupNode->SetChildID(child_id)) {
-    vtkErrorMacro(<< "Child ID is an empty string.");
+    vtkErrorMacro(<< "CreateAndAddLookupNode on \"" << mMRMLNodeName << "\": child ID is an empty string");
     return nullptr;
   }
 
@@ -165,50 +166,38 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::GetLookupNodeByID(const std
 }
 
 
-bool vtkMRMLROS2Tf2BufferNode::Spin(void)
+void vtkMRMLROS2Tf2BufferNode::Spin(void)
 {
   // Make sure buffer node is still in the scene
   if (!this->GetScene()) {
-    vtkErrorMacro(<< "AddToROS2Node, tf2 buffer MRML node needs to be added to the scene first");
-    return false;
+    vtkErrorMacro(<< "Spin on \"" << mMRMLNodeName << "\": tf2 buffer MRML node needs to be added to the scene first");
+    return;
   }
   // iterate through lookup nodes - make sure they have parent and children set and call lookup try catch
-  for (auto lookupNode: mLookupNodes) {
-      if(lookupNode->IsParentAndChildSet()) {
-        if (!LookupTryCatch(lookupNode->GetParentID(), lookupNode->GetChildID(), lookupNode)) {
-          vtkErrorMacro(<< "Transform exception");
-        }
+  for (auto & lookupNode: mLookupNodes) {
+    const std::string & parent_id = lookupNode->GetParentID();
+    const std::string & child_id = lookupNode->GetChildID();
+    try {
+      geometry_msgs::msg::TransformStamped transformStamped;
+      // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
+      transformStamped = mInternals->mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
+      vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
+      if (lookupNode->GetModifiedOnLookup()) {
+	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+	lookupNode->Modified();
+      } else {
+	lookupNode->DisableModifiedEventOn();
+	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+	lookupNode->DisableModifiedEventOff();
       }
-  }
-  return true;
-}
-
-bool vtkMRMLROS2Tf2BufferNode::LookupTryCatch(const std::string & parent_id, const std::string & child_id, vtkMRMLROS2Tf2LookupNode * lookupNode)
-{
-  try {
-    geometry_msgs::msg::TransformStamped transformStamped;
-    // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
-    transformStamped = mInternals->mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
-    vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
-    if (lookupNode->GetModifiedOnLookup()) {
-      lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-      lookupNode->Modified();
-    } else {
-      lookupNode->DisableModifiedEventOn();
-      lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-      lookupNode->DisableModifiedEventOff();
     }
-    return true;
+    catch (tf2::TransformException & ex) {
+      vtkErrorMacro(<< "Spin on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
+    }
+    catch (...) {
+      vtkErrorMacro(<< "Spin on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);
+    }
   }
-  catch (tf2::TransformException & ex) {
-    vtkErrorMacro(<< "Could not find the transform between " + parent_id + " and " + child_id);
-    return false;
-  }
-  catch(...) {
-    vtkErrorMacro(<< "Got an undefined exception.");
-    return false;
-  }
-  return false;
 }
 
 

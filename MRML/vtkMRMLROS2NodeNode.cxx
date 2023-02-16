@@ -289,12 +289,9 @@ void vtkMRMLROS2NodeNode::Spin(void)
 {
   if (rclcpp::ok()) {
     rclcpp::spin_some(mInternals->mNodePointer);
-    if (mBuffer != nullptr){
-      if (!mBuffer->mLookupNodes.empty()){
-        mBuffer->Spin();
-      } 
+    if (mBuffer != nullptr) {
+      mBuffer->Spin();
     }
-
     for (auto & node : this->mParameterNodes) {
       if (!node->mIsInitialized) {
         node->SetupParameterEventSubscriber();
