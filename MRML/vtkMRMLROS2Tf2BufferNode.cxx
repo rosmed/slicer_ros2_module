@@ -184,7 +184,6 @@ void vtkMRMLROS2Tf2BufferNode::Spin(void)
       vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
       if (lookupNode->GetModifiedOnLookup()) {
 	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	lookupNode->Modified();
       } else {
 	lookupNode->DisableModifiedEventOn();
 	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
