@@ -90,12 +90,14 @@ bool vtkMRMLROS2Tf2LookupNode::AddToBuffer(void)
     vtkErrorMacro(<< "No buffer in the scene.");
     return false;
   }
-  if (buffer->mLookupNodes.size() == 0) {
+  int nbLookupRefs = this->GetNumberOfNodeReferences("lookups");
+  if (nbLookupRefs == 0) {
     buffer->AddLookupNode(this);
   }
   else {
-    for (size_t j = 0; j < buffer->mLookupNodes.size(); j++) {
-      auto lookupID = buffer->mLookupNodes[j]->GetID();
+    for (int j = 0; j < nbLookupRefs; j++) {
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookups", j));
+      const std::string lookupID = lookupNode->GetID();
       if (lookupID == this->GetID()) {
         vtkErrorMacro(<< "Lookup node is already in the buffer list.");
         return false;
