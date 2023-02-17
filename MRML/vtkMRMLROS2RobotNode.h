@@ -60,7 +60,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   std::vector<std::string> mLinkNames;
   std::vector<std::string> mLinkParentNames;
   std::unique_ptr<vtkMRMLROS2RobotNodeInternals> mInternals;
-  std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> > mLookups;
   std::vector<std::string> mLinkModelFiles;
   size_t mNumberOfLinks = 0;
   std::string mParameterNodeName;

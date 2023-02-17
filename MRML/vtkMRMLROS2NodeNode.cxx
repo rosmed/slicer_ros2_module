@@ -68,12 +68,15 @@ void vtkMRMLROS2NodeNode::Destroy()
   }
   // destroy the ROS node
   vtkDebugMacro(<< "Trying to delete ROS2NodeInternals node pointer");
-  mInternals->mNodePointer.reset();
+  mInternals->mNodePointer = nullptr;
   vtkDebugMacro(<< "ROS2NodeInternals node pointer reset");
   mROS2NodeName = "undefined";
   mMRMLNodeName = "ros2:node:undefined";
   this->SetName(mMRMLNodeName.c_str());
   vtkDebugMacro(<< "ROS2Node node name reset");
+  // delete mInternals->mNodePointer and undo the rclcpp::init(argc, argv);
+  rclcpp::shutdown();
+  vtkDebugMacro(<< "ROS2Node node shutdown");
 }
 
 
@@ -241,7 +244,6 @@ bool vtkMRMLROS2NodeNode::RemovePublisherNode(const std::string & topic)
   node->Delete();
   return true;
 }
-
 
 bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & nodeName)
 {
