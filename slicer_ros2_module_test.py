@@ -137,7 +137,4 @@ def run():
 
 
 if __name__ == "__main__":
-    slicer_ros2_module_test()
-
-# remove pub sub and check scene to make sure they are gone
-# write a utility function to check if a node is running
+    pass
