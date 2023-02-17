@@ -30,14 +30,18 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     vtkTypeMacro(vtkMRMLROS2ParameterNode, vtkMRMLNode);
 
     // newly added
-
     typedef vtkMRMLROS2ParameterNode SelfType;
     typedef std::pair<std::string, std::string> ParameterKey;  // pair: {nodeName, parameterName}
+
     static SelfType* New(void);
     void PrintSelf(ostream& os, vtkIndent indent) override;
     vtkMRMLNode* CreateNodeInstance(void) override;
     const char* GetNodeTagName(void) override;
     bool AddToROS2Node(const char* nodeId, const std::string& trackedNodeName);
+
+    inline const std::string & GetNodeName(void) const {
+      return mTrackedNodeName;
+    }
 
     bool SetupParameterEventSubscriber(void);
     bool IsAddedToROS2Node(void) const;
@@ -171,7 +175,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     {
      this->InvokeCustomModifiedEvent(vtkMRMLROS2ParameterNode::ParameterModifiedEvent);
     }
- 
+
     // Save and load
     virtual void ReadXMLAttributes(const char** atts) override;
     virtual void WriteXML(std::ostream& of, int indent) override;
@@ -179,7 +183,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
 
    protected:
 // vector to store all parameter names that are tracked by the node. This is used for saving and reloading state.
-    std::vector<std::string> mTrackedParameterNamesList = {}; 
+    std::vector<std::string> mTrackedParameterNamesList = {};
     void SetmTrackedParameterNamesList(const std::deque<std::string>& mTrackedParameterNamesList);
     std::deque<std::string> GetmTrackedParameterNamesList();
 

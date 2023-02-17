@@ -70,7 +70,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
 
   // Add the buffer to the ros2 node
   mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;
-  vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBuffer();
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> buffer = rosNodePtr->GetTf2Buffer();
   if ((buffer != nullptr) && buffer->IsAddedToROS2Node()) {
     vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": this buffer has already been added to the ROS2 node");
     return false;
@@ -81,7 +81,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
                                     rosNodePtr->GetNumberOfNodeReferences("buffer"),
                                     this->GetID());
   this->SetNodeReferenceID("node", nodeId);
-  rosNodePtr->mBuffer = this;
+  rosNodePtr->mTf2Buffer = this;
   return true;
 }
 

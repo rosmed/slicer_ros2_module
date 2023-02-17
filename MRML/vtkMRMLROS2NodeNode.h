@@ -57,18 +57,16 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   
   vtkMRMLROS2ParameterNode * CreateAndAddParameter(const std::string & topic);
 
-  void Spin(void);
-
-  vtkMRMLROS2SubscriberNode* GetSubscriberNodeByTopic(const std::string & topic);
-  vtkMRMLROS2PublisherNode* GetPublisherNodeByTopic(const std::string & topic);
-  vtkMRMLROS2ParameterNode* GetParameterNodeByNode(const std::string & node);
+  vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
+  vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
+  vtkMRMLROS2ParameterNode * GetParameterNodeByNode(const std::string & node);
   bool RemoveSubscriberNode(const std::string & topic);
   bool RemovePublisherNode(const std::string & topic);
   bool RemoveParameterNode(const std::string & nodeName);
-  vtkMRMLROS2Tf2BroadcasterNode* GetBroadcasterByID(const std::string & nodeID);
-  vtkMRMLROS2Tf2BufferNode* GetBuffer(void);
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> GetTf2BroadcasterByID(const std::string & nodeID);
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> GetTf2Buffer(bool createIfNeeded = true);
 
-  // void AddBuffer(vtkMRMLROS2Tf2BufferNode * node); // if buffer has lookup - add it to the node (otherwise don't)
+  void Spin(void);
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
@@ -79,7 +77,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   ~vtkMRMLROS2NodeNode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mBuffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mTf2Buffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
   
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";

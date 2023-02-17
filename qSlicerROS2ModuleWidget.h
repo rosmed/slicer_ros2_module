@@ -60,7 +60,6 @@ protected slots:
   void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
   void onSetSubscribers(void);
   void onSetPublishers(void);
-  void onNodeAddedButton(void);
   void refreshSubTable(void);
   void refreshPubTable(void);
 
