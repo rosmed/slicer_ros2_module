@@ -242,7 +242,6 @@ bool vtkMRMLROS2NodeNode::RemovePublisherNode(const std::string & topic)
   return true;
 }
 
-
 bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & nodeName)
 {
   vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNode(nodeName);
