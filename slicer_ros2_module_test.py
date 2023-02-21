@@ -1,6 +1,5 @@
 import slicer
 import unittest
-import time
 import subprocess
 import logging
 import sys
@@ -67,6 +66,7 @@ class TestTurtlesimNode(unittest.TestCase):
 # It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
 class TestCreateAndAddPubSub(unittest.TestCase):
     def setUp(self):
+        print("\nCreating ROS2 node..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
 
@@ -86,7 +86,7 @@ class TestCreateAndAddPubSub(unittest.TestCase):
         spin_some()
 
         finalSubMessageCount = testSub.GetNumberOfMessages()
-        receivedMessage = testSub.GetLastMessageYAML()
+        receivedMessage = testSub.GetLastMessageYAML() # TODO: GetLastMessageString()
 
         self.assertTrue(finalSubMessageCount - initSubMessageCount == 1)
         # assert that the recceived message contains the string message - since YAML

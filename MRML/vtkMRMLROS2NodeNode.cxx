@@ -62,13 +62,13 @@ void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
 void vtkMRMLROS2NodeNode::Destroy()
 {
   // if mMRMLNodeName is equal to this->GetName and not empty, then continue, else return
-  if ( mMRMLNodeName == "ros2::node::undefined" || mMRMLNodeName != this->GetName() ) { // unsure of this logic
+  if ( mMRMLNodeName == "ros2::node::undefined" || mMRMLNodeName != this->GetName() ) { // CHECK IF pointer is null
     vtkWarningMacro(<< "ROS2Node node name does not match MRML node name.  Not destroying ROS2 node.");
     return;
   }
   // destroy the ROS node
   vtkDebugMacro(<< "Trying to delete ROS2NodeInternals node pointer");
-  mInternals->mNodePointer = nullptr;
+  mInternals->mNodePointer = nullptr; // reset?? reset mInternals also (in destructor)
   vtkDebugMacro(<< "ROS2NodeInternals node pointer reset");
   mROS2NodeName = "undefined";
   mMRMLNodeName = "ros2:node:undefined";
