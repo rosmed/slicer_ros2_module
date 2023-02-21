@@ -164,7 +164,6 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
     }
     lastExplored++;
   }
-  mLookups.resize(mLinkNames.size());
   mNumberOfLinks = mLinkNames.size();
 }
 
@@ -216,7 +215,7 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 {
   // Initialize the lookups for the robot based on the previously stored parent and children names of the transform.
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    mROS2Node->mBuffer->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
+    mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
   }
 }
 
@@ -295,11 +294,11 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 
   // Cascade the lookups
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    auto lookup = mROS2Node->mBuffer->mLookupNodes[i];
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", i));
     lookup->SetModifiedOnLookup(i == 0); // force modified only for the first link
     std::string parent = lookup->GetParentID();
     for (size_t j = 0; j < mNumberOfLinks; j++) {
-      auto potentialParent = mROS2Node->mBuffer->mLookupNodes[j];
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", j));
       std::string child = potentialParent->GetChildID();
       if (child == parent) {
         lookup->SetAndObserveTransformNodeID(potentialParent->GetID());
@@ -310,8 +309,8 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
   // Setup models on their corresponding offsets
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str())); // shouldn't get from scene
-    auto lookupNode = mROS2Node->mBuffer->mLookupNodes[i];
-    linkModel->SetAndObserveTransformNodeID(lookupNode->GetID());
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", i));
+    linkModel->SetAndObserveTransformNodeID(lookup->GetID());
   }
 
 }

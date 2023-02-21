@@ -97,7 +97,6 @@ void qSlicerROS2ModuleWidget::setup(void)
 
   this->connect(d->setSubscribersButton, SIGNAL(clicked(bool)), this, SLOT(onSetSubscribers()));
   this->connect(d->setPublishersButton, SIGNAL(clicked(bool)), this, SLOT(onSetPublishers()));
-  this->connect(d->addNodeButton, SIGNAL(clicked(bool)), this, SLOT(onNodeAddedButton()));
 
   // Set up timer connections
   connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
@@ -106,22 +105,6 @@ void qSlicerROS2ModuleWidget::setup(void)
   // Set up signals / slots for dynamically loaded widgets
   this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
   this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
-}
-
-void qSlicerROS2ModuleWidget::onNodeAddedButton()
-{
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  // Instantiate ROS2 node
-  logic->AddROS2Node();
-
-  // Setup modified connections for the widget
-  if (logic->mTestROS2Node){
-    qvtkReconnect(logic->mTestROS2Node, vtkMRMLNode::ReferenceAddedEvent, this, SLOT(updateWidget())); // Set up observer
-  }
 }
 
 
@@ -134,6 +117,7 @@ void qSlicerROS2ModuleWidget::onTimerTimeOut()
   }
   logic->Spin();
 }
+
 
 void qSlicerROS2ModuleWidget::updateWidget()
 {
@@ -148,17 +132,19 @@ void qSlicerROS2ModuleWidget::updateWidget()
   // Check how many subscriber references are on the node vs. how many rows are in the table
   int visibleSubscriberRefs = d->rosSubscriberTableWidget->rowCount();
   int visiblePublisherRefs = d->rosPublisherTableWidget->rowCount();
-  int subscriberRefs = logic->mTestROS2Node->GetNumberOfNodeReferences("subscriber");
-  int publisherRefs = logic->mTestROS2Node->GetNumberOfNodeReferences("publisher");
 
-  // update subscriber table
-  if (visibleSubscriberRefs < subscriberRefs) {
-    refreshSubTable();
-  }
-  // update publisher table
-  if (visiblePublisherRefs < publisherRefs) {
-    refreshPubTable();
-  }
+  // The following needs to be updated to list all ROS nodes in logic 
+  // int subscriberRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
+  // int publisherRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
+
+  // // update subscriber table
+  // if (visibleSubscriberRefs < subscriberRefs) {
+  //   refreshSubTable();
+  // }
+  // // update publisher table
+  // if (visiblePublisherRefs < publisherRefs) {
+  //   refreshPubTable();
+  // }
 }
 
 void qSlicerROS2ModuleWidget::refreshSubTable()
@@ -174,19 +160,19 @@ void qSlicerROS2ModuleWidget::refreshSubTable()
   size_t subRow = 0;
   d->rosSubscriberTableWidget->clearContents();
 
-  // Resize the table
-  d->rosSubscriberTableWidget->setRowCount(logic->mTestROS2Node->GetNumberOfNodeReferences("subscriber"));
+  // // Resize the table
+  // d->rosSubscriberTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"));
 
-  // Iterate through the references
-  for (int index = 0; index < logic->mTestROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
-  const char * id = logic->mTestROS2Node->GetNthNodeReferenceID("subscriber", index);
-  vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mTestROS2Node->GetScene()->GetNodeByID(id));
-  if (sub == nullptr) {
-    } else {
-      updateSubscriberTable(sub, subRow);
-      subRow++;
-    }
-  }
+  // // Iterate through the references
+  // for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
+  // const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("subscriber", index);
+  // vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+  // if (sub == nullptr) {
+  //   } else {
+  //     updateSubscriberTable(sub, subRow);
+  //     subRow++;
+  //   }
+  // }
 }
 
 void qSlicerROS2ModuleWidget::refreshPubTable()
@@ -202,19 +188,19 @@ void qSlicerROS2ModuleWidget::refreshPubTable()
   size_t pubRow = 0;
   d->rosPublisherTableWidget->clearContents();
 
-  // Resize the table
-  d->rosPublisherTableWidget->setRowCount(logic->mTestROS2Node->GetNumberOfNodeReferences("publisher"));
+  // // Resize the table
+  // d->rosPublisherTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"));
 
-  // Iterate through the references
-  for (int index = 0; index < logic->mTestROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
-    const char * id = logic->mTestROS2Node->GetNthNodeReferenceID("publisher", index);
-    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mTestROS2Node->GetScene()->GetNodeByID(id));
-    if (pub == nullptr) {
-    } else {
-      updatePublisherTable(pub, pubRow);
-      pubRow++;
-    }
-  }
+  // // Iterate through the references
+  // for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
+  //   const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("publisher", index);
+  //   vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+  //   if (pub == nullptr) {
+  //   } else {
+  //     updatePublisherTable(pub, pubRow);
+  //     pubRow++;
+  //   }
+  // }
 }
 
 

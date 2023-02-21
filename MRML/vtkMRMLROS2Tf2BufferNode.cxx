@@ -70,7 +70,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
 
   // Add the buffer to the ros2 node
   mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;
-  vtkMRMLROS2Tf2BufferNode * buffer = rosNodePtr->GetBuffer();
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> buffer = rosNodePtr->GetTf2Buffer();
   if ((buffer != nullptr) && buffer->IsAddedToROS2Node()) {
     vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": this buffer has already been added to the ROS2 node");
     return false;
@@ -81,7 +81,7 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
                                     rosNodePtr->GetNumberOfNodeReferences("buffer"),
                                     this->GetID());
   this->SetNodeReferenceID("node", nodeId);
-  rosNodePtr->mBuffer = this;
+  rosNodePtr->mTf2Buffer = this;
   return true;
 }
 
@@ -106,7 +106,6 @@ bool vtkMRMLROS2Tf2BufferNode::AddLookupNode(vtkMRMLROS2Tf2LookupNode * lookupNo
   }
   // Check that the parent and child of the lookup are set and then add to the buffer node and assign references
   if (lookupNode->IsParentAndChildSet()) {
-    mLookupNodes.push_back(lookupNode); // Add the lookup node to the list of refences
     this->SetNodeReferenceID("lookups", lookupNode->GetID()); // Add both references
     lookupNode->SetNodeReferenceID("buffer", this->GetID());
     return true;
@@ -142,8 +141,6 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::CreateAndAddLookupNode(cons
   }
 
   // Add to list of lookup nodes and assigned references
-  mLookupNodes.push_back(lookupNode);
-  // this->SetNodeReferenceID("lookups", lookupNode->GetID());
   lookupNode->SetNodeReferenceID("buffer", this->GetID());
 
   this->SetNthNodeReferenceID("lookups",
@@ -156,7 +153,9 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::CreateAndAddLookupNode(cons
 vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2Tf2BufferNode::GetLookupNodeByID(const std::string & nodeID)
 {
   // Go through list of lookup nodes and check for duplicate IDs
-  for (auto lookupNode: mLookupNodes) {
+  int nbLookupRefs = this->GetNumberOfNodeReferences("lookups");
+  for (int i = 0; i < nbLookupRefs; i ++){
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookups", i));
     const std::string lookupID = lookupNode->GetID();
     if (lookupID == nodeID) {
       return lookupNode;
@@ -174,7 +173,9 @@ void vtkMRMLROS2Tf2BufferNode::Spin(void)
     return;
   }
   // iterate through lookup nodes - make sure they have parent and children set and call lookup try catch
-  for (auto & lookupNode: mLookupNodes) {
+  int nbLookupRefs = this->GetNumberOfNodeReferences("lookups");
+  for (int i = 0; i < nbLookupRefs; i ++){
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookups", i));
     const std::string & parent_id = lookupNode->GetParentID();
     const std::string & child_id = lookupNode->GetChildID();
     try {
@@ -184,7 +185,6 @@ void vtkMRMLROS2Tf2BufferNode::Spin(void)
       vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
       if (lookupNode->GetModifiedOnLookup()) {
 	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	lookupNode->Modified();
       } else {
 	lookupNode->DisableModifiedEventOn();
 	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);

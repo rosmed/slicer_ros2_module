@@ -68,7 +68,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
   }
 
   // Check that the buffer hasn't already been added to the node
-  vtkMRMLROS2Tf2BroadcasterNode * broadcaster = rosNodePtr->GetBroadcasterByID(this->GetID());
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = rosNodePtr->GetTf2BroadcasterByID(this->GetID());
   if ((broadcaster != nullptr) && broadcaster->IsAddedToROS2Node()) {
     vtkErrorMacro(<< "This broadcaster has already been added to the ROS2 node.");
     return false;
