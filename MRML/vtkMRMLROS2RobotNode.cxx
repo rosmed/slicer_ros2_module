@@ -215,7 +215,8 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 {
   // Initialize the lookups for the robot based on the previously stored parent and children names of the transform.
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
+    mNthRobot.mLookupNodes.push_back(lookup);
   }
 }
 
@@ -272,6 +273,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     this->GetScene()->AddNode( modelNode.GetPointer() );
     modelNode->SetName((mLinkNames[i] + "_model").c_str());
     modelNode->SetAndObserveMesh(meshFromFile);
+    mNthRobot.mLinkModels.push_back(modelNode);
 
     // Create display node
     if (modelNode->GetDisplayNode() == NULL) {
@@ -294,11 +296,11 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 
   // Cascade the lookups
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", i));
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
     lookup->SetModifiedOnLookup(i == 0); // force modified only for the first link
     std::string parent = lookup->GetParentID();
     for (size_t j = 0; j < mNumberOfLinks; j++) {
-      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", j));
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = mNthRobot.mLookupNodes[j];
       std::string child = potentialParent->GetChildID();
       if (child == parent) {
         lookup->SetAndObserveTransformNodeID(potentialParent->GetID());
@@ -308,8 +310,8 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 
   // Setup models on their corresponding offsets
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str())); // shouldn't get from scene
-    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", i));
+    vtkSmartPointer<vtkMRMLModelNode> linkModel = mNthRobot.mLinkModels[i];
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
     linkModel->SetAndObserveTransformNodeID(lookup->GetID());
   }
 
@@ -324,8 +326,10 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   InitializeOffsetListAndModelFilesFromURDF();
   InitializeOffsetsAndLinkModels();
   InitializeLookups();
-  // LoadLinkModels();
   SetupTransformTree();
+
+  mNthRobot.mLinkModels.clear();
+  mNthRobot.mLookupNodes.clear();
 }
 
 
