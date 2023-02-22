@@ -50,16 +50,8 @@ protected:
   bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
 		     const std::string & topic, std::string & errorMessage) override
   {
-    vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
-    if (!rosNodeBasePtr) {
-      errorMessage = "unable to locate node";
-      return false;
-    }
-    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
-    if (!rosNodePtr) {
-      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
-      return false;
-    }
+    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
+    if(!rosNodePtr) return false;
 
     vtkMRMLROS2PublisherNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
     if ((pub != nullptr)
@@ -80,16 +72,8 @@ protected:
   bool RemoveFromROS2Node(vtkMRMLScene * scene, const char * nodeId,
         const std::string & topic, std::string & errorMessage) override
   {
-    vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
-    if (!rosNodeBasePtr) {
-      errorMessage = "unable to locate node";
-      return false;
-    }
-    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
-    if (!rosNodePtr) {
-      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
-      return false;
-    }
+    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
+    if(!rosNodePtr) return false;
 
     vtkMRMLROS2PublisherNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
     if (pub == nullptr || !pub->IsAddedToROS2Node()) {

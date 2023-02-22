@@ -65,6 +65,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   bool RemoveParameterNode(const std::string & nodeName);
   vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> GetTf2BroadcasterByID(const std::string & nodeID);
   vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> GetTf2Buffer(bool createIfNeeded = true);
+  static vtkMRMLROS2NodeNode * CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage);
 
   void Spin(void);
 
@@ -83,6 +84,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   std::string mROS2NodeName = "undefined";
 
   std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
+
 
   // For ReadXMLAttributes
   inline void SetROS2NodeName(const std::string & name) {

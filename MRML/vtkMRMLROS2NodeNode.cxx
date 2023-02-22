@@ -311,3 +311,18 @@ void vtkMRMLROS2NodeNode::ReadXMLAttributes(const char** atts)
   // It handles cases where Publishers and Subscribers are read before the ROS2Node
   this->Create(mROS2NodeName);
 }
+
+vtkMRMLROS2NodeNode * vtkMRMLROS2NodeNode::CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage){
+    vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
+    if (!rosNodeBasePtr) {
+      errorMessage = "unable to locate node";
+      return nullptr;
+    }
+    vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
+    if (!rosNodePtr) {
+      errorMessage = std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode";
+      return nullptr;
+    }
+    return rosNodePtr;
+}
+
