@@ -76,8 +76,8 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
                                     this->GetID());
   this->SetNodeReferenceID("node", nodeId);
   mROS2Node = rosNodePtr;
-  mParameterNodeName = parameterNodeName;
-  mParameterName = parameterName;
+  mNthRobot.mParameterNodeName = parameterNodeName;
+  mNthRobot.mParameterName = parameterName;
   SetRobotDescriptionParameterNode();
   return true;
 }
@@ -91,11 +91,11 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(void)
     return false;
   }
   // Create a new parameter node
-  mRobotDescriptionParameterNode = vtkMRMLROS2ParameterNode::New();
-  this->GetScene()->AddNode(mRobotDescriptionParameterNode);
-  mRobotDescriptionParameterNode->AddToROS2Node(mROS2Node->GetID(), mParameterNodeName);
-  mRobotDescriptionParameterNode->AddParameterForTracking(mParameterName);
-  ObserveParameterNode(mRobotDescriptionParameterNode);
+  mNthRobot.mRobotDescriptionParameterNode = vtkMRMLROS2ParameterNode::New();
+  this->GetScene()->AddNode(mNthRobot.mRobotDescriptionParameterNode);
+  mNthRobot.mRobotDescriptionParameterNode->AddToROS2Node(mROS2Node->GetID(), mNthRobot.mParameterNodeName);
+  mNthRobot.mRobotDescriptionParameterNode->AddParameterForTracking(mNthRobot.mParameterName);
+  ObserveParameterNode(mNthRobot.mRobotDescriptionParameterNode);
   return true;
 }
 
@@ -120,7 +120,7 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
     return;
   }
   else {
-    mRobotDescription = mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
+    mNthRobot.mRobotDescription = mNthRobot.mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
     if (mNumberOfLinks == 0) {
       ParseRobotDescription();
       SetupRobotVisualization();
@@ -132,7 +132,7 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
 bool vtkMRMLROS2RobotNode::ParseRobotDescription(void)
 {
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
-  if (!mInternals->mURDFModel.initString(mRobotDescription)) {
+  if (!mInternals->mURDFModel.initString(mNthRobot.mRobotDescription)) {
       return false;
   }
   return true;
@@ -147,24 +147,24 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
   // Start with the root (base of the robot)
   auto root = mInternals->mURDFModel.getRoot();
   std::string root_name = root->name;
-  mLinkNames.push_back(root_name);
-  mLinkParentNames.push_back(root_name);
+  mNthRobot.mLinkNames.push_back(root_name);
+  mNthRobot.mLinkParentNames.push_back(root_name);
   mInternals->mVisualVector.push_back(root->visual);
 
   // Go through the rest of the robot and save to list
   size_t lastExplored = 0;
   while (lastExplored != mInternals->mVisualVector.size()) {
-    mInternals->mParentLinkPointer = mInternals->mURDFModel.getLink(mLinkNames[lastExplored]);
+    mInternals->mParentLinkPointer = mInternals->mURDFModel.getLink(mNthRobot.mLinkNames[lastExplored]);
     mInternals->mChildLinkPointer =  mInternals->mParentLinkPointer->child_links;
 
     for (auto i: mInternals->mChildLinkPointer) {
-      mLinkNames.push_back(i->name);
-      mLinkParentNames.push_back(mInternals->mParentLinkPointer->name);
+      mNthRobot.mLinkNames.push_back(i->name);
+      mNthRobot.mLinkParentNames.push_back(mInternals->mParentLinkPointer->name);
       mInternals->mVisualVector.push_back(i->visual); // need to get the origin from the visual
     }
     lastExplored++;
   }
-  mNumberOfLinks = mLinkNames.size();
+  mNumberOfLinks = mNthRobot.mLinkNames.size();
 }
 
 
@@ -174,7 +174,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
   // We also get the filename for each stl model for visual loading later.
 
   // Resize the storage arrays
-  mLinkModelFiles.resize(mInternals->mVisualVector.size());
+  mNthRobot.mLinkModelFiles.resize(mInternals->mVisualVector.size());
   mInternals->mLinkOrigins.resize(mInternals->mVisualVector.size());
 
   // Get the origin and the file names
@@ -202,7 +202,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
              = ament_index_cpp::get_package_share_directory(package);
           filename = packageShareDirectory + "/" + relativeFile;
         }
-        mLinkModelFiles[index] = filename;
+        mNthRobot.mLinkModelFiles[index] = filename;
       } else {
         vtkErrorMacro(<< "Link" << index << " has a visual, but not from a file");
       }
@@ -215,7 +215,8 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 {
   // Initialize the lookups for the robot based on the previously stored parent and children names of the transform.
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mLinkParentNames[i], mLinkNames[i]);
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
+    mNthRobot.mLookupNodes.push_back(lookup);
   }
 }
 
@@ -259,9 +260,9 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     transform->Modified();
 
     // Load the model and apply the offset
-    std::string filename = mLinkModelFiles[i];
+    std::string filename = mNthRobot.mLinkModelFiles[i];
     vtkNew<vtkSTLReader> reader; // default is STL
-    reader->SetFileName(mLinkModelFiles[i].c_str());
+    reader->SetFileName(mNthRobot.mLinkModelFiles[i].c_str());
     reader->Update();
 
     vtkSmartPointer<vtkPointSet> meshFromFile;
@@ -270,14 +271,15 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
 
     vtkSmartPointer<vtkMRMLModelNode> modelNode = vtkMRMLModelNode::New();
     this->GetScene()->AddNode( modelNode.GetPointer() );
-    modelNode->SetName((mLinkNames[i] + "_model").c_str());
+    modelNode->SetName((mNthRobot.mLinkNames[i] + "_model").c_str());
     modelNode->SetAndObserveMesh(meshFromFile);
+    mNthRobot.mLinkModels.push_back(modelNode);
 
     // Create display node
     if (modelNode->GetDisplayNode() == NULL) {
         vtkNew< vtkMRMLModelDisplayNode > displayNode;
         this->GetScene()->AddNode( displayNode.GetPointer() );
-        displayNode->SetName((mLinkNames[i] + "_model_display_node").c_str());
+        displayNode->SetName((mNthRobot.mLinkNames[i] + "_model_display_node").c_str());
         modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
     }
     modelNode->ApplyTransform(transform); // instead of set and observe
@@ -294,11 +296,11 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 
   // Cascade the lookups
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", i));
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
     lookup->SetModifiedOnLookup(i == 0); // force modified only for the first link
     std::string parent = lookup->GetParentID();
     for (size_t j = 0; j < mNumberOfLinks; j++) {
-      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", j));
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = mNthRobot.mLookupNodes[j];
       std::string child = potentialParent->GetChildID();
       if (child == parent) {
         lookup->SetAndObserveTransformNodeID(potentialParent->GetID());
@@ -308,8 +310,8 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
 
   // Setup models on their corresponding offsets
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLModelNode> linkModel = vtkMRMLModelNode::SafeDownCast(this->GetScene()->GetFirstNodeByName((mLinkNames[i] + "_model").c_str())); // shouldn't get from scene
-    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(mROS2Node->GetTf2Buffer()->GetNthNodeReference("lookups", i));
+    vtkSmartPointer<vtkMRMLModelNode> linkModel = mNthRobot.mLinkModels[i];
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
     linkModel->SetAndObserveTransformNodeID(lookup->GetID());
   }
 
@@ -324,8 +326,13 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   InitializeOffsetListAndModelFilesFromURDF();
   InitializeOffsetsAndLinkModels();
   InitializeLookups();
-  // LoadLinkModels();
   SetupTransformTree();
+
+  mNthRobot.mLinkModels.clear();
+  mNthRobot.mLookupNodes.clear();
+  mNthRobot.mLinkNames.clear();
+  mNthRobot.mLinkParentNames.clear();
+  mNthRobot.mLinkModelFiles.clear();
 }
 
 
