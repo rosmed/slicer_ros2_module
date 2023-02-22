@@ -59,21 +59,17 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
     std::vector<std::string> mLinkModelFiles;
     std::vector<vtkSmartPointer<vtkMRMLModelNode>> mLinkModels;
     std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>> mLookupNodes;
-    size_t mNumberOfLinks = 0;
+    std::string mRobotDescription = "";
+    vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
+    std::string mParameterNodeName;
+    std::string mParameterName;
   } mNthRobot;
 
   std::string mRobotName = "undefined";
-  std::string mRobotDescription = "";
   std::string mMRMLNodeName = "ros2:robot";
   vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node;
-  vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
-  std::vector<std::string> mLinkNames;
-  std::vector<std::string> mLinkParentNames;
   std::unique_ptr<vtkMRMLROS2RobotNodeInternals> mInternals;
-  std::vector<std::string> mLinkModelFiles;
   size_t mNumberOfLinks = 0;
-  std::string mParameterNodeName;
-  std::string mParameterName;
 
   // For ReadXMLAttributes
   inline void SetRobotName(const std::string & name) {
