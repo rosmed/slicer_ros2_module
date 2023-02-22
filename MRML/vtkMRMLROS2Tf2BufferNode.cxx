@@ -58,7 +58,10 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
 
   std::string errorMessage;
   vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
-  if(!rosNodePtr) return false;
+  if(!rosNodePtr){
+    vtkErrorMacro(<< "BufferNode - AddToROS2Node, " << errorMessage); 
+    return false; 
+  }
 
   // Add the buffer to the ros2 node
   mInternals->mNodePointer = rosNodePtr->mInternals->mNodePointer;

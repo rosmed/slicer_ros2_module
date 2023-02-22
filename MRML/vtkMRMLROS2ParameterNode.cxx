@@ -43,14 +43,17 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
     mMRMLNodeName = "ros2:param:" + trackedNodeName;
     this->SetName(mMRMLNodeName.c_str());
     vtkMRMLScene *scene = this->GetScene();
-    if (!scene) {
+    if (!this->GetScene()) {
         vtkWarningMacro(<< "AddToROS2Node, parameter MRML node needs to be added to the scene first");
         return false;
     }
 
     std::string errorMessage;
     vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
-    if(!rosNodePtr) return false;
+    if(!rosNodePtr){
+        vtkErrorMacro(<< "ParameterNode - AddToROS2Node, " << errorMessage); 
+        return false; 
+    }
 
     std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
     // create a parameter client

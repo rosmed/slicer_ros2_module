@@ -53,10 +53,12 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
     return false;
   }
 
-  // Check that the ROS2 node is in the scene
   std::string errorMessage;
   vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
-  if(!rosNodePtr) return false;
+  if(!rosNodePtr){
+      vtkErrorMacro(<< "ParameterNode - AddToROS2Node, " << errorMessage); 
+      return false; 
+  }
 
   // Check that the buffer hasn't already been added to the node
   vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = rosNodePtr->GetTf2BroadcasterByID(this->GetID());
