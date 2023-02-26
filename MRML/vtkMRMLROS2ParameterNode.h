@@ -6,7 +6,7 @@
 #include <vtkCommand.h>
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 #include <deque>
-#include <utility>
+// #include <utility>
 
 // forward declaration for internals
 class vtkMRMLROS2ParameterInternals;
@@ -28,36 +28,35 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     };
 
     vtkTypeMacro(vtkMRMLROS2ParameterNode, vtkMRMLNode);
-
-    // newly added
     typedef vtkMRMLROS2ParameterNode SelfType;
-    typedef std::pair<std::string, std::string> ParameterKey;  // pair: {nodeName, parameterName}
-
     static SelfType* New(void);
     void PrintSelf(ostream& os, vtkIndent indent) override;
     vtkMRMLNode* CreateNodeInstance(void) override;
     const char* GetNodeTagName(void) override;
+
+    typedef std::pair<std::string, std::string> ParameterKey;  // pair: {nodeName, parameterName} todo: is it used
     bool AddToROS2Node(const char* nodeId, const std::string& trackedNodeName);
 
-    inline const std::string & GetNodeName(void) const {
+    /*! Get the name of the node holding the parameters we're looking for. */
+    inline const std::string & GetNodeName(void) const { // todo:: TrackedNode
       return mTrackedNodeName;
     }
 
-    bool SetupParameterEventSubscriber(void);
+    bool SetupParameterEventSubscriber(void); // todo: protected
     bool IsAddedToROS2Node(void) const;
-    bool IsParameterServerReady(void) const;
+    bool IsParameterServerReady(void) const; // todo: IsMonitoredNodeReady
 
     /* Add a node and parameter to monitor */
-    bool AddParameterForTracking(const std::string& parameterName);
+    bool AddParameterForTracking(const std::string& parameterName); // todo: AddParameter
     /* Remove a parameter that is being monitored. If no parameters are being monitored for a node, stop monitoring the node as well*/
-    bool RemoveParameterFromTracking(const std::string& parameterName);
+    bool RemoveParameterFromTracking(const std::string& parameterName); // todo: RemoveParameter
 
-    bool IsParameterValueSet(const std::string& parameterName) const;
+    bool IsParameterValueSet(const std::string& parameterName) const; // IsParameterSet
 
     /* Main methods, recommended for C++ users since we can check return code and avoid copy for result.
      Returns data type if the parameter is tracked. Else it returns an empty string */
-    std::string GetParameterType(const std::string& parameterName, std::string& result);
-    /* convenience methods for users to skip pair creation, mostly for Python users */
+    std::string GetParameterType(const std::string& parameterName, std::string& result); // todo: bool return, false is not yet known
+    /* convenience methods for users to skip pair creation, mostly for Python users.  Returns an empty string if the parameter type is not yet known. */
     inline std::string GetParameterType(const std::string& parameterName) {
         std::string result;
         // TODO : Add Warning
@@ -65,9 +64,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
         return result;
     }
 
-    /* Main methods, recommended for C++ users since we can check return code and avoid copy for result.
+    /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result.
      Prints value of a tracked parameter after converting it to a string */
-    bool PrintParameterValue(const std::string& parameterName, std::string& result);
+    bool PrintParameterValue(const std::string& parameterName, std::string& result); // todo: remove Value in method name, return false is parameter not yet set (update documention)
     /* convenience methods for users to skip pair creation, mostly for Python users */
     inline std::string PrintParameterValue(const std::string& parameterName) {
         std::string result;
@@ -75,16 +74,19 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
         return result;
     }
 
+// todo: in RbotoNode, make sure we check with IsParameterSet and GetParameterType 
+
     /* Main methods, recommended for C++ users since we can check return code and avoid copy for result.
-    Returns the value of the parameter if it is a boolean. Users should always make sure that the key exists
-    and the parameter type is string before calling this method*/
+    Returns true if it is a boolean and it is set. Users should always make sure that the key exists
+    and the parameter type is boolean before calling this method*/
     bool GetParameterAsBool(const std::string& parameterName, bool& result);
     /* convenience methods for users to skip pair creation, mostly for Python users */
     inline bool GetParameterAsBool(const std::string& parameterName) {
         bool result;
         GetParameterAsBool(parameterName, result);
-        return result;
+        return result; // todo : try and return a tuple
     }
+    // TODO: Exception vs Tuple - keep a note for subscriber
 
     /* Returns the value of the parameter if it is an Integer . Users should always make sure the key exists and
     the parameter type is an integer with GetParameterType before calling this method.
@@ -171,9 +173,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
         return result;
     }
 
-    virtual void ParameterSet()
+    virtual void ParameterSet(void)
     {
-     this->InvokeCustomModifiedEvent(vtkMRMLROS2ParameterNode::ParameterModifiedEvent);
+      this->InvokeCustomModifiedEvent(vtkMRMLROS2ParameterNode::ParameterModifiedEvent);
     }
 
     // Save and load
@@ -184,11 +186,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
    protected:
 // vector to store all parameter names that are tracked by the node. This is used for saving and reloading state.
     std::vector<std::string> mTrackedParameterNamesList = {};
-    void SetmTrackedParameterNamesList(const std::deque<std::string>& mTrackedParameterNamesList);
-    std::deque<std::string> GetmTrackedParameterNamesList();
+    void SetmTrackedParameterNamesList(const std::vector<std::string>& mTrackedParameterNamesList); // todo: line below and below - make private + use the word cache/temp in there + remove m 
+    std::vector<std::string> GetmTrackedParameterNamesList();
 
    protected:
-    vtkMRMLROS2ParameterInternals* mInternals = nullptr;
+    vtkMRMLROS2ParameterInternals* mInternals = nullptr; // todo: should we use make_unique?
     std::string mMRMLNodeName = "ros2:param:undefined";
     std::string mTrackedNodeName = "undefined";
     bool mIsInitialized = false;
