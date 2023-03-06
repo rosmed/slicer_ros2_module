@@ -8,11 +8,12 @@
 vtkStandardNewMacro(vtkMRMLROS2ParameterNode);
 
 vtkMRMLROS2ParameterNode::vtkMRMLROS2ParameterNode() {
-    mInternals = new vtkMRMLROS2ParameterInternals(this);
+    // mInternals = new vtkMRMLROS2ParameterInternals(this);
+    mInternals = std::make_shared<vtkMRMLROS2ParameterInternals>(this);
 }
 
 vtkMRMLROS2ParameterNode::~vtkMRMLROS2ParameterNode() {
-    delete mInternals;
+    // delete mInternals;
 }
 
 void vtkMRMLROS2ParameterNode::PrintSelf(ostream &os, vtkIndent indent) {
@@ -106,7 +107,7 @@ bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
 }
 
 // Check if parameter server is ready
-bool vtkMRMLROS2ParameterNode::IsParameterServerReady(void) const { //todo: check if this is efficient - potentially add it to spin
+bool vtkMRMLROS2ParameterNode::IsMonitoredNodeReady(void) const { //todo: check if this is efficient - potentially add it to spin
     // todo : mIsParameterServerReady - use instead of mInitialized
     return mInternals->mParameterClient->service_is_ready();
 }
@@ -138,7 +139,7 @@ bool vtkMRMLROS2ParameterNode::RemoveParameter(const std::string &parameterName)
     }
 }
 
-bool vtkMRMLROS2ParameterNode::IsParameterValueSet(const std::string &parameterName) const {
+bool vtkMRMLROS2ParameterNode::IsParameterSet(const std::string &parameterName) const {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         return mInternals->ROS2ParamMsgToParameter(mInternals->mParameterStore[parameterName]).get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET;
     } else {
