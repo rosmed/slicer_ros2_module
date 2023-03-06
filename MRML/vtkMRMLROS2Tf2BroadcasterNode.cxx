@@ -48,15 +48,10 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
   // Check that the broadcaster is in the scene
   this->SetName(mMRMLNodeName.c_str());
   vtkMRMLScene * scene = this->GetScene();
-  if (!this->GetScene()) {
-    vtkErrorMacro(<< "AddToROS2Node, tf2 broadcaster MRML node needs to be added to the scene first");
-    return false;
-  }
-
   std::string errorMessage;
   vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
   if(!rosNodePtr){
-      vtkErrorMacro(<< "ParameterNode - AddToROS2Node, " << errorMessage); 
+      vtkErrorMacro(<< "BroadcasterNode - AddToROS2Node, " << errorMessage); 
       return false; 
   }
 

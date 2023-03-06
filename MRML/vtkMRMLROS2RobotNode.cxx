@@ -53,23 +53,12 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
 
   // Check if the node is in the scene
   vtkMRMLScene * scene = this->GetScene();
-  if (!this->GetScene()) {
-    vtkErrorMacro(<< "AddToROS2Node, robot MRML node needs to be added to the scene first");
-    return false;
+  std::string errorMessage;
+  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
+  if(!rosNodePtr){
+      vtkErrorMacro(<< "RobotNode - AddToROS2Node, " << errorMessage); 
+      return false; 
   }
-
-  // Check that the ROS2 node node is in the scene and of the correct type
-  vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
-  if (!rosNodeBasePtr) {
-    vtkErrorMacro(<< "Unable to locate ros2 node in the scene");
-    return false;
-  }
-  vtkMRMLROS2NodeNode * rosNodePtr = dynamic_cast<vtkMRMLROS2NodeNode *>(rosNodeBasePtr);
-  if (!rosNodePtr) {
-    vtkErrorMacro(<< std::string(rosNodeBasePtr->GetName()) + " doesn't seem to be a vtkMRMLROS2NodeNode");
-    return false;
-  }
-
   // Add the robot to the ros2 node
   rosNodePtr->SetNthNodeReferenceID("robot",
                                     rosNodePtr->GetNumberOfNodeReferences("robot"),
@@ -94,7 +83,7 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(void)
   mNthRobot.mRobotDescriptionParameterNode = vtkMRMLROS2ParameterNode::New();
   this->GetScene()->AddNode(mNthRobot.mRobotDescriptionParameterNode);
   mNthRobot.mRobotDescriptionParameterNode->AddToROS2Node(mROS2Node->GetID(), mNthRobot.mParameterNodeName);
-  mNthRobot.mRobotDescriptionParameterNode->AddParameterForTracking(mNthRobot.mParameterName);
+  mNthRobot.mRobotDescriptionParameterNode->AddParameter(mNthRobot.mParameterName);
   ObserveParameterNode(mNthRobot.mRobotDescriptionParameterNode);
   return true;
 }
@@ -119,6 +108,7 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   if (!parameterNode) {
     return;
   }
+
   else {
     mNthRobot.mRobotDescription = mNthRobot.mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
     if (mNumberOfLinks == 0) {
