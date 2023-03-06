@@ -24,11 +24,15 @@ const char * vtkMRMLROS2NodeNode::GetNodeTagName(void)
 
 vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 {
-  mInternals = std::make_unique<vtkMRMLROS2NodeInternals>();
+  mInternals = std::make_unique<vtkMRMLROS2NodeInternals>(); 
 }
 
 vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 {
+  this->Destroy();
+  mInternals.reset();
+  rclcpp::shutdown();
+  vtkDebugMacro(<< "ROS2Node node shutdown");
 }
 
 
@@ -46,7 +50,7 @@ void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
     argv[0]= new char[nodeName.size() + 1];
     strcpy(argv[0], nodeName.c_str());
     int argc = 1;
-    rclcpp::init(argc, argv);
+    rclcpp::init(argc, argv); // move to logic?
   } catch (...) {
     vtkDebugMacro(<< "rclcpp::init was called multiple times.  This is fine." );
   }
@@ -61,22 +65,19 @@ void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
 
 void vtkMRMLROS2NodeNode::Destroy()
 {
-  // if mMRMLNodeName is equal to this->GetName and not empty, then continue, else return
-  if ( mMRMLNodeName == "ros2::node::undefined" || mMRMLNodeName != this->GetName() ) { // CHECK IF pointer is null
-    vtkWarningMacro(<< "ROS2Node node name does not match MRML node name.  Not destroying ROS2 node.");
+
+  if (!mInternals || !mInternals->mNodePointer ) { 
+    vtkWarningMacro(<< "ROS2Node does not contain any ROS2 internals. Not destroying ROS2 node.");
     return;
   }
-  // destroy the ROS node
+
   vtkDebugMacro(<< "Trying to delete ROS2NodeInternals node pointer");
-  mInternals->mNodePointer = nullptr; // reset?? reset mInternals also (in destructor)
+  mInternals->mNodePointer.reset();
   vtkDebugMacro(<< "ROS2NodeInternals node pointer reset");
   mROS2NodeName = "undefined";
   mMRMLNodeName = "ros2:node:undefined";
   this->SetName(mMRMLNodeName.c_str());
   vtkDebugMacro(<< "ROS2Node node name reset");
-  // delete mInternals->mNodePointer and undo the rclcpp::init(argc, argv);
-  rclcpp::shutdown();
-  vtkDebugMacro(<< "ROS2Node node shutdown");
 }
 
 
@@ -133,7 +134,7 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char
   return nullptr;
 }
 
-vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std::string & trackedNodeName)
+vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std::string & monitoredNodeName)
 {
   const char * className = "vtkMRMLROS2ParameterNode";
   // Check if this has been added to the scene
@@ -151,7 +152,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std:
   }
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(parameterNode);
-  if (parameterNode->AddToROS2Node(this->GetID(), trackedNodeName)) {
+  if (parameterNode->AddToROS2Node(this->GetID(), monitoredNodeName)) {
     return parameterNode;
   }
   // Something went wrong, cleanup
@@ -198,7 +199,7 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NodeNode::GetParameterNodeByNode(const std:
     vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
     if (!node) {
       vtkWarningMacro(<< "GetParameterNodeByNode: node referenced by role 'parameter' is not a parameter");
-    } else if (node->GetNodeName() == nodeName) {
+    } else if (node->GetMonitoredNodeName() == nodeName) {
       return node;
     }
   }
@@ -281,8 +282,8 @@ void vtkMRMLROS2NodeNode::Spin(void)
       mTf2Buffer->Spin();
     }
     for (auto & node : this->mParameterNodes) {
-      if (!node->mIsInitialized) {
-        node->SetupParameterEventSubscriber();
+      if (node != nullptr) {
+        node->Spin();
       }
     }
   }
@@ -312,7 +313,11 @@ void vtkMRMLROS2NodeNode::ReadXMLAttributes(const char** atts)
   this->Create(mROS2NodeName);
 }
 
-vtkMRMLROS2NodeNode * vtkMRMLROS2NodeNode::CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage){
+vtkMRMLROS2NodeNode * vtkMRMLROS2NodeNode::CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage){ // remove scene variable and node Id variable
+    if (!scene) {
+        errorMessage = " ROS2 node needs to be added to the scene first";
+        return nullptr;
+    }
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
       errorMessage = "unable to locate node";
@@ -325,4 +330,5 @@ vtkMRMLROS2NodeNode * vtkMRMLROS2NodeNode::CheckROS2NodeExists(vtkMRMLScene * sc
     }
     return rosNodePtr;
 }
+
 

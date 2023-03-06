@@ -19,7 +19,7 @@ class vtkMRMLROS2ParameterInternals {
 
   friend class vtkMRMLROS2ParameterNode;
 
-  enum Events
+  enum Events // todo: check with Laura
     {
       ParameterModifiedEvent = vtkCommand::UserEvent + 54
     };
