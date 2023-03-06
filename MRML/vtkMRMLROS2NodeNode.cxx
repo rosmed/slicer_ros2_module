@@ -134,7 +134,7 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char
   return nullptr;
 }
 
-vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std::string & trackedNodeName)
+vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std::string & monitoredNodeName)
 {
   const char * className = "vtkMRMLROS2ParameterNode";
   // Check if this has been added to the scene
@@ -152,7 +152,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std:
   }
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(parameterNode);
-  if (parameterNode->AddToROS2Node(this->GetID(), trackedNodeName)) {
+  if (parameterNode->AddToROS2Node(this->GetID(), monitoredNodeName)) {
     return parameterNode;
   }
   // Something went wrong, cleanup
@@ -314,10 +314,9 @@ void vtkMRMLROS2NodeNode::ReadXMLAttributes(const char** atts)
 }
 
 vtkMRMLROS2NodeNode * vtkMRMLROS2NodeNode::CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage){ // remove scene variable and node Id variable
-    vtkMRMLScene *scene = this->GetScene();
-    if (!this->GetScene()) {
-        vtkWarningMacro(<< " ROS2 node needs to be added to the scene first");
-        return false;
+    if (!scene) {
+        errorMessage = " ROS2 node needs to be added to the scene first";
+        return nullptr;
     }
     vtkMRMLNode * rosNodeBasePtr = scene->GetNodeByID(nodeId);
     if (!rosNodeBasePtr) {
@@ -332,35 +331,4 @@ vtkMRMLROS2NodeNode * vtkMRMLROS2NodeNode::CheckROS2NodeExists(vtkMRMLScene * sc
     return rosNodePtr;
 }
 
-
-// void vtkMRMLROS2NodeNode::GetAllTopics(std::vector<std::pair<std::string, std::string>>& topics)
-// {
-//   size_t subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
-//   for (size_t j = 0; j < subscriberRefs; ++j) {
-//     vtkMRMLROS2SubscriberNode * node = vtkMRMLROS2SubscriberNode::SafeDownCast(this->GetNthNodeReference("subscriber", j));
-//     if (!node) {
-//       vtkWarningMacro(<< "GetAllTopics: node referenced by role 'subscriber' is not a subscriber");
-//     } else {
-//       topics.push_back(std::make_pair("subscriber", node->GetTopic()));
-//     }
-//   }
-//   size_t publisherRefs = this->GetNumberOfNodeReferences("publisher");
-//   for (size_t j = 0; j < publisherRefs; ++j) {
-//     vtkMRMLROS2PublisherNode * node = vtkMRMLROS2PublisherNode::SafeDownCast(this->GetNthNodeReference("publisher", j));
-//     if (!node) {
-//       vtkWarningMacro(<< "GetAllTopics: node referenced by role 'publisher' is not a publisher");
-//     } else {
-//       topics.push_back(std::make_pair("publisher", node->GetTopic()));
-//     }
-//   }
-//   size_t parameterRefs = this->GetNumberOfNodeReferences("parameter");
-//   for (size_t j = 0; j < parameterRefs; ++j) {
-//     vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
-//     if (!node) {
-//       vtkWarningMacro(<< "GetAllTopics: node referenced by role 'parameter' is not a parameter");
-//     } else {
-//       topics.push_back(std::make_pair("parameter", node->GetNodeName()));
-//     }
-//   }
-// }
 

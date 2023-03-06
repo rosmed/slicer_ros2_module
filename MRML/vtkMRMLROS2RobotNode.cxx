@@ -94,7 +94,7 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(void)
   mNthRobot.mRobotDescriptionParameterNode = vtkMRMLROS2ParameterNode::New();
   this->GetScene()->AddNode(mNthRobot.mRobotDescriptionParameterNode);
   mNthRobot.mRobotDescriptionParameterNode->AddToROS2Node(mROS2Node->GetID(), mNthRobot.mParameterNodeName);
-  mNthRobot.mRobotDescriptionParameterNode->AddParameterForTracking(mNthRobot.mParameterName);
+  mNthRobot.mRobotDescriptionParameterNode->AddParameter(mNthRobot.mParameterName);
   ObserveParameterNode(mNthRobot.mRobotDescriptionParameterNode);
   return true;
 }

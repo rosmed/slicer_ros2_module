@@ -51,11 +51,6 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
 
   // Check if the node is in the scene
   vtkMRMLScene * scene = this->GetScene();
-  if (!scene) {
-    vtkErrorMacro(<< "AddToROS2Node on \"" << mMRMLNodeName << "\": tf2 buffer MRML node needs to be added to the scene first");
-    return false;
-  }
-
   std::string errorMessage;
   vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
   if(!rosNodePtr){
