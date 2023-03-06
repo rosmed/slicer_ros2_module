@@ -66,7 +66,12 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
 }
 
 // Setting up the parameter event subscriber. If the service is ready, add all monitored parameter values to the parameter server.
-bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
+bool vtkMRMLROS2ParameterNode::Spin() {
+    // if it is already initialized, return true (was completed in a previous spin)
+    if(this->mIsParameterServerReady){
+        return true;
+    }
+
     if (!mInternals->mParameterClient->service_is_ready()) {
         // Print warning macros only once in every 10000 spins
         if (mInternals->serviceNotReadyCounter++ % 10000 == 0) {
@@ -75,7 +80,7 @@ bool vtkMRMLROS2ParameterNode::SetupParameterEventSubscriber() {
         return false;
     }
 
-    this->mIsInitialized = true;
+    this->mIsParameterServerReady = true;
     // print that the parameter node is ready for current node
     vtkDebugMacro(<< "Parameter Node for " << this->mMonitoredNodeName << " is ready");
     std::cout << "Parameter Node for " << this->mMonitoredNodeName << " is ready" << std::endl;
@@ -108,7 +113,6 @@ bool vtkMRMLROS2ParameterNode::IsAddedToROS2Node(void) const {
 
 // Check if parameter server is ready
 bool vtkMRMLROS2ParameterNode::IsMonitoredNodeReady(void) const { //todo: check if this is efficient - potentially add it to spin
-    // todo : mIsParameterServerReady - use instead of mInitialized
     return mInternals->mParameterClient->service_is_ready();
 }
 

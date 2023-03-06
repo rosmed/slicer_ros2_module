@@ -282,8 +282,8 @@ void vtkMRMLROS2NodeNode::Spin(void)
       mTf2Buffer->Spin();
     }
     for (auto & node : this->mParameterNodes) {
-      if (!node->mIsInitialized) { // todo: make symmetric to buffer + try removig friend?
-        node->SetupParameterEventSubscriber(); // todo: call is spin?
+      if (node != nullptr) {
+        node->Spin();
       }
     }
   }

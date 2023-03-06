@@ -35,6 +35,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
 
     bool AddToROS2Node(const char* nodeId, const std::string& monitoredNodeName);
 
+    bool Spin(void);
+
     /*! Get the name of the node holding the parameters we're looking for. */
     inline const std::string & GetMonitoredNodeName(void) const { 
       return mMonitoredNodeName;
@@ -140,7 +142,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
 
     std::string mMRMLNodeName = "ros2:param:undefined";
     std::string mMonitoredNodeName = "undefined";
-    bool mIsInitialized = false;
+    bool mIsParameterServerReady = false;
 
     // For ReadXMLAttributes
     vtkGetMacro(mMRMLNodeName, std::string);
