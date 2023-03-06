@@ -53,123 +53,73 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
 
     bool IsParameterValueSet(const std::string& parameterName) const; // IsParameterSet
 
-    /* Main methods, recommended for C++ users since we can check return code and avoid copy for result.
-     Returns data type if the parameter is monitored. Else it returns an empty string */
-    std::string GetParameterType(const std::string& parameterName, std::string& result); // todo: bool return, false is not yet known
-    /* convenience methods for users to skip pair creation, mostly for Python users.  Returns an empty string if the parameter type is not yet known. */
-    inline std::string GetParameterType(const std::string& parameterName) {
-        std::string result;
-        // TODO : Add Warning
-        GetParameterType(parameterName, result);
-        return result;
-    }
+    /* Returns data type if the parameter is monitored. Else it returns an empty string */
+    bool GetParameterType(const std::string& parameterName, std::string& result); // todo: bool return, false is not yet known
+    std::string GetParameterType(const std::string& parameterName); 
 
-    /*! Main methods, recommended for C++ users since we can check return code and avoid copy for result.
-     Prints value of a monitored parameter after converting it to a string */
-    bool PrintParameterValue(const std::string& parameterName, std::string& result); // todo: remove Value in method name, return false is parameter not yet set (update documention)
-    /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline std::string PrintParameterValue(const std::string& parameterName) {
-        std::string result;
-        PrintParameterValue(parameterName, result);
-        return result;
-    }
+
+    /*!  Prints value of a monitored parameter after converting it to a string */
+   std::string PrintParameter(const std::string& parameterName); // todo: remove Value in method name, return false is parameter not yet set (update documention)
 
 // todo: in RbotoNode, make sure we check with IsParameterSet and GetParameterType 
 
-    /* Main methods, recommended for C++ users since we can check return code and avoid copy for result.
-    Returns true if it is a boolean and it is set. Users should always make sure that the key exists
-    and the parameter type is boolean before calling this method*/
+    /* Returns true if it is a boolean and it is set. Users should always make sure that the key exists
+    and the parameter type is boolean before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
     bool GetParameterAsBool(const std::string& parameterName, bool& result);
     /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline bool GetParameterAsBool(const std::string& parameterName) {
-        bool result;
-        GetParameterAsBool(parameterName, result);
-        return result; // todo : try and return a tuple
-    }
+    bool GetParameterAsBool(const std::string& parameterName);
+
     // TODO: Exception vs Tuple - keep a note for subscriber
 
-    /* Returns the value of the parameter if it is an Integer . Users should always make sure the key exists and
-    the parameter type is an integer with GetParameterType before calling this method.
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+    /* Returns true if it is a Integer and it is set. Users should always make sure that the key exists
+    and the parameter type is Integer before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
     bool GetParameterAsInteger(const std::string& parameterName, int& result);
     /* convenience methods for users to return output, mostly for Python users */
     int GetParameterAsInteger(const std::string& parameterName);
 
-
-
-    /* Returns the value of the parameter if it is a double. Users should always make sure the key exists and
-    the parameter type is a double with GetParameterType before calling this method.
-
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+    /* Returns true if it is a Double and it is set. Users should always make sure that the key exists
+    and the parameter type is Double before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
     bool GetParameterAsDouble(const std::string& parameterName, double& result);
-    /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline double GetParameterAsDouble(const std::string& parameterName) {
-        double result;
-        GetParameterAsDouble(parameterName, result);
-        return result;
-    }
+    /* convenience methods for users to return output, mostly for Python users */
+    double GetParameterAsDouble(const std::string& parameterName);
 
-    /* Returns the value of the parameter if it is a string. Users should always make sure that the key exists
-    and the parameter type is string before calling this method
-
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result.*/
+    /* Returns true if it is a String and it is set. Users should always make sure that the key exists
+    and the parameter type is String before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
     bool GetParameterAsString(const std::string& parameterName, std::string& result);
-    /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline std::string GetParameterAsString(const std::string& parameterName) {
-        std::string result;
-        GetParameterAsString(parameterName, result);
-        return result;
-    }
+    /* convenience methods for users to return output, mostly for Python users */
+    std::string GetParameterAsString(const std::string& parameterName);
 
-    /* Returns the value of the parameter if it is a vector of bools. Users should always make sure the key exists and
-    the parameter type is a vector of bools with GetParameterType before calling this method.
+    /* Returns true if it is a Vector of Bools and it is set. Users should always make sure that the key exists
+    and the parameter type is Vector of Bools before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
+    bool GetParameterAsVectorOfBools(const std::string& parameterName, std::vector<char>& result);
+    /* convenience methods for users to return output, mostly for Python users */
+    // std::vector<bool> GetParameterAsVectorOfBools(const std::string& parameterName);
 
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
-    // bool GetParameterAsVectorOfBools(const std::string & parameterName, std::vector<bool> & result);
-    // /* convenience methods for users to skip pair creation, mostly for Python users */
+    /* Returns true if it is a Vector of Ints and it is set. Users should always make sure that the key exists
+    and the parameter type is Vector of Ints before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
+    bool GetParameterAsVectorOfIntegers(const std::string& parameterName, std::vector<int>& result);
+    /* convenience methods for users to return output, mostly for Python users */
+    std::vector<int> GetParameterAsVectorOfIntegers(const std::string& parameterName);
 
-    // TODO : unable to build for some reasong
-    // inline std::vector<bool> GetParameterAsVectorOfBools(const std::string &parameterName) {
-    //   std::vector<bool> result;
-    //   // GetParameterAsVectorOfBools(parameterName, result);
-    //   return result;
-    // }
-
-    /* Returns the value of the parameter if it is a vector of ints. Users should always make sure the key exists and
-    the parameter type is a vector of ints with GetParameterType before calling this method.
-
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
-    bool GetParameterAsVectorOfIntegers(const std::string& parameterName, std::vector<int64_t>& result);
-    /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline std::vector<int64_t> GetParameterAsVectorOfIntegers(const std::string& parameterName) {
-        std::vector<int64_t> result;
-        GetParameterAsVectorOfIntegers(parameterName, result);
-        return result;
-    }
-
-    /* Returns the value of the parameter if it is a vector of doubles. Users should always make sure the key exists and
-    the parameter type is a vector of doubles with GetParameterType before calling this method.
-
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+    /* Returns true if it is a Vector of Doubles and it is set. Users should always make sure that the key exists
+    and the parameter type is Vector of Doubles before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
     bool GetParameterAsVectorOfDoubles(const std::string& parameterName, std::vector<double>& result);
-    /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline std::vector<double> GetParameterAsVectorOfDoubles(const std::string& parameterName) {
-        std::vector<double> result;
-        GetParameterAsVectorOfDoubles(parameterName, result);
-        return result;
-    }
+    /* convenience methods for users to return output, mostly for Python users */
+    std::vector<double> GetParameterAsVectorOfDoubles(const std::string& parameterName);
 
-    /* Returns the value of the parameter if it is a vector of strings. Users should always make sure the key exists and
-    the parameter type is a vector of strings with GetParameterType before calling this method.
-
-    Main methods, recommended for C++ users since we can check return code and avoid copy for result. */
+    /* Returns true if it is a Vector of Strings and it is set. Users should always make sure that the key exists
+    and the parameter type is Vector of Strings before calling this method
+    Main method, recommended for C++ users since we can check return code and avoid copy for result. */
     bool GetParameterAsVectorOfStrings(const std::string& parameterName, std::vector<std::string>& result);
-    /* convenience methods for users to skip pair creation, mostly for Python users */
-    inline std::vector<std::string> GetParameterAsVectorOfStrings(const std::string& parameterName) {
-        std::vector<std::string> result;
-        GetParameterAsVectorOfStrings(parameterName, result);
-        return result;
-    }
+    /* convenience methods for users to return output, mostly for Python users */
+    std::vector<std::string> GetParameterAsVectorOfStrings(const std::string& parameterName);
 
     virtual void ParameterSet(void)
     {
