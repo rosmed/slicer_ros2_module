@@ -199,7 +199,7 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NodeNode::GetParameterNodeByNode(const std:
     vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
     if (!node) {
       vtkWarningMacro(<< "GetParameterNodeByNode: node referenced by role 'parameter' is not a parameter");
-    } else if (node->GetNodeName() == nodeName) {
+    } else if (node->GetMonitoredNodeName() == nodeName) {
       return node;
     }
   }

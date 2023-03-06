@@ -44,7 +44,7 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
     mMRMLNodeName = "ros2:param:" + monitoredNodeName;
     this->SetName(mMRMLNodeName.c_str());
 
-    /* todo-addressed: move this inside helper method below and update all other ROS2xxxxNode - static methods do not have 'this'*/
+    /* todo-address: move this inside helper method below and update all other ROS2xxxxNode - static methods do not have 'this'*/
     vtkMRMLScene *scene = this->GetScene();
     std::string errorMessage;
     vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);

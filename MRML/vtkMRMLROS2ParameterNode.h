@@ -36,7 +36,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     bool AddToROS2Node(const char* nodeId, const std::string& monitoredNodeName);
 
     /*! Get the name of the node holding the parameters we're looking for. */
-    inline const std::string & GetNodeName(void) const { // todo:: MonitoredNode
+    inline const std::string & GetMonitoredNodeName(void) const { 
       return mMonitoredNodeName;
     }
 
@@ -59,7 +59,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     /*!  Prints value of a monitored parameter after converting it to a string. Returns empty string if value not set */
    std::string PrintParameter(const std::string& parameterName); 
 
-// todo: in RbotoNode, make sure we check with IsParameterSet and GetParameterType 
+// todo-address: in RbotoNode, make sure we check with IsParameterSet and GetParameterType 
 
     /* Returns true if it is a boolean and it is set. Users should always make sure that the key exists
     and the parameter type is boolean before calling this method
