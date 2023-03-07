@@ -28,13 +28,6 @@ def check_ros2_node_running(nodeName):
     return nodeName in nodes
 
 
-def kill(proc_pid):
-    process = psutil.Process(proc_pid)
-    for proc in process.children(recursive=True):
-        proc.kill()
-    process.kill()
-
-
 def spin_some():
     for i in range(3):
         logic.Spin()
@@ -127,6 +120,37 @@ class TestCreateAndAddPubSub(unittest.TestCase):
 
     def tearDown(self):
         pass
+        # self.ros2Node.Destroy()
+
+    class TestBroadcasterNode(unittest.TestCase):
+        def setUp(self):
+            print("\nCreating ROS2 node to test Broadcaster Nodes..")
+            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+            self.ros2Node.Create("testNode")
+
+        def test_broadcaster_functioning(self):
+            # Add a broadcaster node and assert its functioning is as expected
+            # Do not bother with the broadcaster node's destruction - Haven't gotten to that yet
+            pass
+
+        def tearDown(self):
+            pass
+            # self.ros2Node.Destroy()
+
+    class TestBufferNode(unittest.TestCase):
+        def setUp(self):
+            print("\nCreating ROS2 node to test Buffer Nodes..")
+            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+            self.ros2Node.Create("testNode")
+
+        def test_buffer_functioning(self):
+            # Add a buffer node and assert its functioning is as expected
+            # Do not bother with the buffer node's destruction - Haven't gotten to that yet
+            pass
+
+        def tearDown(self):
+            pass
+            # self.ros2Node.Destroy()
 
 
 def run():
