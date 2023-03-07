@@ -106,16 +106,27 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   // Manage parameter callback when robot description is available
   vtkMRMLROS2ParameterNode* parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(caller);
   if (!parameterNode) {
+    vtkErrorMacro(<< "vtkMRMLROS2RobotNode - ObserveParameterNodeCallback, parameter node is not valid");
+    return;
+  }
+  // Uaw IsParameterSet to check if the parameter is set
+  if (!mNthRobot.mRobotDescriptionParameterNode->IsParameterSet("robot_description")) {
+    vtkErrorMacro(<< "vtkMRMLROS2RobotNode - ObserveParameterNodeCallback, parameter \"robot_description\" is not set.");
     return;
   }
 
-  else {
-    mNthRobot.mRobotDescription = mNthRobot.mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
-    if (mNumberOfLinks == 0) {
-      ParseRobotDescription();
-      SetupRobotVisualization();
-    }
+  if (mNthRobot.mRobotDescriptionParameterNode->GetParameterType("robot_description") != "string") {
+    std::string outtype = mNthRobot.mRobotDescriptionParameterNode->GetParameterType("robot_description");
+    vtkErrorMacro(<< "vtkMRMLROS2RobotNode - ObserveParameterNodeCallback, parameter \"robot_description\" is of type " << outtype << " and not string.");
+    return;
   }
+
+  mNthRobot.mRobotDescription = mNthRobot.mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
+  if (mNumberOfLinks == 0) {
+    ParseRobotDescription();
+    SetupRobotVisualization();
+  }
+
 }
 
 
