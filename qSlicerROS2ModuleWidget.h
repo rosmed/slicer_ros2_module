@@ -68,6 +68,10 @@ protected slots:
   void publisherClicked(int row, int col);
 
   void onLoadRobotClicked(void);
+  void onLoadRobot2Clicked(void);
+  void onRemoveRobotClicked(void);
+  void onRemoveRobot2Clicked(void);
+  void onAddRobotButton(void);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);

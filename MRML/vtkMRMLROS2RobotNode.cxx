@@ -205,7 +205,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
         }
         mNthRobot.mLinkModelFiles[index] = filename;
       } else {
-        vtkErrorMacro(<< "Link" << index << " has a visual, but not from a file");
+        vtkErrorMacro(<< "Link" <<  index << " has a visual, but not from a file");
       }
     }
   }
@@ -218,6 +218,7 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
     mNthRobot.mLookupNodes.push_back(lookup);
+    this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
   }
 }
 
@@ -275,6 +276,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     modelNode->SetName((mNthRobot.mLinkNames[i] + "_model").c_str());
     modelNode->SetAndObserveMesh(meshFromFile);
     mNthRobot.mLinkModels.push_back(modelNode);
+    this->SetNthNodeReferenceID("model", i, modelNode->GetID());
 
     // Create display node
     if (modelNode->GetDisplayNode() == NULL) {

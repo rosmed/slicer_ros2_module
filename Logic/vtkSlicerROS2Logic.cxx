@@ -224,8 +224,8 @@ void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const s
   // ros2 run sensable_omni_model pretend_omni_joint_state_publisher  -- wave the arm around
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
-  robot->SetRobotName(robotName);
   robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName);
+  robot->SetRobotName(robotName);
 
 
   // dVRK, requires
@@ -235,4 +235,30 @@ void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const s
   // vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
   // this->GetMRMLScene()->AddNode(robot2);
   // robot2->AddToROS2Node(mDefaultROS2Node->GetID(), "/PSM1/robot_state_publisher", "robot_description");
+}
+
+void vtkSlicerROS2Logic::RemoveRobot(const std::string & robotName)
+{
+  // Get the robot from the node (first make sure it's the right one)
+  int numRobots = mDefaultROS2Node->GetNumberOfNodeReferences("robot");
+  for (int i = 0; i < numRobots; i++){
+    vtkMRMLROS2RobotNode * robotNode = vtkMRMLROS2RobotNode::SafeDownCast(mDefaultROS2Node->GetNthNodeReference("robot", i));
+    std::string currentRobot = robotNode->GetRobotName();
+    if (currentRobot == robotName){
+      // Remove the lookups on that robot
+      int numLookups = robotNode->GetNumberOfNodeReferences("lookup");
+      for (int i = 0; i < numLookups; i++) { 
+        vtkMRMLROS2Tf2LookupNode * lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robotNode->GetNthNodeReference("lookup", 0)); // always grab the first one because the ref id changes
+        vtkMRMLModelNode * modelNode = vtkMRMLModelNode::SafeDownCast(robotNode->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
+        vtkMRMLROS2ParameterNode * parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(robotNode->GetNthNodeReference("ObservedParameter", 0)); // always grab the first one because the ref id changes
+        this->GetMRMLScene()->RemoveNode(lookupNode);
+        this->GetMRMLScene()->RemoveNode(modelNode);
+        this->GetMRMLScene()->RemoveNode(parameterNode);
+      }
+
+      // Remove the robot itself
+      this->GetMRMLScene()->RemoveNode(robotNode);
+      return;
+    }
+  }
 }
