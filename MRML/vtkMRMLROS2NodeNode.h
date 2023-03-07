@@ -57,6 +57,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   
   vtkMRMLROS2ParameterNode * CreateAndAddParameter(const std::string & topic);
 
+  vtkMRMLROS2Tf2BroadcasterNode * CreateAndAddBroadcaster(const char * className);
+
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode * GetParameterNodeByNode(const std::string & node);
