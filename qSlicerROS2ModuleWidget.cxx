@@ -105,6 +105,12 @@ void qSlicerROS2ModuleWidget::setup(void)
   // Set up signals / slots for dynamically loaded widgets
   this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
   this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
+
+  // Robot setup
+  // this->connect(d->robotNameLineEdit, SIGNAL(returnPressed()), this, SLOT(robotNameAdded()));
+  // this->connect(d->parameterLineEdit, SIGNAL(returnPressed()), this, SLOT(parameterLineAdded()));
+  this->connect(d->loadRobotButton, SIGNAL(clicked(bool)), this, SLOT(onLoadRobotClicked()));
+
 }
 
 
@@ -134,17 +140,17 @@ void qSlicerROS2ModuleWidget::updateWidget()
   int visiblePublisherRefs = d->rosPublisherTableWidget->rowCount();
 
   // The following needs to be updated to list all ROS nodes in logic 
-  // int subscriberRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
-  // int publisherRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
+  int subscriberRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
+  int publisherRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
 
-  // // update subscriber table
-  // if (visibleSubscriberRefs < subscriberRefs) {
-  //   refreshSubTable();
-  // }
-  // // update publisher table
-  // if (visiblePublisherRefs < publisherRefs) {
-  //   refreshPubTable();
-  // }
+  // update subscriber table
+  if (visibleSubscriberRefs < subscriberRefs) {
+    refreshSubTable();
+  }
+  // update publisher table
+  if (visiblePublisherRefs < publisherRefs) {
+    refreshPubTable();
+  }
 }
 
 void qSlicerROS2ModuleWidget::refreshSubTable()
@@ -161,18 +167,18 @@ void qSlicerROS2ModuleWidget::refreshSubTable()
   d->rosSubscriberTableWidget->clearContents();
 
   // // Resize the table
-  // d->rosSubscriberTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"));
+  d->rosSubscriberTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"));
 
   // // Iterate through the references
-  // for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
-  // const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("subscriber", index);
-  // vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
-  // if (sub == nullptr) {
-  //   } else {
-  //     updateSubscriberTable(sub, subRow);
-  //     subRow++;
-  //   }
-  // }
+  for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
+  const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("subscriber", index);
+  vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+  if (sub == nullptr) {
+    } else {
+      updateSubscriberTable(sub, subRow);
+      subRow++;
+    }
+  }
 }
 
 void qSlicerROS2ModuleWidget::refreshPubTable()
@@ -188,19 +194,19 @@ void qSlicerROS2ModuleWidget::refreshPubTable()
   size_t pubRow = 0;
   d->rosPublisherTableWidget->clearContents();
 
-  // // Resize the table
-  // d->rosPublisherTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"));
+  // Resize the table
+  d->rosPublisherTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"));
 
-  // // Iterate through the references
-  // for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
-  //   const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("publisher", index);
-  //   vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
-  //   if (pub == nullptr) {
-  //   } else {
-  //     updatePublisherTable(pub, pubRow);
-  //     pubRow++;
-  //   }
-  // }
+  // Iterate through the references
+  for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("publisher", index);
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+    if (pub == nullptr) {
+    } else {
+      updatePublisherTable(pub, pubRow);
+      pubRow++;
+    }
+  }
 }
 
 
@@ -333,4 +339,30 @@ void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
 void qSlicerROS2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
   mTimer->stop();
+}
+
+// void qSlicerROS2ModuleWidget::robotNameAdded(void)
+// {
+//   Q_D(qSlicerROS2ModuleWidget);
+//   std::string robotName = d->robotNameLineEdit->text().toStdString();
+// }
+
+// void qSlicerROS2ModuleWidget::parameterLineAdded(void)
+// {
+//   Q_D(qSlicerROS2ModuleWidget);
+//   std::string parameterName = d->parameterLineEdit->text().toStdString();
+// }
+
+void qSlicerROS2ModuleWidget::onLoadRobotClicked(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  std::string robotName = d->robotNameLineEdit->text().toStdString();
+  std::string parameterNodeName = d->parameterNodeNameLineEdit->text().toStdString();
+  std::string parameterName = d->parameterLineEdit->text().toStdString();
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->AddRobot(parameterNodeName, parameterName, robotName);
 }
