@@ -84,14 +84,15 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   void AddSomeSubscribers(void);
   void AddSomeParameters(void);
   void AddSomeTf2Nodes(void);
-  void AddRobot(void);
+  void AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName);
+
+  vtkSmartPointer<vtkMRMLROS2NodeNode> mDefaultROS2Node;
 
  private:
 
   vtkSlicerROS2Logic(const vtkSlicerROS2Logic&); // Not implemented
   void operator=(const vtkSlicerROS2Logic&); // Not implemented
 
-  vtkSmartPointer<vtkMRMLROS2NodeNode> mDefaultROS2Node;
 
   std::vector<vtkSmartPointer<vtkMRMLROS2NodeNode> > mROS2Nodes;
   vtkSmartPointer<vtkTimerLog> mTimerLog;

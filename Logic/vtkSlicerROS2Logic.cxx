@@ -151,7 +151,7 @@ void vtkSlicerROS2Logic::Spin(void)
     n->Spin();
   }
   mTimerLog->StopTimer();
-  std::cout << mTimerLog->GetElapsedTime() * 1000.0 << "ms" << std::endl;
+  // std::cout << mTimerLog->GetElapsedTime() * 1000.0 << "ms" << std::endl; - commented out for development
 }
 
 
@@ -217,20 +217,22 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
 }
 
 
-void vtkSlicerROS2Logic::AddRobot(void)
+void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName)
 {
   // Sensable phantom, requires
   // ros2 launch sensable_omni_model omni.launch.py  -- to get the model
   // ros2 run sensable_omni_model pretend_omni_joint_state_publisher  -- wave the arm around
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
-  robot->AddToROS2Node(mDefaultROS2Node->GetID(), "/robot_state_publisher");
+  robot->SetRobotName(robotName);
+  robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName);
+
 
   // dVRK, requires
   // ros2 run dvrk_robot dvrk_console_json -j ~/ros2_ws/src/cisst-saw/sawIntuitiveResearchKit/share/console/console-PSM1_KIN_SIMULATED.json  -- to run fake PSM1
   // ros2 launch dvrk_model dvrk_state_publisher.launch.py arm:=PSM1  -- to get the model
   // ros2 run dvrk_python dvrk_arm_test.py -a PSM1  -- to make the PSM1 move around
-  vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
-  this->GetMRMLScene()->AddNode(robot2);
-  robot2->AddToROS2Node(mDefaultROS2Node->GetID(), "/PSM1/robot_state_publisher", "robot_description");
+  // vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
+  // this->GetMRMLScene()->AddNode(robot2);
+  // robot2->AddToROS2Node(mDefaultROS2Node->GetID(), "/PSM1/robot_state_publisher", "robot_description");
 }

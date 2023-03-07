@@ -27,6 +27,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
     return mRobotName;
   }
 
+  // For ReadXMLAttributes
+  inline void SetRobotName(const std::string & name) {
+    mRobotName = name;
+  }
+
   bool AddToROS2Node(const char * nodeId,
 		     const std::string & parameterNodeName,
 		     const std::string & parameterName = "robot_description");
@@ -71,10 +76,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   std::unique_ptr<vtkMRMLROS2RobotNodeInternals> mInternals;
   size_t mNumberOfLinks = 0;
 
-  // For ReadXMLAttributes
-  inline void SetRobotName(const std::string & name) {
-    mRobotName = name;
-  }
 };
 
 #endif // __vtkMRMLROS2RobotNode_h

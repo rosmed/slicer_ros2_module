@@ -67,6 +67,8 @@ protected slots:
   void subscriberClicked(int row, int col);
   void publisherClicked(int row, int col);
 
+  void onLoadRobotClicked(void);
+
 private:
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);
   Q_DISABLE_COPY(qSlicerROS2ModuleWidget);
