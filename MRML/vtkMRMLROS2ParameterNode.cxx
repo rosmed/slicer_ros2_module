@@ -65,6 +65,34 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char *nodeId, const std::stri
     return true;
 }
 
+bool vtkMRMLROS2ParameterNode::RemoveFromROS2Node(const char *nodeId, const std::string &monitoredNodeName) {
+    mMonitoredNodeName = monitoredNodeName;
+    mMRMLNodeName = "ros2:param:" + monitoredNodeName;
+    std::string errorMessage;
+    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(this->GetScene(), nodeId, errorMessage);
+    if(!rosNodePtr){
+        vtkErrorMacro(<< "ParameterNode - RemoveFromROS2Node, " << errorMessage); 
+        return false; 
+    }
+
+    if(!this->IsAddedToROS2Node()){
+        vtkErrorMacro(<< "ParameterNode - RemoveFromROS2Node, " << "Parameter node is not added to ROS2 node"); 
+        return false; 
+    }
+
+    mInternals->mMRMLNode = nullptr;
+    this->SetNodeReferenceID("node", nullptr);
+    rosNodePtr->RemoveNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"));
+
+    // remove this parameter node from the ROS node
+    rosNodePtr->mParameterNodes.erase(
+        std::remove(rosNodePtr->mParameterNodes.begin(), rosNodePtr->mParameterNodes.end(), this), 
+        rosNodePtr->mParameterNodes.end());
+
+    mInternals->mParameterClient.reset();
+    return true;
+}
+
 // Setting up the parameter event subscriber. If the service is ready, add all monitored parameter values to the parameter server.
 bool vtkMRMLROS2ParameterNode::Spin() {
     // if it is already initialized, return true (was completed in a previous spin)

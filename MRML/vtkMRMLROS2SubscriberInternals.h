@@ -68,8 +68,7 @@ protected:
     if(!rosNodePtr) return false;
 
     vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
-    if ((sub != nullptr)
-	&& sub->IsAddedToROS2Node()) {
+    if ((sub != nullptr) && sub->IsAddedToROS2Node()) {
       errorMessage = "there is already a subscriber for topic \"" + topic + "\" added to the ROS node";
       return false;
     }
