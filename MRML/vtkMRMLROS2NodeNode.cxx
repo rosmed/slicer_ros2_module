@@ -261,13 +261,14 @@ bool vtkMRMLROS2NodeNode::RemovePublisherNode(const std::string & topic)
 }
 
 
-bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & nodeName)
+bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & monitoredNodeName)
 {
-  vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNode(nodeName);
+  vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNode(monitoredNodeName);
   if (!node) {
-    vtkWarningMacro(<< "RemoveParameterNode: node referenced by role 'parameter' for node " << nodeName << " does not exist");
+    vtkWarningMacro(<< "RemoveParameterNode: node referenced by role 'parameter' for node " << monitoredNodeName << " does not exist");
     return false;
   }
+  node->RemoveFromROS2Node(this->GetID(), monitoredNodeName);
   this->GetScene()->RemoveNode(node);
   node->Delete();
   return true;

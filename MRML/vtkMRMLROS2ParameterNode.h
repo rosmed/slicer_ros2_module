@@ -34,6 +34,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     const char* GetNodeTagName(void) override;
 
     bool AddToROS2Node(const char* nodeId, const std::string& monitoredNodeName);
+    bool RemoveFromROS2Node(const char *nodeId, const std::string &monitoredNodeName);
 
     bool Spin(void);
 
@@ -50,7 +51,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     /* Remove a parameter that is being monitored. If no parameters are being monitored for a node, stop monitoring the node as well*/
     bool RemoveParameter(const std::string& parameterName); 
 
-    bool IsParameterSet(const std::string& parameterName) const; 
+    bool IsParameterSet(const std::string& parameterName, bool noWarning = false) const; 
 
     /* Returns data type if the parameter is monitored. Else it returns an empty string */
     bool GetParameterType(const std::string& parameterName, std::string& result); 

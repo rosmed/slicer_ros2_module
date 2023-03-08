@@ -171,11 +171,13 @@ bool vtkMRMLROS2ParameterNode::RemoveParameter(const std::string &parameterName)
     }
 }
 
-bool vtkMRMLROS2ParameterNode::IsParameterSet(const std::string &parameterName) const {
+bool vtkMRMLROS2ParameterNode::IsParameterSet(const std::string &parameterName, bool noWarning) const {
     if (mInternals->mParameterStore.find(parameterName) != mInternals->mParameterStore.end()) {
         return mInternals->ROS2ParamMsgToParameter(mInternals->mParameterStore[parameterName]).get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET;
     } else {
-        vtkWarningMacro(<< "Parameter " << parameterName << " is not monitored");
+        if (!noWarning) {
+            vtkWarningMacro(<< "Parameter " << parameterName << " is not monitored");
+        }
         return false;
     }
 }
