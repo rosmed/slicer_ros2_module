@@ -127,6 +127,9 @@ class TestBroadcasterNode(unittest.TestCase):
         print("\nCreating ROS2 node to test Broadcaster Nodes..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
+        broadcaster = self.ros2Node.CreateAndAddBroadcaster("vtkMRMLROS2Tf2BroadcasterNode")
+        broadcaster.SetParentID("Parent")
+        broadcaster.SetChildID("Child")
 
     def test_broadcaster_functioning(self):
         # Add a broadcaster node and assert its functioning is as expected
@@ -134,11 +137,13 @@ class TestBroadcasterNode(unittest.TestCase):
         self.assertTrue(True)
         self.assertFalse(False)
         self.assertEqual(1, 1)
+        # Probably I will broadcast something to a test lookup node and make sure the transform matches
         pass
 
     def tearDown(self):
         pass
         # self.ros2Node.Destroy()
+
 
 class TestBufferNode(unittest.TestCase):
     def setUp(self):

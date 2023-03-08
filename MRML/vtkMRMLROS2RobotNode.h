@@ -30,6 +30,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   // For ReadXMLAttributes
   inline void SetRobotName(const std::string & name) {
     mRobotName = name;
+    mMRMLNodeName = "ros2:robot:" + name;
+    this->SetName(mMRMLNodeName.c_str()); 
   }
 
   bool AddToROS2Node(const char * nodeId,

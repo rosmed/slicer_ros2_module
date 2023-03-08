@@ -161,6 +161,32 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std:
   return nullptr;
 }
 
+vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddBroadcaster(const char * className) // should the parent and children ID be in the signature
+{
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "\"" << className << "\" is not added to a MRML scene yet");
+    return nullptr;
+  }
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
+  // Check that this is a subscriber so we can add it
+  vtkMRMLROS2Tf2BroadcasterNode * broadcasterNode = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(node);
+  if (broadcasterNode == nullptr) {
+    vtkErrorMacro(<< "\"" << className << "\" is not derived from vtkMRMLROS2Tf2BroadcasterNode");
+    return nullptr;
+  }
+  // Add to the scene so the ROS2Node node can find it
+  this->GetScene()->AddNode(broadcasterNode);
+  if (broadcasterNode->AddToROS2Node(this->GetID())) {
+    return broadcasterNode;
+  }
+  // Something went wrong, cleanup
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return nullptr;
+}
+
 
 vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::GetSubscriberNodeByTopic(const std::string & topic)
 {
