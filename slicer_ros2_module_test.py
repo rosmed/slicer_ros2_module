@@ -122,6 +122,73 @@ class TestCreateAndAddPubSub(unittest.TestCase):
         pass
         # self.ros2Node.Destroy()
 
+class TestParameterNode(unittest.TestCase):
+    def setUp(self):
+        print("\nCreating ROS2 node..")
+        self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+        self.ros2Node.Create("testNode")
+        self.create_turtlesim_node_process = subprocess.Popen(
+            ENVIRONMENT_CORRECTION
+            + "python3.8 /opt/ros/galactic/bin/ros2 run turtlesim turtlesim_node",
+            shell=True,
+            preexec_fn=os.setsid,
+        )
+        spin_some()
+        self.assertTrue(check_ros2_node_running("/turtlesim"))
+        spin_some()
+
+    def test_parameter_monitoring(self):
+        print("\nTesting creation and working of parameter node - Starting..")
+        testParam = self.ros2Node.CreateAndAddParameter("/turtlesim")
+        spin_some()
+
+        # Valid Parameter which will be added
+        self.assertEqual(testParam.GetParameterType("background_r"), "")
+        self.assertEqual(testParam.GetParameterType("background_r"), "")
+
+        # Parameter which does not exist
+        self.assertEqual(testParam.GetParameterType("background_y"), "")
+        self.assertEqual(testParam.GetParameterType("background_y"), "")
+
+        # Parameter which exists but would not be added to monitor
+        self.assertEqual(testParam.GetParameterType("background_g"), "")
+        self.assertEqual(testParam.GetParameterType("background_g"), "")
+
+        testParam.AddParameter("background_r")
+        testParam.AddParameter("background_y")
+
+        while(testParam.IsParameterSet("background_r") == False):
+            spin_some()
+
+        self.assertEqual(testParam.GetParameterType("background_r"), "integer")
+
+        self.assertFalse(testParam.IsParameterSet("background_y", True))
+        self.assertEqual(testParam.GetParameterType("background_y"), "")
+
+        # Update parameter value
+        change_param_value = subprocess.Popen(
+            ENVIRONMENT_CORRECTION
+            + "python3.8 /opt/ros/galactic/bin/ros2 param set /turtlesim background_g 150",
+            shell=True,
+            preexec_fn=os.setsid,
+        )
+
+        while(testParam.IsParameterSet("background_g", True) == False):
+            spin_some()
+
+        self.assertTrue(testParam.IsParameterSet("background_g"))
+        self.assertEqual(testParam.GetParameterType("background_g"), "integer")
+        self.assertEqual(testParam.GetParameterAsInteger("background_g"), 150)
+
+        # delete parameter node
+        self.assertTrue(self.ros2Node.RemoveParameterNode("/turtlesim"))
+
+    def tearDown(self):
+        # self.ros2Node.Destroy()
+        os.killpg(
+            os.getpgid(self.create_turtlesim_node_process.pid), subprocess.signal.SIGINT
+        )
+
 class TestBroadcasterNode(unittest.TestCase):
     def setUp(self):
         print("\nCreating ROS2 node to test Broadcaster Nodes..")
