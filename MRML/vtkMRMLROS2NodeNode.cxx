@@ -161,7 +161,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std:
   return nullptr;
 }
 
-vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddBroadcaster(const char * className) // should the parent and children ID be in the signature
+vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddBroadcaster(const char * className, const std::string & parent_id, const std::string & child_id) // should the parent and children ID be in the signature
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
@@ -179,6 +179,8 @@ vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddBroadcaster(con
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(broadcasterNode);
   if (broadcasterNode->AddToROS2Node(this->GetID())) {
+    broadcasterNode->SetParentID(parent_id);
+    broadcasterNode->SetChildID(child_id);
     return broadcasterNode;
   }
   // Something went wrong, cleanup
