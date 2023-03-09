@@ -9,10 +9,14 @@ import os
 # use logging to print to console
 logging.basicConfig(level=logging.WARNING)
 
+############################################## GLOBAL VARIABLES ##############################################
+
 ENVIRONMENT_CORRECTION = "export PYTHONPATH=/opt/ros/galactic/lib/python3.8/site-packages; export PYTHONHOME=; "
 
 ros2Module = slicer.modules.ros2
 logic = ros2Module.logic()
+
+############################################## HELPER FUNCTIONS ##############################################
 
 def run_ros2_cli_command_blocking(command):
     ros2_process = subprocess.Popen(
@@ -52,6 +56,7 @@ def spin_some():
     for i in range(3):
         logic.Spin()
 
+############################################## TESTS ##############################################
 
 # It creates a turtlesim node, checks if it's running, and then kills it
 class TestTurtlesimNode(unittest.TestCase):
