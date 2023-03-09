@@ -277,7 +277,7 @@ bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & monitoredNodeN
 }
 
 
-vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> vtkMRMLROS2NodeNode::GetTf2BroadcasterByID(const std::string & nodeID)
+vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterByID(const std::string & nodeID)
 {
   size_t broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
   for (size_t j = 0; j < broadcasterRefs; ++j) {
@@ -291,7 +291,7 @@ vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> vtkMRMLROS2NodeNode::GetTf2Broadc
 }
 
 
-vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> vtkMRMLROS2NodeNode::GetTf2Buffer(bool createIfNeeded)
+vtkMRMLROS2Tf2BufferNode * vtkMRMLROS2NodeNode::GetTf2Buffer(bool createIfNeeded)
 {
   // create if needed, required and possible
   if ((mTf2Buffer == nullptr) && createIfNeeded && this->GetScene()) {

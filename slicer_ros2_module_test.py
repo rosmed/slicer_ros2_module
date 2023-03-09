@@ -6,6 +6,8 @@ import sys
 import psutil
 import os
 
+import vtk
+
 # use logging to print to console
 logging.basicConfig(level=logging.WARNING)
 
@@ -216,14 +218,21 @@ class TestParameterNode(unittest.TestCase):
         # self.ros2Node.Destroy()
         kill_subprocess(self.create_turtlesim_node_process)
 
-class TestBroadcasterNode(unittest.TestCase):
+class TestBroadcasterAndLookupNode(unittest.TestCase):
     def setUp(self):
         print("\nCreating ROS2 node to test Broadcaster Nodes..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
-        broadcaster = self.ros2Node.CreateAndAddBroadcaster("vtkMRMLROS2Tf2BroadcasterNode")
-        broadcaster.SetParentID("Parent")
-        broadcaster.SetChildID("Child")
+        broadcaster = self.ros2Node.CreateAndAddBroadcaster("vtkMRMLROS2Tf2BroadcasterNode", "Parent", "Child")
+        buffer = self.ros2Node.GetTf2Buffer()
+        lookupNode = buffer.CreateAndAddLookupNode("Parent", "Child")
+        # Broadcast a 4x4 matrix and confirm
+        broadcastedMat = vtk.vtkMatrix4x4()
+        broadcastedMat.SetElement(0,3,66) # Set a default value
+        lookupMat = lookupNode.GetMatrixTransformFromParent()
+        self.assertTrue(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3))
+
+
 
     def test_broadcaster_functioning(self):
         # Add a broadcaster node and assert its functioning is as expected

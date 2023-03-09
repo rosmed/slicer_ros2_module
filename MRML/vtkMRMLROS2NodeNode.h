@@ -65,8 +65,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   bool RemoveSubscriberNode(const std::string & topic);
   bool RemovePublisherNode(const std::string & topic);
   bool RemoveParameterNode(const std::string & nodeName);
-  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> GetTf2BroadcasterByID(const std::string & nodeID);
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> GetTf2Buffer(bool createIfNeeded = true);
+  vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterByID(const std::string & nodeID);
+  vtkMRMLROS2Tf2BufferNode * GetTf2Buffer(bool createIfNeeded = true); // Changed this from smart pointer to *
   static vtkMRMLROS2NodeNode * CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage);
 
   void Spin(void);
