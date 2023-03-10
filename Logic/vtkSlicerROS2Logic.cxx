@@ -20,6 +20,9 @@
 #include <vtkSlicerROS2Logic.h>
 #include <qSlicerCoreApplication.h>
 
+// VTK includes
+#include <vtkTimerLog.h>
+
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLModelNode.h>
@@ -30,28 +33,16 @@
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLModelDisplayNode.h>
 
-#include <vtkMRMLROS2SubscriberDefaultNodes.h>
-#include <vtkMRMLROS2PublisherDefaultNodes.h>
-
-//to be changed
-#include <vtkMRMLROS2ParameterNode.h>
-
-// same
-#include <vtkMRMLROS2Tf2BroadcasterNode.h>
-#include <vtkMRMLROS2Tf2BufferNode.h>
-#include <vtkMRMLROS2Tf2LookupNode.h>
-
-// robot
-#include <vtkMRMLROS2RobotNode.h>
-
-#include<vtkMRMLNode.h>
-
-// VTK includes
-#include <vtkTimerLog.h>
-
+// MRMLROS2
+#include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
+#include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2Tf2BroadcasterNode.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
+#include <vtkMRMLROS2RobotNode.h>
 
 
 //----------------------------------------------------------------------------
@@ -62,12 +53,14 @@ vtkStandardNewMacro(vtkSlicerROS2Logic);
 vtkSlicerROS2Logic::vtkSlicerROS2Logic()
 {
   mTimerLog = vtkSmartPointer<vtkTimerLog>::New();
+  vtkMRMLROS2::ROSInit();
 }
 
 
 //----------------------------------------------------------------------------
 vtkSlicerROS2Logic::~vtkSlicerROS2Logic()
 {
+  vtkMRMLROS2::ROSShutdown();
 }
 
 
@@ -128,7 +121,6 @@ void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
-  std::cerr << "OnMRMLSceneNodeAdded : start.." << std::endl;
   vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
   if (rosNode != nullptr) {
     if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node) == mROS2Nodes.end()) {
@@ -141,7 +133,6 @@ void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 {
-  std::cerr << "OnMRMLSceneNodeRemoved : start.." << std::endl;
   vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
   if (rosNode != nullptr) {
     auto it = std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node);
@@ -258,7 +249,7 @@ void vtkSlicerROS2Logic::RemoveRobot(const std::string & robotName)
     if (currentRobot == robotName){
       // Remove the lookups on that robot
       int numLookups = robotNode->GetNumberOfNodeReferences("lookup");
-      for (int i = 0; i < numLookups; i++) { 
+      for (int i = 0; i < numLookups; i++) {
         vtkMRMLROS2Tf2LookupNode * lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robotNode->GetNthNodeReference("lookup", 0)); // always grab the first one because the ref id changes
         vtkMRMLModelNode * modelNode = vtkMRMLModelNode::SafeDownCast(robotNode->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
         vtkMRMLROS2ParameterNode * parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(robotNode->GetNthNodeReference("ObservedParameter", 0)); // always grab the first one because the ref id changes

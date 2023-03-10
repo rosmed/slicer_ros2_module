@@ -1,20 +1,23 @@
-#include <vtkMRMLScene.h>
+
 #include <vtkMRMLROS2RobotNode.h>
-#include <vtkMRMLROS2ParameterNode.h>
-#include <vtkMRMLROS2Tf2LookupNode.h>
-#include <vtkMRMLScene.h>
+
 #include <vtkEventBroker.h>
-#include <vtkMRMLROS2NodeNode.h>
-#include <vtkMRMLROS2NodeInternals.h>
-#include <vtkMRMLROS2RobotNodeInternals.h>
-#include <vtkMRMLROS2Tf2BufferNode.h>
-#include <vtkMRMLTransformNode.h>
-#include <vtkMatrix4x4.h>
+// #include <vtkMatrix4x4.h>
 #include <vtkTransform.h>
 #include <vtkPointSet.h>
+#include <vtkSTLReader.h>
+
+#include <vtkMRMLScene.h>
+#include <vtkMRMLTransformNode.h>
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLModelDisplayNode.h>
-#include <vtkSTLReader.h>
+
+#include <vtkMRMLROS2Utils.h>
+#include <vtkMRMLROS2NodeNode.h>
+#include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2Tf2BufferNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
+
 #include <regex>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
@@ -46,18 +49,15 @@ vtkMRMLROS2RobotNode::~vtkMRMLROS2RobotNode()
 
 
 bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
-					 const std::string & parameterNodeName,
-					 const std::string & parameterName)
+                                         const std::string & parameterNodeName,
+                                         const std::string & parameterName)
 {
   this->SetName(mMRMLNodeName.c_str());
-
-  // Check if the node is in the scene
-  vtkMRMLScene * scene = this->GetScene();
   std::string errorMessage;
-  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
-  if(!rosNodePtr){
-      vtkErrorMacro(<< "RobotNode - AddToROS2Node, " << errorMessage); 
-      return false; 
+  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!rosNodePtr){
+    vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
+    return false;
   }
   // Add the robot to the ros2 node
   rosNodePtr->SetNthNodeReferenceID("robot",
@@ -76,7 +76,7 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(void)
 {
   // Check if the node is in the scene
   if (!this->GetScene()) {
-    vtkErrorMacro(<< "SetRobotDescriptionParameterNode, robot node needs to be added to the scene first");
+    vtkErrorMacro(<< "SetRobotDescriptionParameterNode: robot node needs to be added to the scene first");
     return false;
   }
   // Create a new parameter node
@@ -93,7 +93,7 @@ void vtkMRMLROS2RobotNode::ObserveParameterNode(vtkMRMLROS2ParameterNode * node)
 {
   // Set up the observer for the robot state publisher
   if (!this->GetScene()->GetNodeByID(node->GetID())) {
-    vtkErrorMacro(<< "Robot node is not in the scene.");
+    vtkErrorMacro(<< "ObserveParameterNode: robot node is not in the scene.");
     return;
   }
   node->AddObserver(vtkMRMLROS2ParameterNode::ParameterModifiedEvent, this, &vtkMRMLROS2RobotNode::ObserveParameterNodeCallback);
@@ -106,18 +106,18 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
   // Manage parameter callback when robot description is available
   vtkMRMLROS2ParameterNode* parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(caller);
   if (!parameterNode) {
-    vtkErrorMacro(<< "vtkMRMLROS2RobotNode - ObserveParameterNodeCallback, parameter node is not valid");
+    vtkErrorMacro(<< "ObserveParameterNodeCallback: parameter node is not valid");
     return;
   }
   // Uaw IsParameterSet to check if the parameter is set
   if (!mNthRobot.mRobotDescriptionParameterNode->IsParameterSet("robot_description")) {
-    vtkErrorMacro(<< "vtkMRMLROS2RobotNode - ObserveParameterNodeCallback, parameter \"robot_description\" is not set.");
+    vtkErrorMacro(<< "ObserveParameterNodeCallback: parameter \"robot_description\" is not set.");
     return;
   }
 
   if (mNthRobot.mRobotDescriptionParameterNode->GetParameterType("robot_description") != "string") {
     std::string outtype = mNthRobot.mRobotDescriptionParameterNode->GetParameterType("robot_description");
-    vtkErrorMacro(<< "vtkMRMLROS2RobotNode - ObserveParameterNodeCallback, parameter \"robot_description\" is of type " << outtype << " and not string.");
+    vtkErrorMacro(<< "ObserveParameterNodeCallback: parameter \"robot_description\" is of type " << outtype << " and not string.");
     return;
   }
 
@@ -182,7 +182,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
   for (size_t index = 0; index < mNumberOfLinks; ++index) {
     auto i = mInternals->mVisualVector[index];
     if (i == nullptr) {
-      vtkWarningMacro(<< "No visual vector available for link " << index);
+      vtkWarningMacro(<< "InitializeOffsetListAndModelFilesFromURDF: no visual vector available for link " << index);
     }
     else {
     //   urdf::Pose origin;
@@ -205,7 +205,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
         }
         mNthRobot.mLinkModelFiles[index] = filename;
       } else {
-        vtkErrorMacro(<< "Link" <<  index << " has a visual, but not from a file");
+        vtkErrorMacro(<< "InitializeOffsetListAndModelFilesFromURDF: link" <<  index << " has a visual, but not from a file");
       }
     }
   }

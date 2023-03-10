@@ -5,6 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <vtkMRMLScene.h>
+#include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
 
@@ -16,10 +17,10 @@ public:
   {}
   virtual ~vtkMRMLROS2SubscriberInternals() = default;
 
-  virtual bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
-			     const std::string & topic, std::string & errorMessage) = 0;
-  virtual bool RemoveFromROS2Node(vtkMRMLScene * scene, const char * nodeId,
-          const std::string & topic, std::string & errorMessage) = 0;
+  virtual bool AddToROS2Node(vtkMRMLNode * nodeInScene, const char * nodeId,
+                             const std::string & topic, std::string & errorMessage) = 0;
+  virtual bool RemoveFromROS2Node(vtkMRMLNode * nodeInScene, const char * nodeId,
+                                  const std::string & topic, std::string & errorMessage) = 0;
   virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
@@ -61,11 +62,10 @@ protected:
    * Add the subscriber to the ROS2 node.  This methods searched the
    * vtkMRMLROS2NodeNode by Id to locate the rclcpp::node
    */
-  bool AddToROS2Node(vtkMRMLScene * scene, const char * nodeId,
-		     const std::string & topic, std::string & errorMessage) {
-
-    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
-    if(!rosNodePtr) return false;
+  bool AddToROS2Node(vtkMRMLNode * nodeInScene, const char * nodeId,
+                     const std::string & topic, std::string & errorMessage) {
+    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(nodeInScene, nodeId, errorMessage);
+    if (!rosNodePtr) return false;
 
     vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
     if ((sub != nullptr) && sub->IsAddedToROS2Node()) {
@@ -75,18 +75,18 @@ protected:
     mROSNode = rosNodePtr->mInternals->mNodePointer;
     mSubscription
       = mROSNode->create_subscription<_ros_type>(topic, 100,
-						 std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
+                                                 std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
     rosNodePtr->SetNthNodeReferenceID("subscriber",
-				      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
-				      mMRMLNode->GetID());
+                                      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
+                                      mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
     return true;
   }
 
-  bool RemoveFromROS2Node(vtkMRMLScene * scene, const char * nodeId,
-        const std::string & topic, std::string & errorMessage) override
+  bool RemoveFromROS2Node(vtkMRMLNode * nodeInScene, const char * nodeId,
+                          const std::string & topic, std::string & errorMessage) override
   {
-    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
+    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(nodeInScene, nodeId, errorMessage);
     if(!rosNodePtr) return false;
 
     vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
@@ -97,7 +97,7 @@ protected:
 
     mMRMLNode->SetNodeReferenceID("node", nullptr);
     rosNodePtr->RemoveNthNodeReferenceID("subscriber",
-				      rosNodePtr->GetNumberOfNodeReferences("subscriber"));
+                                         rosNodePtr->GetNumberOfNodeReferences("subscriber"));
 
     mSubscription.reset();
     mROSNode.reset();

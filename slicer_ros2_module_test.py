@@ -63,7 +63,7 @@ def spin_some():
 # It creates a turtlesim node, checks if it's running, and then kills it
 class TestTurtlesimNode(unittest.TestCase):
     def setUp(self):
-        self.create_turtlesim_node_process = run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")        
+        self.create_turtlesim_node_process = run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
 
     def test_turtlesim_node_create_and_destroy(self):
         print("\nTesting creation and destruction of turtlesim node - Starting..")
@@ -75,7 +75,7 @@ class TestTurtlesimNode(unittest.TestCase):
         # Kill the turtlesim node
         kill_subprocess(self.create_turtlesim_node_process)
         self.assertFalse(check_ros2_node_running("/turtlesim"), "Turtlesim node still running")
-        
+
 
 
 # It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
@@ -144,12 +144,13 @@ class TestCreateAndAddPubSub(unittest.TestCase):
         self.ros2Node.Destroy()
         spin_some()
 
+
 class TestParameterNode(unittest.TestCase):
     def setUp(self):
         print("\nCreating ROS2 node for parameter tests..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
-        self.create_turtlesim_node_process = run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")        
+        self.create_turtlesim_node_process = run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
         spin_some()
         self.assertTrue(check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
         spin_some()
@@ -220,12 +221,13 @@ class TestParameterNode(unittest.TestCase):
         spin_some()
         print("ROS2 node destroyed")
 
-class TestBroadcasterAndLookupNode(unittest.TestCase):
+
+class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
     def setUp(self):
         print("\nCreating ROS2 node to test Broadcaster Nodes..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
-        broadcaster = self.ros2Node.CreateAndAddBroadcaster("vtkMRMLROS2Tf2BroadcasterNode", "Parent", "Child")
+        broadcaster = self.ros2Node.CreateAndAddTf2Broadcaster("vtkMRMLROS2Tf2BroadcasterNode", "Parent", "Child")
         buffer = self.ros2Node.GetTf2Buffer()
         lookupNode = buffer.CreateAndAddLookupNode("Parent", "Child")
         # Broadcast a 4x4 matrix and confirm

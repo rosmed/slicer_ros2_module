@@ -47,27 +47,33 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
     the default ROS2 node for this logic. It will return a nullptr a
     new subscriber was not created. */
   vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
-  
+
   /*! Helper method to create a publisher given a publisher type and
     a topic. This method will create the corresponding MRML node if
     there is no existing publisher for the given topic and add it to
     the default ROS2 node for this logic. It will return a nullptr a
     new publisher was not created. */
   vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
-  
-  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const std::string & topic);
 
-  vtkMRMLROS2Tf2BroadcasterNode * CreateAndAddBroadcaster(const char * className, const std::string & parent_id, const std::string & child_id);
+  /*! Helper method to create a parameter node.  You need to provide
+    the name of the ROS node that holds the parameters you want to
+    monitor. */
+  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const std::string & monitoredNodeName);
+
+  /*! Helper method to create a tf2 broadcaster.  You need to provide
+    the child and parend IDs as they will be broadcasted to tf2. */
+  vtkMRMLROS2Tf2BroadcasterNode * CreateAndAddTf2Broadcaster(const char * className, const std::string & parent_id, const std::string & child_id);
 
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode * GetParameterNodeByNode(const std::string & node);
+  vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterByID(const std::string & nodeID);
+
   bool RemoveSubscriberNode(const std::string & topic);
   bool RemovePublisherNode(const std::string & topic);
   bool RemoveParameterNode(const std::string & nodeName);
-  vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterByID(const std::string & nodeID);
-  vtkMRMLROS2Tf2BufferNode * GetTf2Buffer(bool createIfNeeded = true); // Changed this from smart pointer to *
-  static vtkMRMLROS2NodeNode * CheckROS2NodeExists(vtkMRMLScene * scene, const char* nodeId, std::string & errorMessage);
+
+  vtkMRMLROS2Tf2BufferNode * GetTf2Buffer(bool createIfNeeded = true);
 
   void Spin(void);
 
@@ -80,8 +86,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   ~vtkMRMLROS2NodeNode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mTf2Buffer; // enforce a single buffer per node - if using tf on that node we know we need a buffer - if not don't use it
-  
+  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mTf2Buffer;
+
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";
 

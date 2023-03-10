@@ -17,6 +17,8 @@ set(_SRCS_INTERNAL
   vtkROS2ToSlicer.cxx
   # vtkSlicerToROS2.h
   vtkSlicerToROS2.cxx
+  # vtkMRMLROS2Utils.h
+  vtkMRMLROS2Utils.cxx
   )
 
 set(${KIT}_SRCS

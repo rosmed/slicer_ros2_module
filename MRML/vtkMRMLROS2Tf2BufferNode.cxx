@@ -5,6 +5,7 @@
 #include <vtkMRMLScene.h>
 
 // SlicerROS2 includes
+#include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2BufferInternals.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
@@ -50,12 +51,11 @@ bool vtkMRMLROS2Tf2BufferNode::AddToROS2Node(const char * nodeId)
   this->SetName(mMRMLNodeName.c_str());
 
   // Check if the node is in the scene
-  vtkMRMLScene * scene = this->GetScene();
   std::string errorMessage;
-  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2NodeNode::CheckROS2NodeExists(scene, nodeId, errorMessage);
-  if(!rosNodePtr){
-    vtkErrorMacro(<< "BufferNode - AddToROS2Node, " << errorMessage); 
-    return false; 
+  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!rosNodePtr) {
+    vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
+    return false;
   }
 
   // Add the buffer to the ros2 node
@@ -174,11 +174,11 @@ void vtkMRMLROS2Tf2BufferNode::Spin(void)
       transformStamped = mInternals->mTfBuffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
       vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
       if (lookupNode->GetModifiedOnLookup()) {
-	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+        lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
       } else {
-	lookupNode->DisableModifiedEventOn();
-	lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	lookupNode->DisableModifiedEventOff();
+        lookupNode->DisableModifiedEventOn();
+        lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+        lookupNode->DisableModifiedEventOff();
       }
     }
     catch (tf2::TransformException & ex) {
