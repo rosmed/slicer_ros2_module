@@ -128,7 +128,7 @@ void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
-  std::cerr << "OnMRMLSceneNodeAdded : Node added" << std::endl;
+  std::cerr << "OnMRMLSceneNodeAdded : start.." << std::endl;
   vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
   if (rosNode != nullptr) {
     if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node) == mROS2Nodes.end()) {
@@ -139,8 +139,16 @@ void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 
 
 //---------------------------------------------------------------------------
-void vtkSlicerROS2Logic::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
+void vtkSlicerROS2Logic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 {
+  std::cerr << "OnMRMLSceneNodeRemoved : start.." << std::endl;
+  vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
+  if (rosNode != nullptr) {
+    auto it = std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node);
+    if (it != mROS2Nodes.end()) {
+      mROS2Nodes.erase(it);
+    }
+  }
 }
 
 

@@ -80,14 +80,15 @@ bool vtkMRMLROS2ParameterNode::RemoveFromROS2Node(const char *nodeId, const std:
         return false; 
     }
 
+    // remove the parameter node from the ROS node
+    auto it = std::find(rosNodePtr->mParameterNodes.begin(), rosNodePtr->mParameterNodes.end(), this);
+    if (it != rosNodePtr->mParameterNodes.end()) {
+      rosNodePtr->mParameterNodes.erase(it);
+    }
+
     mInternals->mMRMLNode = nullptr;
     this->SetNodeReferenceID("node", nullptr);
     rosNodePtr->RemoveNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"));
-
-    // remove this parameter node from the ROS node
-    rosNodePtr->mParameterNodes.erase(
-        std::remove(rosNodePtr->mParameterNodes.begin(), rosNodePtr->mParameterNodes.end(), this), 
-        rosNodePtr->mParameterNodes.end());
 
     mInternals->mParameterClient.reset();
     return true;

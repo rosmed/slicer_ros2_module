@@ -81,7 +81,7 @@ class TestTurtlesimNode(unittest.TestCase):
 # It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
 class TestCreateAndAddPubSub(unittest.TestCase):
     def setUp(self):
-        print("\nCreating ROS2 node..")
+        print("\nCreating ROS2 node for pub sub tests..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
 
@@ -141,12 +141,12 @@ class TestCreateAndAddPubSub(unittest.TestCase):
         print("Testing deletion of publisher and subscriber - Done")
 
     def tearDown(self):
-        pass
-        # self.ros2Node.Destroy()
+        self.ros2Node.Destroy()
+        spin_some()
 
 class TestParameterNode(unittest.TestCase):
     def setUp(self):
-        print("\nCreating ROS2 node..")
+        print("\nCreating ROS2 node for parameter tests..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
         self.create_turtlesim_node_process = run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")        
@@ -215,8 +215,10 @@ class TestParameterNode(unittest.TestCase):
         print("Testing deletion of parameter node - Done")
 
     def tearDown(self):
-        # self.ros2Node.Destroy()
         kill_subprocess(self.create_turtlesim_node_process)
+        self.ros2Node.Destroy()
+        spin_some()
+        print("ROS2 node destroyed")
 
 class TestBroadcasterAndLookupNode(unittest.TestCase):
     def setUp(self):

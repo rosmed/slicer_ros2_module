@@ -30,10 +30,7 @@ vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 
 vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 {
-  this->Destroy();
-  mInternals.reset();
-  rclcpp::shutdown();
-  vtkDebugMacro(<< "ROS2Node node shutdown");
+  // this->Destroy(); // FIXME: This causes a recursive call to Destroy() 
 }
 
 
@@ -63,7 +60,6 @@ void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
   mInternals->mNodePointer = std::make_shared<rclcpp::Node>(nodeName);
 }
 
-
 void vtkMRMLROS2NodeNode::Destroy()
 {
 
@@ -71,14 +67,14 @@ void vtkMRMLROS2NodeNode::Destroy()
     vtkWarningMacro(<< "ROS2Node does not contain any ROS2 internals. Not destroying ROS2 node.");
     return;
   }
-
-  vtkDebugMacro(<< "Trying to delete ROS2NodeInternals node pointer");
-  mInternals->mNodePointer.reset();
-  vtkDebugMacro(<< "ROS2NodeInternals node pointer reset");
-  mROS2NodeName = "undefined";
+  mROS2NodeName = "undefined"; // FIXME: this is a hack to prevent half destroyed nodes from being spun
   mMRMLNodeName = "ros2:node:undefined";
   this->SetName(mMRMLNodeName.c_str());
-  vtkDebugMacro(<< "ROS2Node node name reset");
+  this->Scene->RemoveNode(this);
+  mInternals->mNodePointer.reset();
+  mInternals.reset();
+  rclcpp::shutdown();
+  std::cerr << "vtkMRMLROS2NodeNode::Destroy() - ROS2 node destroyed" << std::endl;
 }
 
 
@@ -113,7 +109,7 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "\"" << className << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "\"" << className << "\" is not added to a MRML scene yet"); // FIXME: "vtkMRMLROS2ParameterNode" is not added to a MRML scene yet | should be ROS2NodeNode?
     return nullptr;
   }
   // CreateNodeByClass
