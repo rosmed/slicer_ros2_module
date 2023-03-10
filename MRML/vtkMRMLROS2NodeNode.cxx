@@ -24,6 +24,7 @@ const char * vtkMRMLROS2NodeNode::GetNodeTagName(void)
 
 vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 {
+  std::cerr << "vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode() - constructor called" << std::endl; // FIXME: Two calls made during slicer start-up
   mInternals = std::make_unique<vtkMRMLROS2NodeInternals>(); 
 }
 

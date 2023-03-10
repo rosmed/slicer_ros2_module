@@ -128,6 +128,7 @@ void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
+  std::cerr << "OnMRMLSceneNodeAdded : Node added" << std::endl;
   vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
   if (rosNode != nullptr) {
     if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node) == mROS2Nodes.end()) {
@@ -148,6 +149,8 @@ void vtkSlicerROS2Logic::Spin(void)
   mTimerLog->StartTimer();
   SlicerRenderBlocker renderBlocker;
   for (auto & n : mROS2Nodes) {
+    // check if output of GetROS2NodeName() is equal to "undefined" -> This implies that Create() has not been called yet
+    if (n->GetROS2NodeName() == "undefined") continue; // FIXME: This is a hack to prevent a crash when the ROS2 node is not created yet
     n->Spin();
   }
   mTimerLog->StopTimer();
