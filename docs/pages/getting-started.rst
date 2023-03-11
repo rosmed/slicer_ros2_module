@@ -8,6 +8,7 @@ Pre-requisites
 ==============
 
 Before you can start compiling the SlicerROS2 module, you will need:
+
 * Ubuntu Linux with `ROS 2 <https://www.ros.org>`_ (tested using
   ubuntu 20.04 and ROS 2 Galactic).
 * Slicer built from source is required to build an extension, see
