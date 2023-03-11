@@ -12,8 +12,7 @@ Slicer ROS2
 
    pages/features
    pages/getting-started
-   pages/example-cases
-   pages/usage
+   pages/robot-visualization
    pages/limitations
    pages/python_features
 
