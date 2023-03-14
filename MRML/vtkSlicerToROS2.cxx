@@ -72,6 +72,34 @@ void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::WrenchStamped &
    }
 }
 
+void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArray & result,
+		     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
+  result.header.stamp = rosNode->get_clock()->now();
+  result.poses.clear();
+
+  for (int i = 0; i < input->GetNumberOfItems(); i++){
+    vtkTransform* transform = vtkTransform::SafeDownCast(input->GetItemAsObject(i));
+    if (transform){
+      vtkMatrix4x4* matrix = transform->GetMatrix();
+      geometry_msgs::msg::Pose pose;
+
+      double q[4] = {0.0, 0.0, 0.0, 0.0};
+      vtkMatrix4x4ToQuaternion(matrix, q);
+      pose.position.x = matrix->GetElement(0, 3) * M_TO_MM;
+      pose.position.y = matrix->GetElement(1, 3) * M_TO_MM;
+      pose.position.z = matrix->GetElement(2, 3) * M_TO_MM;
+      pose.orientation.w = q[0];
+      pose.orientation.x = q[1];
+      pose.orientation.y = q[2];
+      pose.orientation.z = q[3];
+
+      result.poses.push_back(pose);
+    }
+  }
+}
+
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
   double A[3][3];
