@@ -17,7 +17,7 @@ bool vtkMRMLROS2::ROSInit(void)
     int argc = 1;
     rclcpp::init(argc, argv);
   } catch (...) {
-    // vtkDebugMacro(<< "vtkMRMLROS2::ROSInit: rclcpp::init was called multiple times. This is fine." ); // Key word this
+    std::cerr << "vtkMRMLROS2::ROSInit: rclcpp::init was called multiple times. This is fine." << std::endl; // Key word this
     return false;
   }
   return true;

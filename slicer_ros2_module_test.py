@@ -233,9 +233,10 @@ class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         # Broadcast a 4x4 matrix and confirm
         broadcastedMat = vtk.vtkMatrix4x4()
         broadcastedMat.SetElement(0,3,66) # Set a default value
-        lookupMat = lookupNode.GetMatrixTransformFromParent()
-        self.assertTrue(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3))
-
+        broadcaster.Broadcast(broadcastedMat)
+        spin_some()
+        lookupMat = lookupNode.GetMatrixTransformToParent()
+        self.assertEqual(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3)) # maybe use assert almost equal
 
 
     def test_broadcaster_functioning(self):
