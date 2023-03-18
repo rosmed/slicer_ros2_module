@@ -75,25 +75,34 @@ void vtkMRMLROS2PublisherNode::WriteXML(ostream& of, int nIndent)
 
 void vtkMRMLROS2PublisherNode::ReadXMLAttributes(const char** atts)
 {
+  std::cerr << "ReadXMLAttributes: " << "Publisher" << std::endl;
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
+  std::cerr << "ReadXMLAttributes: " << "Publisher Complete" << std::endl;
 }
 
 
 void vtkMRMLROS2PublisherNode::UpdateScene(vtkMRMLScene *scene)
 {
+  std::cerr << "UpdateScene: " << "Publisher" << std::endl;
   Superclass::UpdateScene(scene);
   if (!IsAddedToROS2Node()) {
     int nbNodeRefs = this->GetNumberOfNodeReferences("node");
     if (nbNodeRefs != 1) {
       vtkErrorMacro(<< "UpdateScene: no ROS2 node reference defined for publisher \"" << GetName() << "\"");
     } else {
-      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(),
+      std::cerr << "UpdateScene: " << "Publisher this->GetNthNodeReference(\"node\", 0)->GetID(): " << this->GetNthNodeReference("node", 0)->GetID() << std::endl;
+      std::string id = "vtkMRMLROS2NodeNode1"; //FIXME: hardcoding a value here
+      // change id to char *
+      char *id_char = new char[id.length() + 1]; 
+      strcpy(id_char, id.c_str());
+      this->AddToROS2Node(id_char,
 			  mTopic);
     }
   }
+  std::cerr << "UpdateScene: " << "Publisher Complete" << std::endl;
 }
