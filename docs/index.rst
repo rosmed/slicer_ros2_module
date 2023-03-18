@@ -13,6 +13,7 @@ Slicer ROS2
    pages/features
    pages/getting-started
    pages/robot-visualization
+   pages/mrml-ros-nodes
    pages/limitations
    pages/python_features
 
