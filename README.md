@@ -21,10 +21,11 @@ Alternatively, the module can load an URDF file directly and use KDL for the kin
 * Slicer built from source is required to build an extension, see [Slicer build instructions](https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html).  Remember the build directory for Slicer, it will be needed to compile the Slicer ROS 2 module.
 * Make sure we use the system/native OpenSSL libraries otherwise you'll get some errors when compiling the Slicer ROS 2 module.  After you ran CMake, in the Slicer build directory, set `Slicer_USE_SYSTEM_OpenSLL` `ON` using `cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON` or `ccmake`.
 * **Older Slicer** Make sure `CMAKE_CXX_STANDARD` is set to `14` (required to compile Slicer code along ROS 2).
+* Dependency: We use cisst messages for certain ROS2 publishers. The module: https://github.com/jhu-cisst/ros2_cisst_msgs.git should be cloned in the same ROS2 workspace as this repository (see instructions below - `~/ros2_ws/src/ros2_cisst_msgs`).
 
 ## Compilation
 
-This code should be built with `colcon` as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module has been cloned under `~/ros2_ws/src/slicer_ros2_module`.
+This code should be built with `colcon` as a ROS2 package.  For now, we will assume the ROS workspace directory is `~/ros2_ws` and the source code for this module has been cloned under `~/ros2_ws/src/slicer_ros2_module`. 
 
 You will first need to source the ROS setup script for ROS 2 (foxy or galactic):
 ```sh

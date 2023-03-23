@@ -30,6 +30,11 @@ Before you can start compiling the SlicerROS2 module, you will need:
   ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
   code along ROS 2).
 
+* Dependency: We use cisst messages for certain ROS2 publishers. 
+  The module: https://github.com/jhu-cisst/ros2_cisst_msgs.git should
+  be cloned in the same ROS2 workspace as this repository
+  (see instructions below - `~/ros2_ws/src/ros2_cisst_msgs`).
+
 ===========
 Compilation
 ===========

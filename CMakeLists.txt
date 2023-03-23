@@ -23,6 +23,8 @@ find_package(urdf REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
+find_package(cisst_msgs REQUIRED)
+
 #-----------------------------------------------------------------------------
 
 set(MODULE_NAME ROS2)

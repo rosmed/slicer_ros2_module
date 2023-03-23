@@ -15,7 +15,7 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
-
+#include <cisst_msgs/msg/cartesian_impedance_gains.hpp>
 
 void vtkSlicerToROS2(const std::string & input,  std_msgs::msg::String & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
