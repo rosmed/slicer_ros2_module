@@ -26,14 +26,14 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
 
-.. note:: If you need to build Slicer from old sources, make sure
-  ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
-  code along ROS 2).
-
 * Dependency: We use cisst messages for certain ROS2 publishers. 
   The module: https://github.com/jhu-cisst/ros2_cisst_msgs.git should
   be cloned in the same ROS2 workspace as this repository
   (see instructions below - `~/ros2_ws/src/ros2_cisst_msgs`).
+
+.. note:: If you need to build Slicer from old sources, make sure
+  ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
+  code along ROS 2).
 
 ===========
 Compilation

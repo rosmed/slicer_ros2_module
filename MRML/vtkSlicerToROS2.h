@@ -29,6 +29,8 @@ void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::WrenchStamped &
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArray & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGains & result,
+		     const std::shared_ptr<rclcpp::Node> & rosNode);
 
 // helper function
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4]);

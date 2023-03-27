@@ -13,5 +13,6 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Bool);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, WrenchStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTransformCollection, PoseArray);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, CartesianImpedanceGains);
 
 #endif // __vtkMRMLROS2PublisherDefaultsNodes_h
