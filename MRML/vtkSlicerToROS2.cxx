@@ -111,10 +111,10 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGa
   result.pos_stiff_pos.y = 0.0;
   result.pos_damping_neg.y = 0.0;
   result.pos_damping_pos.y = 0.0;
-  result.pos_stiff_neg.z = 200.0; // these were all negative (114-117 and I made them positive)
-  result.pos_stiff_pos.z = 200.0;
-  result.pos_stiff_neg.z = 5.0;
-  result.pos_damping_pos.z = 5.0;
+  result.pos_stiff_neg.z = -200.0; // these were all negative (114-117 and I made them positive)
+  result.pos_stiff_pos.z = -200.0;
+  result.pos_damping_neg.z = -5.0;
+  result.pos_damping_pos.z = -5.0;
 
   double stiffOri = -0.2;
   double dampOri = -0.01;
@@ -139,8 +139,8 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGa
   vtkMatrix4x4ToQuaternion(input, q);
   result.force_orientation.x = q[1];
   result.force_orientation.y = q[2];
-  result.force_orientation.z = q[3];
-  result.force_orientation.w = q[0];
+  result.force_orientation.z = q[3]; // should this come from breach warning 
+  result.force_orientation.w = q[0]; 
   result.torque_orientation.x = q[1];
   result.torque_orientation.y = q[2];
   result.torque_orientation.z = q[3];
