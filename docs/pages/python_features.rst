@@ -1,6 +1,6 @@
-===========
+====================================
 3D Slicer python interactor commands
-===========
+====================================
 
 The following commands can be used in the python interactor in 3D Slicer to test the modules functionality.
 
