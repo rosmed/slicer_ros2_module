@@ -210,16 +210,21 @@ void vtkMRMLROS2Tf2BufferNode::ReadXMLAttributes(const char** atts)
   this->EndModify(wasModifying);
 }
 
-
 void vtkMRMLROS2Tf2BufferNode::UpdateScene(vtkMRMLScene *scene)
 {
   Superclass::UpdateScene(scene);
-  if (!IsAddedToROS2Node()) {
-    int nbNodeRefs = this->GetNumberOfNodeReferences("node");
-    if (nbNodeRefs != 1) {
-      vtkErrorMacro(<< "No ROS2 node reference defined for buffer \"" << GetName() << "\"");
-    } else {
-      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
+  int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+  if (nbNodeRefs == 0) {
+    // assigned to the default ROS node
+    auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
+    if(!defaultNode){
+      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for Buffer \"" << GetName() << "\"");
+      return;
     }
+    this->AddToROS2Node(defaultNode->GetID());
+  } else if (nbNodeRefs == 1) {
+    this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
+  } else {
+    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for Buffer \"" << GetName() << "\"");
   }
 }

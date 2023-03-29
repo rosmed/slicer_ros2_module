@@ -469,12 +469,19 @@ void vtkMRMLROS2ParameterNode::ReadXMLAttributes(const char **atts)
 void vtkMRMLROS2ParameterNode::UpdateScene(vtkMRMLScene *scene)
 {
   Superclass::UpdateScene(scene);
-  std::cout << "vtkMRMLROS2ParameterNode::UpdateScene : "<< mMonitoredNodeName << std::endl;
   int nbNodeRefs = this->GetNumberOfNodeReferences("node");
-  if (nbNodeRefs != 1) {
-    vtkErrorMacro(<< "UpdateScene: no ROS2 node reference defined for parameter subscriber \"" << GetName() << "\"");
-  } else {
+  if (nbNodeRefs == 0) {
+    // assigned to the default ROS node
+    auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
+    if(!defaultNode){
+      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for Parameter \"" << GetName() << "\"");
+      return;
+    }
+    this->AddToROS2Node(defaultNode->GetID(), mMonitoredNodeName);
+  } else if (nbNodeRefs == 1) {
     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(), mMonitoredNodeName);
+  } else {
+    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for Parameter \"" << GetName() << "\"");
   }
 }
 
