@@ -84,6 +84,8 @@ void vtkSlicerROS2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
   this->GetMRMLScene()->AddNode(mDefaultROS2Node);
   mDefaultROS2Node->Create("slicer");
   mROS2Nodes.push_back(mDefaultROS2Node);
+  // prevent saving the default node in the scene as it is created automatically on startup
+  mDefaultROS2Node->SaveWithSceneOff();
 }
 
 //-----------------------------------------------------------------------------

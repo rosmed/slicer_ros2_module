@@ -75,34 +75,32 @@ void vtkMRMLROS2PublisherNode::WriteXML(ostream& of, int nIndent)
 
 void vtkMRMLROS2PublisherNode::ReadXMLAttributes(const char** atts)
 {
-  std::cerr << "ReadXMLAttributes: " << "Publisher" << std::endl;
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
-  std::cerr << "ReadXMLAttributes: " << "Publisher Complete" << std::endl;
 }
 
 
 void vtkMRMLROS2PublisherNode::UpdateScene(vtkMRMLScene *scene)
 {
-  std::cerr << "UpdateScene: " << "Publisher" << std::endl;
   Superclass::UpdateScene(scene);
   if (!IsAddedToROS2Node()) {
     int nbNodeRefs = this->GetNumberOfNodeReferences("node");
-    if (nbNodeRefs != 1) {
-      vtkErrorMacro(<< "UpdateScene: no ROS2 node reference defined for publisher \"" << GetName() << "\"");
+    if (nbNodeRefs == 0) {
+      // assigned to the default ROS node
+      auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
+      if(!defaultNode){
+        vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for publisher \"" << GetName() << "\"");
+        return;
+      }
+      this->AddToROS2Node(defaultNode->GetID(), mTopic);
+    } else if (nbNodeRefs == 1) {
+      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(), mTopic);
     } else {
-      std::cerr << "UpdateScene: " << "Publisher this->GetNthNodeReference(\"node\", 0)->GetID(): " << this->GetNthNodeReference("node", 0)->GetID() << std::endl;
-      std::string id = "vtkMRMLROS2NodeNode1"; //FIXME: hardcoding a value here
-      // change id to char *
-      char *id_char = new char[id.length() + 1]; 
-      strcpy(id_char, id.c_str());
-      this->AddToROS2Node(id_char,
-			  mTopic);
+      vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for publisher \"" << GetName() << "\"");
     }
   }
-  std::cerr << "UpdateScene: " << "Publisher Complete" << std::endl;
 }

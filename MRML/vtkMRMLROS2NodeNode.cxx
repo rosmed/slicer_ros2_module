@@ -43,7 +43,6 @@ void vtkMRMLROS2NodeNode::PrintSelf(ostream& os, vtkIndent indent)
 void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
 {
   // create the ROS node
-  std::cerr << "vtkMRMLROS2NodeNode::Create() - creating ROS2 node :" << nodeName << std::endl; 
   mROS2NodeName = nodeName;
   mMRMLNodeName = "ros2:node:" + nodeName;
   this->SetName(mMRMLNodeName.c_str());
@@ -310,9 +309,6 @@ void vtkMRMLROS2NodeNode::Spin(void)
 
 void vtkMRMLROS2NodeNode::WriteXML( ostream& of, int nIndent )
 {
-  if (mROS2NodeName == "slicer") {
-    // this->SetAttribute("HideFromEditors", "true");
-  }
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
   vtkMRMLWriteXMLStdStringMacro(ROS2NodeName, ROS2NodeName);
@@ -322,7 +318,6 @@ void vtkMRMLROS2NodeNode::WriteXML( ostream& of, int nIndent )
 
 void vtkMRMLROS2NodeNode::ReadXMLAttributes(const char** atts)
 {
-  std::cerr << "ReadXMLAttributes" << std::endl;
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
@@ -330,25 +325,7 @@ void vtkMRMLROS2NodeNode::ReadXMLAttributes(const char** atts)
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 
-  std::cerr << "ReadXMLAttributes: ROS2NodeName = " << mROS2NodeName << std::endl;
-
   // This is created before UpdateScene() for all other nodes is called.
   // It handles cases where Publishers and Subscribers are read before the ROS2Node
-  if (mROS2NodeName != "slicer") {
-    this->Create(mROS2NodeName);
-  }
-
-  std::cerr << " completed ReadXMLAttributes" << std::endl;
-  // this->Create(mROS2NodeName);
-}
-
-void vtkMRMLROS2NodeNode::UpdateScene(vtkMRMLScene *scene)
-{
-  // if ros2 node name is slicer, then do nothing, else have default behavior
-  std::cerr << "UpdateScene - ROS2Node" << std::endl;
-  if (mROS2NodeName != "slicer") {
-    std::cerr << "UpdateScene - ROS2Node: mROS2NodeName = " << mROS2NodeName << std::endl;
-    Superclass::UpdateScene(scene);
-  }
-  std::cerr << "UpdateScene - ROS2Node: completed" << std::endl;
+  this->Create(mROS2NodeName);
 }

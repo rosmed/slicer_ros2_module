@@ -80,7 +80,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
   void WriteXML(std::ostream& of, int indent) override;
-  void UpdateScene(vtkMRMLScene * scene) override;
 
  protected:
   vtkMRMLROS2NodeNode();
