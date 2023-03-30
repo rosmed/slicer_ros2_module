@@ -49,26 +49,27 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
   // Check that the broadcaster is in the scene
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
-  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
-  if (!rosNodePtr) {
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
       vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
       return false;
   }
 
   // Check that the buffer hasn't already been added to the node
-  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = rosNodePtr->GetTf2BroadcasterByID(this->GetID());
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = mrmlROSNodePtr->GetTf2BroadcasterByID(this->GetID());
   if ((broadcaster != nullptr) && broadcaster->IsAddedToROS2Node()) {
     vtkErrorMacro(<< "AddToROS2Node: this broadcaster has already been added to the ROS2 node.");
     return false;
   }
 
   // Add the broadcaster to the node and set up references
-  mInternals->mROSNode = rosNodePtr->mInternals->mNodePointer;
+  mInternals->mROSNode = mrmlROSNodePtr->mInternals->mNodePointer;
   mInternals->mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(mInternals->mROSNode);
-  rosNodePtr->SetNthNodeReferenceID("broadcaster",
-                                    rosNodePtr->GetNumberOfNodeReferences("broadcaster"),
-                                    this->GetID());
+  mrmlROSNodePtr->SetNthNodeReferenceID("broadcaster",
+                                        mrmlROSNodePtr->GetNumberOfNodeReferences("broadcaster"),
+                                        this->GetID());
   this->SetNodeReferenceID("node", nodeId);
+  mrmlROSNodePtr->WarnIfNotSpinning("adding tf2 broadcaster for \"" + mMRMLNodeName + "\"");
   return true;
 }
 

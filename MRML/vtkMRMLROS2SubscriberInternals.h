@@ -64,22 +64,23 @@ protected:
    */
   bool AddToROS2Node(vtkMRMLNode * nodeInScene, const char * nodeId,
                      const std::string & topic, std::string & errorMessage) {
-    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(nodeInScene, nodeId, errorMessage);
-    if (!rosNodePtr) return false;
+    vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(nodeInScene, nodeId, errorMessage);
+    if (!mrmlROSNodePtr) return false;
 
-    vtkMRMLROS2SubscriberNode * sub = rosNodePtr->GetSubscriberNodeByTopic(topic);
+    vtkMRMLROS2SubscriberNode * sub = mrmlROSNodePtr->GetSubscriberNodeByTopic(topic);
     if ((sub != nullptr) && sub->IsAddedToROS2Node()) {
       errorMessage = "there is already a subscriber for topic \"" + topic + "\" added to the ROS node";
       return false;
     }
-    mROSNode = rosNodePtr->mInternals->mNodePointer;
+    mROSNode = mrmlROSNodePtr->mInternals->mNodePointer;
     mSubscription
       = mROSNode->create_subscription<_ros_type>(topic, 100,
                                                  std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
-    rosNodePtr->SetNthNodeReferenceID("subscriber",
-                                      rosNodePtr->GetNumberOfNodeReferences("subscriber"),
-                                      mMRMLNode->GetID());
+    mrmlROSNodePtr->SetNthNodeReferenceID("subscriber",
+                                          mrmlROSNodePtr->GetNumberOfNodeReferences("subscriber"),
+                                          mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
+    mrmlROSNodePtr->WarnIfNotSpinning("adding subscriber for \"" + topic + "\"");
     return true;
   }
 

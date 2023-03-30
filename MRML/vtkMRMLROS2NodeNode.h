@@ -76,6 +76,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLROS2Tf2BufferNode * GetTf2Buffer(bool createIfNeeded = true);
 
   void Spin(void);
+  inline bool GetSpinning(void) const {
+    return mSpinning;
+  }
+  void WarnIfNotSpinning(const std::string & contextMessage) const;
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
@@ -92,7 +96,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   std::string mROS2NodeName = "undefined";
 
   std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
-
+  bool mSpinning = false;
 
   // For ReadXMLAttributes
   inline void SetROS2NodeName(const std::string & name) {

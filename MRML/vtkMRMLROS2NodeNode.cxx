@@ -23,7 +23,6 @@ const char * vtkMRMLROS2NodeNode::GetNodeTagName(void)
 
 vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 {
-  std::cerr << "vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode() - constructor called" << std::endl; // FIXME: Two calls made during slicer start-up
   mInternals = std::make_unique<vtkMRMLROS2NodeInternals>();
 }
 
@@ -63,7 +62,6 @@ void vtkMRMLROS2NodeNode::Destroy()
   this->Scene->RemoveNode(this);
   mInternals->mNodePointer.reset();
   mInternals.reset();
-  std::cerr << "vtkMRMLROS2NodeNode::Destroy() - ROS2 node destroyed" << std::endl;
 }
 
 
@@ -71,7 +69,7 @@ vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriber(const ch
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << className << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
     return nullptr;
   }
   // CreateNodeByClass
@@ -98,7 +96,7 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
     return nullptr;
   }
   // CreateNodeByClass
@@ -126,7 +124,7 @@ vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std:
   const char * className = "vtkMRMLROS2ParameterNode";
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddParameter: \"" << className << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddParameter: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
     return nullptr;
   }
   // CreateNodeByClass
@@ -153,7 +151,7 @@ vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddTf2Broadcaster(
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddTf2Broadcaster: \"" << className << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddTf2Broadcaster: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
     return nullptr;
   }
   // CreateNodeByClass
@@ -294,6 +292,7 @@ vtkMRMLROS2Tf2BufferNode * vtkMRMLROS2NodeNode::GetTf2Buffer(bool createIfNeeded
 void vtkMRMLROS2NodeNode::Spin(void)
 {
   if (rclcpp::ok()) {
+    mSpinning = true;
     rclcpp::spin_some(mInternals->mNodePointer);
     if (mTf2Buffer != nullptr) {
       mTf2Buffer->Spin();
@@ -303,6 +302,16 @@ void vtkMRMLROS2NodeNode::Spin(void)
         node->Spin();
       }
     }
+  } else {
+    mSpinning = false;
+  }
+}
+
+
+void vtkMRMLROS2NodeNode::WarnIfNotSpinning(const std::string & contextMessage) const
+{
+  if (!mSpinning) {
+    vtkWarningMacro(<< "Node " << mROS2NodeName << " is not spinning (yet) when " << contextMessage);
   }
 }
 

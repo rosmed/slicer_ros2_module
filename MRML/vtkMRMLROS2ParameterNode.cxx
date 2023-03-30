@@ -56,20 +56,22 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char * nodeId, const std::str
   this->SetName(mMRMLNodeName.c_str());
 
   std::string errorMessage;
-  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
-  if (!rosNodePtr) {
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
     vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
     return false;
   }
 
-  std::shared_ptr<rclcpp::Node> nodePointer = rosNodePtr->mInternals->mNodePointer;
+  std::shared_ptr<rclcpp::Node> nodePointer = mrmlROSNodePtr->mInternals->mNodePointer;
   // create a parameter client
   mInternals->mParameterClient = std::make_shared<rclcpp::AsyncParametersClient>(nodePointer, monitoredNodeName);
   // add this parameter node to the ROS node, so that it can be spin in the same thread as the ROS node
-  rosNodePtr->mParameterNodes.push_back(this);
-  rosNodePtr->SetNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"),
-                                    this->GetID());
+  mrmlROSNodePtr->mParameterNodes.push_back(this);
+  mrmlROSNodePtr->SetNthNodeReferenceID("parameter",
+                                        mrmlROSNodePtr->GetNumberOfNodeReferences("parameter"),
+                                        this->GetID());
   this->SetNodeReferenceID("node", nodeId);
+  mrmlROSNodePtr->WarnIfNotSpinning("adding parameter client for \"" + monitoredNodeName + "\"");
   mInternals->mMRMLNode = this;
   return true;
 }

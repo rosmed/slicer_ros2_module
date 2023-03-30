@@ -51,22 +51,22 @@ protected:
   bool AddToROS2Node(vtkMRMLNode * nodeInScene, const char * nodeId,
                      const std::string & topic, std::string & errorMessage) override
   {
-    vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(nodeInScene, nodeId, errorMessage);
-    if (!rosNodePtr) return false;
+    vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(nodeInScene, nodeId, errorMessage);
+    if (!mrmlROSNodePtr) return false;
 
-    vtkMRMLROS2PublisherNode * pub = rosNodePtr->GetPublisherNodeByTopic(topic);
+    vtkMRMLROS2PublisherNode * pub = mrmlROSNodePtr->GetPublisherNodeByTopic(topic);
     if ((pub != nullptr)
         && pub->IsAddedToROS2Node()) {
       errorMessage = "there is already a publisher for topic \"" + topic + "\" added to the ROS node";
       return false;
     }
-    mROSNode = rosNodePtr->mInternals->mNodePointer;
+    mROSNode = mrmlROSNodePtr->mInternals->mNodePointer;
     mPublisher = mROSNode->create_publisher<_ros_type>(topic, 10);
-    rosNodePtr->SetNthNodeReferenceID("publisher",
-                                      rosNodePtr->GetNumberOfNodeReferences("publisher"),
-                                      mMRMLNode->GetID());
-
+    mrmlROSNodePtr->SetNthNodeReferenceID("publisher",
+                                          mrmlROSNodePtr->GetNumberOfNodeReferences("publisher"),
+                                          mMRMLNode->GetID());
     mMRMLNode->SetNodeReferenceID("node", nodeId);
+    mrmlROSNodePtr->WarnIfNotSpinning("adding publisher for \"" + topic + "\"");
     return true;
   }
 
