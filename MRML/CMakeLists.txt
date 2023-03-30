@@ -40,8 +40,6 @@ set(${KIT}_SRCS
   vtkMRMLROS2ParameterNode.cxx 
   vtkMRMLROS2Tf2BroadcasterNode.h
   vtkMRMLROS2Tf2BroadcasterNode.cxx
-  vtkMRMLROS2Tf2BufferNode.h
-  vtkMRMLROS2Tf2BufferNode.cxx
   vtkMRMLROS2Tf2LookupNode.h
   vtkMRMLROS2Tf2LookupNode.cxx
   vtkMRMLROS2RobotNode.h

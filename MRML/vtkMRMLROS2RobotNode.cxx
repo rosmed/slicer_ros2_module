@@ -15,7 +15,6 @@
 #include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2ParameterNode.h>
-#include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 
 #include <regex>
@@ -54,17 +53,17 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
 {
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
-  vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
-  if (!rosNodePtr){
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
     vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
     return false;
   }
   // Add the robot to the ros2 node
-  rosNodePtr->SetNthNodeReferenceID("robot",
-                                    rosNodePtr->GetNumberOfNodeReferences("robot"),
-                                    this->GetID());
+  mrmlROSNodePtr->SetNthNodeReferenceID("robot",
+                                        mrmlROSNodePtr->GetNumberOfNodeReferences("robot"),
+                                        this->GetID());
   this->SetNodeReferenceID("node", nodeId);
-  mROS2Node = rosNodePtr;
+  mMRMLROS2Node = mrmlROSNodePtr;
   mNthRobot.mParameterNodeName = parameterNodeName;
   mNthRobot.mParameterName = parameterName;
   SetRobotDescriptionParameterNode();
@@ -82,7 +81,7 @@ bool vtkMRMLROS2RobotNode::SetRobotDescriptionParameterNode(void)
   // Create a new parameter node
   mNthRobot.mRobotDescriptionParameterNode = vtkMRMLROS2ParameterNode::New();
   this->GetScene()->AddNode(mNthRobot.mRobotDescriptionParameterNode);
-  mNthRobot.mRobotDescriptionParameterNode->AddToROS2Node(mROS2Node->GetID(), mNthRobot.mParameterNodeName);
+  mNthRobot.mRobotDescriptionParameterNode->AddToROS2Node(mMRMLROS2Node->GetID(), mNthRobot.mParameterNodeName);
   mNthRobot.mRobotDescriptionParameterNode->AddParameter(mNthRobot.mParameterName);
   ObserveParameterNode(mNthRobot.mRobotDescriptionParameterNode);
   return true;
@@ -216,7 +215,7 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 {
   // Initialize the lookups for the robot based on the previously stored parent and children names of the transform.
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mROS2Node->GetTf2Buffer()->CreateAndAddLookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
     mNthRobot.mLookupNodes.push_back(lookup);
     this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
   }
@@ -235,7 +234,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     // put this and rpy in the ROS2ToSlicer
     auto origin = mInternals->mLinkOrigins[i];
     vtkSmartPointer<vtkTransform> transform = vtkTransform::New();
-    transform->Translate(origin.position.x*MM_TO_M_CONVERSION, origin.position.y*MM_TO_M_CONVERSION, origin.position.z*MM_TO_M_CONVERSION);
+    transform->Translate(origin.position.x * MM_TO_M_CONVERSION, origin.position.y * MM_TO_M_CONVERSION, origin.position.z * MM_TO_M_CONVERSION);
     transformNode->SetAndObserveTransformToParent(transform);
 
     // Rotate

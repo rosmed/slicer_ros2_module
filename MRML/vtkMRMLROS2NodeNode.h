@@ -6,13 +6,14 @@
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
-// forward declaration for internals
+// forward declarations
+class vtkMatrix4x4;
 class vtkMRMLROS2NodeInternals;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
-class vtkMRMLROS2Tf2BufferNode;
+class vtkMRMLROS2Tf2LookupNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 {
@@ -20,9 +21,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   template <typename _ros_type, typename _slicer_type> friend class vtkMRMLROS2SubscriberTemplatedInternals;
   template <typename _slicer_type, typename _ros_type> friend class vtkMRMLROS2PublisherTemplatedInternals;
   friend class vtkMRMLROS2ParameterInternals;
-  friend class vtkMRMLROS2Tf2BufferNode;
-  friend class vtkMRMLROS2ParameterNode; // allowed?
+  friend class vtkMRMLROS2ParameterNode;
   friend class vtkMRMLROS2Tf2BroadcasterNode;
+  friend class vtkMRMLROS2Tf2LookupNode;
   friend class vtkMRMLROS2RobotNode;
 
  public:
@@ -46,34 +47,35 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
     there is no existing subscriber for the given topic and add it to
     the default ROS2 node for this logic. It will return a nullptr a
     new subscriber was not created. */
-  vtkMRMLROS2SubscriberNode * CreateAndAddSubscriber(const char * className, const std::string & topic);
+  vtkMRMLROS2SubscriberNode * CreateAndAddSubscriberNode(const char * className, const std::string & topic);
 
   /*! Helper method to create a publisher given a publisher type and
     a topic. This method will create the corresponding MRML node if
     there is no existing publisher for the given topic and add it to
     the default ROS2 node for this logic. It will return a nullptr a
     new publisher was not created. */
-  vtkMRMLROS2PublisherNode * CreateAndAddPublisher(const char * className, const std::string & topic);
+  vtkMRMLROS2PublisherNode * CreateAndAddPublisherNode(const char * className, const std::string & topic);
 
   /*! Helper method to create a parameter node.  You need to provide
     the name of the ROS node that holds the parameters you want to
     monitor. */
-  vtkMRMLROS2ParameterNode * CreateAndAddParameter(const std::string & monitoredNodeName);
+  vtkMRMLROS2ParameterNode * CreateAndAddParameterNode(const std::string & monitoredNodeName);
 
   /*! Helper method to create a tf2 broadcaster.  You need to provide
     the child and parend IDs as they will be broadcasted to tf2. */
-  vtkMRMLROS2Tf2BroadcasterNode * CreateAndAddTf2Broadcaster(const char * className, const std::string & parent_id, const std::string & child_id);
+  vtkMRMLROS2Tf2BroadcasterNode * CreateAndAddTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id);
+
+  vtkMRMLROS2Tf2LookupNode * CreateAndAddTf2LookupNode(const std::string & parent_id, const std::string & child_id);
 
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode * GetParameterNodeByNode(const std::string & node);
-  vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterByID(const std::string & nodeID);
-
-  bool RemoveSubscriberNode(const std::string & topic);
-  bool RemovePublisherNode(const std::string & topic);
-  bool RemoveParameterNode(const std::string & nodeName);
-
-  vtkMRMLROS2Tf2BufferNode * GetTf2Buffer(bool createIfNeeded = true);
+  vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterNodeByID(const std::string & nodeID);
+  vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByID(const std::string & nodeID);
+  
+  bool RemoveAndDeleteSubscriberNode(const std::string & topic);
+  bool RemoveAndDeletePublisherNode(const std::string & topic);
+  bool RemoveAndDeleteParameterNode(const std::string & nodeName);
 
   void Spin(void);
   inline bool GetSpinning(void) const {
@@ -90,13 +92,17 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   ~vtkMRMLROS2NodeNode();
 
   std::unique_ptr<vtkMRMLROS2NodeInternals> mInternals;
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> mTf2Buffer;
 
   std::string mMRMLNodeName = "ros2:node:undefined";
   std::string mROS2NodeName = "undefined";
 
   std::vector<vtkMRMLROS2ParameterNode* > mParameterNodes;
   bool mSpinning = false;
+
+  /*! Creates the tf2 buffer if needed, return true if created. */
+  bool SetTf2Buffer(void);
+  void SpinTf2Buffer(void);
+  vtkSmartPointer<vtkMatrix4x4> mTemporaryMatrix;
 
   // For ReadXMLAttributes
   inline void SetROS2NodeName(const std::string & name) {

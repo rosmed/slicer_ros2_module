@@ -98,14 +98,13 @@ void vtkMRMLROS2SubscriberNode::UpdateScene(vtkMRMLScene *scene)
     // assigned to the default ROS node
     auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
     if(!defaultNode){
-      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for Subscriber \"" << GetName() << "\"");
+      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for subscriber \"" << GetName() << "\"");
       return;
     }
     this->AddToROS2Node(defaultNode->GetID(), mTopic);
   } else if (nbNodeRefs == 1) {
     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(), mTopic);
   } else {
-    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for Subscriber \"" << GetName() << "\"");
+    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for subscriber \"" << GetName() << "\"");
   }
 }
-

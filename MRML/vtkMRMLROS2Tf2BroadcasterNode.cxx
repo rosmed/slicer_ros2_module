@@ -56,7 +56,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
   }
 
   // Check that the buffer hasn't already been added to the node
-  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = mrmlROSNodePtr->GetTf2BroadcasterByID(this->GetID());
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = mrmlROSNodePtr->GetTf2BroadcasterNodeByID(this->GetID());
   if ((broadcaster != nullptr) && broadcaster->IsAddedToROS2Node()) {
     vtkErrorMacro(<< "AddToROS2Node: this broadcaster has already been added to the ROS2 node.");
     return false;
@@ -237,13 +237,13 @@ void vtkMRMLROS2Tf2BroadcasterNode::UpdateScene(vtkMRMLScene *scene)
     // assigned to the default ROS node
     auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
     if(!defaultNode){
-      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for Broadcaster \"" << GetName() << "\"");
+      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for broadcaster \"" << GetName() << "\"");
       return;
     }
     this->AddToROS2Node(defaultNode->GetID());
   } else if (nbNodeRefs == 1) {
     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
   } else {
-    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for Broadcaster \"" << GetName() << "\"");
+    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for broadcaster \"" << GetName() << "\"");
   }
 }

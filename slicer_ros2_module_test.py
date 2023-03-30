@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.WARNING)
 ############################################## GLOBAL VARIABLES ##############################################
 
 ENVIRONMENT_CORRECTION = "export PYTHONPATH=/opt/ros/galactic/lib/python3.8/site-packages; export PYTHONHOME=; "
+ROS2_EXEC = ENVIRONMENT_CORRECTION + "python3.8 /opt/ros/galactic/bin/ros2 "
 
 ros2Module = slicer.modules.ros2
 logic = ros2Module.logic()
@@ -22,7 +23,7 @@ logic = ros2Module.logic()
 
 def run_ros2_cli_command_blocking(command):
     ros2_process = subprocess.Popen(
-        ENVIRONMENT_CORRECTION + "python3.8 /opt/ros/galactic/bin/ros2 " + command,
+        ROS2_EXEC + command,
         shell=True,
         preexec_fn=os.setsid,
     )
@@ -31,7 +32,7 @@ def run_ros2_cli_command_blocking(command):
 
 def run_ros2_cli_command_non_blocking(command):
     ros2_process = subprocess.Popen(
-        ENVIRONMENT_CORRECTION + "python3.8 /opt/ros/galactic/bin/ros2 " + command,
+        ROS2_EXEC + command,
         shell=True,
         preexec_fn=os.setsid,
     )
@@ -44,7 +45,7 @@ def check_ros2_node_running(nodeName):
     # Check if the turtlesim node is running by checking the rosnode list
     nodes = (
         subprocess.check_output(
-            ENVIRONMENT_CORRECTION + "python3.8 /opt/ros/galactic/bin/ros2 node list",
+            ROS2_EXEC + "node list",
             shell=True,
         )
         .decode("utf-8")
@@ -84,13 +85,14 @@ class TestCreateAndAddPubSub(unittest.TestCase):
         print("\nCreating ROS2 node for pub sub tests..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
+        spin_some()
 
     def test_create_and_add_pub_sub(self):
         print("\nTesting creation and working of publisher and subscriber - Starting..")
-        testPub = self.ros2Node.CreateAndAddPublisher(
+        testPub = self.ros2Node.CreateAndAddPublisherNode(
             "vtkMRMLROS2PublisherStringNode", "test_string_xkcd"
         )
-        testSub = self.ros2Node.CreateAndAddSubscriber(
+        testSub = self.ros2Node.CreateAndAddSubscriberNode(
             "vtkMRMLROS2SubscriberStringNode", "test_string_xkcd"
         )
         spin_some()
@@ -107,36 +109,36 @@ class TestCreateAndAddPubSub(unittest.TestCase):
         # assert that the recceived message contains the string message - since YAML
         self.assertTrue(messageString in receivedMessage, "Message not received correctly")
 
-        self.assertTrue(self.ros2Node.RemovePublisherNode("test_string_xkcd"), "Publisher not removed")
-        self.assertTrue(self.ros2Node.RemoveSubscriberNode("test_string_xkcd"), "Subscriber not removed")
+        self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher not removed")
+        self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber not removed")
         print("Testing creation and working of publisher and subscriber - Done")
 
     def test_pub_sub_deletion(self):
         print("\nTesting deletion of publisher and subscriber - Starting..")
-        testPub = self.ros2Node.CreateAndAddPublisher(
+        testPub = self.ros2Node.CreateAndAddPublisherNode(
             "vtkMRMLROS2PublisherStringNode", "test_string_xkcd"
         )
-        testSub = self.ros2Node.CreateAndAddSubscriber(
+        testSub = self.ros2Node.CreateAndAddSubscriberNode(
             "vtkMRMLROS2SubscriberStringNode", "test_string_xkcd"
         )
 
         # delete publisher which exists
-        self.assertTrue(self.ros2Node.RemovePublisherNode("test_string_xkcd"), "Publisher which exists not removed")
+        self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher which exists not removed")
         spin_some()
         # delete publisher which used to exist
-        self.assertFalse(self.ros2Node.RemovePublisherNode("test_string_xkcd"), "Publisher which used to exist removed")
+        self.assertFalse(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher which used to exist removed")
         spin_some()
         # delete publisher which never existed
-        self.assertFalse(self.ros2Node.RemovePublisherNode("random_name"), "Publisher which never existed removed")
+        self.assertFalse(self.ros2Node.RemoveAndDeletePublisherNode("random_name"), "Publisher which never existed removed")
         spin_some()
         # delete subscriber which exists
-        self.assertTrue(self.ros2Node.RemoveSubscriberNode("test_string_xkcd"), "Subscriber which exists not removed")
+        self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber which exists not removed")
         spin_some()
         # delete subscriber which used to exist
-        self.assertFalse(self.ros2Node.RemoveSubscriberNode("test_string_xkcd"), "Subscriber which used to exist removed")
+        self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber which used to exist removed")
         spin_some()
         # delete subscriber which never existed
-        self.assertFalse(self.ros2Node.RemoveSubscriberNode("random_name"), "Subscriber which never existed removed")
+        self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("random_name"), "Subscriber which never existed removed")
         spin_some()
         print("Testing deletion of publisher and subscriber - Done")
 
@@ -150,6 +152,7 @@ class TestParameterNode(unittest.TestCase):
         print("\nCreating ROS2 node for parameter tests..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
+        spin_some()
         self.create_turtlesim_node_process = run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
         spin_some()
         self.assertTrue(check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
@@ -157,7 +160,7 @@ class TestParameterNode(unittest.TestCase):
 
     def test_parameter_monitoring(self):
         print("\nTesting creation and working of parameter node - Starting..")
-        testParam = self.ros2Node.CreateAndAddParameter("/turtlesim")
+        testParam = self.ros2Node.CreateAndAddParameterNode("/turtlesim")
         spin_some()
 
         # Valid Parameter which will be added
@@ -196,22 +199,22 @@ class TestParameterNode(unittest.TestCase):
         self.assertEqual(testParam.GetParameterAsInteger("background_g"), 150)
 
         # delete parameter node
-        self.assertTrue(self.ros2Node.RemoveParameterNode("/turtlesim"))
+        self.assertTrue(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"))
         print("Testing creation and working of parameter node - Done")
 
     def test_parameter_deletion(self):
         print("\nTesting deletion of parameter node - Starting..")
-        testParam = self.ros2Node.CreateAndAddParameter("/turtlesim")
+        testParam = self.ros2Node.CreateAndAddParameterNode("/turtlesim")
         spin_some()
 
         # delete parameter node which exists
-        self.assertTrue(self.ros2Node.RemoveParameterNode("/turtlesim"), "Failed to delete parameter node which exists")
+        self.assertTrue(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"), "Failed to delete parameter node which exists")
         spin_some()
         # delete parameter node which used to exist
-        self.assertFalse(self.ros2Node.RemoveParameterNode("/turtlesim"), "Deleted parameter node which used to exist")
+        self.assertFalse(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"), "Deleted parameter node which used to exist")
         spin_some()
         # delete parameter node which never existed
-        self.assertFalse(self.ros2Node.RemoveParameterNode("/random_name"), "Deleted parameter node which never existed")
+        self.assertFalse(self.ros2Node.RemoveAndDeleteParameterNode("/random_name"), "Deleted parameter node which never existed")
         spin_some()
         print("Testing deletion of parameter node - Done")
 
@@ -227,9 +230,9 @@ class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         print("\nCreating ROS2 node to test Broadcaster Nodes..")
         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
         self.ros2Node.Create("testNode")
-        broadcaster = self.ros2Node.CreateAndAddTf2Broadcaster("vtkMRMLROS2Tf2BroadcasterNode", "Parent", "Child")
-        buffer = self.ros2Node.GetTf2Buffer()
-        lookupNode = buffer.CreateAndAddLookupNode("Parent", "Child")
+        spin_some()
+        broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
+        lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
         # Broadcast a 4x4 matrix and confirm
         broadcastedMat = vtk.vtkMatrix4x4()
         broadcastedMat.SetElement(0,3,66) # Set a default value
@@ -246,25 +249,6 @@ class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         self.assertFalse(False)
         self.assertEqual(1, 1)
         # Probably I will broadcast something to a test lookup node and make sure the transform matches
-        pass
-
-    def tearDown(self):
-        pass
-        # self.ros2Node.Destroy()
-
-
-class TestBufferNode(unittest.TestCase):
-    def setUp(self):
-        print("\nCreating ROS2 node to test Buffer Nodes..")
-        self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-        self.ros2Node.Create("testNode")
-
-    def test_buffer_functioning(self):
-        # Add a buffer node and assert its functioning is as expected
-        # Do not bother with the buffer node's destruction - Haven't gotten to that yet
-        self.assertTrue(True)
-        self.assertFalse(False)
-        self.assertEqual(1, 1)
         pass
 
     def tearDown(self):

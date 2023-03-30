@@ -40,7 +40,6 @@
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
-#include <vtkMRMLROS2Tf2BufferNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
 
@@ -109,7 +108,6 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
   // Tf2
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BufferNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>::New());
   // Robot
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
@@ -174,7 +172,7 @@ void vtkSlicerROS2Logic::AddSomePublishers(void)
   this->GetMRMLScene()->AddNode(stringPub);
   stringPub->AddToROS2Node(mDefaultROS2Node->GetID(), "/string_pub");
   // the fast way
-  mDefaultROS2Node->CreateAndAddPublisher("vtkMRMLROS2PublisherStringNode", "/string_pub_2");
+  mDefaultROS2Node->CreateAndAddPublisherNode("vtkMRMLROS2PublisherStringNode", "/string_pub_2");
 }
 
 
@@ -189,7 +187,7 @@ void vtkSlicerROS2Logic::AddSomeSubscribers(void)
   this->GetMRMLScene()->AddNode(subPose);
   subPose->AddToROS2Node(mDefaultROS2Node->GetID(), "/pose_sub");
   // the fast way
-  mDefaultROS2Node->CreateAndAddSubscriber("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
+  mDefaultROS2Node->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
 }
 
 
@@ -209,9 +207,9 @@ void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
   tfBroadcaster->AddToROS2Node(mDefaultROS2Node->GetID());
   // Add Tf2 Buffer
   // keep this as the long way
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
-  this->GetMRMLScene()->AddNode(tfBuffer);
-  tfBuffer->AddToROS2Node(mDefaultROS2Node->GetID());
+  // vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
+  // this->GetMRMLScene()->AddNode(tfBuffer);
+  // tfBuffer->AddToROS2Node(mDefaultROS2Node->GetID());
   // vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> tfLookup = vtkMRMLROS2Tf2LookupNode::New();
   // this->GetMRMLScene()->AddNode(tfLookup);
   // tfLookup->SetParentID("world");

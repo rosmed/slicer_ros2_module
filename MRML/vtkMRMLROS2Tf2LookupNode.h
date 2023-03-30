@@ -30,7 +30,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
 
   bool IsParentAndChildSet(void) const;
 
-  bool AddToBuffer(void);
+  bool AddToROS2Node(const char * nodeId);
+  bool IsAddedToROS2Node(void) const;
 
   void SetModifiedOnLookup(const bool & set);
   bool GetModifiedOnLookup(void) const;
@@ -49,7 +50,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   std::string mMRMLNodeName = "ros2:tf2lookup:empty";
   std::string mParentID = "";
   std::string mChildID = "";
-  size_t mNumberOfBroadcasts = 0;
+  bool mAddedToROS2Node = false;
   bool mModifiedOnLookup = true;
 };
 

@@ -1,13 +1,19 @@
-#include <vtkMRMLScene.h>
 #include <vtkMRMLROS2NodeNode.h>
+
+#include <vtkMatrix4x4.h>
+#include <vtkMRMLScene.h>
+
+#include <vtkROS2ToSlicer.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
-#include <vtkMRMLROS2Tf2BufferNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
+
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
+
 
 vtkMRMLNode * vtkMRMLROS2NodeNode::CreateNodeInstance(void)
 {
@@ -24,6 +30,7 @@ const char * vtkMRMLROS2NodeNode::GetNodeTagName(void)
 vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 {
   mInternals = std::make_unique<vtkMRMLROS2NodeInternals>();
+  mTemporaryMatrix = vtkMatrix4x4::New();
 }
 
 
@@ -35,7 +42,7 @@ vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 
 void vtkMRMLROS2NodeNode::PrintSelf(ostream& os, vtkIndent indent)
 {
-  Superclass::PrintSelf(os,indent);
+  Superclass::PrintSelf(os, indent);
 }
 
 
@@ -65,11 +72,11 @@ void vtkMRMLROS2NodeNode::Destroy()
 }
 
 
-vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriber(const char * className, const std::string & topic)
+vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode(const char * className, const std::string & topic)
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
     return nullptr;
   }
   // CreateNodeByClass
@@ -92,11 +99,11 @@ vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriber(const ch
 }
 
 
-vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char * className, const std::string & topic)
+vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisherNode(const char * className, const std::string & topic)
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
     return nullptr;
   }
   // CreateNodeByClass
@@ -119,49 +126,36 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisher(const char
 }
 
 
-vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameter(const std::string & monitoredNodeName)
+vtkMRMLROS2ParameterNode * vtkMRMLROS2NodeNode::CreateAndAddParameterNode(const std::string & monitoredNodeName)
 {
-  const char * className = "vtkMRMLROS2ParameterNode";
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddParameter: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddParameter: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
     return nullptr;
   }
   // CreateNodeByClass
-  vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
-  // Check that this is a Parameter so we can add it
-  vtkMRMLROS2ParameterNode * parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(node);
-  if (parameterNode == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddParameter: \"" << className << "\" is not derived from vtkMRMLROS2ParameterNode");
-    return nullptr;
-  }
+  vtkSmartPointer<vtkMRMLROS2ParameterNode> parameterNode = vtkMRMLROS2ParameterNode::New();
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(parameterNode);
   if (parameterNode->AddToROS2Node(this->GetID(), monitoredNodeName)) {
     return parameterNode;
   }
   // Something went wrong, cleanup
-  this->GetScene()->RemoveNode(node);
-  node->Delete();
+  this->GetScene()->RemoveNode(parameterNode);
+  parameterNode->Delete();
   return nullptr;
 }
 
 
-vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddTf2Broadcaster(const char * className, const std::string & parent_id, const std::string & child_id)
+vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id)
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddTf2Broadcaster: \"" << mROS2NodeName << "\" is not added to a MRML scene yet");
+    vtkErrorMacro(<< "CreateAndAddTf2Broadcaster: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
     return nullptr;
   }
-  // CreateNodeByClass
-  vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
-  // Check that this is a subscriber so we can add it
-  vtkMRMLROS2Tf2BroadcasterNode * broadcasterNode = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(node);
-  if (broadcasterNode == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddTf2Broadcaster: \"" << className << "\" is not derived from vtkMRMLROS2Tf2BroadcasterNode");
-    return nullptr;
-  }
+  // Create the broadcaster node
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcasterNode = vtkMRMLROS2Tf2BroadcasterNode::New();
   // Add to the scene so the ROS2Node node can find it
   this->GetScene()->AddNode(broadcasterNode);
   if (broadcasterNode->AddToROS2Node(this->GetID())) {
@@ -170,8 +164,32 @@ vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::CreateAndAddTf2Broadcaster(
     return broadcasterNode;
   }
   // Something went wrong, cleanup
-  this->GetScene()->RemoveNode(node);
-  node->Delete();
+  this->GetScene()->RemoveNode(broadcasterNode);
+  broadcasterNode->Delete();
+  return nullptr;
+}
+
+
+vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode(const std::string & parent_id, const std::string & child_id)
+{
+  // Check the buffer node is in the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddTf2LookupNode: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+
+  // Create the lookup node
+  vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::New();
+  // Add the node to the scene
+  this->GetScene()->AddNode(lookupNode);
+  if (lookupNode->AddToROS2Node(this->GetID())) {
+    lookupNode->SetParentID(parent_id);
+    lookupNode->SetChildID(child_id);
+    return lookupNode;
+  }
+  // Something went wrong, cleanup
+  this->GetScene()->RemoveNode(lookupNode);
+  lookupNode->Delete();
   return nullptr;
 }
 
@@ -221,7 +239,37 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NodeNode::GetParameterNodeByNode(const std:
 }
 
 
-bool vtkMRMLROS2NodeNode::RemoveSubscriberNode(const std::string & topic)
+vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterNodeByID(const std::string & nodeID)
+{
+  size_t broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
+  for (size_t j = 0; j < broadcasterRefs; ++j) {
+    vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> node = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(this->GetNthNodeReference("broadcaster", j));
+    if (!node) {
+      vtkWarningMacro(<< "GetTf2BroadcasterNodeByID: node referenced by role 'broadcaster' is not a broadcaster");
+    } else if (node->GetID() == nodeID) {
+      return node;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
+
+vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByID(const std::string & nodeID)
+{
+  size_t lookupRefs = this->GetNumberOfNodeReferences("lookup");
+  for (size_t j = 0; j < lookupRefs; ++j) {
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> node = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookup", j));
+    if (!node) {
+      vtkWarningMacro(<< "GetTf2LookupNodeByID: node referenced by role 'lookup' is not a lookup");
+    } else if (node->GetID() == nodeID) {
+      return node;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteSubscriberNode(const std::string & topic)
 {
   vtkMRMLROS2SubscriberNode * node = this->GetSubscriberNodeByTopic(topic);
   if (!node) {
@@ -235,7 +283,7 @@ bool vtkMRMLROS2NodeNode::RemoveSubscriberNode(const std::string & topic)
 }
 
 
-bool vtkMRMLROS2NodeNode::RemovePublisherNode(const std::string & topic)
+bool vtkMRMLROS2NodeNode::RemoveAndDeletePublisherNode(const std::string & topic)
 {
   vtkMRMLROS2PublisherNode * node = this->GetPublisherNodeByTopic(topic);
   if (!node) {
@@ -249,7 +297,7 @@ bool vtkMRMLROS2NodeNode::RemovePublisherNode(const std::string & topic)
 }
 
 
-bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & monitoredNodeName)
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNode(const std::string & monitoredNodeName)
 {
   vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNode(monitoredNodeName);
   if (!node) {
@@ -263,29 +311,55 @@ bool vtkMRMLROS2NodeNode::RemoveParameterNode(const std::string & monitoredNodeN
 }
 
 
-vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterByID(const std::string & nodeID)
+bool vtkMRMLROS2NodeNode::SetTf2Buffer(void)
 {
-  size_t broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
-  for (size_t j = 0; j < broadcasterRefs; ++j) {
-    vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> node = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(this->GetNthNodeReference("broadcaster", j));
-    std::string bufferNodeID = node->GetID();
-    if (bufferNodeID == nodeID) {
-      return node;
-    }
+  // if it exists
+  if (mInternals->mTf2Buffer != nullptr) {
+    return true;
   }
-  return nullptr; // otherwise return a null ptr
+  // else try to create all internals if we have a proper ros node
+  if (mInternals->mNodePointer != nullptr) {
+    mInternals->mTf2Buffer = std::make_unique<tf2_ros::Buffer>(mInternals->mNodePointer->get_clock());
+    mInternals->mTf2Listener = std::make_shared<tf2_ros::TransformListener>(*mInternals->mTf2Buffer);
+    return true;
+  } else {
+    vtkWarningMacro(<< "SetTf2Buffer: trying to setup the tf2 buffer before the ROS internal node has been created for \"" << GetName() << "\"");
+    return false;
+  }
+  return false;
 }
 
 
-vtkMRMLROS2Tf2BufferNode * vtkMRMLROS2NodeNode::GetTf2Buffer(bool createIfNeeded)
+void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
 {
-  // create if needed, required and possible
-  if ((mTf2Buffer == nullptr) && createIfNeeded && this->GetScene()) {
-    mTf2Buffer = vtkMRMLROS2Tf2BufferNode::New();
-    this->GetScene()->AddNode(mTf2Buffer);
-    mTf2Buffer->AddToROS2Node(this->GetID());
+  if (mInternals->mTf2Buffer != nullptr) {
+    // iterate through lookup nodes - make sure they have parent and children set and call lookup try catch
+    int nbLookupRefs = this->GetNumberOfNodeReferences("lookup");
+    for (int i = 0; i < nbLookupRefs; i ++) {
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookup", i));
+      const std::string & parent_id = lookupNode->GetParentID();
+      const std::string & child_id = lookupNode->GetChildID();
+      try {
+	geometry_msgs::msg::TransformStamped transformStamped;
+	// check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
+	transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
+	vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
+	if (lookupNode->GetModifiedOnLookup()) {
+	  lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+	} else {
+	  lookupNode->DisableModifiedEventOn();
+	  lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+	  lookupNode->DisableModifiedEventOff();
+	}
+      }
+      catch (tf2::TransformException & ex) {
+	vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
+      }
+      catch (...) {
+	vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);
+      }
+    }
   }
-  return mTf2Buffer;
 }
 
 
@@ -293,15 +367,16 @@ void vtkMRMLROS2NodeNode::Spin(void)
 {
   if (rclcpp::ok()) {
     mSpinning = true;
+    // for all ROS callbacks
     rclcpp::spin_some(mInternals->mNodePointer);
-    if (mTf2Buffer != nullptr) {
-      mTf2Buffer->Spin();
-    }
+    // parameters
     for (auto & node : this->mParameterNodes) {
       if (node != nullptr) {
         node->Spin();
       }
     }
+    // tf2 lookups / buffer
+    SpinTf2Buffer();
   } else {
     mSpinning = false;
   }

@@ -74,7 +74,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 
   std::string mRobotName = "undefined";
   std::string mMRMLNodeName = "ros2:robot";
-  vtkSmartPointer<vtkMRMLROS2NodeNode> mROS2Node;
+  vtkSmartPointer<vtkMRMLROS2NodeNode> mMRMLROS2Node;
   std::unique_ptr<vtkMRMLROS2RobotNodeInternals> mInternals;
   size_t mNumberOfLinks = 0;
 
