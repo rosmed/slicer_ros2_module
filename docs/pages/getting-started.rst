@@ -52,6 +52,12 @@ in this example):
 .. code-block:: bash
 
     source /opt/ros/galactic/setup.bash
+    mkdir ~/ros2_ws
+    cd ~/ros2_ws
+    mkdir src
+    cd ~/ros2_ws/src
+    git clone https://github.com/jhu-cisst/ros2_cisst_msgs.git cisst_msgs
+    git clone https://github.com/rosmed/slicer_ros2_module
 
 Then build the module using `colcon` while providing the path to your
 Slicer build directory ``Slicer_DIR``:
