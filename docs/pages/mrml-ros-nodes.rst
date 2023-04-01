@@ -104,6 +104,21 @@ added to the MRML scene and should be used to add your custom
 to add an extra ROS 2 node in SlicerROS2 but this feature has not been
 tested extensively for the first release.
 
+To retrieve the default ROS node:
+
+.. tabs::
+
+   .. tab:: C++
+
+      C++ code goes here
+
+   .. tab:: Python
+
+      .. code-block:: python
+
+	 rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+
 ======
 Topics
 ======
@@ -119,8 +134,13 @@ Publishers
 
    .. tab:: Python
 
-      Python code goes here
-      
+      .. code-block:: python
+
+	 rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+         pub = rosNode.CreateAndAddPublisherNode('vtkMRMLROS2PublisherStringNode', '/my_publisher')
+         pub.Publish('my first string')
+
 
 Subscribers
 ===========
@@ -136,8 +156,8 @@ Tf2
 Broadcasts
 ==========
 
-Buffer and lookups
-==================
+Lookups
+=======
 
 ======
 Robots

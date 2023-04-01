@@ -77,7 +77,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
     to the MRML scene.  The core logic will automatically detect any
     new ROS node added to the scene and make sure the node is
     "spinning". */
-  vtkSmartPointer<vtkMRMLROS2NodeNode> GetDefaultROS2Node(void) const;
+  vtkMRMLROS2NodeNode * GetDefaultROS2Node(void) const;
 
   /*! Developement methods, to be removed */
   void AddSomePublishers(void);

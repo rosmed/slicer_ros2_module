@@ -159,7 +159,7 @@ void vtkSlicerROS2Logic::Spin(void)
 }
 
 
-vtkSmartPointer<vtkMRMLROS2NodeNode> vtkSlicerROS2Logic::GetDefaultROS2Node(void) const
+vtkMRMLROS2NodeNode * vtkSlicerROS2Logic::GetDefaultROS2Node(void) const
 {
   return mDefaultROS2Node;
 }
