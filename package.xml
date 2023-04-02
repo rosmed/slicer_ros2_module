@@ -11,7 +11,7 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>kdl_parser</depend>CM
+  <depend>kdl_parser</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>cisst_msgs</depend>
@@ -20,6 +20,6 @@
   <test_depend>ament_lint_common</test_depend>
 
   <export>
-    <build_type>cmake</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
