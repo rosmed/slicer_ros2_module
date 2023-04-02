@@ -4,8 +4,8 @@
   <name>slicer_ros2_module</name>
   <version>0.0.0</version>
   <description>Slicer ROS 2 Module</description>
-  <maintainer email="ubuntu@todo.todo">ubuntu</maintainer>
-  <license>TODO: License declaration</license>
+  <maintainer email="anton.deguet@jhu.edu">Anton Deguet</maintainer>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
