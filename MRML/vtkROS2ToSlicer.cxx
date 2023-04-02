@@ -1,5 +1,6 @@
 #include <vtkROS2ToSlicer.h>
 #include <vtkMath.h>
+#include <vtkVariant.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
@@ -11,6 +12,19 @@ void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result)
 void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result)
 {
   result = input.data;
+}
+
+void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result)
+{
+  result->SetNumberOfRows(2); // Row 1 = button status, Row 2 = axes values
+  int numAxes = input.axes.size();
+  int numButtons = input.buttons.size();
+  for (int j = 0; j < numAxes; j++){
+    result->SetValue(1, j, vtkVariant(input.axes[j]));
+  }
+  for (int j = 0; j < numButtons; j++){
+    result->SetValue(0, j, vtkVariant(input.buttons[j])); 
+  }
 }
 
 void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result)

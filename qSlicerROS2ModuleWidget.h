@@ -60,13 +60,18 @@ protected slots:
   void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
   void onSetSubscribers(void);
   void onSetPublishers(void);
-  void onNodeAddedButton(void);
   void refreshSubTable(void);
   void refreshPubTable(void);
 
   // Slots for dynamic widgets
   void subscriberClicked(int row, int col);
   void publisherClicked(int row, int col);
+
+  void onLoadRobotClicked(void);
+  void onLoadRobot2Clicked(void);
+  void onRemoveRobotClicked(void);
+  void onRemoveRobot2Clicked(void);
+  void onAddRobotButton(void);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);

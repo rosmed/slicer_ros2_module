@@ -1,10 +1,14 @@
+
 #include <vtkMRMLROS2Tf2LookupNode.h>
-#include <vtkSlicerToROS2.h>
+
 #include <vtkObject.h>
-#include <vtkMRMLTransformNode.h>
 #include <vtkEventBroker.h>
-#include <vtkMRMLROS2Tf2BufferNode.h>
+
 #include <vtkMRMLScene.h>
+#include <vtkMRMLTransformNode.h>
+
+#include <vtkMRMLROS2Utils.h>
+#include <vtkMRMLROS2NodeNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2Tf2LookupNode);
 
@@ -30,7 +34,7 @@ const char * vtkMRMLROS2Tf2LookupNode::GetNodeTagName(void)
 }
 
 
-void vtkMRMLROS2Tf2LookupNode::PrintSelf(ostream& os, vtkIndent indent)
+void vtkMRMLROS2Tf2LookupNode::PrintSelf(ostream & os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
 }
@@ -38,8 +42,8 @@ void vtkMRMLROS2Tf2LookupNode::PrintSelf(ostream& os, vtkIndent indent)
 
 bool vtkMRMLROS2Tf2LookupNode::SetParentID(const std::string & parent_id)
 {
-  if (parent_id.empty()){
-    vtkErrorMacro(<< "Parent ID cannot be empty string.");
+  if (parent_id.empty()) {
+    vtkErrorMacro(<< "SetParentID: parent ID cannot be empty string");
     return false;
   }
   mParentID = parent_id;
@@ -57,7 +61,7 @@ const std::string& vtkMRMLROS2Tf2LookupNode::GetParentID(void) const
 bool vtkMRMLROS2Tf2LookupNode::SetChildID(const std::string & child_id)
 {
   if (child_id.empty()) {
-    vtkErrorMacro(<< "Child ID cannot be empty string.");
+    vtkErrorMacro(<< "SetChildID: child ID cannot be empty string");
     return false;
   }
   mChildID = child_id;
@@ -74,39 +78,48 @@ const std::string& vtkMRMLROS2Tf2LookupNode::GetChildID(void) const
 
 bool vtkMRMLROS2Tf2LookupNode::IsParentAndChildSet(void) const
 {
-  if (mParentID.empty() || mChildID.empty()){
+  if (mParentID.empty() || mChildID.empty()) {
     return false;
   }
-  else{
+  else {
     return true;
   }
 }
 
 
-bool vtkMRMLROS2Tf2LookupNode::AddToBuffer(void)
+bool vtkMRMLROS2Tf2LookupNode::AddToROS2Node(const char * nodeId)
 {
-  vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> buffer = vtkMRMLROS2Tf2BufferNode::SafeDownCast(this->GetScene()->GetFirstNodeByClass("vtkMRMLROS2Tf2BufferNode"));
-  if (buffer == nullptr) {
-    vtkErrorMacro(<< "No buffer in the scene.");
+  // Check that the lookup is in the scene
+  this->SetName(mMRMLNodeName.c_str());
+  std::string errorMessage;
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
+      vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
+      return false;
+  }
+
+  // Check that the buffer hasn't already been added to the node
+  vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mrmlROSNodePtr->GetTf2LookupNodeByID(this->GetID());
+  if ((lookup != nullptr) && lookup->IsAddedToROS2Node()) {
+    vtkErrorMacro(<< "AddToROS2Node: this lookup has already been added to the ROS2 node.");
     return false;
   }
-  if (buffer->mLookupNodes.size() == 0) {
-    buffer->AddLookupNode(this);
-  }
-  else {
-    for (size_t j = 0; j < buffer->mLookupNodes.size(); j++) {
-      auto lookupID = buffer->mLookupNodes[j]->GetID();
-      if (lookupID == this->GetID()) {
-        vtkErrorMacro(<< "Lookup node is already in the buffer list.");
-        return false;
-      }
-      else {
-        buffer->AddLookupNode(this);
-        return true;
-      }
-    }
-  }
-  return false;
+
+  // Add the lookup to the node and set up references
+  mrmlROSNodePtr->SetTf2Buffer();
+  mAddedToROS2Node = true;
+  mrmlROSNodePtr->SetNthNodeReferenceID("lookup",
+                                        mrmlROSNodePtr->GetNumberOfNodeReferences("lookup"),
+                                        this->GetID());
+  this->SetNodeReferenceID("node", nodeId);
+  mrmlROSNodePtr->WarnIfNotSpinning("adding tf2 lookup for \"" + mMRMLNodeName + "\"");
+  return true;
+}
+
+
+bool vtkMRMLROS2Tf2LookupNode::IsAddedToROS2Node(void) const
+{
+  return mAddedToROS2Node;
 }
 
 
@@ -160,5 +173,18 @@ void vtkMRMLROS2Tf2LookupNode::ReadXMLAttributes(const char** atts)
 void vtkMRMLROS2Tf2LookupNode::UpdateScene(vtkMRMLScene *scene)
 {
   Superclass::UpdateScene(scene);
-  this->AddToBuffer();
+  int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+  if (nbNodeRefs == 0) {
+    // assigned to the default ROS node
+    auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
+    if(!defaultNode){
+      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for broadcaster \"" << GetName() << "\"");
+      return;
+    }
+    this->AddToROS2Node(defaultNode->GetID());
+  } else if (nbNodeRefs == 1) {
+    this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
+  } else {
+    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for broadcaster \"" << GetName() << "\"");
+  }
 }

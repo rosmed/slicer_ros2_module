@@ -51,6 +51,102 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::TransformStamped
   result.transform.rotation.z = q[3];
 }
 
+void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::WrenchStamped & result,
+		     const std::shared_ptr<rclcpp::Node> &)
+{
+   if (input->GetNumberOfValues() == 6){
+     result.wrench.force.x = input->GetValue(0); // for now I'm going to make it 0
+     result.wrench.force.y = input->GetValue(1);
+     result.wrench.force.z = input->GetValue(2);
+     result.wrench.torque.x = input->GetValue(3);
+     result.wrench.torque.y = input->GetValue(4);
+     result.wrench.torque.z = input->GetValue(5);
+   }
+   else{
+     result.wrench.force.x = 0.0; 
+     result.wrench.force.y = 0.0;
+     result.wrench.force.z = 0.0;
+     result.wrench.torque.x = 0.0;
+     result.wrench.torque.y = 0.0;
+     result.wrench.torque.z = 0.0;
+   }
+}
+
+void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArray & result,
+		     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
+  result.header.stamp = rosNode->get_clock()->now();
+  result.poses.clear();
+
+  for (int i = 0; i < input->GetNumberOfItems(); i++){
+    vtkTransform* transform = vtkTransform::SafeDownCast(input->GetItemAsObject(i));
+    if (transform){
+      vtkMatrix4x4* matrix = transform->GetMatrix();
+      geometry_msgs::msg::Pose pose;
+
+      double q[4] = {0.0, 0.0, 0.0, 0.0};
+      vtkMatrix4x4ToQuaternion(matrix, q);
+      pose.position.x = matrix->GetElement(0, 3) * M_TO_MM;
+      pose.position.y = matrix->GetElement(1, 3) * M_TO_MM;
+      pose.position.z = matrix->GetElement(2, 3) * M_TO_MM;
+      pose.orientation.w = q[0];
+      pose.orientation.x = q[1];
+      pose.orientation.y = q[2];
+      pose.orientation.z = q[3];
+
+      result.poses.push_back(pose);
+    }
+  }
+}
+
+void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGains & result,
+		     const std::shared_ptr<rclcpp::Node> &) // the input should be something related to the closest point on the volume 
+{
+  result.pos_stiff_neg.x = 0.0;
+  result.pos_stiff_pos.x = 0.0;
+  result.pos_damping_neg.x = 0.0;
+  result.pos_damping_pos.x = 0.0;
+  result.pos_stiff_neg.y = 0.0;
+  result.pos_stiff_pos.y = 0.0;
+  result.pos_damping_neg.y = 0.0;
+  result.pos_damping_pos.y = 0.0;
+  result.pos_stiff_neg.z = -200.0; // these were all negative (114-117 and I made them positive)
+  result.pos_stiff_pos.z = -200.0;
+  result.pos_damping_neg.z = -5.0;
+  result.pos_damping_pos.z = -5.0;
+
+  double stiffOri = -0.2;
+  double dampOri = -0.01;
+  result.ori_stiff_neg.x = stiffOri;
+  result.ori_stiff_pos.x = stiffOri;
+  result.ori_damping_neg.x = dampOri;
+  result.ori_damping_pos.x = dampOri;
+  result.ori_stiff_neg.y = stiffOri;
+  result.ori_stiff_pos.y = stiffOri;
+  result.ori_damping_neg.y = dampOri;
+  result.ori_damping_pos.y = dampOri;
+  result.ori_stiff_neg.z = 0.0;
+  result.ori_stiff_pos.z = 0.0;
+  result.ori_damping_neg.z = 0.0;
+  result.ori_damping_pos.z = 0.0;
+
+  result.force_position.x = input->GetElement(0, 3) * M_TO_MM;
+  result.force_position.y = input->GetElement(1, 3) * M_TO_MM;
+  result.force_position.z = input->GetElement(2, 3) * M_TO_MM;
+
+  double q[4] = {0.0, 0.0, 0.0, 0.0};
+  vtkMatrix4x4ToQuaternion(input, q);
+  result.force_orientation.x = q[1];
+  result.force_orientation.y = q[2];
+  result.force_orientation.z = q[3]; // should this come from breach warning 
+  result.force_orientation.w = q[0]; 
+  result.torque_orientation.x = q[1];
+  result.torque_orientation.y = q[2];
+  result.torque_orientation.z = q[3];
+  result.torque_orientation.w = q[0];
+}
+
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
   double A[3][3];

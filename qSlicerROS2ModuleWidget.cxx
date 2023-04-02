@@ -75,7 +75,7 @@ qSlicerROS2ModuleWidget::qSlicerROS2ModuleWidget(QWidget* _parent)
 {
   this->mTimer = new QTimer();
   mTimer->setSingleShot(false);
-  mTimer->setInterval(10); // 10 ms, 100Hz
+  mTimer->setInterval(20); // 20 ms, 50Hz
   mTimer->start();
 }
 
@@ -97,7 +97,6 @@ void qSlicerROS2ModuleWidget::setup(void)
 
   this->connect(d->setSubscribersButton, SIGNAL(clicked(bool)), this, SLOT(onSetSubscribers()));
   this->connect(d->setPublishersButton, SIGNAL(clicked(bool)), this, SLOT(onSetPublishers()));
-  this->connect(d->addNodeButton, SIGNAL(clicked(bool)), this, SLOT(onNodeAddedButton()));
 
   // Set up timer connections
   connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
@@ -106,22 +105,25 @@ void qSlicerROS2ModuleWidget::setup(void)
   // Set up signals / slots for dynamically loaded widgets
   this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
   this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
-}
 
-void qSlicerROS2ModuleWidget::onNodeAddedButton()
-{
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  // Instantiate ROS2 node
-  logic->AddROS2Node();
+  // Robot setup
+  this->connect(d->loadRobotButton, SIGNAL(clicked(bool)), this, SLOT(onLoadRobotClicked()));
+  this->connect(d->loadRobot2Button, SIGNAL(clicked(bool)), this, SLOT(onLoadRobot2Clicked()));
+  this->connect(d->removeRobotButton, SIGNAL(clicked(bool)), this, SLOT(onRemoveRobotClicked()));
+  this->connect(d->removeRobot2Button, SIGNAL(clicked(bool)), this, SLOT(onRemoveRobot2Clicked()));
+  d->removeRobotButton->setEnabled(false);
 
-  // Setup modified connections for the widget
-  if (logic->mTestROS2Node){
-    qvtkReconnect(logic->mTestROS2Node, vtkMRMLNode::ReferenceAddedEvent, this, SLOT(updateWidget())); // Set up observer
-  }
+  // Robot 2 control
+  this->connect(d->addRobotButton, SIGNAL(clicked(bool)), this, SLOT(onAddRobotButton()));
+
+  d->loadRobot2Button->hide();
+  d->removeRobot2Button->hide();
+  d->robot2NameLineEdit->hide();
+  d->parameterNode2NameLineEdit->hide();
+  d->parameter2LineEdit->hide();
+  d->robot2NameLabel->hide();
+  d->parameterNode2Label->hide();
+  d->parameter2Label->hide();
 }
 
 
@@ -134,6 +136,7 @@ void qSlicerROS2ModuleWidget::onTimerTimeOut()
   }
   logic->Spin();
 }
+
 
 void qSlicerROS2ModuleWidget::updateWidget()
 {
@@ -148,8 +151,10 @@ void qSlicerROS2ModuleWidget::updateWidget()
   // Check how many subscriber references are on the node vs. how many rows are in the table
   int visibleSubscriberRefs = d->rosSubscriberTableWidget->rowCount();
   int visiblePublisherRefs = d->rosPublisherTableWidget->rowCount();
-  int subscriberRefs = logic->mTestROS2Node->GetNumberOfNodeReferences("subscriber");
-  int publisherRefs = logic->mTestROS2Node->GetNumberOfNodeReferences("publisher");
+
+  // The following needs to be updated to list all ROS nodes in logic 
+  int subscriberRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
+  int publisherRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
 
   // update subscriber table
   if (visibleSubscriberRefs < subscriberRefs) {
@@ -174,13 +179,13 @@ void qSlicerROS2ModuleWidget::refreshSubTable()
   size_t subRow = 0;
   d->rosSubscriberTableWidget->clearContents();
 
-  // Resize the table
-  d->rosSubscriberTableWidget->setRowCount(logic->mTestROS2Node->GetNumberOfNodeReferences("subscriber"));
+  // // Resize the table
+  d->rosSubscriberTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"));
 
-  // Iterate through the references
-  for (int index = 0; index < logic->mTestROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
-  const char * id = logic->mTestROS2Node->GetNthNodeReferenceID("subscriber", index);
-  vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mTestROS2Node->GetScene()->GetNodeByID(id));
+  // // Iterate through the references
+  for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
+  const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("subscriber", index);
+  vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
   if (sub == nullptr) {
     } else {
       updateSubscriberTable(sub, subRow);
@@ -203,12 +208,12 @@ void qSlicerROS2ModuleWidget::refreshPubTable()
   d->rosPublisherTableWidget->clearContents();
 
   // Resize the table
-  d->rosPublisherTableWidget->setRowCount(logic->mTestROS2Node->GetNumberOfNodeReferences("publisher"));
+  d->rosPublisherTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"));
 
   // Iterate through the references
-  for (int index = 0; index < logic->mTestROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
-    const char * id = logic->mTestROS2Node->GetNthNodeReferenceID("publisher", index);
-    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mTestROS2Node->GetScene()->GetNodeByID(id));
+  for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("publisher", index);
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
     if (pub == nullptr) {
     } else {
       updatePublisherTable(pub, pubRow);
@@ -347,4 +352,93 @@ void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
 void qSlicerROS2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
   mTimer->stop();
+}
+
+
+void qSlicerROS2ModuleWidget::onLoadRobotClicked(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  std::string robotName = d->robotNameLineEdit->text().toStdString();
+  std::string parameterNodeName = d->parameterNodeNameLineEdit->text().toStdString();
+  std::string parameterName = d->parameterLineEdit->text().toStdString();
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->AddRobot(parameterNodeName, parameterName, robotName);
+
+  // Disable the UI
+  d->removeRobotButton->setEnabled(true);
+  d->loadRobotButton->setEnabled(false);
+  d->robotNameLineEdit->setEnabled(false);
+  d->parameterNodeNameLineEdit->setEnabled(false);
+  d->parameterLineEdit->setEnabled(false);
+}
+
+void qSlicerROS2ModuleWidget::onLoadRobot2Clicked(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  std::string robotName = d->robot2NameLineEdit->text().toStdString();
+  std::string parameterNodeName = d->parameterNode2NameLineEdit->text().toStdString();
+  std::string parameterName = d->parameter2LineEdit->text().toStdString();
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->AddRobot(parameterNodeName, parameterName, robotName);
+
+  // Disable the UI
+  d->removeRobot2Button->setEnabled(true);
+  d->loadRobot2Button->setEnabled(false);
+  d->robot2NameLineEdit->setEnabled(false);
+  d->parameterNode2NameLineEdit->setEnabled(false);
+  d->parameter2LineEdit->setEnabled(false);
+}
+
+void qSlicerROS2ModuleWidget::onRemoveRobotClicked(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->RemoveRobot(d->robotNameLineEdit->text().toStdString());
+  d->removeRobotButton->setEnabled(false);
+  d->loadRobotButton->setEnabled(true);
+  d->robotNameLineEdit->setEnabled(true);
+  d->parameterNodeNameLineEdit->setEnabled(true);
+  d->parameterLineEdit->setEnabled(true);
+}
+
+void qSlicerROS2ModuleWidget::onRemoveRobot2Clicked(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->RemoveRobot(d->robot2NameLineEdit->text().toStdString());
+  d->removeRobot2Button->setEnabled(false);
+  d->loadRobot2Button->setEnabled(true);
+  d->robot2NameLineEdit->setEnabled(true);
+  d->parameterNode2NameLineEdit->setEnabled(true);
+  d->parameter2LineEdit->setEnabled(true);
+}
+
+void qSlicerROS2ModuleWidget::onAddRobotButton(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  d->addRobotButton->hide();
+  d->loadRobot2Button->show();
+  d->removeRobot2Button->show();
+  d->robot2NameLineEdit->show();
+  d->parameterNode2NameLineEdit->show();
+  d->parameter2LineEdit->show();
+  d->robot2NameLabel->show();
+  d->parameterNode2Label->show();
+  d->parameter2Label->show();
 }

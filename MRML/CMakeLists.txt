@@ -6,6 +6,7 @@ set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT"
 
 set(${KIT}_INCLUDE_DIRECTORIES
   ${Slicer_Base_INCLUDE_DIRS}
+  ${cisst_msgs_INCLUDE_DIRS}
   )
 
 # --------------------------------------------------------------------------
@@ -17,6 +18,8 @@ set(_SRCS_INTERNAL
   vtkROS2ToSlicer.cxx
   # vtkSlicerToROS2.h
   vtkSlicerToROS2.cxx
+  # vtkMRMLROS2Utils.h
+  vtkMRMLROS2Utils.cxx
   )
 
 set(${KIT}_SRCS
@@ -37,8 +40,6 @@ set(${KIT}_SRCS
   vtkMRMLROS2ParameterNode.cxx 
   vtkMRMLROS2Tf2BroadcasterNode.h
   vtkMRMLROS2Tf2BroadcasterNode.cxx
-  vtkMRMLROS2Tf2BufferNode.h
-  vtkMRMLROS2Tf2BufferNode.cxx
   vtkMRMLROS2Tf2LookupNode.h
   vtkMRMLROS2Tf2LookupNode.cxx
   vtkMRMLROS2RobotNode.h
@@ -60,5 +61,5 @@ SlicerMacroBuildModuleMRML(
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES}
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES} ${cisst_msgs_LIBRARIES}
   )

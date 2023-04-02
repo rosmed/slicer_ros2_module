@@ -22,7 +22,7 @@ copyright = '2022, Queen’s University (Kingston, Canada), Johns Hopkins Univer
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.1'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -31,6 +31,7 @@ release = '0.1.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx_tabs.tabs'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

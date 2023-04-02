@@ -24,6 +24,11 @@
 #ifndef __vtkSlicerROS2Logic_h
 #define __vtkSlicerROS2Logic_h
 
+// foward declarations
+// VTK
+class vtkTimerLog;
+
+// Slicer
 class vtkMRMLROS2NodeNode;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
@@ -34,38 +39,18 @@ class vtkMRMLROS2RobotNode;
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
-#include "vtkSlicerROS2ModuleLogicExport.h"
-
-#include "vtkMRML.h"
-#include "vtkMRMLNode.h"
-
-#include <vtkMatrix4x4.h>
-
-
+#include <vtkSlicerROS2ModuleLogicExport.h>
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   public vtkSlicerModuleLogic
 {
-public:
-
+ public:
   static vtkSlicerROS2Logic *New();
   vtkTypeMacro(vtkSlicerROS2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  // Logic methods
-  void Spin(void);
-
-  /*! Developement methods, to be removed */
-  vtkSmartPointer<vtkMRMLROS2NodeNode> mTestROS2Node;
-  void AddROS2Node(void);
-  void AddSomePublishers(void);
-  void AddSomeSubscribers(void);
-  void AddSomeParameters(void);
-  void AddSomeTf2Nodes(void);
-  void AddRobot(void);
-
-protected:
+ protected:
   vtkSlicerROS2Logic();
   ~vtkSlicerROS2Logic() override;
 
@@ -76,12 +61,43 @@ protected:
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
 
-private:
+ public:
+  /*! Spin all the ROS nodes attached to the module's core logic.
+    This method needs to be called periodically to dequeue all the ROS
+    incomming messages (subscriptions, parameters and tf2 lookups.  By
+    default, this method is called using a Qt timer that will run as
+    soon as this modules logic widget is displayed.  The default
+    frequency is 50Hz. */
+  void Spin(void);
+
+  /*! Get the default ROS node attached to the core logic.  The
+    default ROS node can be used for most applications.  It is started
+    without any namespace.  If your application requires a ROS
+    namespace, create a new ROS node (vtkMRMLROS2NodeNode) and add it
+    to the MRML scene.  The core logic will automatically detect any
+    new ROS node added to the scene and make sure the node is
+    "spinning". */
+  vtkMRMLROS2NodeNode * GetDefaultROS2Node(void) const;
+
+  /*! Developement methods, to be removed */
+  void AddSomePublishers(void);
+  void AddSomeSubscribers(void);
+  void AddSomeParameters(void);
+  void AddSomeTf2Nodes(void);
+  void AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName);
+
+  void RemoveRobot(const std::string & robotName);
+
+  vtkSmartPointer<vtkMRMLROS2NodeNode> mDefaultROS2Node; // should this be private?? UI needs to access it
+
+ private:
 
   vtkSlicerROS2Logic(const vtkSlicerROS2Logic&); // Not implemented
   void operator=(const vtkSlicerROS2Logic&); // Not implemented
 
-  std::vector<vtkMRMLROS2NodeNode*> mROS2Nodes;
+
+  std::vector<vtkSmartPointer<vtkMRMLROS2NodeNode> > mROS2Nodes;
+  vtkSmartPointer<vtkTimerLog> mTimerLog;
 };
 
 #endif
