@@ -65,7 +65,7 @@ QIcon qSlicerROS2Module::icon() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerROS2Module::categories() const
 {
-  return QStringList() << "Examples";
+  return QStringList() << "IGT";
 }
 
 //-----------------------------------------------------------------------------
