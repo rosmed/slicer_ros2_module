@@ -26,7 +26,7 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
 
-* Dependency: We use cisst messages for certain ROS2 publishers. 
+* Dependency: We use cisst messages for certain ROS2 publishers.
   The module: https://github.com/jhu-cisst/ros2_cisst_msgs.git should
   be cloned in the same ROS2 workspace (in the `src` folder) as this repository
   (see instructions below - `~/ros2_ws/src/ros2_cisst_msgs`).
@@ -57,6 +57,10 @@ in this example):
     mkdir src
     cd ~/ros2_ws/src
     git clone https://github.com/jhu-cisst/ros2_cisst_msgs.git cisst_msgs
+    cd ~/ros2_ws
+    colcon build --packages-up-to cisst_msgs
+    source ~/ros2_ws/install/setup.bash
+    cd ~/ros2_ws/src
     git clone https://github.com/rosmed/slicer_ros2_module
 
 Then build the module using `colcon` while providing the path to your
@@ -83,14 +87,13 @@ should see the following error messages"
   slicer-config.cmake
 
 At that point, you don't need to clean your ROS workspace.  You can
-fix the issue by running CMake on the build directory for
-``slicer_ros2_module`` with ``ccmake
-~/ros2_ws/build/slicer_ros2_module``.  In CMake, set ``Slicer_DIR`` to
-point to your Slicer build directory then hit ``c`` to configure until
-you can hit ``g`` to generate the makefiles.  If you prefer a
-graphical interface, you can use ``cmake-gui`` instead of ``ccmake``.
-Once ``Slicer_DIR`` is set, try ``colcon build`` again (after ``cd
-~/ros2_ws``).
+fix the issue by running CMake on the build directory for the Slicer
+`ROS2`` module with ``ccmake ~/ros2_ws/build/ROS2``.  In CMake, set
+``Slicer_DIR`` to point to your Slicer build directory then hit ``c``
+to configure until you can hit ``g`` to generate the makefiles.  If
+you prefer a graphical interface, you can use ``cmake-gui`` instead of
+``ccmake``.  Once ``Slicer_DIR`` is set, try ``colcon build`` again
+(after ``cd ~/ros2_ws``).
 
 ==================
 Loading the module
@@ -109,8 +112,8 @@ directory and start Slicer.  If you followed the Slicer build
 instructions, this should look like:
 
 .. code-block:: bash
-		
-  cd ~/something_something/Slicer-SuperBuild/Slicer-build``.  You can then 
+
+  cd ~/something_something/Slicer-SuperBuild/Slicer-build``.  You can then
   ./Slicer
 
 The first time you run Slicer, you need to add the module directory in

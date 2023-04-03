@@ -20,7 +20,7 @@ undefine_python ()
 # needs to be the first thing we do
 find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
-project(slicer_ros2_module)
+project(ROS2)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
