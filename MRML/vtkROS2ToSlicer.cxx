@@ -14,6 +14,34 @@ void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result)
   result = input.data;
 }
 
+void vtkROS2ToSlicer(const std_msgs::msg::Int64 & input, int & result)
+{
+  result = input.data;
+}
+
+void vtkROS2ToSlicer(const std_msgs::msg::Float64 & input, double & result)
+{
+  result = input.data;
+}
+
+void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPointer<vtkIntArray> result)
+{
+  int numElements = input.data.size();
+  result->SetNumberOfValues(numElements);
+  for (int j = 0; j < numElements; j++){
+    result->SetValue(j, input.data[j]);
+  }
+}
+
+void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPointer<vtkDoubleArray> result)
+{
+  int numElements = input.data.size();
+  result->SetNumberOfValues(numElements);
+  for (int j = 0; j < numElements; j++){
+    result->SetValue(j, input.data[j]);
+  }
+}
+
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result)
 {
   result->SetNumberOfRows(2); // Row 1 = button status, Row 2 = axes values

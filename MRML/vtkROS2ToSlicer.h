@@ -15,6 +15,11 @@
 
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result);
+void vtkROS2ToSlicer(const std_msgs::msg::Int64 & input, int & result);
+void vtkROS2ToSlicer(const std_msgs::msg::Float64 & input, double & result);
+void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPointer<vtkIntArray> result);
+void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPointer<vtkDoubleArray> result);
+
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
