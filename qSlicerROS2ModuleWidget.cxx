@@ -95,9 +95,6 @@ void qSlicerROS2ModuleWidget::setup(void)
   d->setupUi(this);
   this->Superclass::setup();
 
-  this->connect(d->setSubscribersButton, SIGNAL(clicked(bool)), this, SLOT(onSetSubscribers()));
-  this->connect(d->setPublishersButton, SIGNAL(clicked(bool)), this, SLOT(onSetPublishers()));
-
   // Set up timer connections
   connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
   connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopTimer()));
@@ -268,32 +265,6 @@ void qSlicerROS2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub
     type_item->setText(sub->GetROSType());
   }
   row++;
-}
-
-
-void qSlicerROS2ModuleWidget::onSetSubscribers()
-{
-  Q_D(qSlicerROS2ModuleWidget);
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  logic->AddSomeSubscribers();
-  refreshSubTable();
-}
-
-
-void qSlicerROS2ModuleWidget::onSetPublishers()
-{
-  Q_D(qSlicerROS2ModuleWidget);
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  logic->AddSomePublishers();
-  refreshPubTable();
 }
 
 
