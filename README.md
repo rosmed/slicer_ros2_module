@@ -46,7 +46,7 @@ colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_
 ```
 Note: the `-DSlicer_DIR...` option is only needed for the first `colcon build`.
 
-If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the colcon command line, you can run `colcon build` once and then run `ccmake` on the `slicer_ros2_module` build directory.  You should see the following error messages if the `Slicer_DIR` is not set properly (or if Slicer has not been built from scratch):
+If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the colcon command line, you can run `colcon build` once and then run `ccmake` on the `ROS2` build directory.  You should see the following error messages if the `Slicer_DIR` is not set properly (or if Slicer has not been built from scratch):
 ```
   Could not find a package configuration file provided by "Slicer" with any
   of the following names:
@@ -54,7 +54,7 @@ If you prefer to use CMake (`ccmake`) instead of passing the `Slicer_DIR` on the
     SlicerConfig.cmake
     slicer-config.cmake
 ```
-If you see this message, run CMake on the build directory for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/slicer_ros2_module`.  In CMake, set `Slicer_DIR` to point to your Slicer build directory then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again (after `cd ~/ros2_ws`).
+If you see this message, run CMake on the build directory for `slicer_ros2_module` using `ccmake ~/ros2_ws/build/ROS2`.  In CMake, set `Slicer_DIR` to point to your Slicer build directory then hit `c` to configure until you can hit `g` to generate the makefiles.  Then try to `colcon build` again (after `cd ~/ros2_ws`).
 
 ## Start a ROS `robot_state_publisher`
 
@@ -93,13 +93,13 @@ Once running - make sure your robot is in "Transponder Mode". More instructions 
 In a terminal navigate to your Slicer inner build directory (`cd`).  Then:
 ```sh
 source ~/ros2_ws/install/setup.bash # or whatever your ROS 2 workspace is
-# you can ignore the error message related to slicer_ros2_module/local_setup.bash
+# you can ignore the error message related to ROS2/local_setup.bash
 ./Slicer
 ```
 
 The first time you run Slicer, you need to add the module directory should be in the application settings so that it can be loaded.  To do so, open Slicer and navigate through the menus: `Edit` -> `Application Settings` -> `Modules` -> `Additional module paths` ->  `Add`:
 ```sh
-~ros2_ws/build/slicer_ros2_module/lib/Slicer-4.13/qt-loadable-modules
+~ros2_ws/build/ROS2/lib/Slicer-4.13/qt-loadable-modules
 ```
 At that point, Slicer will offer to restart.  Do so and then load the module using the button `Modules` -> `Examples` -> ROS2.
 

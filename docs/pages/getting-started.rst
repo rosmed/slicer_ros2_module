@@ -69,7 +69,9 @@ Slicer build directory ``Slicer_DIR``:
 
 The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
 first ``colcon`` call.  For future builds, you can revert back to just
-using ``colcon build``
+using ``colcon build``.
+
+Note that the build directory name is ``ROS2``, not ``slicer_ros2_module``.
 
 If the ``Slicer_DIR`` is not set properly (or you simply forgot), you
 should see the following error messages"
@@ -83,14 +85,13 @@ should see the following error messages"
   slicer-config.cmake
 
 At that point, you don't need to clean your ROS workspace.  You can
-fix the issue by running CMake on the build directory for
-``slicer_ros2_module`` with ``ccmake
-~/ros2_ws/build/slicer_ros2_module``.  In CMake, set ``Slicer_DIR`` to
-point to your Slicer build directory then hit ``c`` to configure until
-you can hit ``g`` to generate the makefiles.  If you prefer a
-graphical interface, you can use ``cmake-gui`` instead of ``ccmake``.
-Once ``Slicer_DIR`` is set, try ``colcon build`` again (after ``cd
-~/ros2_ws``).
+fix the issue by running CMake on the build directory for the Slicer
+module (``ROS2``) ``ccmake ~/ros2_ws/build/ROS2``.  In CMake, set
+``Slicer_DIR`` to point to your Slicer build directory then hit ``c``
+to configure until you can hit ``g`` to generate the makefiles.  If
+you prefer a graphical interface, you can use ``cmake-gui`` instead of
+``ccmake``.  Once ``Slicer_DIR`` is set, try ``colcon build`` again
+(after ``cd ~/ros2_ws``).
 
 ==================
 Loading the module
@@ -123,7 +124,7 @@ location as well as the Slicer version.  It should look like:
 
 .. code-block:: bash
 
-    ~ros2_ws/build/slicer_ros2_module/lib/Slicer-5.3/qt-loadable-modules
+    ~ros2_ws/build/ROS2/lib/Slicer-5.3/qt-loadable-modules
 
 At that point, Slicer will offer to restart.  Do so and then load the
 module using the button: `Modules` |rarr| `Examples` |rarr| *ROS2*

@@ -20,7 +20,7 @@ undefine_python ()
 # needs to be the first thing we do
 find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
-project(slicer_ros2_module)
+project(ROS2)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -111,27 +111,6 @@ slicerMacroBuildLoadableModule(
   WITH_GENERIC_TESTS
   )
 
-#-----------------------------------------------------------------------------
-# hack to copy python test script, not the proper place to copy this!
-set (PY_TEST_FILE_DEST ${Slicer_DIR}/bin/Python/slicer_ros2_module_test.py)
-set (PY_TEST_FILE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/slicer_ros2_module_test.py)
-add_custom_target(copy-test-file ALL DEPENDS ${PY_TEST_FILE_DEST})
-add_custom_command(
-  OUTPUT ${PY_TEST_FILE_DEST}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PY_TEST_FILE_SRC} ${PY_TEST_FILE_DEST}
-  DEPENDS ${PY_TEST_FILE_SRC})
-
-#-----------------------------------------------------------------------------
-# hack to copy custom slicer startup script
-set (PY_STARTUP_FILE_DEST ${Slicer_DIR}/.slicerrc.py)
-set (PY_STARTUP_FILE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/slicer_startup_script.py)
-add_custom_target(copy-startup-file ALL DEPENDS ${PY_STARTUP_FILE_DEST})
-add_custom_command(
-  OUTPUT ${PY_STARTUP_FILE_DEST}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PY_STARTUP_FILE_SRC} ${PY_STARTUP_FILE_DEST}
-  DEPENDS ${PY_STARTUP_FILE_SRC})
-
-#-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
