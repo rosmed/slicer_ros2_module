@@ -26,10 +26,10 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
 
-* Dependency: We use cisst messages for certain ROS2 publishers. 
-  The module: https://github.com/jhu-cisst/ros2_cisst_msgs.git should
-  be cloned in the same ROS2 workspace (in the `src` folder) as this repository
-  (see instructions below - `~/ros2_ws/src/ros2_cisst_msgs`).
+.. note:: We use currently cisst messages for certain ROS2 publishers. 
+  The module https://github.com/jhu-cisst/ros2_cisst_msgs.git should
+  be cloned in the `src` directory for your ROS2 workspace
+  (see instructions below).
 
 .. note:: If you need to build Slicer from old sources, make sure
   ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
@@ -52,9 +52,7 @@ in this example):
 .. code-block:: bash
 
     source /opt/ros/galactic/setup.bash
-    mkdir ~/ros2_ws
-    cd ~/ros2_ws
-    mkdir src
+    mkdir -p ~/ros2_ws/src
     cd ~/ros2_ws/src
     git clone https://github.com/jhu-cisst/ros2_cisst_msgs.git cisst_msgs
     git clone https://github.com/rosmed/slicer_ros2_module
@@ -112,20 +110,20 @@ instructions, this should look like:
 
 .. code-block:: bash
 		
-  cd ~/something_something/Slicer-SuperBuild/Slicer-build``.  You can then 
+  cd ~/something_something/Slicer-SuperBuild/Slicer-build
   ./Slicer
 
 The first time you run Slicer, you need to add the module directory in
-the application settings so that it can be loaded.
+the application settings so that the module can be dynamically loaded.
 
 To do so, open Slicer and navigate through the menus: `Edit` |rarr|
 `Application Settings` |rarr| `Modules` |rarr| `Additional module
 paths` |rarr| `Add`.  The path to add is based on your ROS workspace
-location as well as the Slicer version.  It should look like:
+location as well as the Slicer version (5.3 in this example).  It should look like:
 
 .. code-block:: bash
 
     ~ros2_ws/build/ROS2/lib/Slicer-5.3/qt-loadable-modules
 
 At that point, Slicer will offer to restart.  Do so and then load the
-module using the button: `Modules` |rarr| `Examples` |rarr| *ROS2*
+module using the drop down menu: `Modules` |rarr| `IGT` |rarr| *ROS2*

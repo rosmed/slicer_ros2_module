@@ -29,12 +29,13 @@ Slicer automatically provides a Python interface for all classes
 derived from ``vtkMRMLNode``, you can develop your application using
 either C++ or Python.
 
-Funding
-=======
+Acknowledgement
+===============
 
-This work was partially funded by National Institutes of Health (USA)
-grant R01EB020667, the National Sciences and Engineering Research
-Council of Canada and the Canadian Institutes of Health Research.
+This project is supported by:
+
+* The National Institute of Biomedical Imaging and Bioengineering of the U.S. National Institutes of Health (NIH) under award number R01EB020667, and 3R01EB020667-05S1 (MPI: Tokuda, Krieger, Leonard, and Fuge). The content is solely the responsibility of the authors and does not necessarily represent the official views of the NIH.
+* The National Sciences and Engineering Research Council of Canada and the Canadian Institutes of Health Research.
 
 Publications
 ============
