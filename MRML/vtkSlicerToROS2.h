@@ -5,12 +5,17 @@
 #include <vtkMatrix4x4.h>
 #include <vtkSmartPointer.h>
 #include <vtkDoubleArray.h>
+#include <vtkIntArray.h>
 #include <vtkTransformCollection.h>
 
 // ROS2
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/int64.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/int64_multi_array.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>

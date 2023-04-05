@@ -6,10 +6,14 @@
 
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(std::string, String);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Bool);
+VTK_MRML_ROS_PUBLISHER_NATIVE_H(int, Int);
+VTK_MRML_ROS_PUBLISHER_NATIVE_H(float, Float);
 
 #include <vtkMatrix4x4.h>
 #include <vtkTransformCollection.h>
 
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkIntArray, Int64MultiArray);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, Float64MultiArray);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, WrenchStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTransformCollection, PoseArray);

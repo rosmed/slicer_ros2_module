@@ -2,6 +2,7 @@
 #include <vtkMath.h>
 #include <vtkVariant.h>
 
+
 auto const MM_TO_M_CONVERSION = 1000.00;
 
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result)
@@ -27,6 +28,11 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64 & input, double & result)
 void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPointer<vtkIntArray> result)
 {
   int numElements = input.data.size();
+  // if input is not a 1D array raise an error
+  if (input.layout.dim.size() != 1){
+    std::cerr << "Input is not a 1D array" << std::endl;
+    return;
+  }
   result->SetNumberOfValues(numElements);
   for (int j = 0; j < numElements; j++){
     result->SetValue(j, input.data[j]);
@@ -36,6 +42,11 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
 void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPointer<vtkDoubleArray> result)
 {
   int numElements = input.data.size();
+  // if input is not a 1D array raise an error
+  if (input.layout.dim.size() != 1){
+    std::cerr << "Input is not a 1D array" << std::endl;
+    return;
+  }
   result->SetNumberOfValues(numElements);
   for (int j = 0; j < numElements; j++){
     result->SetValue(j, input.data[j]);
