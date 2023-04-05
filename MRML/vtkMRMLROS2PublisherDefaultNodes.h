@@ -11,9 +11,11 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_H(float, Float);
 
 #include <vtkMatrix4x4.h>
 #include <vtkTransformCollection.h>
+#include <vtkDenseArray.h>
 
-VTK_MRML_ROS_PUBLISHER_VTK_H(vtkIntArray, Int64MultiArray);
-VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, Float64MultiArray);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkIntArray, IntArray);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, FloatArray);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDenseArray<int>, IntNArray);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, WrenchStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTransformCollection, PoseArray);
