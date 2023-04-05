@@ -112,20 +112,20 @@ instructions, this should look like:
 
 .. code-block:: bash
 		
-  cd ~/something_something/Slicer-SuperBuild/Slicer-build``.  You can then 
+  cd ~/something_something/Slicer-SuperBuild/Slicer-build
   ./Slicer
 
 The first time you run Slicer, you need to add the module directory in
-the application settings so that it can be loaded.
+the application settings so that the module can be dynamically loaded.
 
 To do so, open Slicer and navigate through the menus: `Edit` |rarr|
 `Application Settings` |rarr| `Modules` |rarr| `Additional module
 paths` |rarr| `Add`.  The path to add is based on your ROS workspace
-location as well as the Slicer version.  It should look like:
+location as well as the Slicer version (5.3 in this example).  It should look like:
 
 .. code-block:: bash
 
     ~ros2_ws/build/ROS2/lib/Slicer-5.3/qt-loadable-modules
 
 At that point, Slicer will offer to restart.  Do so and then load the
-module using the button: `Modules` |rarr| `Examples` |rarr| *ROS2*
+module using the drop down menu: `Modules` |rarr| `IGT` |rarr| *ROS2*
