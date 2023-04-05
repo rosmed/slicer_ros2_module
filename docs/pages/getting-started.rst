@@ -65,7 +65,8 @@ Slicer build directory ``Slicer_DIR``:
 .. code-block:: bash
 
     cd ~/ros2_ws
-    colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build
+    colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build -DCMAKE_BUILD_TYPE=Release
+
 
 The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
 first ``colcon`` call.  For future builds, you can revert back to just
