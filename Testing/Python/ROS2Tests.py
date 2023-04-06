@@ -10,7 +10,10 @@ import unittest
 import subprocess
 import logging
 import sys
-import psutil
+try:
+    import psutil
+except:
+    slicer.util.pip_install('psutil')
 
 #
 # ROS2Tests
