@@ -41,6 +41,7 @@
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
+#include <vtkMRMLROS2RobotNode.h>
 
 // Native includes
 #include <iostream>
@@ -121,6 +122,14 @@ void qSlicerROS2ModuleWidget::setup(void)
   d->robot2NameLabel->hide();
   d->parameterNode2Label->hide();
   d->parameter2Label->hide();
+
+  this->Superclass::setup();
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(updateWidget()));
 }
 
 
@@ -160,6 +169,16 @@ void qSlicerROS2ModuleWidget::updateWidget()
   // update publisher table
   if (visiblePublisherRefs < publisherRefs) {
     refreshPubTable();
+  }
+
+  // Update robot selector
+  vtkMRMLROS2RobotNode * robotNode = dynamic_cast<vtkMRMLROS2RobotNode *>(logic->GetMRMLScene()->GetFirstNodeByClass("vtkMRMLROS2RobotNode"));
+  if ( robotNode != NULL )
+  {
+    QString robotName = QString::fromStdString(robotNode->GetRobotName());
+    d->robotNameLineEdit->setText(robotName);
+    this->onLoadRobotClicked();
+    return;
   }
 }
 

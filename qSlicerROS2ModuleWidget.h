@@ -29,6 +29,7 @@ class qSlicerROS2ModuleWidgetPrivate;
 class vtkMRMLNode;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
+class vtkMRMLROS2RobotNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerROS2ModuleWidget :
