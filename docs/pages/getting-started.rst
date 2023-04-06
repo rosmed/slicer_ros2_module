@@ -26,10 +26,10 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
 
-* Dependency: We use cisst messages for certain ROS2 publishers.
-  The module: https://github.com/jhu-cisst/ros2_cisst_msgs.git should
-  be cloned in the same ROS2 workspace (in the `src` folder) as this repository
-  (see instructions below - `~/ros2_ws/src/ros2_cisst_msgs`).
+.. note:: We use currently cisst messages for certain ROS2 publishers. 
+  The module https://github.com/jhu-cisst/ros2_cisst_msgs.git should
+  be cloned in the `src` directory for your ROS2 workspace
+  (see instructions below).
 
 .. note:: If you need to build Slicer from old sources, make sure
   ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
@@ -52,15 +52,9 @@ in this example):
 .. code-block:: bash
 
     source /opt/ros/galactic/setup.bash
-    mkdir ~/ros2_ws
-    cd ~/ros2_ws
-    mkdir src
+    mkdir -p ~/ros2_ws/src
     cd ~/ros2_ws/src
     git clone https://github.com/jhu-cisst/ros2_cisst_msgs.git cisst_msgs
-    cd ~/ros2_ws
-    colcon build --packages-up-to cisst_msgs
-    source ~/ros2_ws/install/setup.bash
-    cd ~/ros2_ws/src
     git clone https://github.com/rosmed/slicer_ros2_module
 
 Then build the module using `colcon` while providing the path to your
@@ -69,11 +63,14 @@ Slicer build directory ``Slicer_DIR``:
 .. code-block:: bash
 
     cd ~/ros2_ws
-    colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build
+    colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build -DCMAKE_BUILD_TYPE=Release
+
 
 The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
 first ``colcon`` call.  For future builds, you can revert back to just
-using ``colcon build``
+using ``colcon build``.
+
+Note that the build directory name is ``ROS2``, not ``slicer_ros2_module``.
 
 If the ``Slicer_DIR`` is not set properly (or you simply forgot), you
 should see the following error messages"
@@ -88,7 +85,7 @@ should see the following error messages"
 
 At that point, you don't need to clean your ROS workspace.  You can
 fix the issue by running CMake on the build directory for the Slicer
-`ROS2`` module with ``ccmake ~/ros2_ws/build/ROS2``.  In CMake, set
+module (``ROS2``) ``ccmake ~/ros2_ws/build/ROS2``.  In CMake, set
 ``Slicer_DIR`` to point to your Slicer build directory then hit ``c``
 to configure until you can hit ``g`` to generate the makefiles.  If
 you prefer a graphical interface, you can use ``cmake-gui`` instead of
@@ -113,20 +110,20 @@ instructions, this should look like:
 
 .. code-block:: bash
 
-  cd ~/something_something/Slicer-SuperBuild/Slicer-build``.  You can then
+  cd ~/something_something/Slicer-SuperBuild/Slicer-build
   ./Slicer
 
 The first time you run Slicer, you need to add the module directory in
-the application settings so that it can be loaded.
+the application settings so that the module can be dynamically loaded.
 
 To do so, open Slicer and navigate through the menus: `Edit` |rarr|
 `Application Settings` |rarr| `Modules` |rarr| `Additional module
 paths` |rarr| `Add`.  The path to add is based on your ROS workspace
-location as well as the Slicer version.  It should look like:
+location as well as the Slicer version (5.3 in this example).  It should look like:
 
 .. code-block:: bash
 
-    ~ros2_ws/build/slicer_ros2_module/lib/Slicer-5.3/qt-loadable-modules
+    ~ros2_ws/build/ROS2/lib/Slicer-5.3/qt-loadable-modules
 
 At that point, Slicer will offer to restart.  Do so and then load the
-module using the button: `Modules` |rarr| `Examples` |rarr| *ROS2*
+module using the drop down menu: `Modules` |rarr| `IGT` |rarr| *ROS2*

@@ -58,8 +58,6 @@ protected slots:
   void updateWidget(void);
   void updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row);
   void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
-  void onSetSubscribers(void);
-  void onSetPublishers(void);
   void refreshSubTable(void);
   void refreshPubTable(void);
 

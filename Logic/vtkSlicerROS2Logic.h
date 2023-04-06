@@ -79,13 +79,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
     "spinning". */
   vtkMRMLROS2NodeNode * GetDefaultROS2Node(void) const;
 
-  /*! Developement methods, to be removed */
-  void AddSomePublishers(void);
-  void AddSomeSubscribers(void);
-  void AddSomeParameters(void);
-  void AddSomeTf2Nodes(void);
   void AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName);
-
   void RemoveRobot(const std::string & robotName);
 
   vtkSmartPointer<vtkMRMLROS2NodeNode> mDefaultROS2Node; // should this be private?? UI needs to access it

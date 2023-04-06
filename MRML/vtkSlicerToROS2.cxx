@@ -15,6 +15,44 @@ void vtkSlicerToROS2(const bool & input,  std_msgs::msg::Bool & result,
   result.data = input;
 }
 
+void vtkSlicerToROS2(const int & input,  std_msgs::msg::Int64 & result,
+         const std::shared_ptr<rclcpp::Node> &)
+{
+  result.data = input;
+}
+
+void vtkSlicerToROS2(const double & input,  std_msgs::msg::Float64 & result,
+         const std::shared_ptr<rclcpp::Node> &)
+{
+  result.data = input;
+}
+
+void vtkSlicerToROS2(vtkIntArray * input,  std_msgs::msg::Int64MultiArray & result,
+         const std::shared_ptr<rclcpp::Node> &)
+{
+  int numElements = input->GetNumberOfValues();
+  result.data.resize(numElements);
+  for (int j = 0; j < numElements; j++){
+    result.data[j] = input->GetValue(j);
+  }
+}
+
+void vtkSlicerToROS2(vtkDoubleArray * input,  std_msgs::msg::Float64MultiArray & result,
+         const std::shared_ptr<rclcpp::Node> &)
+{
+  int numElements = input->GetNumberOfValues();
+  result.data.resize(numElements);
+  for (int j = 0; j < numElements; j++){
+    result.data[j] = input->GetValue(j);
+  }
+}
+
+void vtkSlicerToROS2(vtkDenseArray<int> * input,  std_msgs::msg::Int64MultiArray & result,
+         const std::shared_ptr<rclcpp::Node> &) 
+{
+}
+
+
 // Work in Progress
 void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode)

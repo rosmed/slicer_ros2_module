@@ -100,6 +100,13 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberJoyNode>::New());
   // Publishers
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherBoolNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherFloatNode>::New());
+  
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntArrayNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherFloatArrayNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntNArrayNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchStampedNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseArrayNode>::New());
@@ -165,81 +172,14 @@ vtkMRMLROS2NodeNode * vtkSlicerROS2Logic::GetDefaultROS2Node(void) const
 }
 
 
-void vtkSlicerROS2Logic::AddSomePublishers(void)
-{
-  // the long way
-  vtkSmartPointer<vtkMRMLROS2PublisherStringNode> stringPub = vtkMRMLROS2PublisherStringNode::New();
-  this->GetMRMLScene()->AddNode(stringPub);
-  stringPub->AddToROS2Node(mDefaultROS2Node->GetID(), "/string_pub");
-  // the fast way
-  mDefaultROS2Node->CreateAndAddPublisherNode("vtkMRMLROS2PublisherStringNode", "/string_pub_2");
-}
-
-
-void vtkSlicerROS2Logic::AddSomeSubscribers(void)
-{
-  // the long way
-  vtkSmartPointer<vtkMRMLROS2SubscriberStringNode> subString = vtkMRMLROS2SubscriberStringNode::New();
-  this->GetMRMLScene()->AddNode(subString);
-  subString->AddToROS2Node(mDefaultROS2Node->GetID(), "/string_sub");
-  // with VTK type
-  vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode> subPose = vtkMRMLROS2SubscriberPoseStampedNode::New();
-  this->GetMRMLScene()->AddNode(subPose);
-  subPose->AddToROS2Node(mDefaultROS2Node->GetID(), "/pose_sub");
-  // the fast way
-  mDefaultROS2Node->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/string_sub_2");
-}
-
-
-void vtkSlicerROS2Logic::AddSomeParameters(void)
-{
-  // the long way
-  vtkSmartPointer<vtkMRMLROS2ParameterNode> param = vtkMRMLROS2ParameterNode::New();
-  this->GetMRMLScene()->AddNode(param);
-  param->AddToROS2Node(mDefaultROS2Node->GetID(), "/dummy_node_name");
-}
-
-
-void vtkSlicerROS2Logic::AddSomeTf2Nodes(void)
-{
-  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> tfBroadcaster = vtkMRMLROS2Tf2BroadcasterNode::New();
-  this->GetMRMLScene()->AddNode(tfBroadcaster);
-  tfBroadcaster->AddToROS2Node(mDefaultROS2Node->GetID());
-  // Add Tf2 Buffer
-  // keep this as the long way
-  // vtkSmartPointer<vtkMRMLROS2Tf2BufferNode> tfBuffer = vtkMRMLROS2Tf2BufferNode::New();
-  // this->GetMRMLScene()->AddNode(tfBuffer);
-  // tfBuffer->AddToROS2Node(mDefaultROS2Node->GetID());
-  // vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> tfLookup = vtkMRMLROS2Tf2LookupNode::New();
-  // this->GetMRMLScene()->AddNode(tfLookup);
-  // tfLookup->SetParentID("world");
-  // tfLookup->SetChildID("turtle2");
-  // tfBuffer->AddLookupNode(tfLookup);
-
-  // add the short way
-  // we're enforcing a single buffer
-}
-
-
 void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName)
 {
-  // Sensable phantom, requires
-  // ros2 launch sensable_omni_model omni.launch.py  -- to get the model
-  // ros2 run sensable_omni_model pretend_omni_joint_state_publisher  -- wave the arm around
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
   robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName);
   robot->SetRobotName(robotName);
-
-
-  // dVRK, requires
-  // ros2 run dvrk_robot dvrk_console_json -j ~/ros2_ws/src/cisst-saw/sawIntuitiveResearchKit/share/console/console-PSM1_KIN_SIMULATED.json  -- to run fake PSM1
-  // ros2 launch dvrk_model dvrk_state_publisher.launch.py arm:=PSM1  -- to get the model
-  // ros2 run dvrk_python dvrk_arm_test.py -a PSM1  -- to make the PSM1 move around
-  // vtkSmartPointer<vtkMRMLROS2RobotNode> robot2 = vtkMRMLROS2RobotNode::New();
-  // this->GetMRMLScene()->AddNode(robot2);
-  // robot2->AddToROS2Node(mDefaultROS2Node->GetID(), "/PSM1/robot_state_publisher", "robot_description");
 }
+
 
 void vtkSlicerROS2Logic::RemoveRobot(const std::string & robotName)
 {

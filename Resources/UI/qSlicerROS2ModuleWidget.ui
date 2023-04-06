@@ -171,13 +171,6 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
-            <widget class="QPushButton" name="setSubscribersButton">
-             <property name="text">
-              <string>Setup Subscribers</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <widget class="QTableWidget" name="rosSubscriberTableWidget">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -207,13 +200,6 @@
                <string>Message type</string>
               </property>
              </column>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="setPublishersButton">
-             <property name="text">
-              <string>Setup Publishers</string>
-             </property>
             </widget>
            </item>
            <item>
