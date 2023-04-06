@@ -141,6 +141,8 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
 void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGains & result,
 		     const std::shared_ptr<rclcpp::Node> &) // the input should be something related to the closest point on the volume 
 {
+  // stiffness = elasticity
+  // damping = viscosity
   result.pos_stiff_neg.x = 0.0;
   result.pos_stiff_pos.x = 0.0;
   result.pos_damping_neg.x = 0.0;
@@ -149,10 +151,11 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGa
   result.pos_stiff_pos.y = 0.0;
   result.pos_damping_neg.y = 0.0;
   result.pos_damping_pos.y = 0.0;
-  result.pos_stiff_neg.z = -200.0; // these were all negative (114-117 and I made them positive)
-  result.pos_stiff_pos.z = -200.0;
-  result.pos_damping_neg.z = -5.0;
-  result.pos_damping_pos.z = -5.0;
+  // These gains are preconfigured for our application - they can be modified according to your device/ specific needs
+  result.pos_stiff_neg.z = -10.0;
+  result.pos_stiff_pos.z = 10.0; 
+  result.pos_damping_neg.z = -20.0; 
+  result.pos_damping_pos.z = 20.0; 
 
   double stiffOri = -0.2;
   double dampOri = -0.01;
