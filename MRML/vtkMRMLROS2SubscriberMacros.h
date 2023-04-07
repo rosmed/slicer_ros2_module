@@ -79,6 +79,7 @@
     vtkMRMLNode * CreateNodeInstance(void) override;                    \
     const char * GetNodeTagName(void) override;                         \
     void GetLastMessage(slicer_type * message) const;                   \
+    slicer_type * GetLastMessage(void) const;                           \
     void GetLastMessage(vtkSmartPointer<slicer_type> message) const;    \
     vtkVariant GetLastMessageVariant(void) override;                    \
                                                                         \
@@ -118,6 +119,13 @@
   void vtkMRMLROS2Subscriber##name##Node::GetLastMessage(slicer_type * message) const \
   {                                                                     \
     (reinterpret_cast<vtkMRMLROS2Subscriber##name##Internals *>(mInternals))->GetLastMessage(message); \
+  }                                                                     \
+                                                                        \
+  slicer_type * vtkMRMLROS2Subscriber##name##Node::GetLastMessage(void) const \
+  {                                                                     \
+    vtkSmartPointer<slicer_type> result = slicer_type::New();           \
+    this->GetLastMessage(result);                                       \
+    return result;                                                      \
   }                                                                     \
                                                                         \
   void vtkMRMLROS2Subscriber##name##Node::GetLastMessage(vtkSmartPointer<slicer_type> message) const \

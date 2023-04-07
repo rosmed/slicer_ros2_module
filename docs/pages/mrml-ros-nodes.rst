@@ -230,7 +230,7 @@ To create a new subscriber, one should use the ROS2 Node method
          rosNode = rosLogic.GetDefaultROS2Node()
          subString = rosNode.CreateAndAddSubscriberNode('vtkMRMLROS2SubscriberStringNode', '/my_string')
          # run ros2 topic pub /my_string
-         sub.GetLastMessage(m_string)
+         m_string = sub.GetLastMessage()
          # alternate, get a string with the full message
          m_string_yaml = sub.GetLastMessageYAML()
 
