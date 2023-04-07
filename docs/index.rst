@@ -14,8 +14,9 @@ Slicer ROS2
    pages/getting-started
    pages/robot-visualization
    pages/mrml-ros-nodes
+   pages/tests
    pages/limitations
-   pages/python_features
+
 
 
 Useful Links

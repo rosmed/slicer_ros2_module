@@ -15,7 +15,6 @@ MRML Scene.  This allows to leverage some of the Slicer features:
 
 * Ability to save and restore your ROS 2 nodes along the MRML scene.
 
-
 All the SlicerROS2 classes follow the Slicer naming convention,
 i.e. ``vtkMRMLxxxxNode``.  We added the ``ROS2`` "prefix" for all the
 class names so we're using ``vtkMRMLROS2xxxxNode`` where ``xxxx``
@@ -72,7 +71,7 @@ this periodic call.
 
 .. warning:: Since we rely on a Qt timer to trigger the ROS spin, the
    module will not receive any ROS messages until the GUI is created,
-   i.e. until the ROS 2 module is loaded in Slicer.
+   i.e. until the ROS 2 module is manually loaded in Slicer.
 
 Templates vs inheritance
 ========================
@@ -108,15 +107,40 @@ To retrieve the default ROS node:
 
 .. tabs::
 
-   .. tab:: C++
+   .. tab:: **C++**
 
-      C++ code goes here
+      If you're modifying the Slicer ROS module, you can access the
+      default ROS node directly using the ``GetDefaultROS2Node``
+      method.
+      
+      .. code-block:: C++
 
-   .. tab:: Python
+         vtkMRMLROS2NodeNode * rosNode = this->GetDefaultROS2Node();
+
+      If you're working on a different module, you can use node ID of
+      the default ROS node (``vtkMRMLROS2NodeNode1``) to retrieve it
+      from the MRML scene.
+
+      .. code-block:: C++
+
+         vtkMRMLNode * node = scene->GetNodeByID("vtkMRMLROS2NodeNode1");
+         if (node == nullptr) {
+           vtkErrorMacro(<< "ROS2 default node not in scene");
+         } else {
+           vtkMRMLROS2NodeNode * rosNode =
+               vtkMRMLROS2NodeNode::SafeDownCast(node);
+           if (rosNode == nullptr) {
+             vtkErrorMacro(<< "Found what should be the default ROS2 node but the type is wrong");
+           } else {
+             // now we can use the node
+           }
+         }
+
+   .. tab:: **Python**
 
       .. code-block:: python
 
-	 rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
 
 ======
@@ -126,28 +150,51 @@ Topics
 Publishers
 ==========
 
+To create a new publisher, one should use the ROS2 Node method
+``CreateAndAddPublisherNode``.  This method take two parameters:
+
+* the class (type) of publisher to be used.  We provide some
+  publishers for the most commonn data types (from Slicer to ROS
+  messages).  The full list can be found in the Slicer ROS logic class
+  (``Logic/vtkSlicerROS2Logic.cc``) in the method ``RegisterNodes``.
+* the topic name.
+  
 .. tabs::
 
-   .. tab:: C++
+   .. tab:: **C++**
 
-      C++ code goes here
+      .. code-block:: C++
 
-   .. tab:: Python
+         auto pubString = rosNode->CreateAndAddPublisherNode("vtkMRMLROS2PublisherStringNode", "/my_string");
+         // run ros2 topic echo /my_string in a terminal to see the output
+         pubString->Publish("my first string");
+
+   .. tab:: **Python**
 
       .. code-block:: python
 
-	 rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
-         pub = rosNode.CreateAndAddPublisherNode('vtkMRMLROS2PublisherStringNode', '/my_publisher')
-         pub.Publish('my first string')
+         pubString = rosNode.CreateAndAddPublisherNode('vtkMRMLROS2PublisherStringNode', '/my_string')
+         # run ros2 topic echo /my_string in a terminal to see the output
+         pubString.Publish('my first string')
 
+         pubMatrix = ros2.CreateAndAddPublisher('vtkMRMLROS2PublisherPoseStampedNode', '/my_matrix')
+         # run ros2 topic echo /my_matrix in a terminal to see the output
+         mat = vtk.vtkMatrix4x4()
+         mat.SetElement(0, 3, 3.1415) # Modify the matrix so we can see something changing
+         pubMatrix.Publish(mat)
 
 Subscribers
 ===========
 
+
+    sub.GetLastMessageYAML()
+
 ==========
 Parameters
 ==========
+
 
 ===
 Tf2
