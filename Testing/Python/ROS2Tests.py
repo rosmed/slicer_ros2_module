@@ -109,7 +109,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         )
         ros2_process.wait()
         return ros2_process
-    
+
     @classmethod
     def run_ros2_cli_command_non_blocking(self, command):
         ros2_process = subprocess.Popen(
@@ -160,7 +160,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNode")
             ROS2TestsLogic.spin_some()
-            
+
         def test_create_and_add_pub_sub(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
             testPub = self.ros2Node.CreateAndAddPublisherNode(
@@ -177,12 +177,15 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.spin_some()
 
             finalSubMessageCount = testSub.GetNumberOfMessages()
-            receivedMessage = testSub.GetLastMessageYAML() # TODO: GetLastMessageString()
-
             self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
-            # assert that the recceived message contains the string message - since YAML
-            self.assertTrue(messageString in receivedMessage, "Message not received correctly")
 
+            receivedMessage = testSub.GetLastMessage()
+            self.assertTrue(messageString == receivedMessage, "Message not received correctly")
+
+            receivedMessage = testSub.GetLastMessageYAML()
+            self.assertTrue(messageString in receivedMessage, "Message not received correctly (YAML)")
+
+            # Cleanup
             self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher not removed")
             self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber not removed")
             print("Testing creation and working of publisher and subscriber - Done")
