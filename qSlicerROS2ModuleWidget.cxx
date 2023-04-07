@@ -177,7 +177,11 @@ void qSlicerROS2ModuleWidget::updateWidget()
   {
     QString robotName = QString::fromStdString(robotNode->GetRobotName());
     d->robotNameLineEdit->setText(robotName);
-    this->onLoadRobotClicked();
+    d->removeRobotButton->setEnabled(true);
+    d->loadRobotButton->setEnabled(false);
+    d->robotNameLineEdit->setEnabled(false);
+    d->parameterNodeNameLineEdit->setEnabled(false);
+    d->parameterLineEdit->setEnabled(false);
     return;
   }
 }
