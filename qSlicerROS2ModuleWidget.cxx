@@ -130,6 +130,7 @@ void qSlicerROS2ModuleWidget::setup(void)
     return;
   }
   this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(updateWidget()));
+  updateWidget(); // if the scene is loaded before the widget is activated
 }
 
 
