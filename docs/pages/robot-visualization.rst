@@ -30,10 +30,10 @@ lookups to refresh the position of each link.
 ROS Robot
 =========
 
-The following are examples of robots we've used to test the Slicer
-ROS2 module.  They cover a serial robot (Phantom Omni) as well as a
-robot with parallel linkages (dVRK PSM).  The SlicerROS2 module should
-work with any other robots as long as the links CAD files are either
+The following are examples of robots we've used to test the SlicerROS2
+module.  They cover a serial robot (Phantom Omni) as well as a robot
+with parallel linkages (dVRK PSM).  The SlicerROS2 module should work
+with any other robots as long as the links CAD files are either
 ``.stl`` or ``.obj``.
 
 Phantom Omni
@@ -49,7 +49,7 @@ Ethernet and more recently USB.
   :align: center
   :alt: Sensable Omni in Slicer
 
-We created and used a ROS2 package for the Phantom Omni: `Omni Github
+We created and used a ROS package for the Phantom Omni: `Omni Github
 Link <https://github.com/jhu-saw/ros2_sensable_omni_model>`_.  This
 package has no external dependencies and is very light so it's a good
 way to test the SlicerROS2 module.  You can download this repository

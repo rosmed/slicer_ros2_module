@@ -3,9 +3,11 @@
 MRML ROS Nodes
 """"""""""""""
 
-The high level ROS functionalities are all encapsulated as Slicer MRML
-nodes, i.e. derived from the class ``vtkMRMLNode`` and added to the
-MRML Scene.  This allows to leverage some of the Slicer features:
+The high level ROS functionalities (publisher, subscriber, Tf2
+broadcast, Tf2 lookup or parameter client) are all encapsulated as
+Slicer MRML nodes, i.e. derived from the class ``vtkMRMLNode`` and
+added to the MRML Scene.  This allows to leverage some of the Slicer
+features:
 
 * Data visualization using the MRML scene.
 
@@ -18,13 +20,13 @@ MRML Scene.  This allows to leverage some of the Slicer features:
 All the SlicerROS2 classes follow the Slicer naming convention,
 i.e. ``vtkMRMLxxxxNode``.  We added the ``ROS2`` "prefix" for all the
 class names so we're using ``vtkMRMLROS2xxxxNode`` where ``xxxx``
-represents a ROS2 object.  This works fairly well but makes it a bit
+represents a ROS functionality.  This works fairly well but makes it a bit
 hard to read for the MRML node than encapsulates a ROS 2 node, i.e. a
 ``vtkMRMLROS2NodeNode``.
 
-================
-Design decisions
-================
+======
+Design
+======
 
 C++ vs Python
 =============
@@ -53,7 +55,7 @@ macros and have some Python version requirements.  The
 ``CMakeLists.txt`` provided along SlicerROS2 works but you'll have to
 ignore some error and warning messages.
 
-Execution model
+Execution Model
 ===============
 
 One of the challenges of integrating ROS in Slicer is to figure out
@@ -73,7 +75,7 @@ this periodic call.
    module will not receive any ROS messages until the GUI is created,
    i.e. until the ROS 2 module is manually loaded in Slicer.
 
-Templates vs inheritance
+Templates vs Inheritance
 ========================
 
 The two packages also differ in their design patterns.  Slicer (and
@@ -92,8 +94,9 @@ macros use template specialization and add some methods to create a
 C++ class that can be used within Slicer (including the Python
 bindings generation).
 
-ROS node(s)
-===========
+========
+ROS Node
+========
 
 The SlicerROS2 module always creates a default ROS node (internally a
 ``rclcpp::node``).  This node is both a ROS 2 node and a MRML node,
@@ -107,17 +110,44 @@ To retrieve the default ROS node:
 
 .. tabs::
 
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+
    .. tab:: **C++**
 
       If you're modifying the Slicer ROS module, you can access the
       default ROS node directly using the ``GetDefaultROS2Node``
       method.
-      
+
       .. code-block:: C++
 
          vtkMRMLROS2NodeNode * rosNode = this->GetDefaultROS2Node();
 
-      If you're working on a different module, you can use node ID of
+      If you're working on a new module that relies on the slicerROS2
+      module, you can use the ``GetModuleLogic`` method and then the
+      ``GetDefaultROS2Node``.
+
+      .. code-block:: C++
+
+         vtkMRMLAbstractLogic * logic = this->GetModuleLogic("ROS2");
+         if (logic == nullptr) {
+           vtkErrorMacro(<< "ROS2 logic not found");
+         } else {
+          vtkSlicerROS2Logic * rosLogic =
+               vtkSlicerROS2Logic::SafeDownCast(logic);
+           if (rosLogic == nullptr) {
+             vtkErrorMacro(<< "Found what should be the default ROS2 logic but the type is wrong");
+           } else {
+             vtkMRMLROS2NodeNode * rosNode = rosLogic->GetDefaultROS2Node();
+             // now we can use the node
+           }
+         }
+
+      For all other cases, you can use node ID of
       the default ROS node (``vtkMRMLROS2NodeNode1``) to retrieve it
       from the MRML scene.
 
@@ -136,16 +166,11 @@ To retrieve the default ROS node:
            }
          }
 
-   .. tab:: **Python**
-
-      .. code-block:: python
-
-         rosLogic = slicer.util.getModuleLogic('ROS2')
-         rosNode = rosLogic.GetDefaultROS2Node()
-
 ======
 Topics
 ======
+
+.. _publishers:
 
 Publishers
 ==========
@@ -158,16 +183,8 @@ To create a new publisher, one should use the ROS2 Node method
   messages).  The full list can be found in the Slicer ROS logic class
   (``Logic/vtkSlicerROS2Logic.cc``) in the method ``RegisterNodes``.
 * the topic name.
-  
+
 .. tabs::
-
-   .. tab:: **C++**
-
-      .. code-block:: C++
-
-         auto pubString = rosNode->CreateAndAddPublisherNode("vtkMRMLROS2PublisherStringNode", "/my_string");
-         // run ros2 topic echo /my_string in a terminal to see the output
-         pubString->Publish("my first string");
 
    .. tab:: **Python**
 
@@ -185,11 +202,48 @@ To create a new publisher, one should use the ROS2 Node method
          mat.SetElement(0, 3, 3.1415) # Modify the matrix so we can see something changing
          pubMatrix.Publish(mat)
 
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         auto pubString = rosNode->CreateAndAddPublisherNode("vtkMRMLROS2PublisherStringNode", "/my_string");
+         // run ros2 topic echo /my_string in a terminal to see the output
+         pubString->Publish("my first string");
+
+
 Subscribers
 ===========
 
+To create a new subscriber, one should use the ROS2 Node method
+``CreateAndAddSubscriberNode``.  This method take two parameters:
 
-    sub.GetLastMessageYAML()
+* the class (type) of subscriber to be used.  See ::ref:`publishers`.
+* the topic name.
+
+.. tabs::
+
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+         subString = rosNode.CreateAndAddSubscriberNode('vtkMRMLROS2SubscriberStringNode', '/my_string')
+         # run ros2 topic pub /my_string
+         sub.GetLastMessage(m_string)
+         # alternate, get a string with the full message
+         m_string_yaml = sub.GetLastMessageYAML()
+
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         auto pubString = rosNode->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/my_string");
+         // run ros2 topic echo /my_string in a terminal to see the output
+         pubString->Publish("my first string");
+
+
+
 
 ==========
 Parameters

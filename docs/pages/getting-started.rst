@@ -10,14 +10,15 @@ Pre-requisites
 Before you can start compiling the SlicerROS2 module, you will need:
 
 * Some knowledge of Linux, CMake and ROS 2.
-* Ubuntu Linux with `ROS 2 <https://www.ros.org>`_ (tested using
-  ubuntu 20.04 and ROS 2 Galactic).
-* Slicer 3D built from source is required to build an extension, see
-  `Slicer build instructions
-  <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
+* Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.  This module has
+  been developped and tested using Ubuntu 20.04 with ROS Galactic.  It
+  might also work on Ubuntu 22.04 with ROS Humble.
+* Slicer 3D built from source is required to build an extension.
   Before you start compiling Slicer, make sure we use the
   system/native OpenSSL libraries otherwise you'll get some errors
-  when compiling the Slicer ROS 2 module.
+  when compiling the Slicer ROS 2 module.  See `Slicer build
+  instructions
+  <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
 
   After you ran CMake for the first time, in the Slicer build directory, set
   ``Slicer_USE_SYSTEM_OpenSLL`` to ``ON`` using ``cmake
@@ -26,10 +27,11 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
 
-.. note:: We use currently cisst messages for certain ROS2 publishers. 
-  The module https://github.com/jhu-cisst/ros2_cisst_msgs.git should
-  be cloned in the `src` directory for your ROS2 workspace
-  (see instructions below).
+.. note:: We use currently cisst messages for certain ROS 2
+  publishers.  The module
+  https://github.com/jhu-cisst/ros2_cisst_msgs.git should be cloned in
+  the `src` directory for your ROS 2 workspace (see instructions
+  below).
 
 .. note:: If you need to build Slicer from old sources, make sure
   ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
@@ -39,7 +41,7 @@ Before you can start compiling the SlicerROS2 module, you will need:
 Compilation
 ===========
 
-This code should be built with ``colcon`` as a ROS2 package.
+This code should be built with ``colcon`` as a ROS 2 package.
 ``colcon`` is usually installed along ROS 2 but if it isn't, install
 it with ``sudo apt install python3-colcon-common-extensions``.  For
 now, we will assume the ROS workspace directory is ``~/ros2_ws`` and
