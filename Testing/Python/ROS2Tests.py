@@ -75,16 +75,23 @@ class ROS2TestsWidget(ScriptedLoadableModuleWidget):
 # ROS2TestsLogic
 #
 
-class TestObserver:
+class TestObserverSubscriber:
     def __init__(self):
         self.lastMessageYAML = ""
         self.counter = 0
 
     def Callback(self, caller, event):
-        print("***************************************************************************")
         self.lastMessageYAML = caller.GetLastMessageYAML()
         self.counter += 1
-        print(self.lastMessageYAML)
+
+class TestObserverTf2Lookup:
+    def __init__(self):
+        self.counter = 0
+
+    def Callback(self, caller, event):
+        print("****************************************************************")
+        self.counter += 1
+        self.lastTransform = caller.GetMatrixTransformToParent()
 
 
 class ROS2TestsLogic(ScriptedLoadableModuleLogic):
@@ -171,7 +178,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             print("\nCreating ROS2 node for pub sub tests..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNode")
-            self.testObs = TestObserver()
+            self.testObs = TestObserverSubscriber()
             ROS2TestsLogic.spin_some()
 
         def create_pub_sub(self, type): # TODO: Keep just type to append to vtkMRMLROS2Publisher/Subscriber?
@@ -440,6 +447,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_broadcaster_functioning(self):
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
+            observer = TestObserverTf2Lookup()
+            lookupNode.AddObserver("ModifiedEvent", observer.Callback)
             # Broadcast a 4x4 matrix and confirm
             broadcastedMat = vtk.vtkMatrix4x4()
             broadcastedMat.SetElement(0,3,66) # Set a default value
@@ -447,6 +456,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.spin_some()
             lookupMat = lookupNode.GetMatrixTransformToParent()
             self.assertEqual(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3)) # maybe use assert almost equal
+            self.assertEqual(observer.counter, 1)
+            self.assertEqual(observer.lastTransform.GetElement(0,3), broadcastedMat.GetElement(0,3))
 
         def tearDown(self):
             pass
