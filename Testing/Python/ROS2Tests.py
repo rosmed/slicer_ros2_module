@@ -75,6 +75,18 @@ class ROS2TestsWidget(ScriptedLoadableModuleWidget):
 # ROS2TestsLogic
 #
 
+class TestObserver:
+    def __init__(self):
+        self.lastMessageYAML = ""
+        self.counter = 0
+
+    def Callback(self, caller, event):
+        print("***************************************************************************")
+        self.lastMessageYAML = caller.GetLastMessageYAML()
+        self.counter += 1
+        print(self.lastMessageYAML)
+
+
 class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     """This class should implement all the actual
     computation done by your module.  The interface
@@ -159,135 +171,129 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             print("\nCreating ROS2 node for pub sub tests..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNode")
+            self.testObs = TestObserver()
             ROS2TestsLogic.spin_some()
 
         def create_pub_sub(self, type): # TODO: Keep just type to append to vtkMRMLROS2Publisher/Subscriber?
-            topic = "test_" + type.lower() + "_xkcd"
-            pubType = "vtkMRMLROS2Publisher" + type + "Node"
-            subType = "vtkMRMLROS2Subscriber" + type + "Node"
-            testPub = self.ros2Node.CreateAndAddPublisherNode(pubType, topic)
-            testSub = self.ros2Node.CreateAndAddSubscriberNode(subType, topic)
+            self.topic = "slicer_test_" + type.lower()
+            self.pubType = "vtkMRMLROS2Publisher" + type + "Node"
+            self.subType = "vtkMRMLROS2Subscriber" + type + "Node"
+            self.testPub = self.ros2Node.CreateAndAddPublisherNode(self.pubType, self.topic)
+            self.testSub = self.ros2Node.CreateAndAddSubscriberNode(self.subType, self.topic)
+            self.testSub.AddObserver("ModifiedEvent", self.testObs.Callback)
             ROS2TestsLogic.spin_some()
-            return testPub, testSub, topic
-        
-        def delete_pub_sub(self, topic):
-            self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode(topic), "Publisher not deleted")
-            self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(topic), "Subscriber not deleted")
+
+        def generic_assertions(self, initSubMessageCount):
+            ROS2TestsLogic.spin_some()
+
+            finalSubMessageCount = self.testSub.GetNumberOfMessages()
+            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
+
+            self.assertTrue(self.testSub.GetLastMessageYAML() == self.testObs.lastMessageYAML,
+                            "Message not received correctly by observer")
+            self.assertTrue(self.testObs.counter == 1,
+                            "Observer number of calls incorrect")
+
+        def delete_pub_sub(self):
+            self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode(self.topic), "Publisher not deleted")
+            self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(self.topic), "Subscriber not deleted")
             return
 
         def test_create_and_add_pub_sub_string(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            testPub, testSub, topic = self.create_pub_sub("String")
+            self.create_pub_sub("String")
 
-            initSubMessageCount = testSub.GetNumberOfMessages()
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentString = "xkcd"
-            testPub.Publish(sentString)
-            ROS2TestsLogic.spin_some()
+            self.testPub.Publish(sentString)
 
-            finalSubMessageCount = testSub.GetNumberOfMessages()
-            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
+            self.generic_assertions(initSubMessageCount)
 
-            receivedString = testSub.GetLastMessage()
+            receivedString = self.testSub.GetLastMessage()
             self.assertTrue(sentString == receivedString, "Message not received correctly")
 
-            receivedMessage = testSub.GetLastMessageYAML()
-            self.assertTrue(sentString in receivedString, "Message not received correctly (YAML)")
-
-            self.delete_pub_sub(topic)
+            self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_matrix(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            testPub, testSub, topic = self.create_pub_sub("PoseStamped")
+            self.create_pub_sub("PoseStamped")
 
-            initSubMessageCount = testSub.GetNumberOfMessages()
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentMatrix = vtk.vtkMatrix4x4()
             sentMatrix.SetElement(2, 3, 3.1415)
-            testPub.Publish(sentMatrix)
-            ROS2TestsLogic.spin_some()
+            self.testPub.Publish(sentMatrix)
 
-            finalSubMessageCount = testSub.GetNumberOfMessages()
-            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
+            self.generic_assertions(initSubMessageCount)
 
-            receivedMatrix = testSub.GetLastMessage()
-            print(receivedMatrix)
-            self.assertTrue(sentMatrix.GetElement(2, 3) == receivedMatrix.GetElement(2, 3), "Message not received correctly")
+            receivedMatrix = self.testSub.GetLastMessage()
+            self.assertTrue(sentMatrix.GetElement(2, 3) == receivedMatrix.GetElement(2, 3),
+                            "Message not received correctly")
 
-            self.delete_pub_sub(topic)
+            self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_float(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            testPub, testSub, topic = self.create_pub_sub("Float")
+            self.create_pub_sub("Float")
 
-            initSubMessageCount = testSub.GetNumberOfMessages()
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentFloat = 3.1415
-            testPub.Publish(sentFloat)
+            self.testPub.Publish(sentFloat)
             ROS2TestsLogic.spin_some()
 
-            finalSubMessageCount = testSub.GetNumberOfMessages()
-            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
+            self.generic_assertions(initSubMessageCount)
 
-            receivedFloat = testSub.GetLastMessage()
+            receivedFloat = self.testSub.GetLastMessage()
             self.assertTrue(sentFloat == receivedFloat, "Message not received correctly")
 
-            self.delete_pub_sub(topic)
+            self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_int_array(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            testPub, testSub, topic = self.create_pub_sub("IntArray")
+            self.create_pub_sub("IntArray")
 
-            initSubMessageCount = testSub.GetNumberOfMessages()
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentIntArray = [1, 2, 3, 4, 5]
             sentIntVtkArray = vtk.vtkIntArray()
             sentIntVtkArray.SetNumberOfValues(len(sentIntArray))
             for i in range(len(sentIntArray)):
                 sentIntVtkArray.SetValue(i, sentIntArray[i])
+            self.testPub.Publish(sentIntVtkArray)
 
-            testPub.Publish(sentIntVtkArray)
-            ROS2TestsLogic.spin_some()
+            self.generic_assertions(initSubMessageCount)
 
-            finalSubMessageCount = testSub.GetNumberOfMessages()
-            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
-
-            receivedIntArray = testSub.GetLastMessage()
-
+            receivedIntArray = self.testSub.GetLastMessage()
             # check that sentIntVtkArray and receivedIntArray are the same
             self.assertTrue(sentIntVtkArray.GetNumberOfValues() == receivedIntArray.GetNumberOfValues(), "Message not received correctly")
             for i in range(sentIntVtkArray.GetNumberOfValues()):
                 self.assertTrue(sentIntVtkArray.GetValue(i) == receivedIntArray.GetValue(i), "Message not received correctly")
 
-            # Cleanup
-            self.delete_pub_sub(topic)
+            self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_double_array(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            testPub, testSub, topic = self.create_pub_sub("FloatArray")
+            self.create_pub_sub("FloatArray")
 
-            initSubMessageCount = testSub.GetNumberOfMessages()
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentDoubleArray = [1.1, 2.2, 3.3, 4.4, 5.5]
             sentDoubleVtkArray = vtk.vtkDoubleArray()
             sentDoubleVtkArray.SetNumberOfValues(len(sentDoubleArray))
             for i in range(len(sentDoubleArray)):
                 sentDoubleVtkArray.SetValue(i, sentDoubleArray[i])
+            self.testPub.Publish(sentDoubleVtkArray)
 
-            testPub.Publish(sentDoubleVtkArray)
-            ROS2TestsLogic.spin_some()
+            self.generic_assertions(initSubMessageCount)
 
-            finalSubMessageCount = testSub.GetNumberOfMessages()
-            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
-
-            receivedDoubleArray = testSub.GetLastMessage()
-
+            receivedDoubleArray = self.testSub.GetLastMessage()
             # check that sentDoubleVtkArray and receivedDoubleArray are the same
             self.assertTrue(sentDoubleVtkArray.GetNumberOfValues() == receivedDoubleArray.GetNumberOfValues(), "Message not received correctly")
             for i in range(sentDoubleVtkArray.GetNumberOfValues()):
                 self.assertTrue(sentDoubleVtkArray.GetValue(i) == receivedDoubleArray.GetValue(i), "Message not received correctly")
 
-            # Cleanup
-            self.delete_pub_sub(topic)
+            self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
         # def test_create_and_add_pub_sub_int_n_array(self):
