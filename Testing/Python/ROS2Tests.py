@@ -219,6 +219,62 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_matrix_xkcd"), "Subscriber not removed")
             print("Testing creation and working of publisher and subscriber - Done")
 
+        def test_create_and_add_pub_sub_float(self):
+            print("\nTesting creation and working of publisher and subscriber - Starting..")
+            testPub = self.ros2Node.CreateAndAddPublisherNode(
+                "vtkMRMLROS2PublisherFloatNode", "test_float_xkcd"
+            )
+            testSub = self.ros2Node.CreateAndAddSubscriberNode(
+                "vtkMRMLROS2SubscriberFloatNode", "test_float_xkcd"
+            )
+            ROS2TestsLogic.spin_some()
+
+            initSubMessageCount = testSub.GetNumberOfMessages()
+            sentFloat = 3.1415
+            testPub.Publish(sentFloat)
+            ROS2TestsLogic.spin_some()
+
+            finalSubMessageCount = testSub.GetNumberOfMessages()
+            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
+
+            receivedFloat = testSub.GetLastMessage()
+            self.assertTrue(sentFloat == receivedFloat, "Message not received correctly")
+
+            # Cleanup
+            self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_float_xkcd"), "Publisher not removed")
+            self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_float_xkcd"), "Subscriber not removed")
+            print("Testing creation and working of publisher and subscriber - Done")
+
+        def test_create_and_add_pub_sub_int_array(self):
+            print("\nTesting creation and working of publisher and subscriber - Starting..")
+            testPub = self.ros2Node.CreateAndAddPublisherNode(
+                "vtkMRMLROS2PublisherIntArrayNode", "test_int_array_xkcd"
+            )
+            testSub = self.ros2Node.CreateAndAddSubscriberNode(
+                "vtkMRMLROS2SubscriberIntArrayNode", "test_int_array_xkcd"
+            )
+            ROS2TestsLogic.spin_some()
+
+            initSubMessageCount = testSub.GetNumberOfMessages()
+            sentIntArray = [1, 2, 3, 4, 5]
+            sentIntVtkArray = vtk.vtkIntArray()
+            sentIntVtkArray.SetNumberOfValues(len(sentIntArray))
+            for i in range(len(sentIntArray)):
+                sentIntVtkArray.SetValue(i, sentIntArray[i])
+            testPub.Publish(sentIntVtkArray)
+            ROS2TestsLogic.spin_some()
+
+            finalSubMessageCount = testSub.GetNumberOfMessages()
+            self.assertTrue(finalSubMessageCount - initSubMessageCount == 1, "Message not received")
+
+            receivedIntArray = testSub.GetLastMessage()
+            self.assertTrue(sentIntArray == receivedIntArray, "Message not received correctly")
+
+            # Cleanup
+            self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_int_array_xkcd"), "Publisher not removed")
+            self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_int_array_xkcd"), "Subscriber not removed")
+            print("Testing creation and working of publisher and subscriber - Done")
+
         def test_pub_sub_deletion(self):
             print("\nTesting deletion of publisher and subscriber - Starting..")
             testPub = self.ros2Node.CreateAndAddPublisherNode(

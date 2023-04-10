@@ -7,7 +7,7 @@
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(std::string, String);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Bool);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(int, Int);
-VTK_MRML_ROS_PUBLISHER_NATIVE_H(float, Float);
+VTK_MRML_ROS_PUBLISHER_NATIVE_H(double, Float);
 
 #include <vtkMatrix4x4.h>
 #include <vtkTransformCollection.h>
