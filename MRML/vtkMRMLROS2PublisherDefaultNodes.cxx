@@ -9,7 +9,7 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(int, std_msgs::msg::Int64, Int);
 VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(double, std_msgs::msg::Float64, Float);
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkIntArray, std_msgs::msg::Int64MultiArray, IntArray);
-VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, std_msgs::msg::Float64MultiArray, FloatArray);
+VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, std_msgs::msg::Float64MultiArray, FloatArray); // FIXME: @Anton rename this as DoubleArray? since that's the vtk type we use
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDenseArray<int>, std_msgs::msg::Int64MultiArray, IntNArray);
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkMatrix4x4, geometry_msgs::msg::PoseStamped, PoseStamped);

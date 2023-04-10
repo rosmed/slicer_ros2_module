@@ -31,6 +31,10 @@ void vtkSlicerToROS2(vtkIntArray * input,  std_msgs::msg::Int64MultiArray & resu
          const std::shared_ptr<rclcpp::Node> &)
 {
   int numElements = input->GetNumberOfValues();
+  result.layout.dim.resize(1);
+  result.layout.dim[0].label = "x";
+  result.layout.dim[0].size = numElements;
+  result.layout.dim[0].stride = 1;
   result.data.resize(numElements);
   for (int j = 0; j < numElements; j++){
     result.data[j] = input->GetValue(j);
@@ -41,6 +45,12 @@ void vtkSlicerToROS2(vtkDoubleArray * input,  std_msgs::msg::Float64MultiArray &
          const std::shared_ptr<rclcpp::Node> &)
 {
   int numElements = input->GetNumberOfValues();
+  // set result dim to be 1
+  result.layout.dim.resize(1);
+  result.layout.dim[0].label = "x";
+  result.layout.dim[0].size = numElements;
+  result.layout.dim[0].stride = 1;
+
   result.data.resize(numElements);
   for (int j = 0; j < numElements; j++){
     result.data[j] = input->GetValue(j);
@@ -49,22 +59,29 @@ void vtkSlicerToROS2(vtkDoubleArray * input,  std_msgs::msg::Float64MultiArray &
 
 void vtkSlicerToROS2(vtkDenseArray<int> * input,  std_msgs::msg::Int64MultiArray & result,
          const std::shared_ptr<rclcpp::Node> &) 
-{
-  // vtkArrayExtents extents = input->GetExtents();
-  // int x = extents.GetSize()[0];
-  // int y = extents.GetSize()[1];
-
-  // result.data.resize(x*y);
-  // for (int i = 0; i < x; i++){
-  //   for (int j = 0; j < y; j++){
-  //     result.data[i*y + j] = input->GetValue(i,j);
-  //   }
-  // }
-  // result.layout.dim.resize(2);
-  // result.layout.dim[0].label = "x";
-  // result.layout.dim[0].size = x;
-  // result.layout.dim[0].stride = x*y;
-  // result.layout.dim[1].label = "y";
+{ 
+  int x, y;
+  // get number of dimensions and size of each dimension using GetExtents()
+  int dimensions_as_int = static_cast<int>(input->GetDimensions());
+  int* dimensions = &dimensions_as_int;
+  std::cerr << "dimensions_as_int: " << dimensions << std::endl;
+  std::cerr << "dimensions_as_int: " << dimensions_as_int << std::endl;
+  x = dimensions[0];
+  y = dimensions[1];
+  
+  result.data.resize(x*y);
+  for (int i = 0; i < x; i++){
+    for (int j = 0; j < y; j++){
+      result.data[i*y + j] = input->GetValue(i,j);
+    }
+  }
+  result.layout.dim.resize(2);
+  result.layout.dim[0].label = "x";
+  result.layout.dim[0].size = x;
+  result.layout.dim[0].stride = x*y;
+  result.layout.dim[1].label = "y";
+  result.layout.dim[1].size = y;
+  result.layout.dim[1].stride = y;
 }
 
 

@@ -29,10 +29,10 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
 {
   int numElements = input.data.size();
   // if input is not a 1D array raise an error
-  // if (input.layout.dim.size() != 1){
-  //   std::cerr << "Input is not a 1D array" << std::endl;
-  //   return;
-  // }
+  if (input.layout.dim.size() != 1){
+    std::cerr << "Input is not a 1D array" << std::endl;
+    return;
+  }
   result->SetNumberOfValues(numElements);
   for (int j = 0; j < numElements; j++){
     result->SetValue(j, input.data[j]);
@@ -43,10 +43,10 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 {
   int numElements = input.data.size();
   // if input is not a 1D array raise an error
-  // if (input.layout.dim.size() != 1){
-  //   std::cerr << "Input is not a 1D array" << std::endl;
-  //   return;
-  // }
+  if (input.layout.dim.size() != 1){
+    std::cerr << "Input is not a 1D array" << std::endl;
+    return;
+  }
   result->SetNumberOfValues(numElements);
   for (int j = 0; j < numElements; j++){
     result->SetValue(j, input.data[j]);
@@ -55,6 +55,18 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 
 void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPointer<vtkDenseArray<int>> result)
 {
+  int numElements = input.data.size();
+  // if input is not a 2D array raise an error
+  if (input.layout.dim.size() != 2){
+    std::cerr << "Input is not a 2D array" << std::endl;
+    return;
+  }
+  int numCols = input.layout.dim[0].size;
+  int numRows = input.layout.dim[1].size;
+  result->Resize(numRows, numCols);
+  for (int j = 0; j < numElements; j++){
+    result->SetValue(j, input.data[j]);
+  }
 }
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result)
