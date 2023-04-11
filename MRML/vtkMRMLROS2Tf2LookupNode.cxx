@@ -182,8 +182,11 @@ void vtkMRMLROS2Tf2LookupNode::UpdateScene(vtkMRMLScene *scene)
       return;
     }
     this->AddToROS2Node(defaultNode->GetID());
+    this->UpdateMRMLNodeName();
+    
   } else if (nbNodeRefs == 1) {
     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
+    this->UpdateMRMLNodeName();
   } else {
     vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for broadcaster \"" << GetName() << "\"");
   }

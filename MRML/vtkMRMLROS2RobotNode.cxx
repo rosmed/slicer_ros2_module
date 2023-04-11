@@ -362,3 +362,28 @@ void vtkMRMLROS2RobotNode::ReadXMLAttributes(const char** atts)
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }
+
+
+void vtkMRMLROS2RobotNode::UpdateScene(vtkMRMLScene *scene)
+{
+  Superclass::UpdateScene(scene);
+  int nbNodeRefs = this->GetNumberOfNodeReferences("node");
+  if (nbNodeRefs == 0) {
+    // assigned to the default ROS node
+    auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
+    auto nodeId = defaultNode->GetID();
+    if(!defaultNode){
+      vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for broadcaster \"" << GetName() << "\"");
+      return;
+    }
+    defaultNode->SetNthNodeReferenceID("robot", defaultNode->GetNumberOfNodeReferences("robot"),this->GetID());
+    this->SetNodeReferenceID("node", nodeId);
+  } else if (nbNodeRefs == 1) {
+    auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
+    auto nodeId = defaultNode->GetID();
+    defaultNode->SetNthNodeReferenceID("robot", defaultNode->GetNumberOfNodeReferences("robot"), this->GetID());
+    this->SetNodeReferenceID("node", nodeId);
+  } else {
+    vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for broadcaster \"" << GetName() << "\"");
+  }
+}
