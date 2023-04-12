@@ -36,6 +36,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   void SetModifiedOnLookup(const bool & set);
   bool GetModifiedOnLookup(void) const;
 
+  bool IsDifferentFromLast(const unsigned int seconds, const unsigned int nanoSeconds);
+
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
@@ -52,6 +54,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   std::string mChildID = "";
   bool mAddedToROS2Node = false;
   bool mModifiedOnLookup = true;
+  unsigned int mLastSeconds = 0;
+  unsigned int mLastNanoSeconds = 0;
 };
 
 #endif // _vtkMRMLROS2Tf2LookupNode_h
