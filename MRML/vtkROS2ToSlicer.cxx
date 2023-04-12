@@ -61,23 +61,16 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
     std::cerr << "Input is not a 2D array" << std::endl;
     return;
   }
-  int rowSize = input.layout.dim[0].size;
-  // create two vtkIntArrays of size rowSize
-  vtkSmartPointer<vtkIntArray> row1 = vtkSmartPointer<vtkIntArray>::New();
-  vtkSmartPointer<vtkIntArray> row2 = vtkSmartPointer<vtkIntArray>::New();
-  row1->SetNumberOfValues(rowSize);
-  row2->SetNumberOfValues(rowSize);
-  // fill with alternating values 
-  for (int j = 0; j < numElements; j++){
-    if (j % 2 == 0){
-      row1->SetValue(j/2, input.data[j]);
-    } else {
-      row2->SetValue(j/2, input.data[j]);
+  int numRows = input.layout.dim[0].size;
+  int numCols = input.layout.dim[1].size;
+  for(int i = 0; i < numRows; i++){
+    vtkSmartPointer<vtkIntArray> row = vtkSmartPointer<vtkIntArray>::New();
+    row->SetNumberOfValues(numCols);
+    for(int j = 0; j < numCols; j++){
+      row->SetValue(j, input.data[i*numCols + j]);
     }
+    result->AddColumn(row);
   }
-  // add the arrays to the table
-  result->AddColumn(row1);
-  result->AddColumn(row2);
 }
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result)
