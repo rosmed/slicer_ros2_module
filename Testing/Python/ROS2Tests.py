@@ -303,28 +303,40 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
-        # def test_create_and_add_pub_sub_int_n_array(self):
-        #     print("\nTesting creation and working of publisher and subscriber - Starting..")
-        #     testPub, testSub, topic = self.create_pub_sub("IntNArray")
+        def test_create_and_add_pub_sub_int_n_array(self):
+            print("\nTesting creation and working of publisher and subscriber for N-array - Starting..")
+            self.create_pub_sub("IntNArray")
 
-        #     initSubMessageCount = testSub.GetNumberOfMessages()
-        #     # create a vtkDenseArray<int> of size 3x4 and fill it with increasing numbers
-        #     sentIntArray = vtk.vtkDenseArray[int]()
-        #     sentIntArray.SetExtents(0,3,0, 4)
-        #     for i in range(3):
-        #         for j in range(4):
-        #             sentIntArray.SetValue(i, j, i * 4 + j)
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
 
-        #     # print elements of sentIntArray
-        #     for i in range(3):
-        #         for j in range(4):
-        #             print(sentIntArray.GetValue(i, j), end=" ")
-        #     print(sentIntArray)
+            arr1 = vtk.vtkIntArray()
+            arr2 = vtk.vtkIntArray()
 
-        #     # TODO: publish sentIntArray
+            arr1.SetNumberOfValues(3)
+            arr2.SetNumberOfValues(3)
 
-        #     self.delete_pub_sub(topic)
-        #     print("Testing creation and working of publisher and subscriber - Done")
+            for i in range(3):
+                arr1.SetValue(i, 3*i) # 0, 3, 6
+                arr2.SetValue(i, 4*i+1) # 1, 5, 9
+
+            vtktable = vtk.vtkTable()
+            vtktable.AddColumn(arr1)
+            vtktable.AddColumn(arr2)
+
+            self.testPub.Publish(vtktable)
+
+            self.generic_assertions(initSubMessageCount)
+
+            receivedVtkTable = self.testSub.GetLastMessage()
+            # check that vtktable and receivedVtkTable are the same
+            self.assertTrue(vtktable.GetNumberOfColumns() == receivedVtkTable.GetNumberOfColumns(), "Message not received correctly")
+            self.assertTrue(vtktable.GetNumberOfRows() == receivedVtkTable.GetNumberOfRows(), "Message not received correctly")
+            for i in range(vtktable.GetNumberOfColumns()):
+                for j in range(vtktable.GetNumberOfRows()):
+                    self.assertTrue(vtktable.GetValue(j, i) == receivedVtkTable.GetValue(j, i), "Message not received correctly")
+
+            self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_pub_sub_deletion(self):
             print("\nTesting deletion of publisher and subscriber - Starting..")
@@ -479,3 +491,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
 # tests = slicer.util.getModuleLogic('ROS2Tests')
 # tests.run()
+# tests = slicer.util.getModuleLogic('ROS2Tests')
+
+# >>> ros2 = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
+# >>> pub = ros2.CreateAndAddPublisherNode('vtkMRMLROS2PublisherIntNArrayNode','testpub2')

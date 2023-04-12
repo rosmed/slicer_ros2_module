@@ -8,6 +8,7 @@
 #include <vtkIntArray.h>
 #include <vtkTransformCollection.h>
 #include <vtkDenseArray.h>
+#include <vtkTable.h>
 
 // ROS2
 #include <rclcpp/rclcpp.hpp>
@@ -35,7 +36,7 @@ void vtkSlicerToROS2(vtkIntArray * input,  std_msgs::msg::Int64MultiArray & resu
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkDoubleArray * input,  std_msgs::msg::Float64MultiArray & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);		
-void vtkSlicerToROS2(vtkDenseArray<int> * input,  std_msgs::msg::Int64MultiArray & result,
+void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Int64MultiArray & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);

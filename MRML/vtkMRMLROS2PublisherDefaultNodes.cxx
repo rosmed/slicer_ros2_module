@@ -10,7 +10,7 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(double, std_msgs::msg::Float64, Double);
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkIntArray, std_msgs::msg::Int64MultiArray, IntArray);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, std_msgs::msg::Float64MultiArray, DoubleArray); 
-VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDenseArray<int>, std_msgs::msg::Int64MultiArray, IntNArray);
+VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTable, std_msgs::msg::Int64MultiArray, IntNArray);
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkMatrix4x4, geometry_msgs::msg::PoseStamped, PoseStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, geometry_msgs::msg::WrenchStamped, WrenchStamped);
