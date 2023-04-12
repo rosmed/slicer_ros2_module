@@ -240,19 +240,19 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
-        def test_create_and_add_pub_sub_float(self):
+        def test_create_and_add_pub_sub_double(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            self.create_pub_sub("Float")
+            self.create_pub_sub("Double")
 
             initSubMessageCount = self.testSub.GetNumberOfMessages()
-            sentFloat = 3.1415
-            self.testPub.Publish(sentFloat)
+            sentDouble = 3.1415
+            self.testPub.Publish(sentDouble)
             ROS2TestsLogic.spin_some()
 
             self.generic_assertions(initSubMessageCount)
 
-            receivedFloat = self.testSub.GetLastMessage()
-            self.assertTrue(sentFloat == receivedFloat, "Message not received correctly")
+            receivedDouble = self.testSub.GetLastMessage()
+            self.assertTrue(sentDouble == receivedDouble, "Message not received correctly")
 
             self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
@@ -282,7 +282,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def test_create_and_add_pub_sub_double_array(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            self.create_pub_sub("FloatArray")
+            self.create_pub_sub("DoubleArray")
 
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentDoubleArray = [1.1, 2.2, 3.3, 4.4, 5.5]
