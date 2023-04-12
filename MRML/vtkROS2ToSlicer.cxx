@@ -63,7 +63,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
   int numRows = input.layout.dim[0].size;
   int numCols = input.layout.dim[1].size;
   for(int i = 0; i < numCols; i++){
-    vtkSmartPointer<vtkIntArray> row = vtkSmartPointer<vtkIntArray>::New();
+    vtkSmartPointer<vtkIntArray> col = vtkSmartPointer<vtkIntArray>::New();
     col->SetNumberOfValues(numRows);
     for(int j = 0; j < numRows; j++){
       col->SetValue(j, input.data[j*numCols + i]);
