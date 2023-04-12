@@ -332,6 +332,36 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
+        def test_create_and_add_pub_sub_double_n_array(self):
+            print("\nTesting creation and working of publisher and subscriber for N-array - Starting..")
+            self.create_pub_sub("DoubleNArray")
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
+
+            arr1 = vtk.vtkDoubleArray()
+            arr2 = vtk.vtkDoubleArray()
+            arr1.SetNumberOfValues(3)
+            arr2.SetNumberOfValues(3)
+            for i in range(3):
+                arr1.SetValue(i, 3.3*i) # 0, 3.3, 6.6
+                arr2.SetValue(i, 4.4*i+1.1) # 1.1, 5.5, 9.9
+            
+            vtktable = vtk.vtkTable()
+            vtktable.AddColumn(arr1)
+            vtktable.AddColumn(arr2)
+
+            self.testPub.Publish(vtktable)
+            self.generic_assertions(initSubMessageCount)
+            receivedVtkTable = self.testSub.GetLastMessage()
+            # check that vtktable and receivedVtkTable are the same
+            self.assertTrue(vtktable.GetNumberOfColumns() == receivedVtkTable.GetNumberOfColumns(), "Message not received correctly")
+            self.assertTrue(vtktable.GetNumberOfRows() == receivedVtkTable.GetNumberOfRows(), "Message not received correctly")
+            for i in range(vtktable.GetNumberOfColumns()):
+                for j in range(vtktable.GetNumberOfRows()):
+                    self.assertTrue(vtktable.GetValue(j, i) == receivedVtkTable.GetValue(j, i), "Message not received correctly")
+
+            self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
+
         def test_pub_sub_deletion(self):
             print("\nTesting deletion of publisher and subscriber - Starting..")
             testPub = self.ros2Node.CreateAndAddPublisherNode(
