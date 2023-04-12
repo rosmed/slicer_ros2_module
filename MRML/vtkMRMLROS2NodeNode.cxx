@@ -343,13 +343,15 @@ void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
 	geometry_msgs::msg::TransformStamped transformStamped;
 	// check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
 	transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
-	vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
-	if (lookupNode->GetModifiedOnLookup()) {
-	  lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	} else {
-	  lookupNode->DisableModifiedEventOn();
-	  lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	  lookupNode->DisableModifiedEventOff();
+	if (lookupNode->IsDifferentFromLast(transformStamped.header.stamp.sec, transformStamped.header.stamp.nanosec)) {
+	  vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
+	  if (lookupNode->GetModifiedOnLookup()) {
+	    lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+	  } else {
+	    lookupNode->DisableModifiedEventOn();
+	    lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+	    lookupNode->DisableModifiedEventOff();
+	  }
 	}
       }
       catch (tf2::TransformException & ex) {

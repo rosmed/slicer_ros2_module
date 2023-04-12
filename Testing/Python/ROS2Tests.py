@@ -89,7 +89,6 @@ class TestObserverTf2Lookup:
         self.counter = 0
 
     def Callback(self, caller, event):
-        print("****************************************************************")
         self.counter += 1
         self.lastTransform = caller.GetMatrixTransformToParent()
 
@@ -454,7 +453,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
             observer = TestObserverTf2Lookup()
-            lookupNode.AddObserver("ModifiedEvent", observer.Callback)
+            lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
             # Broadcast a 4x4 matrix and confirm
             broadcastedMat = vtk.vtkMatrix4x4()
             broadcastedMat.SetElement(0,3,66) # Set a default value
@@ -485,7 +484,6 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
 # tests = slicer.util.getModuleLogic('ROS2Tests')
 # tests.run()
-# tests = slicer.util.getModuleLogic('ROS2Tests')
 
 # >>> ros2 = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
 # >>> pub = ros2.CreateAndAddPublisherNode('vtkMRMLROS2PublisherIntNArrayNode','testpub2')

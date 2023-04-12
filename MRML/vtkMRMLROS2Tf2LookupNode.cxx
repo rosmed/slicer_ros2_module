@@ -135,6 +135,20 @@ bool vtkMRMLROS2Tf2LookupNode::GetModifiedOnLookup(void) const
 }
 
 
+bool vtkMRMLROS2Tf2LookupNode::IsDifferentFromLast(const unsigned int seconds, const unsigned int nanoSeconds)
+{
+  if ((mLastSeconds == 0) && (mLastNanoSeconds == 0)) {
+    return true;
+  }
+  if ((mLastSeconds == seconds) && (mLastNanoSeconds == nanoSeconds)) {
+    return false;
+  }
+  mLastSeconds = seconds;
+  mLastNanoSeconds = nanoSeconds;
+  return true;
+}
+
+
 void vtkMRMLROS2Tf2LookupNode::UpdateMRMLNodeName()
 {
   std::string mMRMLNodeName = "ros2:tf2lookup:" + mParentID + "To" + mChildID;
@@ -183,7 +197,7 @@ void vtkMRMLROS2Tf2LookupNode::UpdateScene(vtkMRMLScene *scene)
     }
     this->AddToROS2Node(defaultNode->GetID());
     this->UpdateMRMLNodeName();
-    
+
   } else if (nbNodeRefs == 1) {
     this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID());
     this->UpdateMRMLNodeName();
