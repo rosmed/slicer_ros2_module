@@ -79,6 +79,30 @@ void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Int64MultiArray & result,
     }
   }
 }
+
+void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Float64MultiArray & result,
+         const std::shared_ptr<rclcpp::Node> &) 
+{ 
+  int numCols = input->GetNumberOfColumns();
+  int numRows = input->GetNumberOfRows();
+
+  result.layout.dim.resize(2);
+  result.layout.dim[0].label = "x";
+  result.layout.dim[0].size = numRows;
+  result.layout.dim[0].stride = numCols;
+  result.layout.dim[1].label = "y";
+  result.layout.dim[1].size = numCols;
+  result.layout.dim[1].stride = 1;
+
+  result.data.resize(numRows*numCols);
+
+  for (int i = 0; i < numRows; i++){
+    for (int j = 0; j < numCols; j++){
+      result.data[i*numCols + j] = input->GetValue(i, j).ToDouble();
+    }
+  }
+}
+
 // Work in Progress
 void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode)

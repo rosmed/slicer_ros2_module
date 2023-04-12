@@ -72,6 +72,25 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
   }
 }
 
+void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPointer<vtkTable> result)
+{
+  // if input is not a 2D array raise an error
+  if (input.layout.dim.size() != 2){
+    std::cerr << "Input is not a 2D array" << std::endl;
+    return;
+  }
+  int numRows = input.layout.dim[0].size;
+  int numCols = input.layout.dim[1].size;
+  for(int i = 0; i < numCols; i++){
+    vtkSmartPointer<vtkDoubleArray> col = vtkSmartPointer<vtkDoubleArray>::New();
+    col->SetNumberOfValues(numRows);
+    for(int j = 0; j < numRows; j++){
+      col->SetValue(j, input.data[j*numCols + i]);
+    }
+    result->AddColumn(col);
+  }
+}
+
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result)
 {
   result->SetNumberOfRows(2); // Row 1 = button status, Row 2 = axes values
