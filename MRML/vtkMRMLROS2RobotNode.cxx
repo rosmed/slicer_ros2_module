@@ -150,7 +150,13 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
   mNthRobot.mLinkNames.push_back(root_name);
   mNthRobot.mLinkParentNames.push_back(root_name);
   mInternals->mVisualVector.push_back(root->visual);
-
+  mInternals->mMaterialsMap = mInternals->mURDFModel.materials_;
+  if (root->visual != nullptr){
+    mInternals->mLinkMaterials.push_back(root->visual->material_name);
+  }
+  else{
+    mInternals->mLinkMaterials.push_back("");
+  }
   // Go through the rest of the robot and save to list
   size_t lastExplored = 0;
   while (lastExplored != mInternals->mVisualVector.size()) {
@@ -161,6 +167,12 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
       mNthRobot.mLinkNames.push_back(i->name);
       mNthRobot.mLinkParentNames.push_back(mInternals->mParentLinkPointer->name);
       mInternals->mVisualVector.push_back(i->visual); // need to get the origin from the visual
+      if (i->visual != nullptr){
+        mInternals->mLinkMaterials.push_back(i->visual->material_name);
+      }
+      else{
+        mInternals->mLinkMaterials.push_back("");
+      }
     }
     lastExplored++;
   }
@@ -283,6 +295,14 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
         this->GetScene()->AddNode( displayNode.GetPointer() );
         displayNode->SetName((mNthRobot.mLinkNames[i] + "_model_display_node").c_str());
         modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
+        if (!mInternals->mMaterialsMap.empty()){
+          if (mInternals->mLinkMaterials[i] == ""){
+            displayNode->SetColor(0.5, 0.5, 0.5);
+          }
+          else{
+            displayNode->SetColor((mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.r, (mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.g, (mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.b);
+          }
+        }
     }
     modelNode->ApplyTransform(transform); // instead of set and observe
   }
