@@ -306,27 +306,21 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_create_and_add_pub_sub_int_n_array(self):
             print("\nTesting creation and working of publisher and subscriber for N-array - Starting..")
             self.create_pub_sub("IntNArray")
-
             initSubMessageCount = self.testSub.GetNumberOfMessages()
 
             arr1 = vtk.vtkIntArray()
             arr2 = vtk.vtkIntArray()
-
             arr1.SetNumberOfValues(3)
             arr2.SetNumberOfValues(3)
-
             for i in range(3):
                 arr1.SetValue(i, 3*i) # 0, 3, 6
                 arr2.SetValue(i, 4*i+1) # 1, 5, 9
-
             vtktable = vtk.vtkTable()
             vtktable.AddColumn(arr1)
             vtktable.AddColumn(arr2)
 
             self.testPub.Publish(vtktable)
-
             self.generic_assertions(initSubMessageCount)
-
             receivedVtkTable = self.testSub.GetLastMessage()
             # check that vtktable and receivedVtkTable are the same
             self.assertTrue(vtktable.GetNumberOfColumns() == receivedVtkTable.GetNumberOfColumns(), "Message not received correctly")
