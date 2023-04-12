@@ -55,7 +55,6 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 
 void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPointer<vtkTable> result)
 {
-  int numElements = input.data.size();
   // if input is not a 2D array raise an error
   if (input.layout.dim.size() != 2){
     std::cerr << "Input is not a 2D array" << std::endl;
@@ -63,11 +62,11 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
   }
   int numRows = input.layout.dim[0].size;
   int numCols = input.layout.dim[1].size;
-  for(int i = 0; i < numRows; i++){
+  for(int i = 0; i < numCols; i++){
     vtkSmartPointer<vtkIntArray> row = vtkSmartPointer<vtkIntArray>::New();
-    row->SetNumberOfValues(numCols);
-    for(int j = 0; j < numCols; j++){
-      row->SetValue(j, input.data[i*numCols + j]);
+    col->SetNumberOfValues(numRows);
+    for(int j = 0; j < numRows; j++){
+      col->SetValue(j, input.data[j*numCols + i]);
     }
     result->AddColumn(row);
   }
