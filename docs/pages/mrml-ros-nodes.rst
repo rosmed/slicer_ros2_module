@@ -9,6 +9,10 @@ Slicer MRML nodes, i.e. derived from the class ``vtkMRMLNode`` and
 added to the MRML Scene.  This allows to leverage some of the Slicer
 features:
 
+* Using Slicer node observer pattern to trigger user code when a new
+  ROS message has been received (subscribers, parameters or Tf2
+  lookups).
+
 * Data visualization using the MRML scene.
 
 * Retrieve node by ID, name or type.
@@ -102,7 +106,7 @@ The SlicerROS2 module always creates a default ROS node (internally a
 ``rclcpp::node``).  This node is both a ROS 2 node and a MRML node,
 hence the unfortunate name ``vtkMRMLROS2NodeNode``.  This node is
 added to the MRML scene and should be used to add your custom
-``vtkMRMLROS2`` nodes (topics, parameter...).  It should be possible
+``vtkMRMLROS2`` nodes (topics, parameter...).  It is possible
 to add an extra ROS 2 node in SlicerROS2 but this feature has not been
 tested extensively for the first release.
 
@@ -170,6 +174,61 @@ To retrieve the default ROS node:
 Topics
 ======
 
+In ROS, publishers and subscribers can send/receive any type of ROS
+message (defined in `.msg` files).  These `.msg` files are then parsed
+by a code generator that creates the C++ code needed to support said
+message.  All the classes and functions needed for ROS topics can then
+be templated and uses the "type traits pattern" since all the messages
+have a similar API.  On the other hand, Slicer tends to avoid template
+for end-user classes.  So we created a set of basic publishers and
+subscribers to convert messages between ROS and Slicer.
+
+.. list-table:: Publishers and subscribers
+   :widths: 30 40 30
+   :header-rows: 1
+
+   * - Slicer type
+     - ROS type
+     - SlicerROS2 "name"
+   * - std::string
+     - std_msgs::msg::String
+     - String
+   * - bool
+     - std_msgs::msg::Bool
+     - Bool
+   * - int
+     - std_msgs::msg::Int64
+     - Int
+   * - double
+     - std_msgs::msg::Float64
+     - Double;
+   * - vtkIntArray
+     - std_msgs::msg::Int64MultiArray
+     - IntArray
+   * - vtkDoubleArray
+     - std_msgs::msg::Float64MultiArray
+     - DoubleArray
+   * - vtkTable
+     - std_msgs::msg::Int64MultiArray
+     - IntTable
+   * - vtkTable
+     - std_msgs::msg::Float64MultiArray
+     - DoubleTable
+   * - vtkMatrix4x4
+     - geometry_msgs::msg::PoseStamped
+     - PoseStamped
+   * - vtkDoubleArray
+     - geometry_msgs::msg::WrenchStamped
+     - WrenchStamped
+   * - vtkTransformCollection
+     - geometry_msgs::msg::PoseArray
+     - PoseArray
+
+For examplem, if you need to create a publisher that will take a
+`vtkMatrix4x4` on the Slicer side and publish a
+`geometry_msgs::msg::PoseStamped` on the ROS side, the full SlicerROS2
+node name will be `vtkMRMLROSPublisherPoseStampedNode`.
+
 .. _publishers:
 
 Publishers
@@ -181,7 +240,7 @@ To create a new publisher, one should use the ROS2 Node method
 * the class (type) of publisher to be used.  We provide some
   publishers for the most commonn data types (from Slicer to ROS
   messages).  The full list can be found in the Slicer ROS logic class
-  (``Logic/vtkSlicerROS2Logic.cc``) in the method ``RegisterNodes``.
+  (``Logic/vtkSlicerROS2Logic.cxx``) in the method ``RegisterNodes``.
 * the topic name.
 
 .. tabs::
@@ -193,11 +252,11 @@ To create a new publisher, one should use the ROS2 Node method
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
          pubString = rosNode.CreateAndAddPublisherNode('vtkMRMLROS2PublisherStringNode', '/my_string')
-         # run ros2 topic echo /my_string in a terminal to see the output
+         # run `ros2 topic echo /my_string` in a terminal to see the output
          pubString.Publish('my first string')
 
          pubMatrix = ros2.CreateAndAddPublisher('vtkMRMLROS2PublisherPoseStampedNode', '/my_matrix')
-         # run ros2 topic echo /my_matrix in a terminal to see the output
+         # run `ros2 topic echo /my_matrix` in a terminal to see the output
          mat = vtk.vtkMatrix4x4()
          mat.SetElement(0, 3, 3.1415) # Modify the matrix so we can see something changing
          pubMatrix.Publish(mat)
@@ -229,10 +288,13 @@ To create a new subscriber, one should use the ROS2 Node method
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
          subString = rosNode.CreateAndAddSubscriberNode('vtkMRMLROS2SubscriberStringNode', '/my_string')
-         # run ros2 topic pub /my_string
+         # run `ros2 topic pub /my_string` to send a string
          m_string = sub.GetLastMessage()
          # alternate, get a string with the full message
          m_string_yaml = sub.GetLastMessageYAML()
+         # since the subscriber is a MRML node, you can also create an observer with
+         # a callback to trigger some code when a new message is received
+         subString.AddObserver("ModifiedEvent", myCallback)
 
    .. tab:: **C++**
 
