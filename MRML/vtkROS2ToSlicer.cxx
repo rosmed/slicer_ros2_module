@@ -100,7 +100,7 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTab
     result->SetValue(1, j, vtkVariant(input.axes[j]));
   }
   for (int j = 0; j < numButtons; j++){
-    result->SetValue(0, j, vtkVariant(input.buttons[j])); 
+    result->SetValue(0, j, vtkVariant(input.buttons[j]));
   }
 }
 
@@ -125,7 +125,7 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPoin
   for (size_t row = 0; row < 3; row++) {
     for (size_t column = 0; column < 3; column++) {
       result->SetElement(row, column, A[row][column]); // Set the 3x3 matrix as the rotation component of the homogeneous transform
-     }
+    }
   }
 
   // Apply translation vector
@@ -156,7 +156,7 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmar
   for (size_t row = 0; row < 3; row++) {
     for (size_t column = 0; column < 3; column++) {
       result->SetElement(row, column, A[row][column]); // Set the 3x3 matrix as the rotation component of the homogeneous transform
-     }
+    }
   }
 
   // Apply translation vector

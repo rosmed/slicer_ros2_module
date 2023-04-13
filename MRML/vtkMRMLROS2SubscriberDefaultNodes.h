@@ -15,8 +15,8 @@ VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(double, Double);
 
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkIntArray, IntArray);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkDoubleArray, DoubleArray);
-VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, IntNArray);
-VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, DoubleNArray);
+VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, IntTable);
+VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, DoubleTable);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, Joy);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkMatrix4x4, PoseStamped);
 

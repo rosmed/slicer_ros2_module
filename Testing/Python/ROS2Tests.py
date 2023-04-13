@@ -304,7 +304,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def test_create_and_add_pub_sub_int_n_array(self):
             print("\nTesting creation and working of publisher and subscriber for N-array - Starting..")
-            self.create_pub_sub("IntNArray")
+            self.create_pub_sub("IntTable")
             initSubMessageCount = self.testSub.GetNumberOfMessages()
 
             arr1 = vtk.vtkIntArray()
@@ -333,7 +333,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def test_create_and_add_pub_sub_double_n_array(self):
             print("\nTesting creation and working of publisher and subscriber for N-array - Starting..")
-            self.create_pub_sub("DoubleNArray")
+            self.create_pub_sub("DoubleTable")
             initSubMessageCount = self.testSub.GetNumberOfMessages()
 
             arr1 = vtk.vtkDoubleArray()
@@ -343,7 +343,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             for i in range(3):
                 arr1.SetValue(i, 3.3*i) # 0, 3.3, 6.6
                 arr2.SetValue(i, 4.4*i+1.1) # 1.1, 5.5, 9.9
-            
+
             vtktable = vtk.vtkTable()
             vtktable.AddColumn(arr1)
             vtktable.AddColumn(arr2)
@@ -516,4 +516,4 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 # tests.run()
 
 # ros2 = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
-# pub = ros2.CreateAndAddPublisherNode('vtkMRMLROS2PublisherIntNArrayNode','testpub2')
+# pub = ros2.CreateAndAddPublisherNode('vtkMRMLROS2PublisherIntTableNode','testpub2')

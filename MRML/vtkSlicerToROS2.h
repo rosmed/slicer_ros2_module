@@ -34,7 +34,7 @@ void vtkSlicerToROS2(const double & input,  std_msgs::msg::Float64 & result,
 void vtkSlicerToROS2(vtkIntArray * input,  std_msgs::msg::Int64MultiArray & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkDoubleArray * input,  std_msgs::msg::Float64MultiArray & result,
-		     const std::shared_ptr<rclcpp::Node> & rosNode);		
+		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Int64MultiArray & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Float64MultiArray & result,
