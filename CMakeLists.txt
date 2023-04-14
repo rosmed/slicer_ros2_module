@@ -1,18 +1,26 @@
+macro (undefine_python)
+  unset(PYTHON_EXECUTABLE CACHE)
+  unset(Python3_EXECUTABLE CACHE)
+  unset(PYTHON_EXECUTABLE)
+  unset(Python3_EXECUTABLE)
+endmacro ()
+
+# Before Slicer does anything, let's find the default Python
+find_package (Python3 COMPONENTS Interpreter)
+if (Python3_Interpreter_FOUND)
+  if (DEFINED CACHE{ROS_Python3_EXECUTABLE}})
+  else ()
+    set (ROS_Python3_EXECUTABLE ${Python3_EXECUTABLE} CACHE INTERNAL "Python interpreter for ROS 2")
+  endif ()
+endif ()
+
+undefine_python ()
+
 # SlicerConfig.cmake does god knows what to the build tree but it
 # needs to be the first thing we do
 find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
-project(slicer_ros2_module)
-
-#---------------------------------------------------------------------------
-find_package(orocos_kdl REQUIRED)
-IF (orocos_kdl_FOUND)
-	message(STATUS "orocos_kdl found. Version: ${orocos_kdl_VERSION}")
-  message(STATUS "kdl lib dir: ${orocos_kdl_LIBRARY_DIR}")
-	include_directories(BEFORE SYSTEM ${orocos_kdl_INCLUDE_DIRS})
-	add_definitions(${orocos_kdl_CFLAGS})
-	link_directories(${orocos_kdl_LIBRARY_DIR})
-ENDIF()
+project(ROS2)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -23,9 +31,13 @@ find_package(urdf REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
+find_package(cisst_msgs REQUIRED)
+
+include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS})
+
 #-----------------------------------------------------------------------------
 
-set(MODULE_NAME Ros2)
+set(MODULE_NAME ROS2)
 set(MODULE_TITLE ${MODULE_NAME})
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
@@ -34,7 +46,8 @@ string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 # PYTHON_EXECUTABLE (likely set by ROS 2) so Slicer doesn't complain
 # (note that most Ubuntu and ROS 2 python packages will not be usable in
 # Slicer)
-unset(PYTHON_EXECUTABLE CACHE)
+undefine_python ()
+
 find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
 
@@ -46,8 +59,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 #---------------------------------------------------------------------------
 
+add_subdirectory(MRML)
 add_subdirectory(Logic)
-link_libraries(stdc++fs)
 
 #-----------------------------------------------------------------------------
 set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")
@@ -98,7 +111,14 @@ slicerMacroBuildLoadableModule(
   WITH_GENERIC_TESTS
   )
 
-#-----------------------------------------------------------------------------
 if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
+
+# Not sure how stable this code is.  Basically the CMake code for
+# Slicer sets a default Python interpreter so we need to revert to the
+# "default" one
+set(Python3_EXECUTABLE ${ROS_Python3_EXECUTABLE} CACHE STRING "ROS Python" FORCE)
+set(PYTHON_EXECUTABLE ${ROS_Python3_EXECUTABLE} CACHE STRING "ROS Python" FORCE)
+
+ament_package()

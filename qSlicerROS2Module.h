@@ -15,19 +15,17 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerRos2Module_h
-#define __qSlicerRos2Module_h
+#ifndef __qSlicerROS2Module_h
+#define __qSlicerROS2Module_h
 
 // Slicer includes
 #include "qSlicerLoadableModule.h"
 
-#include "qSlicerRos2ModuleExport.h"
-
-class qSlicerRos2ModulePrivate;
+#include "qSlicerROS2ModuleExport.h"
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_ROS2_EXPORT
-qSlicerRos2Module
+qSlicerROS2Module
   : public qSlicerLoadableModule
 {
   Q_OBJECT
@@ -37,8 +35,8 @@ qSlicerRos2Module
 public:
 
   typedef qSlicerLoadableModule Superclass;
-  explicit qSlicerRos2Module(QObject *parent=nullptr);
-  ~qSlicerRos2Module() override;
+  explicit qSlicerROS2Module(QObject *parent=nullptr);
+  ~qSlicerROS2Module() override;
 
   qSlicerGetTitleMacro(QTMODULE_TITLE);
 
@@ -62,12 +60,8 @@ protected:
   /// Create and return the logic associated to this module
   vtkMRMLAbstractLogic* createLogic() override;
 
-protected:
-  QScopedPointer<qSlicerRos2ModulePrivate> d_ptr;
-
 private:
-  Q_DECLARE_PRIVATE(qSlicerRos2Module);
-  Q_DISABLE_COPY(qSlicerRos2Module);
+  Q_DISABLE_COPY(qSlicerROS2Module);
 
 };
 
