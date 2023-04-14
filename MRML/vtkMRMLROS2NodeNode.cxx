@@ -310,6 +310,19 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNode(const std::string & monit
   return true;
 }
 
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & nodeID)
+{
+  vtkMRMLROS2Tf2LookupNode * node = this->GetTf2LookupNodeByID(nodeID);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveTf2LookupNode: node referenced by role 'lookup' for node " << nodeID << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID());
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
 
 bool vtkMRMLROS2NodeNode::SetTf2Buffer(void)
 {
@@ -340,25 +353,25 @@ void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
       const std::string & parent_id = lookupNode->GetParentID();
       const std::string & child_id = lookupNode->GetChildID();
       try {
-	geometry_msgs::msg::TransformStamped transformStamped;
-	// check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
-	transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
-	if (lookupNode->IsDifferentFromLast(transformStamped.header.stamp.sec, transformStamped.header.stamp.nanosec)) {
-	  vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
-	  if (lookupNode->GetModifiedOnLookup()) {
-	    lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	  } else {
-	    lookupNode->DisableModifiedEventOn();
-	    lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	    lookupNode->DisableModifiedEventOff();
-	  }
-	}
+        geometry_msgs::msg::TransformStamped transformStamped;
+        // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
+        transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
+        if (lookupNode->IsDifferentFromLast(transformStamped.header.stamp.sec, transformStamped.header.stamp.nanosec)) {
+          vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
+          if (lookupNode->GetModifiedOnLookup()) {
+            lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+          } else {
+            lookupNode->DisableModifiedEventOn();
+            lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+            lookupNode->DisableModifiedEventOff();
+          }
+        }
       }
       catch (tf2::TransformException & ex) {
-	vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
+        vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
       }
       catch (...) {
-	vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);
+        vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);
       }
     }
   }
