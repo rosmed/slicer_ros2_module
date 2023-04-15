@@ -483,7 +483,6 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_broadcaster_functioning(self):
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
-            lookupNodeID = lookupNode.GetID()
             observer = TestObserverTf2Lookup()
             observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
             # Broadcast a 4x4 matrix and confirm
@@ -496,8 +495,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(observer.counter > 1)
             self.assertEqual(observer.lastTransform.GetElement(0,3), broadcastedMat.GetElement(0,3))
             lookupNode.RemoveObserver(observerId)
-            self.assertTrue(self.ros2Node.RemoveAndDeleteTf2LookupNode(lookupNodeID))
-            self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode(lookupNodeID))
+            self.assertTrue(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
+            self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
+            self.assertTrue(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
+            self.assertFalse(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
             
 
         def tearDown(self):
