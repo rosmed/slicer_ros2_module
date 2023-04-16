@@ -2,7 +2,7 @@
 
 This module is designed to enable direct communication between ROS 2 and 3D Slicer.
 
-The documentation is available on readthedocs: https://slicer-ros2.readthedocs.io/en/main/index.html
+The documentation is available on readthedocs: https://slicer-ros2.readthedocs.io/en/latest/index.html
 
 ## Acknowledgement
 This project is supported by:

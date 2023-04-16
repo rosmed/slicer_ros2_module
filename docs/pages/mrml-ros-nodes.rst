@@ -109,16 +109,16 @@ provided in millimeters.  Meanwhile uses the `RHS convention
 <https://https://en.wikipedia.org/wiki/Right-hand_rule>`_ and SI units
 (meters).
 
-========
-ROS Node
-========
+=====
+Nodes
+=====
 
 The SlicerROS2 module always creates a default ROS node (internally a
 ``rclcpp::node``).  This node is both a ROS node and a MRML node,
 hence the unfortunate name ``vtkMRMLROS2NodeNode``.  This node is
 added to the MRML scene and should be used to add your custom
 ``vtkMRMLROS2`` nodes (topics, parameter...).  It is possible to add
-an extra ROS node in SlicerROS2 but this feature has not been tested
+more ROS nodes in SlicerROS2 but this feature has not been tested
 extensively for the first release.
 
 To retrieve the default ROS node:
