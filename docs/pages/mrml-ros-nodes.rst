@@ -19,14 +19,14 @@ features:
 
 * Python API automatically generated on top of the native C++ code.
 
-* Ability to save and restore your ROS 2 nodes along the MRML scene.
+* Ability to save and restore your ROS nodes along the MRML scene.
 
 All the SlicerROS2 classes follow the Slicer naming convention,
 i.e. ``vtkMRMLxxxxNode``.  We added the ``ROS2`` "prefix" for all the
 class names so we're using ``vtkMRMLROS2xxxxNode`` where ``xxxx``
-represents a ROS functionality.  This works fairly well but makes it a bit
-hard to read for the MRML node than encapsulates a ROS 2 node, i.e. a
-``vtkMRMLROS2NodeNode``.
+represents a ROS functionality.  This works fairly well but makes it a
+bit hard to read for the MRML node than encapsulates a ROS node,
+i.e. a ``vtkMRMLROS2NodeNode``.
 
 ======
 Design
@@ -35,8 +35,8 @@ Design
 C++ vs Python
 =============
 
-Since both Slicer and ROS 2 provide a Python interface we first tried
-to use Python as the glue between Slicer and ROS 2.  The main issue on
+Since both Slicer and ROS provide a Python interface we first tried to
+use Python as the glue between Slicer and ROS.  The main issue on
 Ubuntu is that ROS relies on the system python (version 3.8 on Ubuntu
 20.04) while Slicer builds it's own Python interpreter (e.g. 3.9).
 Since both libraries are not just native Python code, loading
@@ -47,8 +47,8 @@ ROS, i.e. build everything using Python 3.8 or Python 3.9.
 Unfortunately, building Slicer against the Ubuntu provided Python
 interpreter (3.8) is no currently supported by the Slicer "super
 build".  Alternatively, using the Slicer provided Python 3.9 to build
-the ROS 2 Python bindings (``rclpy``) proved challenging unless one
-wanted to recompile ROS 2 from scratch instead of using the existing
+the ROS Python bindings (``rclpy``) proved challenging unless one
+wanted to recompile ROS from scratch instead of using the existing
 Ubuntu binary packages.
 
 We ultimately decided to implement the SlicerROS2 module in C++ and
@@ -77,19 +77,19 @@ this periodic call.
 
 .. warning:: Since we rely on a Qt timer to trigger the ROS spin, the
    module will not receive any ROS messages until the GUI is created,
-   i.e. until the ROS 2 module is manually loaded in Slicer.
+   i.e. until the ROS module is manually loaded in Slicer.
 
 Templates vs Inheritance
 ========================
 
 The two packages also differ in their design patterns.  Slicer (and
 VTK) strongly relies on base classes and inheritance to allow runtime
-decisions.  Meanwhile, ROS 2 heavily relies on templates and type
-traits which are handled at compilation time.  Most ROS 2
-communication mechanisms only support a finite number of data types
-(e.g. parameters are booleans, integers, floating points, strings or
-vector of aforementioned types, tf2 uses transforms only...) so this
-is not a major issue.
+decisions.  Meanwhile, ROS heavily relies on templates and type traits
+which are handled at compilation time.  Most ROS communication
+mechanisms only support a finite number of data types (e.g. parameters
+are booleans, integers, floating points, strings or vector of
+aforementioned types, tf2 uses transforms only...) so this is not a
+major issue.
 
 The main difficulty lies in supporting ROS topics and services For
 your code, we ended up using templates for our internal data
@@ -98,17 +98,28 @@ macros use template specialization and add some methods to create a
 C++ class that can be used within Slicer (including the Python
 bindings generation).
 
+Coordinate Systems and Units
+============================
+
+The SlicerROS2 module will automatically convert between the default
+3D frames conventions in Slicer and ROS.  Slicer (and by extension all
+VTK objects in Slicer) follow the `RAS convention
+<https://www.slicer.org/wiki/Coordinate_systems>`_ and distances are
+provided in millimeters.  Meanwhile uses the `RHS convention
+<https://https://en.wikipedia.org/wiki/Right-hand_rule>`_ and SI units
+(meters).
+
 ========
 ROS Node
 ========
 
 The SlicerROS2 module always creates a default ROS node (internally a
-``rclcpp::node``).  This node is both a ROS 2 node and a MRML node,
+``rclcpp::node``).  This node is both a ROS node and a MRML node,
 hence the unfortunate name ``vtkMRMLROS2NodeNode``.  This node is
 added to the MRML scene and should be used to add your custom
-``vtkMRMLROS2`` nodes (topics, parameter...).  It is possible
-to add an extra ROS 2 node in SlicerROS2 but this feature has not been
-tested extensively for the first release.
+``vtkMRMLROS2`` nodes (topics, parameter...).  It is possible to add
+an extra ROS node in SlicerROS2 but this feature has not been tested
+extensively for the first release.
 
 To retrieve the default ROS node:
 
@@ -224,7 +235,7 @@ subscribers to convert messages between ROS and Slicer.
      - geometry_msgs::msg::PoseArray
      - PoseArray
 
-For examplem, if you need to create a publisher that will take a
+For example, if you need to create a publisher that will take a
 `vtkMatrix4x4` on the Slicer side and publish a
 `geometry_msgs::msg::PoseStamped` on the ROS side, the full SlicerROS2
 node name will be `vtkMRMLROSPublisherPoseStampedNode`.
@@ -234,14 +245,17 @@ node name will be `vtkMRMLROSPublisherPoseStampedNode`.
 Publishers
 ==========
 
-To create a new publisher, one should use the ROS2 Node method
-``CreateAndAddPublisherNode``.  This method take two parameters:
+To create a new publisher, one should use the MRML ROS2 Node method
+``vtkMRMLROS2NodeNode::CreateAndAddPublisherNode``.  This method takes
+two parameters:
 
 * the class (type) of publisher to be used.  We provide some
   publishers for the most commonn data types (from Slicer to ROS
   messages).  The full list can be found in the Slicer ROS logic class
   (``Logic/vtkSlicerROS2Logic.cxx``) in the method ``RegisterNodes``.
-* the topic name.
+* the topic name (``std::string``).
+
+Publishers are triggered by calling the ``Publish`` method.
 
 .. tabs::
 
@@ -273,11 +287,17 @@ To create a new publisher, one should use the ROS2 Node method
 Subscribers
 ===========
 
-To create a new subscriber, one should use the ROS2 Node method
-``CreateAndAddSubscriberNode``.  This method take two parameters:
+To create a new subscriber, one should use the MRML ROS2 Node method
+``vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode``.  This method
+takes two parameters:
 
 * the class (type) of subscriber to be used.  See ::ref:`publishers`.
-* the topic name.
+* the topic name (``std::string``).
+
+Subscriber nodes get updated when the ROS2 node is spun.  Users can
+set their own callback to act on newly received messages using an
+observer on the MRML ROS subscriber node.  The last message received
+can be retrieved using ``GetLastMessage``.
 
 .. tabs::
 
@@ -292,9 +312,9 @@ To create a new subscriber, one should use the ROS2 Node method
          m_string = sub.GetLastMessage()
          # alternate, get a string with the full message
          m_string_yaml = sub.GetLastMessageYAML()
-         # since the subscriber is a MRML node, you can also create an observer with
-         # a callback to trigger some code when a new message is received
-         subString.AddObserver("ModifiedEvent", myCallback)
+         # since the subscriber is a MRML node, you can also create an observer (callback)
+         # to trigger some code when a new message is received
+         observerId = subString.AddObserver('ModifiedEvent', myCallback)
 
    .. tab:: **C++**
 
@@ -305,23 +325,141 @@ To create a new subscriber, one should use the ROS2 Node method
          pubString->Publish("my first string");
 
 
-
-
 ==========
 Parameters
 ==========
+
+.. tabs::
+
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         rosNode;
 
 
 ===
 Tf2
 ===
 
+For Tf2, there is no need to support multiple data types since Tf2's
+API exclusively uses ``geometry_msgs::msg::TransformStamped``.  On the
+Slicer side, the classes ``vtkMRMLROS2Tf2BroadcasterNode`` and
+``vtkMRMLROS2Tf2LookupNode`` support both ``vtkMatrix4x4`` and
+``vtkMRMLTransformNode``.
+
+Tf2 lookups use a Tf2 buffer to store all the Tf2 messages
+(broadcasts) sent by all the ROS nodes.  For the SlicerROS2 module, we
+decided to add a Tf2 buffer as a private data member of the
+``vtkMRMLROS2NodeNode`` since most users will never need a direct
+access to the Tf2 buffer.  The Tf2 lookups are performed when the node
+node is spun.
+
 Broadcasts
 ==========
+
+To create a new Tf2 broadcaster, one should use the MRML ROS2 Node
+method ``vtkMRMLROS2NodeNode::CreateAndAddTf2BroadcasterNode``.  This
+method takes two parameters:
+
+* the parent ID (``std::string``).
+* the child ID (``std::string``).
+
+Broadcasters are triggered by calling the ``Broadcast`` method.  It is
+also possible to set the Tf2 broadcast as an observer for an existing
+``vtkMRMLTransformNode`` using the method ``ObserveTransformNode``.
+The broadcast will then automically occur when the observed transform
+node is modified.
+
+.. tabs::
+
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+         broadcaster = ros2Node.CreateAndAddTf2BroadcasterNode('Parent', 'Child')
+         # Broadcast a 4x4 matrix
+         broadcastedMat = vtk.vtkMatrix4x4()
+         broadcastedMat.SetElement(0, 3, 66.0) # Set a default value
+         broadcaster.Broadcast(broadcastedMat)
+
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         auto broadcaster = rosNode.CreateAndAddTf2BroadcasterNode("Parent", "Child");
+         # Broadcast a 4x4 matrix
+         vtkSmartPointer<vtkMatrix4x4> broadcastedMat = vtkMatrix4x4::New();
+         broadcastedMat->SetElement(0, 3, 66.0);
+         broadcaster->Broadcast(broadcastedMat);
+
 
 Lookups
 =======
 
+To create a new Tf2 lookup, one should use the MRML ROS2 Node method
+``vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode``.  This method takes
+two parameters:
+
+* the parent ID (``std::string``).
+* the child ID (``std::string``).
+
+The class ``vtkMRMLROS2Tf2LookupNode`` is derived from
+``vtkMRMLTransformNode`` so it can be used as any other transformation
+in the MRML scene.
+
+Lookup nodes get updated when the ROS2 node is spun.  Users can set
+their own callback to act on updated transformations using an observer
+on the MRML ROS subscriber node.  The last transformation received can
+be retrieved using ``GetMatrixTransformToParent``.
+
+.. tabs::
+
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+         lookupNode = self.ros2Node.CreateAndAddTf2LookupNode('Parent', 'Child')
+	 # get the transform "manually"
+	 lookupMat = lookupNode.GetMatrixTransformToParent()
+         # or use an observer
+         observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
+
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         auto lookup = rosNode.CreateAndAddTf2LookupNode("Parent", "Child");
+         # Broadcast a 4x4 matrix
+         vtkSmartPointer<vtkMatrix4x4> lookupMat = vtkMatrix4x4::New();
+         lookupMat->GetMatrixTransformToParent(lookupMat);
+
 ======
 Robots
 ======
+
+.. tabs::
+
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         rosNode;
