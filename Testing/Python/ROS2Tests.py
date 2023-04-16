@@ -186,7 +186,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.subType = "vtkMRMLROS2Subscriber" + type + "Node"
             self.testPub = self.ros2Node.CreateAndAddPublisherNode(self.pubType, self.topic)
             self.testSub = self.ros2Node.CreateAndAddSubscriberNode(self.subType, self.topic)
-            self.testSub.AddObserver("ModifiedEvent", self.testObs.Callback)
+            self.observerId = self.testSub.AddObserver("ModifiedEvent", self.testObs.Callback)
             ROS2TestsLogic.spin_some()
 
         def generic_assertions(self, initSubMessageCount):
@@ -201,6 +201,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                             "Observer number of calls incorrect")
 
         def delete_pub_sub(self):
+            self.testSub.RemoveObserver(self.observerId)
             self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode(self.topic), "Publisher not deleted")
             self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(self.topic), "Subscriber not deleted")
             return
@@ -483,7 +484,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
             observer = TestObserverTf2Lookup()
-            lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
+            observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
             # Broadcast a 4x4 matrix and confirm
             broadcastedMat = vtk.vtkMatrix4x4()
             broadcastedMat.SetElement(0,3,66) # Set a default value
@@ -491,8 +492,14 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.spin_some()
             lookupMat = lookupNode.GetMatrixTransformToParent()
             self.assertEqual(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3)) # maybe use assert almost equal
-            self.assertEqual(observer.counter, 1)
+            self.assertTrue(observer.counter > 1)
             self.assertEqual(observer.lastTransform.GetElement(0,3), broadcastedMat.GetElement(0,3))
+            lookupNode.RemoveObserver(observerId)
+            self.assertTrue(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
+            self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
+            self.assertTrue(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
+            self.assertFalse(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
+            
 
         def tearDown(self):
             pass

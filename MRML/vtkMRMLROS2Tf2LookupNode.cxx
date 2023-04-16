@@ -116,6 +116,29 @@ bool vtkMRMLROS2Tf2LookupNode::AddToROS2Node(const char * nodeId)
   return true;
 }
 
+bool vtkMRMLROS2Tf2LookupNode::RemoveFromROS2Node(const char * nodeId)
+{
+  // Check that the lookup is in the scene
+  std::string errorMessage;
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
+      vtkErrorMacro(<< "RemoveFromROS2Node: " << errorMessage);
+      return false;
+  }
+
+  // Check that the lookup has been added to the node
+  vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mrmlROSNodePtr->GetTf2LookupNodeByID(this->GetID());
+  if ((lookup == nullptr) || !lookup->IsAddedToROS2Node()) {
+    vtkErrorMacro(<< "RemoveFromROS2Node: this lookup has not been added to the ROS2 node.");
+    return false;
+  }
+
+  // Remove the lookup from the node and remove references
+  mAddedToROS2Node = false;
+  this->SetNodeReferenceID("node", nullptr);
+  mrmlROSNodePtr->RemoveNthNodeReferenceID("lookup", mrmlROSNodePtr->GetNumberOfNodeReferences("lookup"));
+  return true;
+}
 
 bool vtkMRMLROS2Tf2LookupNode::IsAddedToROS2Node(void) const
 {

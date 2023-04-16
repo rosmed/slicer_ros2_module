@@ -31,6 +31,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   bool IsParentAndChildSet(void) const;
 
   bool AddToROS2Node(const char * nodeId);
+  bool RemoveFromROS2Node(const char * nodeId);
   bool IsAddedToROS2Node(void) const;
 
   void SetModifiedOnLookup(const bool & set);

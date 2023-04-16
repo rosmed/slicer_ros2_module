@@ -27,6 +27,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2BroadcasterNode: public v
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
 
   bool AddToROS2Node(const char * nodeId);
+  bool RemoveFromROS2Node(const char * nodeId);
   bool IsAddedToROS2Node(void) const;
 
   bool SetParentID(const std::string & parent_id);

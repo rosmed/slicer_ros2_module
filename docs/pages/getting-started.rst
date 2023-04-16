@@ -72,7 +72,12 @@ The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
 first ``colcon`` call.  For future builds, you can revert back to just
 using ``colcon build``.
 
-Note that the build directory name is ``ROS2``, not ``slicer_ros2_module``.
+Note that the build directory name is ``ROS2``, not
+``slicer_ros2_module``.  You will see some CMake warnings mentioning
+that the module's name (``ROS2``) doesn't follow the ROS2 package
+naming convention.  ROS2 expects all packages to use the "snake_case"
+naming convention but we decided to ignore this to follow the
+VTK/Slicer naming convention, i.e. "CamelCase".
 
 If the ``Slicer_DIR`` is not set properly (or you simply forgot), you
 should see the following error messages"
@@ -93,6 +98,7 @@ to configure until you can hit ``g`` to generate the makefiles.  If
 you prefer a graphical interface, you can use ``cmake-gui`` instead of
 ``ccmake``.  Once ``Slicer_DIR`` is set, try ``colcon build`` again
 (after ``cd ~/ros2_ws``).
+
 
 ==================
 Loading the module

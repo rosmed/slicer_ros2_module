@@ -253,6 +253,20 @@ vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterNodeByID(c
   return nullptr; // otherwise return a null ptr
 }
 
+vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterNodeByParentChild(const std::string & parent_id, const std::string & child_id)
+{
+  size_t broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
+  for (size_t j = 0; j < broadcasterRefs; ++j) {
+    vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> node = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(this->GetNthNodeReference("broadcaster", j));
+    if (!node) {
+      vtkWarningMacro(<< "GetTf2BroadcasterNodeByParentChild: node referenced by role 'broadcaster' is not a broadcaster");
+    } else if (node->GetParentID() == parent_id && node->GetChildID() == child_id) {
+      return node;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
 
 vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByID(const std::string & nodeID)
 {
@@ -262,6 +276,20 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByID(const std::
     if (!node) {
       vtkWarningMacro(<< "GetTf2LookupNodeByID: node referenced by role 'lookup' is not a lookup");
     } else if (node->GetID() == nodeID) {
+      return node;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
+vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByParentChild(const std::string & parent_id, const std::string & child_id)
+{
+  size_t lookupRefs = this->GetNumberOfNodeReferences("lookup");
+  for (size_t j = 0; j < lookupRefs; ++j) {
+    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> node = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookup", j));
+    if (!node) {
+      vtkWarningMacro(<< "GetTf2LookupNodeByParentChild: node referenced by role 'lookup' is not a lookup");
+    } else if (node->GetParentID() == parent_id && node->GetChildID() == child_id) {
       return node;
     }
   }
@@ -310,6 +338,57 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNode(const std::string & monit
   return true;
 }
 
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & nodeID)
+{
+  vtkMRMLROS2Tf2LookupNode * node = this->GetTf2LookupNodeByID(nodeID);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveTf2LookupNode: node referenced by role 'lookup' for node " << nodeID << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID());
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & parent_id, const std::string & child_id)
+{
+  vtkMRMLROS2Tf2LookupNode * node = this->GetTf2LookupNodeByParentChild(parent_id, child_id);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveTf2LookupNode: node referenced by role 'lookup' for node " << parent_id << " and " << child_id << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID());
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & nodeID)
+{
+  vtkMRMLROS2Tf2BroadcasterNode * node = this->GetTf2BroadcasterNodeByID(nodeID);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveTf2BroadcasterNode: node referenced by role 'broadcaster' for node " << nodeID << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID());
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id)
+{
+  vtkMRMLROS2Tf2BroadcasterNode * node = this->GetTf2BroadcasterNodeByParentChild(parent_id, child_id);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveTf2BroadcasterNode: node referenced by role 'broadcaster' for node " << parent_id << " and " << child_id << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID());
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
 
 bool vtkMRMLROS2NodeNode::SetTf2Buffer(void)
 {
@@ -340,25 +419,25 @@ void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
       const std::string & parent_id = lookupNode->GetParentID();
       const std::string & child_id = lookupNode->GetChildID();
       try {
-	geometry_msgs::msg::TransformStamped transformStamped;
-	// check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
-	transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
-	if (lookupNode->IsDifferentFromLast(transformStamped.header.stamp.sec, transformStamped.header.stamp.nanosec)) {
-	  vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
-	  if (lookupNode->GetModifiedOnLookup()) {
-	    lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	  } else {
-	    lookupNode->DisableModifiedEventOn();
-	    lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
-	    lookupNode->DisableModifiedEventOff();
-	  }
-	}
+        geometry_msgs::msg::TransformStamped transformStamped;
+        // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
+        transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
+        if (lookupNode->IsDifferentFromLast(transformStamped.header.stamp.sec, transformStamped.header.stamp.nanosec)) {
+          vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
+          if (lookupNode->GetModifiedOnLookup()) {
+            lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+          } else {
+            lookupNode->DisableModifiedEventOn();
+            lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
+            lookupNode->DisableModifiedEventOff();
+          }
+        }
       }
       catch (tf2::TransformException & ex) {
-	vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
+        vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
       }
       catch (...) {
-	vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);
+        vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);
       }
     }
   }

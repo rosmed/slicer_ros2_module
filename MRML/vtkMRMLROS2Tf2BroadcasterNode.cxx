@@ -74,6 +74,31 @@ bool vtkMRMLROS2Tf2BroadcasterNode::AddToROS2Node(const char * nodeId)
 }
 
 
+bool vtkMRMLROS2Tf2BroadcasterNode::RemoveFromROS2Node(const char * nodeId){
+  // Check that the broadcaster is in the scene
+  std::string errorMessage;
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
+      vtkErrorMacro(<< "RemoveFromROS2Node: " << errorMessage);
+      return false;
+  }
+
+  // Check that the broadcaster has been added to the node
+  vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode> broadcaster = mrmlROSNodePtr->GetTf2BroadcasterNodeByID(this->GetID());
+  if ((broadcaster == nullptr) || !broadcaster->IsAddedToROS2Node()) {
+    vtkErrorMacro(<< "RemoveFromROS2Node: this broadcaster has not been added to the ROS2 node.");
+    return false;
+  }
+
+  // Remove the broadcaster from the node and remove references
+  this->SetNodeReferenceID("node", nullptr);
+  mrmlROSNodePtr->RemoveNthNodeReferenceID("broadcaster", mrmlROSNodePtr->GetNumberOfNodeReferences("broadcaster"));
+  mInternals->mTfBroadcaster.reset();
+  mInternals->mROSNode.reset();
+  return true;
+}
+
+
 bool vtkMRMLROS2Tf2BroadcasterNode::IsAddedToROS2Node(void) const
 {
   return (mInternals->mTfBroadcaster != nullptr);
