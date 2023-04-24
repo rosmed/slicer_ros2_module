@@ -551,7 +551,7 @@ be retrieved using ``GetMatrixTransformToParent``.
 Robots
 ======
 
-To create a new Robot node, one can either use the UI (instructions in Section 3.3) or create the robot programmatically with the following commands.
+To create a new Robot node, one can either use the UI (instructions in Section 3.3) or create the robot programmatically with the following commands. The convenience function "AddRobot" was added to the module logic that accepts three arguments (``std::string parameterNodeName``, ``std::string parameterName``, ``std::string robotName``).
 
 .. tabs::
 
