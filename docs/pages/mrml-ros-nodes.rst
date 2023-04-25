@@ -568,7 +568,6 @@ To create a new Robot node, one can either use the UI (instructions in Section 3
 
          vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
          this->GetMRMLScene()->AddNode(robot);
-         robot->AddToROS2Node(mDefaultROS2Node->GetID(), "PSM1/robot_state_publisher", "robot_description");
-         robot->SetRobotName("PSM");
+         robot->AddToROS2Node(rosNode->GetID(), "PSM1/robot_state_publisher", "robot_description", "PSM");
 
-The robot node creates an observer on the parameter node that contains the robot description. If the parameter node is modified (indicating that the robot description is available), it begins the process of loading the visuals for the robot into the scene. This process involves: parsing the urdf file, creating a list of Tf2 lookups in the scene, creating the models for each link of the robot and applying the correct colour and offset position relative to the base of the robot.
+The robot node creates an observer on the parameter node that contains the robot description. If the parameter node is modified (indicating that the robot description is available), it begins the process of loading the visuals for the robot into the scene. This process involves: parsing the urdf file, creating a list of Tf2 lookups in the scene, creating the models for each link of the robot and applying the correct colour and offset position relative to the base of the robot. Once the visuals have been created, the Tf2 lookups start to check the Tf2 buffer and update the position of the model according to the joint state publisher.
