@@ -180,6 +180,12 @@ To retrieve the default ROS node:
              // now we can use the node
            }
          }
+         
+To remove the node, use the following method: 
+
+.. code-block:: python
+
+   rosNode.Destroy()
 
 ======
 Topics
@@ -283,6 +289,12 @@ Publishers are triggered by calling the ``Publish`` method.
          // run ros2 topic echo /my_string in a terminal to see the output
          pubString->Publish("my first string");
 
+To remove the publisher, use the following method: 
+
+.. code-block:: python
+
+   rosNode.RemoveAndDeletePublisherNode('/my_string') # accepts the topic name
+
 
 Subscribers
 ===========
@@ -323,6 +335,13 @@ can be retrieved using ``GetLastMessage``.
          auto pubString = rosNode->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/my_string");
          // run ros2 topic echo /my_string in a terminal to see the output
          pubString->Publish("my first string");
+         
+
+To remove the subscriber, use the following method: 
+
+.. code-block:: python
+
+   rosNode.RemoveAndDeleteSubscriberNode('/my_string') # accepts the topic name
 
 
 ==========
@@ -446,6 +465,12 @@ human readable description of the parameter whatever the type is
            return;
          }
          std::string robotDescription = parameterNode->GetParameterAsString("robot_description");
+         
+To remove the parameter, use the following method: 
+
+.. code-block:: python
+
+   rosNode.RemoveAndDeleteParameterNode('state_publisher') # accepts the monitored node name
 
 ===
 Tf2
