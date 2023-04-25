@@ -184,8 +184,7 @@ void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const s
 {
   vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
   this->GetMRMLScene()->AddNode(robot);
-  robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName);
-  robot->SetRobotName(robotName);
+  robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName, robotName);
 }
 
 
