@@ -36,6 +36,7 @@ Acknowledgement
 ===============
 
 The intial core developers are:
+
 * Laura Connolly, EE PhD student at Queens University, Kingston, Ontario, Canada
 * Aravind S. Kumar, CS Masters student at Johns Hopkins University, Baltimore, Maryland, USA
 * Anton Deguet, Associate Research Engineer at Johns Hopkins University, Baltimore, Maryland, USA
