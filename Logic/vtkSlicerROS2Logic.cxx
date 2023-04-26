@@ -17,6 +17,7 @@
 
 
 // SlicerROS2 Logic includes
+#include <SlicerROS2Config.h>
 #include <vtkSlicerROS2Logic.h>
 #include <qSlicerCoreApplication.h>
 
@@ -43,6 +44,9 @@
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
 
+#if USE_CISST_MSGS
+#include <vtkMRMLROS2CISST.h>
+#endif
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerROS2Logic);
@@ -118,7 +122,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchStampedNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseArrayNode>::New());
+#if USE_CISST_MSGS
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
+#endif
   // Parameters
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
   // Tf2
