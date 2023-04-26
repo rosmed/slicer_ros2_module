@@ -502,8 +502,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             
 
         def tearDown(self):
-            pass
-            # self.ros2Node.Destroy()
+            # pass
+            self.ros2Node.Destroy()
 
 
     def run(self):

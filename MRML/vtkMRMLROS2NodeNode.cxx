@@ -63,7 +63,7 @@ void vtkMRMLROS2NodeNode::Destroy()
     vtkWarningMacro(<< "Destroy: node does not contain any ROS2 internals. Not destroying ROS2 node.");
     return;
   }
-  mROS2NodeName = "undefined"; // FIXME: this is a hack to prevent half destroyed nodes from being spun
+  mROS2NodeName = "undefined"; 
   mMRMLNodeName = "ros2:node:undefined";
   this->SetName(mMRMLNodeName.c_str());
   this->Scene->RemoveNode(this);
