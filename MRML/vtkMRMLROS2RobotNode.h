@@ -36,7 +36,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 
   bool AddToROS2Node(const char * nodeId,
 		     const std::string & parameterNodeName,
-		     const std::string & parameterName = "robot_description");
+		     const std::string & parameterName = "robot_description", 
+         const std::string & robotName = "robot");
 
   bool SetRobotDescriptionParameterNode();
   void ObserveParameterNode(vtkMRMLROS2ParameterNode * node);
