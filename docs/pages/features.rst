@@ -35,10 +35,15 @@ either C++ or Python.
 Acknowledgement
 ===============
 
+The intial core developers are:
+* Laura Connolly, EE PhD student at Queens University, Kingston, Ontario, Canada
+* Aravind S. Kumar, CS Masters student at Johns Hopkins University, Baltimore, Maryland, USA
+* Anton Deguet, Associate Research Engineer at Johns Hopkins University, Baltimore, Maryland, USA
+
 This project is supported by:
 
 * The National Institute of Biomedical Imaging and Bioengineering of the U.S. National Institutes of Health (NIH) under award number R01EB020667, and 3R01EB020667-05S1 (MPI: Tokuda, Krieger, Leonard, and Fuge). The content is solely the responsibility of the authors and does not necessarily represent the official views of the NIH.
-* The National Sciences and Engineering Research Council of Canada and the Canadian Institutes of Health Research.
+* The National Sciences and Engineering Research Council of Canada and the Canadian Institutes of Health Research, the Walter C. Sumner Memorial Award, the Mitacs Globalink Award and the Michael Smith Foreign Study Supplement.
 
 ============
 Publications
