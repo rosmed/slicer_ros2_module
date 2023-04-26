@@ -33,3 +33,10 @@
 
 # Sphinx-Readthedocs files
 docs/_build/
+
+# Emacs
+*~
+
+# VSCode
+.vscode
+

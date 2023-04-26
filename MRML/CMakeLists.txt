@@ -37,7 +37,7 @@ set(${KIT}_SRCS
   vtkMRMLROS2PublisherDefaultNodes.h
   vtkMRMLROS2PublisherDefaultNodes.cxx
   vtkMRMLROS2ParameterNode.h
-  vtkMRMLROS2ParameterNode.cxx 
+  vtkMRMLROS2ParameterNode.cxx
   vtkMRMLROS2Tf2BroadcasterNode.h
   vtkMRMLROS2Tf2BroadcasterNode.cxx
   vtkMRMLROS2Tf2LookupNode.h
@@ -46,7 +46,14 @@ set(${KIT}_SRCS
   vtkMRMLROS2RobotNode.cxx
   )
 
-SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
+if (USE_CISST_MSGS)
+  set (${KIT}_SRCS
+    ${${KIT}_SRCS}
+    vtkMRMLROS2CISST.h
+    vtkMRMLROS2CISST.cxx)
+endif ()
+
+set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 
 # --------------------------------------------------------------------------
 # Build the library

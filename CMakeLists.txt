@@ -22,6 +22,13 @@ find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
 project(ROS2)
 
+option (USE_CISST_MSGS "Add topics for cisst messages (https://github.com/jhu-cisst/ros2_cisst_msgs)" OFF)
+
+configure_file (
+  "${ROS2_SOURCE_DIR}/SlicerROS2Config.h.in"
+  "${ROS2_BINARY_DIR}/include/SlicerROS2Config.h")
+include_directories ("${ROS2_BINARY_DIR}/include")
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -31,7 +38,9 @@ find_package(urdf REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
-find_package(cisst_msgs REQUIRED)
+if (USE_CISST_MSGS)
+  find_package(cisst_msgs REQUIRED)
+endif ()
 
 include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS})
 
