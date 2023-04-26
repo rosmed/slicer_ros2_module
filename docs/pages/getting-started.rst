@@ -27,12 +27,6 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
 
-.. note:: We use currently cisst messages for certain ROS 2
-  publishers.  The module
-  https://github.com/jhu-cisst/ros2_cisst_msgs.git should be cloned in
-  the `src` directory for your ROS 2 workspace (see instructions
-  below).
-
 .. note:: If you need to build Slicer from old sources, make sure
   ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
   code along ROS 2).
@@ -56,7 +50,6 @@ in this example):
     source /opt/ros/galactic/setup.bash
     mkdir -p ~/ros2_ws/src
     cd ~/ros2_ws/src
-    git clone https://github.com/jhu-cisst/ros2_cisst_msgs.git cisst_msgs
     git clone https://github.com/rosmed/slicer_ros2_module
 
 Then build the module using `colcon` while providing the path to your
