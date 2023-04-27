@@ -181,7 +181,7 @@ To retrieve the default ROS node:
            }
          }
          
-To remove the node, use the following method ``vtkMRMLROS2NodeNode::Destroy``.
+We don't recommend that you delete the default node. If you create another node and need to delete it, use the method ``vtkMRMLROS2NodeNode::Destroy``.
 
 ======
 Topics
@@ -598,8 +598,7 @@ To create a new Robot node, one can either use the UI (instructions in Section 3
 
 The robot node creates an observer on the parameter node that contains the robot description. If the parameter node is modified (indicating that the robot description is available), it begins the process of loading the visuals for the robot into the scene. This process involves: parsing the urdf file, creating a list of Tf2 lookups in the scene, creating the models for each link of the robot and applying the correct colour and offset position relative to the base of the robot. Once the visuals have been created, the Tf2 lookups start to check the Tf2 buffer and update the position of the model according to the joint state publisher.
 
-To remove the robot, use the "Remove robot" button on the UI or the following method:
+To remove the robot, use the "Remove robot" button on the UI or the method ``vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode``. This method takes
+one parameter:
 
-.. code-block:: python
-    
-   rosLogic.RemoveRobot('robot') # accepts the name of the robot that you want to delete as a string
+* the robot node name (``std::string``)
