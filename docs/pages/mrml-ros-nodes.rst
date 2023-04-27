@@ -601,4 +601,4 @@ The robot node creates an observer on the parameter node that contains the robot
 To remove the robot, use the "Remove robot" button on the UI or the method ``vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode``. This method takes
 one parameter:
 
-* the robot node name (``std::string``)
+* the robot name (``std::string``)
