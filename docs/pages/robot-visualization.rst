@@ -140,19 +140,25 @@ Slicer Robot
 ============
 
 
-The defaults ``/robot_state_publisher`` and ``robot_description`` should work
-for most cases so leave these as-is too.
+We've simplified loading the robot by adding some shortcuts on the widget UI. The default parameter node name: ``/robot_state_publisher`` and parameter name: ``robot_description`` should work for most cases. These are set as the default in the UI. To load a robot with these parameters, press the "Load Robot" button:
 
 .. image:: ../images/LoadRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot in Slicer
 
-At that point, the robot's model should be loaded and displayed in Slicer.
+At that point, the robot's model should be loaded and displayed in Slicer. To do this addition programatically, please see the documentation on the vtkMRMLROS2RobotNode. Note that if your robot uses a namespace, you will likely need to prefix this on the parameter node name. The PSM for example requires ``PSM1/robot_state_publisher``.
 
-The PSM1 uses a namespace.
+To remove the robot from the scene you can press the "Remove Robot" button.
 
 .. image:: ../images/RemoveRobot.png
+  :width: 300
+  :align: center
+  :alt: Defining a robot with a namespace in Slicer
+ 
+To add more than one robot, you can press the "+" button and the widget will update with additional line edits for the second robot. 
+
+.. image:: ../images/AddRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot with a namespace in Slicer
