@@ -130,6 +130,7 @@ void qSlicerROS2ModuleWidget::setup(void)
     return;
   }
   this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(updateWidget()));
+  this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceRemovedEvent,this, SLOT(updateWidget()));
   updateWidget(); // if the scene is loaded before the widget is activated
 }
 
@@ -173,9 +174,10 @@ void qSlicerROS2ModuleWidget::updateWidget()
   }
 
   // Update robot selector
-  vtkMRMLROS2RobotNode * robotNode = dynamic_cast<vtkMRMLROS2RobotNode *>(logic->GetMRMLScene()->GetFirstNodeByClass("vtkMRMLROS2RobotNode"));
-  if ( robotNode != NULL )
+  int numRobots = logic->GetMRMLScene()->GetNumberOfNodesByClass("vtkMRMLROS2RobotNode");
+  if ( numRobots == 1)
   {
+    vtkMRMLROS2RobotNode * robotNode = dynamic_cast<vtkMRMLROS2RobotNode *>(logic->GetMRMLScene()->GetFirstNodeByClass("vtkMRMLROS2RobotNode"));
     QString robotName = QString::fromStdString(robotNode->GetRobotName());
     d->robotNameLineEdit->setText(robotName);
     d->removeRobotButton->setEnabled(true);
@@ -183,6 +185,38 @@ void qSlicerROS2ModuleWidget::updateWidget()
     d->robotNameLineEdit->setEnabled(false);
     d->parameterNodeNameLineEdit->setEnabled(false);
     d->parameterLineEdit->setEnabled(false);
+    return;
+  }
+  else if ( numRobots == 2)
+  {
+    vtkCollection * robots = logic->GetMRMLScene()->GetNodesByClass("vtkMRMLROS2RobotNode");
+    vtkMRMLROS2RobotNode * robotNode = dynamic_cast<vtkMRMLROS2RobotNode *>(robots->GetItemAsObject(0));
+    vtkMRMLROS2RobotNode * robotNode2 = dynamic_cast<vtkMRMLROS2RobotNode *>(robots->GetItemAsObject(1));
+
+    QString robotName = QString::fromStdString(robotNode->GetRobotName());
+    d->robotNameLineEdit->setText(robotName);
+    d->removeRobotButton->setEnabled(true);
+    d->loadRobotButton->setEnabled(false);
+    d->robotNameLineEdit->setEnabled(false);
+    d->parameterNodeNameLineEdit->setEnabled(false);
+    d->parameterLineEdit->setEnabled(false);
+
+    QString robot2Name = QString::fromStdString(robotNode2->GetRobotName());
+    d->robot2NameLineEdit->setText(robot2Name);
+    d->removeRobot2Button->setEnabled(true);
+    d->loadRobot2Button->setEnabled(false);
+    d->robot2NameLineEdit->setEnabled(false);
+    d->parameterNode2NameLineEdit->setEnabled(false);
+    d->parameter2LineEdit->setEnabled(false);
+    return;
+  }
+  else{
+    d->removeRobotButton->setEnabled(false);
+    d->loadRobotButton->setEnabled(true);
+    d->robotNameLineEdit->setEnabled(true);
+    d->parameterNodeNameLineEdit->setEnabled(true);
+    d->parameterLineEdit->setEnabled(true);
+    HideSecondRobotSelector();
     return;
   }
 }
@@ -382,7 +416,7 @@ void qSlicerROS2ModuleWidget::onLoadRobot2Clicked(void)
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  logic->AddRobot(parameterNodeName, parameterName, robotName);
+  logic->AddRobot(robotName, parameterNodeName, parameterName);
 
   // Disable the UI
   d->removeRobot2Button->setEnabled(true);
@@ -422,6 +456,7 @@ void qSlicerROS2ModuleWidget::onRemoveRobot2Clicked(void)
   d->robot2NameLineEdit->setEnabled(true);
   d->parameterNode2NameLineEdit->setEnabled(true);
   d->parameter2LineEdit->setEnabled(true);
+  HideSecondRobotSelector();
 }
 
 void qSlicerROS2ModuleWidget::onAddRobotButton(void)
@@ -436,4 +471,18 @@ void qSlicerROS2ModuleWidget::onAddRobotButton(void)
   d->robot2NameLabel->show();
   d->parameterNode2Label->show();
   d->parameter2Label->show();
+}
+
+void qSlicerROS2ModuleWidget::HideSecondRobotSelector(void)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  d->addRobotButton->show();
+  d->loadRobot2Button->hide();
+  d->removeRobot2Button->hide();
+  d->robot2NameLineEdit->hide();
+  d->parameterNode2NameLineEdit->hide();
+  d->parameter2LineEdit->hide();
+  d->robot2NameLabel->hide();
+  d->parameterNode2Label->hide();
+  d->parameter2Label->hide();
 }

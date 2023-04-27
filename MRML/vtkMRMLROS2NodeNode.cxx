@@ -11,6 +11,7 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLModelNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
 
@@ -404,6 +405,32 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & 
   node->RemoveFromROS2Node(this->GetID());
   this->GetScene()->RemoveNode(node);
   node->Delete();
+  return true;
+}
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName)
+{
+  int numRobots = this->GetNumberOfNodeReferences("robot");
+  for (int i = 0; i < numRobots; i++){
+    vtkMRMLROS2RobotNode * robotNode = vtkMRMLROS2RobotNode::SafeDownCast(this->GetNthNodeReference("robot", i));
+    std::string currentRobot = robotNode->GetRobotName();
+    if (currentRobot == robotName){
+      // Remove the lookups on that robot
+      int numLookups = robotNode->GetNumberOfNodeReferences("lookup");
+      for (int i = 0; i < numLookups; i++) {
+        vtkMRMLROS2Tf2LookupNode * lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robotNode->GetNthNodeReference("lookup", 0)); // always grab the first one because the ref id changes
+        vtkMRMLModelNode * modelNode = vtkMRMLModelNode::SafeDownCast(robotNode->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
+        vtkMRMLROS2ParameterNode * parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(robotNode->GetNthNodeReference("ObservedParameter", 0)); // always grab the first one because the ref id changes
+        this->GetScene()->RemoveNode(lookupNode);
+        this->GetScene()->RemoveNode(modelNode);
+        this->GetScene()->RemoveNode(parameterNode);
+      }
+
+      // Remove the robot itself
+      this->GetScene()->RemoveNode(robotNode);
+      return true;
+    }
+  }
   return true;
 }
 

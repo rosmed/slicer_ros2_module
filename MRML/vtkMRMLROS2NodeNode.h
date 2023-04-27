@@ -85,6 +85,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   bool RemoveAndDeleteTf2LookupNode(const std::string & parent_id, const std::string & child_id);
   bool RemoveAndDeleteTf2BroadcasterNode(const std::string & nodeID);
   bool RemoveAndDeleteTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id);
+  bool RemoveAndDeleteRobotNode(const std::string & robotName);
 
   void Spin(void);
   inline bool GetSpinning(void) const {

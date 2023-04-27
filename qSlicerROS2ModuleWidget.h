@@ -71,6 +71,7 @@ protected slots:
   void onRemoveRobotClicked(void);
   void onRemoveRobot2Clicked(void);
   void onAddRobotButton(void);
+  void HideSecondRobotSelector(void);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);
