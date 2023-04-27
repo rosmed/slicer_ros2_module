@@ -361,7 +361,7 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(void)
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  logic->AddRobot(parameterNodeName, parameterName, robotName);
+  logic->AddRobot(robotName, parameterNodeName, parameterName);
 
   // Disable the UI
   d->removeRobotButton->setEnabled(true);

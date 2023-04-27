@@ -48,9 +48,9 @@ vtkMRMLROS2RobotNode::~vtkMRMLROS2RobotNode()
 
 
 bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
+                                         const std::string & robotName,
                                          const std::string & parameterNodeName,
-                                         const std::string & parameterName,
-                                         const std::string & robotName)
+                                         const std::string & parameterName)
 {
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;

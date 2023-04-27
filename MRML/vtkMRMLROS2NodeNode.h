@@ -14,6 +14,7 @@ class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2Tf2LookupNode;
+class vtkMRMLROS2RobotNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 {
@@ -66,6 +67,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLROS2Tf2BroadcasterNode * CreateAndAddTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id);
 
   vtkMRMLROS2Tf2LookupNode * CreateAndAddTf2LookupNode(const std::string & parent_id, const std::string & child_id);
+
+  vtkMRMLROS2RobotNode * CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName);
 
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);

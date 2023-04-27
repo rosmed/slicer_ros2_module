@@ -184,11 +184,11 @@ vtkMRMLROS2NodeNode * vtkSlicerROS2Logic::GetDefaultROS2Node(void) const
 }
 
 
-void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName)
+void vtkSlicerROS2Logic::AddRobot(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName)
 {
-  vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
-  this->GetMRMLScene()->AddNode(robot);
-  robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName, robotName);
+  if (mDefaultROS2Node){
+    mDefaultROS2Node->CreateAndAddRobotNode(robotName, parameterNodeName, parameterName);
+  }
 }
 
 

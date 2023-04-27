@@ -10,7 +10,7 @@
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
-
+#include <vtkMRMLROS2RobotNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
 
@@ -191,6 +191,23 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode(const 
   this->GetScene()->RemoveNode(lookupNode);
   lookupNode->Delete();
   return nullptr;
+}
+
+vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName){
+
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddRobotNode: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+
+  // Create the robot node
+  vtkSmartPointer<vtkMRMLROS2RobotNode> robotNode = vtkMRMLROS2RobotNode::New();
+
+  // Add it to the scene
+  this->GetScene()->AddNode(robotNode);
+  robotNode->AddToROS2Node(this->GetID(), robotName, parameterNodeName, parameterName);
+  return robotNode;
 }
 
 
