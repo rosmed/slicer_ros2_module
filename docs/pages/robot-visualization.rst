@@ -143,7 +143,7 @@ Slicer Robot
 The defaults ``/robot_state_publisher`` and ``robot_description`` should work
 for most cases so leave these as-is too.
 
-.. image:: ../images/robot-input.png
+.. image:: ../images/LoadRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot in Slicer
@@ -152,7 +152,7 @@ At that point, the robot's model should be loaded and displayed in Slicer.
 
 The PSM1 uses a namespace.
 
-.. image:: ../images/robot-input-PSM1.png
+.. image:: ../images/RemoveRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot with a namespace in Slicer
