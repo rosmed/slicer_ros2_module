@@ -77,10 +77,8 @@ bool vtkMRMLROS2ParameterNode::AddToROS2Node(const char * nodeId, const std::str
 }
 
 
-bool vtkMRMLROS2ParameterNode::RemoveFromROS2Node(const char *nodeId, const std::string &monitoredNodeName)
+bool vtkMRMLROS2ParameterNode::RemoveFromROS2Node(const char *nodeId)
 {
-  mMonitoredNodeName = monitoredNodeName;
-  mMRMLNodeName = "ros2:param:" + monitoredNodeName;
   std::string errorMessage;
   vtkMRMLROS2NodeNode * rosNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
   if (!rosNodePtr) {

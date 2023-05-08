@@ -98,7 +98,7 @@ void vtkMRMLROS2RobotNode::ObserveParameterNode(vtkMRMLROS2ParameterNode * node)
     return;
   }
   node->AddObserver(vtkMRMLROS2ParameterNode::ParameterModifiedEvent, this, &vtkMRMLROS2RobotNode::ObserveParameterNodeCallback);
-  this->SetAndObserveNodeReferenceID("ObservedParameter", node->GetID());
+  this->SetAndObserveNodeReferenceID("parameter", node->GetID());
 }
 
 
