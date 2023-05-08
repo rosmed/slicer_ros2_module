@@ -10,7 +10,7 @@ Overview
 For the robot visualization in Slicer 3D, one first need to properly
 configure a robot in ROS 2.  The default ROS approach requires:
 
-* an XML robot definition file (``URDF``) and usually CAD files for
+* an XML robot definition file (``UFA``) and usually CAD files for
   the links.
 
 * a robot state publisher node which will make the URDF description
@@ -41,7 +41,7 @@ Phantom Omni
 
 The Phantom Omni is an entry level haptic device initially sold by
 Sensable.  Later on, it has been renamed Geomagic Touch or 3DS Touch.
-The intial version used a FireWire connection.  Later models used
+The initial version used a FireWire connection.  Later models used
 Ethernet and more recently USB.
 
 .. image:: ../images/sensable-omni.png
@@ -140,14 +140,23 @@ Slicer Robot
 ============
 
 
-We've simplified loading the robot by adding some shortcuts on the widget UI. The default parameter node name: ``/robot_state_publisher`` and parameter name: ``robot_description`` should work for most cases. These are set as the default in the UI. To load a robot with these parameters, press the "Load Robot" button:
+We've simplified loading the robot by adding some shortcuts on the
+widget UI. The default parameter node name: ``/robot_state_publisher``
+and parameter name: ``robot_description`` should work for most
+cases. These are set as the default in the UI. To load a robot with
+these parameters, press the "Load Robot" button:
 
 .. image:: ../images/LoadRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot in Slicer
 
-At that point, the robot's model should be loaded and displayed in Slicer. To do this addition programatically, please see the documentation on the vtkMRMLROS2RobotNode. Note that if your robot uses a namespace, you will likely need to prefix this on the parameter node name. The PSM for example requires ``PSM1/robot_state_publisher``.
+At that point, the robot's model should be loaded and displayed in
+Slicer. To do this addition programmatically, please see the
+documentation on the ``vtkMRMLROS2RobotNode``. Note that if your robot
+uses a namespace, you will likely need to prefix this on the parameter
+node name. The PSM for example requires
+``PSM1/robot_state_publisher``.
 
 To remove the robot from the scene you can press the "Remove Robot" button.
 
@@ -155,8 +164,9 @@ To remove the robot from the scene you can press the "Remove Robot" button.
   :width: 300
   :align: center
   :alt: Defining a robot with a namespace in Slicer
- 
-To add more than one robot, you can press the "+" button and the widget will update with additional line edits for the second robot. 
+
+To add more than one robot, you can press the "+" button and the
+widget will update with additional line edits for the second robot.
 
 .. image:: ../images/AddRobot.png
   :width: 300

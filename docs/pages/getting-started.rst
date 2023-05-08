@@ -11,7 +11,7 @@ Before you can start compiling the SlicerROS2 module, you will need:
 
 * Some knowledge of Linux, CMake and ROS 2.
 * Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.  This module has
-  been developped and tested using Ubuntu 20.04 with ROS Galactic.  It
+  been developed and tested using Ubuntu 20.04 with ROS Galactic.  It
   might also work on Ubuntu 22.04 with ROS Humble.
 * Slicer 3D built from source is required to build an extension.
   Before you start compiling Slicer, make sure we use the
