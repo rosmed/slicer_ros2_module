@@ -77,7 +77,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterNodeByParentChild(const std::string & parent_id, const std::string & child_id);
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByID(const std::string & nodeID);
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByParentChild(const std::string & parent_id, const std::string & child_id);
-  
+
   bool RemoveAndDeleteSubscriberNode(const std::string & topic);
   bool RemoveAndDeletePublisherNode(const std::string & topic);
   bool RemoveAndDeleteParameterNode(const std::string & nodeName);
