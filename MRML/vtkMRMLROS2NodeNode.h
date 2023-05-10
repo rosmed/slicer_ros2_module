@@ -35,6 +35,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
 
+  std::vector<std::string> mRobotNames;
+
   /*! Calls rclcpp::init if needed and then create the internal ROS
     node. */
   void Create(const std::string & nodeName);

@@ -208,6 +208,8 @@ vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::str
 
   // Add it to the scene
   this->GetScene()->AddNode(robotNode);
+  robotNode->SetRobotName(robotName);
+  mRobotNames.push_back(robotName);
   robotNode->AddToROS2Node(this->GetID(), robotName, parameterNodeName, parameterName);
   return robotNode;
 }
