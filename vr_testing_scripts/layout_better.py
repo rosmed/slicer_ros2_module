@@ -158,9 +158,58 @@ def helper_create_and_move(alpha, beta, gamma, x, y, z):
     transform_matrix_vtk = create_vtk_transform_matrix(alpha, beta, gamma, x, y, z)
     stereo.move_camera_position(transform_matrix_vtk)
 
+class TestObserverTf2Lookup:
+    def __init__(self):
+        self.counter = 0
+
+    def Callback(self, caller, event):
+        self.counter += 1
+        self.lastTransform = caller.GetMatrixTransformToParent()
+
+
+def findDisplacementTransform(startTransform, endTransform):
+    displacementTransform = vtk.vtkMatrix4x4()
+    # start * displacement = end
+    # displacement = start^-1 * end
+    startTransformInverse = vtk.vtkMatrix4x4()
+    vtk.vtkMatrix4x4.Invert(startTransform, startTransformInverse)
+
+    vtk.vtkMatrix4x4.Multiply4x4(startTransformInverse, endTransform, displacementTransform)
+
+    return displacementTransform
+
+# write a unit test for this
+def testFindDisplacementTransform():
+    startMatrix = vtk.vtkMatrix4x4()
+    startMatrix.SetElement(0, 3, 1)
+    startMatrix.SetElement(1, 3, 2)
+    startMatrix.SetElement(2, 3, 3)
+
+    endMatrix = vtk.vtkMatrix4x4()
+    endMatrix.SetElement(0, 3, 4)
+    endMatrix.SetElement(1, 3, 5)
+    endMatrix.SetElement(2, 3, 6)
+
+
+    displacementMatrix4x4= findDisplacementTransform(startMatrix, endMatrix)
+    
+    assert(displacementMatrix4x4.GetElement(0, 3) == 3)
+    assert(displacementMatrix4x4.GetElement(1, 3) == 3)
+    assert(displacementMatrix4x4.GetElement(2, 3) == 3)
+
+    assert(displacementMatrix4x4.GetElement(0, 0) == 1)
+    assert(displacementMatrix4x4.GetElement(1, 1) == 1)
+    assert(displacementMatrix4x4.GetElement(2, 2) == 1)
+
+    print("Test passed")
+
+
 if __name__ == "__main__":
 
+    print("Testing displacement calculation")
+    testFindDisplacementTransform()
     # Create a custom layout
+
     popw = create_custom_layout(resolution=[1280, 720])
     popw.show() # only works if called in the main function
     stereo = StereoView()
@@ -177,6 +226,21 @@ if __name__ == "__main__":
     # helper_create_and_move(alpha, beta, gamma, x, y, z)
 
     ros2Node = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
-    lk = ros2Node.CreateAndAddTf2LookupNode("MTMR_base","MTMR")
+    lookupNode = ros2Node.CreateAndAddTf2LookupNode("MTMR_base","MTMR")
 
-# exec(open('layout_better.py').read())
+    observer = TestObserverTf2Lookup()
+    observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
+    lookupMat = observer.lastTransform
+
+    # When lookupMat is updated, we need to update the position of the model
+    if False:
+        curr_count = observer.counter
+        while True:
+            if observer.count > curr_count:
+                curr_count = observer.count
+                displacementTransform = findDisplacementTransform(lookupMat, observer.lastTransform)
+
+    
+
+
+# exec(open('layout_better.py').read()) 
