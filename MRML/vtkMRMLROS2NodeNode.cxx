@@ -479,7 +479,7 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName
     modelNode->Delete();
   }
 
-  auto parameterNodeID = node->GetNthNodeReferenceID("parameter", 0); // always grab the first one because the ref id changes
+  auto parameterNodeID = node->GetNthNodeReferenceID("parameter", 0);
   this->RemoveAndDeleteParameterNodeByNodeID(parameterNodeID);
 
   // Remove the robot itself

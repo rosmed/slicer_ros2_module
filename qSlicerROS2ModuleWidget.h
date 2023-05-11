@@ -40,7 +40,6 @@ class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerROS2ModuleWidget :
   Q_OBJECT
 
 public:
-
   typedef qSlicerAbstractModuleWidget Superclass;
   qSlicerROS2ModuleWidget(QWidget *parent=0);
   virtual ~qSlicerROS2ModuleWidget();
@@ -58,8 +57,8 @@ protected:
 protected slots:
   void onTimerTimeOut(void);
   void updateWidget(void);
-  void updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row);
-  void updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row);
+  void updateSubscriberTable(vtkMRMLROS2SubscriberNode * sub, size_t row);
+  void updatePublisherTable(vtkMRMLROS2PublisherNode * sub, size_t row);
   void onAddNewRobotClicked(const std::string & robotName = "robot", bool active = false);
   void refreshSubTable(void);
   void refreshPubTable(void);
@@ -67,11 +66,19 @@ protected slots:
   // Slots for dynamic widgets
   void subscriberClicked(int row, int col);
   void publisherClicked(int row, int col);
-  void onLoadRobotClicked(QLineEdit * robotNameLineEdit, QLineEdit * parameterNodeNameLineEdit, QLineEdit * parameterNameLineEdit, QPushButton * loadRobotButton, QPushButton * removeRobotButton);
-  void onRemoveRobotClicked(QLineEdit * robotNameLineEdit, QLineEdit * parameterNodeNameLineEdit, QLineEdit * parameterNameLineEdit, QPushButton * loadRobotButton, QPushButton * removeRobotButton, QWidget * robotWidget);
+  void onLoadRobotClicked(QLineEdit * robotNameLineEdit,
+                          QLineEdit * parameterNodeNameLineEdit,
+                          QLineEdit * parameterNameLineEdit,
+                          QPushButton * loadRobotButton,
+                          QPushButton * removeRobotButton);
+  void onRemoveRobotClicked(QLineEdit * robotNameLineEdit,
+                            QLineEdit * parameterNodeNameLineEdit,
+                            QLineEdit * parameterNameLineEdit,
+                            QPushButton * loadRobotButton,
+                            QPushButton * removeRobotButton,
+                            QWidget * robotWidget);
 
 private:
-  
   std::vector<std::string> robotsAddedToTheWidget;
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);
   Q_DISABLE_COPY(qSlicerROS2ModuleWidget);

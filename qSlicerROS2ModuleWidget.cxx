@@ -58,7 +58,6 @@
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerROS2ModuleWidgetPrivate: public Ui_qSlicerROS2ModuleWidget
 {
-
 public:
   qSlicerROS2ModuleWidgetPrivate();
   vtkSlicerROS2Logic* logic() const;
@@ -146,7 +145,7 @@ void qSlicerROS2ModuleWidget::updateWidget()
   int visibleSubscriberRefs = d->rosSubscriberTableWidget->rowCount();
   int visiblePublisherRefs = d->rosPublisherTableWidget->rowCount();
 
-  // The following needs to be updated to list all ROS nodes in logic 
+  // The following needs to be updated to list all ROS nodes in logic
   int subscriberRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
   int publisherRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
 
@@ -162,13 +161,13 @@ void qSlicerROS2ModuleWidget::updateWidget()
   // update the robot widgets based on the default node robot connections
   int numRobots = logic->mDefaultROS2Node->GetNumberOfNodeReferences("robot");
   auto robotsAddedToTheNode = logic->mDefaultROS2Node->mRobotNames;
-  if (robotsAddedToTheNode.size() != robotsAddedToTheWidget.size()){
-    for (int i = 0; i < numRobots; i++){
+  if (robotsAddedToTheNode.size() != robotsAddedToTheWidget.size()) {
+    for (int i = 0; i < numRobots; i++) {
       vtkMRMLROS2RobotNode * robot = vtkMRMLROS2RobotNode::SafeDownCast(logic->mDefaultROS2Node->GetNthNodeReference("robot", i));
-      if (std::find(robotsAddedToTheWidget.begin(), robotsAddedToTheWidget.end(), robot->GetRobotName()) != robotsAddedToTheWidget.end()){
+      if (std::find(robotsAddedToTheWidget.begin(), robotsAddedToTheWidget.end(), robot->GetRobotName())
+          != robotsAddedToTheWidget.end()) {
         continue;
-      }
-      else{
+      } else {
         onAddNewRobotClicked(robot->GetRobotName(), true);
         robotsAddedToTheWidget.push_back(robot->GetRobotName());
         return;
@@ -190,20 +189,22 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
   auto loadRobotButton = robotWidgetUi->loadRobotButton;
   auto removeRobotButton = robotWidgetUi->removeRobotButton;
   // Set up the lambda connections
-  this->connect(loadRobotButton, &QPushButton::clicked, this, [=]() {
-        onLoadRobotClicked(robotWidgetUi->robotNameLineEdit,
-                           robotWidgetUi->parameterNodeNameLineEdit, 
-                           robotWidgetUi->parameterLineEdit,
-                           loadRobotButton, removeRobotButton); 
-  });
-  this->connect(removeRobotButton, &QPushButton::clicked, this, [=]() {
-        onRemoveRobotClicked(robotWidgetUi->robotNameLineEdit,
-                           robotWidgetUi->parameterNodeNameLineEdit, 
-                           robotWidgetUi->parameterLineEdit,
-                           loadRobotButton, removeRobotButton, robotWidget); 
-  });
+  this->connect(loadRobotButton, &QPushButton::clicked, this,
+                [=]() {
+                  onLoadRobotClicked(robotWidgetUi->robotNameLineEdit,
+                                     robotWidgetUi->parameterNodeNameLineEdit,
+                                     robotWidgetUi->parameterLineEdit,
+                                     loadRobotButton, removeRobotButton);
+                });
+  this->connect(removeRobotButton, &QPushButton::clicked, this,
+                [=]() {
+                  onRemoveRobotClicked(robotWidgetUi->robotNameLineEdit,
+                                       robotWidgetUi->parameterNodeNameLineEdit,
+                                       robotWidgetUi->parameterLineEdit,
+                                       loadRobotButton, removeRobotButton, robotWidget);
+                });
   // This handles the case where a robot is added from the python console (instead of by button press)
-  if (active == true){
+  if (active == true) {
     robotWidgetUi->robotNameLineEdit->setEnabled(false);
     robotWidgetUi->parameterNodeNameLineEdit->setEnabled(false);
     robotWidgetUi->parameterLineEdit->setEnabled(false);
@@ -341,8 +342,8 @@ void qSlicerROS2ModuleWidget::subscriberClicked(int row, int col)
     }
     QMessageBox msgBox;
     msgBox.setText(QStringLiteral("Number of messages: %1\nLast message: %2")
-		   .arg(sub->GetNumberOfMessages())
-		   .arg(sub->GetLastMessageYAML().c_str()));
+                   .arg(sub->GetNumberOfMessages())
+                   .arg(sub->GetLastMessageYAML().c_str()));
     msgBox.exec();
   }
 }
@@ -367,8 +368,8 @@ void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
     }
     QMessageBox msgBox;
     msgBox.setText(QStringLiteral("Number of calls: %1\nNumber of messages sent: %2")
-		   .arg(pub->GetNumberOfCalls())
-		   .arg(pub->GetNumberOfMessagesSent()));
+                   .arg(pub->GetNumberOfCalls())
+                   .arg(pub->GetNumberOfMessagesSent()));
     msgBox.exec();
   }
 }
@@ -380,7 +381,11 @@ void qSlicerROS2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look her
 }
 
 
-void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit, QLineEdit * parameterNodeNameLineEdit, QLineEdit * parameterNameLineEdit, QPushButton * loadRobotButton, QPushButton * removeRobotButton)
+void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
+                                                 QLineEdit * parameterNodeNameLineEdit,
+                                                 QLineEdit * parameterNameLineEdit,
+                                                 QPushButton * loadRobotButton,
+                                                 QPushButton * removeRobotButton)
 {
   vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
@@ -388,7 +393,9 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit, 
     return;
   }
   robotsAddedToTheWidget.push_back(robotNameLineEdit->text().toStdString());
-  logic->AddRobot(robotNameLineEdit->text().toStdString(), parameterNodeNameLineEdit->text().toStdString(), parameterNameLineEdit->text().toStdString());
+  logic->AddRobot(robotNameLineEdit->text().toStdString(),
+                  parameterNodeNameLineEdit->text().toStdString(),
+                  parameterNameLineEdit->text().toStdString());
   loadRobotButton->setEnabled(false);
   robotNameLineEdit->setEnabled(false);
   parameterNodeNameLineEdit->setEnabled(false);
@@ -397,7 +404,12 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit, 
 }
 
 
-void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit, QLineEdit * parameterNodeNameLineEdit, QLineEdit * parameterNameLineEdit, QPushButton * loadRobotButton, QPushButton * removeRobotButton, QWidget * robotWidget)
+void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit,
+                                                   QLineEdit * parameterNodeNameLineEdit,
+                                                   QLineEdit * parameterNameLineEdit,
+                                                   QPushButton * loadRobotButton,
+                                                   QPushButton * removeRobotButton,
+                                                   QWidget * robotWidget)
 {
   Q_D(qSlicerROS2ModuleWidget);
   vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
@@ -415,8 +427,8 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
   d->robotTabLayout->removeWidget(robotWidget);
   delete robotWidget;
 
-  for (size_t robotName = 0; robotName < robotsAddedToTheWidget.size(); robotName++){
-    if (robotsAddedToTheWidget[robotName] == robot){
+  for (size_t robotName = 0; robotName < robotsAddedToTheWidget.size(); robotName++) {
+    if (robotsAddedToTheWidget[robotName] == robot) {
       robotsAddedToTheWidget.erase(robotsAddedToTheWidget.begin() + robotName);
     }
   }
