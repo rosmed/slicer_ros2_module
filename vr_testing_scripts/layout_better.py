@@ -16,7 +16,7 @@ class StereoView:
 
         self.transformation_to_center = vtk.vtkMatrix4x4()
 
-    def set_separation(self, x, y, z, reset=True):
+    def set_separation(self, x, y, z, reset=True): # Unrefined
 
         self.center_to_left = vtk.vtkMatrix4x4()
         self.center_to_right = vtk.vtkMatrix4x4()
@@ -56,17 +56,73 @@ class StereoView:
         vtk.vtkMatrix4x4.Multiply4x4(self.transformation_to_center, self.center_to_left, left_transformed_matrix)
         vtk.vtkMatrix4x4.Multiply4x4(self.transformation_to_center, self.center_to_right, right_transformed_matrix)
 
-        self.camera_node1.SetPosition(left_transformed_matrix.GetElement(0, 3), left_transformed_matrix.GetElement(1, 3), left_transformed_matrix.GetElement(2, 3))
-        self.camera_node2.SetPosition(right_transformed_matrix.GetElement(0, 3), right_transformed_matrix.GetElement(1, 3), right_transformed_matrix.GetElement(2, 3))
+        self.left_camera_transform.SetMatrixTransformToParent(left_transformed_matrix)
+        self.right_camera_transform.SetMatrixTransformToParent(right_transformed_matrix)
 
-        self.camera_node1.SetViewUp(left_transformed_matrix.GetElement(0, 2), left_transformed_matrix.GetElement(1, 2), left_transformed_matrix.GetElement(2, 2))
-        self.camera_node2.SetViewUp(right_transformed_matrix.GetElement(0, 2), right_transformed_matrix.GetElement(1, 2), right_transformed_matrix.GetElement(2, 2))
-
-        self.camera_node1.SetFocalPoint(left_transformed_matrix.GetElement(0, 1), left_transformed_matrix.GetElement(1, 1), left_transformed_matrix.GetElement(2, 1))
-        self.camera_node2.SetFocalPoint(right_transformed_matrix.GetElement(0, 1), right_transformed_matrix.GetElement(1, 1), right_transformed_matrix.GetElement(2, 1))
-
+        self.camera_node1.SetNodeReferenceID("transform", self.left_camera_transform.GetID())
 
         print("Moved!")
+
+    def displace_camera(self, displacement_transform):
+
+        self.left_camera_position = vtk.vtkMatrix4x4()
+        self.right_camera_position = vtk.vtkMatrix4x4()
+
+        vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_left_camera_transform, self.left_camera_position)
+        vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_right_camera_transform, self.right_camera_position)
+
+        self.left_camera_transform.SetMatrixTransformToParent(self.left_camera_position)
+        self.camera_node1.SetNodeReferenceID("transform", self.left_camera_transform.GetID())
+
+        self.right_camera_transform.SetMatrixTransformToParent(self.right_camera_position)
+        self.camera_node2.SetNodeReferenceID("transform", self.right_camera_transform.GetID())
+
+        print("Displaced!")
+
+
+    def setup(self):
+        ros2Node = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
+        self.lookupNode = ros2Node.CreateAndAddTf2LookupNode("MTMR_base","MTMR")
+        self.lookupNodeID = self.lookupNode.GetID()
+        self.scale_factor = 10
+
+
+        # create a new transform node and if it doesnt exist in the scene, add it else just set the matrix
+        if not slicer.mrmlScene.GetFirstNodeByName("left_camera_transform"):
+            self.left_camera_transform = slicer.vtkMRMLLinearTransformNode()
+            self.left_camera_transform.SetName("left_camera_transform")
+            slicer.mrmlScene.AddNode(self.left_camera_transform)
+
+        if not slicer.mrmlScene.GetFirstNodeByName("right_camera_transform"):
+            self.right_camera_transform = slicer.vtkMRMLLinearTransformNode()
+            self.right_camera_transform.SetName("right_camera_transform")
+            slicer.mrmlScene.AddNode(self.right_camera_transform)
+
+        self.move_robot = False
+        observerId = self.lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
+        # self.move_camera_position(self.lookupNode.GetMatrixTransformToParent())
+        # self.start_motion()
+
+
+    def start_motion(self):
+        self.initial_left_camera_transform = vtk.vtkMatrix4x4()
+        self.initial_right_camera_transform = vtk.vtkMatrix4x4()
+        self.initial_robot_transform = vtk.vtkMatrix4x4() 
+
+        self.initial_left_camera_transform.DeepCopy(self.camera_node1.GetAppliedTransform())
+        self.initial_right_camera_transform.DeepCopy(self.camera_node2.GetAppliedTransform())
+        self.initial_robot_transform.DeepCopy(self.lookupNode.GetMatrixTransformToParent())
+        
+        self.move_robot = True
+
+    def stop_motion(self):
+        self.move_robot = False
+
+    def _callback(self, caller, event):
+        if self.move_robot:
+            self.lastTransform = caller.GetMatrixTransformToParent()
+            displacement = findDisplacementTransform(self.current_robot_transform, self.lastTransform, self.scale_factor)
+            self.displace_camera(displacement)
         
 
 def add_model_to_scene(path_to_model):
@@ -111,134 +167,38 @@ def create_custom_layout(position = [100, 100], resolution = [1920, 1080]):
 
     return popupWindow
 
-def create_vtk_transform_matrix(alpha, beta, gamma, x, y, z):
-    # Convert angles from degrees to radians
-    alpha = np.radians(alpha)
-    beta = np.radians(beta)
-    gamma = np.radians(gamma)
 
-    # Rotation matrices for each axis
-    Rx = np.array([[1, 0, 0],
-                   [0, np.cos(alpha), -np.sin(alpha)],
-                   [0, np.sin(alpha), np.cos(alpha)]])
-
-    Ry = np.array([[np.cos(beta), 0, np.sin(beta)],
-                   [0, 1, 0],
-                   [-np.sin(beta), 0, np.cos(beta)]])
-
-    Rz = np.array([[np.cos(gamma), -np.sin(gamma), 0],
-                   [np.sin(gamma), np.cos(gamma), 0],
-                   [0, 0, 1]])
-
-    # Combine rotations
-    R = Rz @ Ry @ Rx
-
-    # Create a vtkMatrix4x4 instance
-    vtk_matrix = vtk.vtkMatrix4x4()
-
-    # Set the elements of the vtkMatrix4x4 (row, column, value)
-    for i in range(3):
-        for j in range(3):
-            vtk_matrix.SetElement(i, j, R[i, j])
-
-    # Set the translation elements
-    vtk_matrix.SetElement(0, 3, x)
-    vtk_matrix.SetElement(1, 3, y)
-    vtk_matrix.SetElement(2, 3, z)
-
-    # Set the homogeneous coordinate elements
-    vtk_matrix.SetElement(3, 0, 0)
-    vtk_matrix.SetElement(3, 1, 0)
-    vtk_matrix.SetElement(3, 2, 0)
-    vtk_matrix.SetElement(3, 3, 1)
-
-    return vtk_matrix
-
-def helper_create_and_move(alpha, beta, gamma, x, y, z):
-    transform_matrix_vtk = create_vtk_transform_matrix(alpha, beta, gamma, x, y, z)
-    stereo.move_camera_position(transform_matrix_vtk)
-
-class TestObserverTf2Lookup:
-    def __init__(self):
-        self.counter = 0
-
-    def Callback(self, caller, event):
-        self.counter += 1
-        self.lastTransform = caller.GetMatrixTransformToParent()
-
-
-def findDisplacementTransform(startTransform, endTransform):
+def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform = vtk.vtkMatrix4x4()
-    # start * displacement = end
-    # displacement = start^-1 * end
+
+    # end = displacement * start
+    # displacement = end * start^-1
     startTransformInverse = vtk.vtkMatrix4x4()
     vtk.vtkMatrix4x4.Invert(startTransform, startTransformInverse)
+    vtk.vtkMatrix4x4.Multiply4x4(endTransform, startTransformInverse, displacementTransform)
+    # vtk.vtkMatrix4x4.Multiply4x4(startTransformInverse, endTransform, displacementTransform)
 
-    vtk.vtkMatrix4x4.Multiply4x4(startTransformInverse, endTransform, displacementTransform)
+    # divide position by scale factor
+    displacementTransform.SetElement(0, 3, displacementTransform.GetElement(0, 3) / scale_factor)
+    displacementTransform.SetElement(1, 3, displacementTransform.GetElement(1, 3) / scale_factor)
+    displacementTransform.SetElement(2, 3, displacementTransform.GetElement(2, 3) / scale_factor)
 
     return displacementTransform
 
-# write a unit test for this
-def testFindDisplacementTransform():
-    startMatrix = vtk.vtkMatrix4x4()
-    startMatrix.SetElement(0, 3, 1)
-    startMatrix.SetElement(1, 3, 2)
-    startMatrix.SetElement(2, 3, 3)
-
-    endMatrix = vtk.vtkMatrix4x4()
-    endMatrix.SetElement(0, 3, 4)
-    endMatrix.SetElement(1, 3, 5)
-    endMatrix.SetElement(2, 3, 6)
-
-
-    displacementMatrix4x4= findDisplacementTransform(startMatrix, endMatrix)
-    
-    assert(displacementMatrix4x4.GetElement(0, 3) == 3)
-    assert(displacementMatrix4x4.GetElement(1, 3) == 3)
-    assert(displacementMatrix4x4.GetElement(2, 3) == 3)
-
-    assert(displacementMatrix4x4.GetElement(0, 0) == 1)
-    assert(displacementMatrix4x4.GetElement(1, 1) == 1)
-    assert(displacementMatrix4x4.GetElement(2, 2) == 1)
-
-    print("Test passed")
-
-
 if __name__ == "__main__":
 
-    print("Testing displacement calculation")
-    testFindDisplacementTransform()
     # Create a custom layout
-
     popw = create_custom_layout(resolution=[1280, 720])
     popw.show() # only works if called in the main function
     stereo = StereoView()
-    # add_model_to_scene("TumorModel.vtk")
-    add_model_to_scene("base.stl")
+    add_model_to_scene("TumorModel.vtk")
+    # add_model_to_scene("base.stl")
     stereo.set_separation(0, 0, 0)
 
-    # # Example usage:
-    # alpha = 30  # rotation around X-axis in degrees
-    # beta = 45   # rotation around Y-axis in degrees
-    # gamma = 60  # rotation around Z-axis in degrees
-    # x, y, z = 0.35, 1.26, 0.289
+    stereo.setup()
+    stereo.start_motion()
 
-    # helper_create_and_move(alpha, beta, gamma, x, y, z)
 
-    ros2Node = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
-    lookupNode = ros2Node.CreateAndAddTf2LookupNode("MTMR_base","MTMR")
-
-    observer = TestObserverTf2Lookup()
-    observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
-    lookupMat = observer.lastTransform
-
-    # When lookupMat is updated, we need to update the position of the model
-    if False:
-        curr_count = observer.counter
-        while True:
-            if observer.count > curr_count:
-                curr_count = observer.count
-                displacementTransform = findDisplacementTransform(lookupMat, observer.lastTransform)
 
     
 
