@@ -86,7 +86,6 @@ class StereoView:
         self.lookupNodeID = self.lookupNode.GetID()
         self.scale_factor = 10
 
-
         # create a new transform node and if it doesnt exist in the scene, add it else just set the matrix
         if not slicer.mrmlScene.GetFirstNodeByName("left_camera_transform"):
             self.left_camera_transform = slicer.vtkMRMLLinearTransformNode()
@@ -100,6 +99,7 @@ class StereoView:
 
         self.move_robot = False
         observerId = self.lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
+        # print(self.lookupNode.GetMatrixTransformToParent())
         # self.move_camera_position(self.lookupNode.GetMatrixTransformToParent())
         # self.start_motion()
 
@@ -108,7 +108,7 @@ class StereoView:
         self.initial_left_camera_transform = vtk.vtkMatrix4x4()
         self.initial_right_camera_transform = vtk.vtkMatrix4x4()
         self.initial_robot_transform = vtk.vtkMatrix4x4() 
-
+        
         self.initial_left_camera_transform.DeepCopy(self.camera_node1.GetAppliedTransform())
         self.initial_right_camera_transform.DeepCopy(self.camera_node2.GetAppliedTransform())
         self.initial_robot_transform.DeepCopy(self.lookupNode.GetMatrixTransformToParent())
@@ -121,7 +121,7 @@ class StereoView:
     def _callback(self, caller, event):
         if self.move_robot:
             self.lastTransform = caller.GetMatrixTransformToParent()
-            displacement = findDisplacementTransform(self.current_robot_transform, self.lastTransform, self.scale_factor)
+            displacement = findDisplacementTransform(self.initial_robot_transform, self.lastTransform, self.scale_factor)
             self.displace_camera(displacement)
         
 
@@ -193,10 +193,10 @@ if __name__ == "__main__":
     stereo = StereoView()
     add_model_to_scene("TumorModel.vtk")
     # add_model_to_scene("base.stl")
-    stereo.set_separation(0, 0, 0)
+    stereo.set_separation(10, 0, 0)
 
     stereo.setup()
-    stereo.start_motion()
+    # stereo.start_motion()
 
 
 
