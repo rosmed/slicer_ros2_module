@@ -30,51 +30,33 @@ class StereoView:
         self.center_to_left.SetElement(2, 3, -z / 2)
         self.center_to_right.SetElement(2, 3, z / 2)
 
-        left_transformed_matrix = vtk.vtkMatrix4x4()
-        right_transformed_matrix = vtk.vtkMatrix4x4()
-
-        vtk.vtkMatrix4x4.Multiply4x4(self.transformation_to_center, self.center_to_left, left_transformed_matrix)
-        vtk.vtkMatrix4x4.Multiply4x4(self.transformation_to_center, self.center_to_right, right_transformed_matrix)
-
-        new_position1 = [left_transformed_matrix.GetElement(0, 3), left_transformed_matrix.GetElement(1, 3), left_transformed_matrix.GetElement(2, 3)]
-        new_position2 = [right_transformed_matrix.GetElement(0, 3), right_transformed_matrix.GetElement(1, 3), right_transformed_matrix.GetElement(2, 3)]
-
-        self.camera_node1.SetPosition(new_position1)
-        self.camera_node2.SetPosition(new_position2)
-
-        self.camera_node1.SetViewUp(left_transformed_matrix.GetElement(0, 2), left_transformed_matrix.GetElement(1, 2), left_transformed_matrix.GetElement(2, 2))
-        self.camera_node2.SetViewUp(right_transformed_matrix.GetElement(0, 2), right_transformed_matrix.GetElement(1, 2), right_transformed_matrix.GetElement(2, 2))
-
-        print("Separated!")
-
-    def move_camera_position(self, new_transform_matrix):
-        self.transformation_to_center = new_transform_matrix
-
-        left_transformed_matrix = vtk.vtkMatrix4x4()
-        right_transformed_matrix = vtk.vtkMatrix4x4()
-
-        vtk.vtkMatrix4x4.Multiply4x4(self.transformation_to_center, self.center_to_left, left_transformed_matrix)
-        vtk.vtkMatrix4x4.Multiply4x4(self.transformation_to_center, self.center_to_right, right_transformed_matrix)
-
-        self.left_camera_transform.SetMatrixTransformToParent(left_transformed_matrix)
-        self.right_camera_transform.SetMatrixTransformToParent(right_transformed_matrix)
-
-        self.camera_node1.SetNodeReferenceID("transform", self.left_camera_transform.GetID())
-
-        print("Moved!")
 
     def displace_camera(self, displacement_transform):
 
-        self.left_camera_position = vtk.vtkMatrix4x4()
-        self.right_camera_position = vtk.vtkMatrix4x4()
+        self.left_camera_transform_matrix = vtk.vtkMatrix4x4()
+        self.right_camera_transform_matrix = vtk.vtkMatrix4x4()
+        new_center_transform_matrix = vtk.vtkMatrix4x4()
 
-        vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_left_camera_transform, self.left_camera_position)
-        vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_right_camera_transform, self.right_camera_position)
+        vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_center_transform_matrix, new_center_transform_matrix)
+        # vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_right_camera_transform, self.right_camera_transform_matrix)
+        self.center_transform_matrix_end_state = new_center_transform_matrix
 
-        self.left_camera_transform.SetMatrixTransformToParent(self.left_camera_position)
+        vtk.vtkMatrix4x4.Multiply4x4(new_center_transform_matrix, self.center_to_left, self.left_camera_transform_matrix)
+        vtk.vtkMatrix4x4.Multiply4x4(new_center_transform_matrix, self.center_to_right, self.right_camera_transform_matrix)
+
+        print("New center transform matrix: ")
+        print(new_center_transform_matrix)
+
+        print("New left camera transform matrix: ")
+        print(self.left_camera_transform_matrix)
+
+        print("New right camera transform matrix: ")
+        print(self.right_camera_transform_matrix)
+
+        self.left_camera_transform.SetMatrixTransformToParent(self.left_camera_transform_matrix)
         self.camera_node1.SetNodeReferenceID("transform", self.left_camera_transform.GetID())
 
-        self.right_camera_transform.SetMatrixTransformToParent(self.right_camera_position)
+        self.right_camera_transform.SetMatrixTransformToParent(self.right_camera_transform_matrix)
         self.camera_node2.SetNodeReferenceID("transform", self.right_camera_transform.GetID())
 
         print("Displaced!")
@@ -86,7 +68,6 @@ class StereoView:
         self.lookupNodeID = self.lookupNode.GetID()
         self.scale_factor = 10
 
-        # create a new transform node and if it doesnt exist in the scene, add it else just set the matrix
         if not slicer.mrmlScene.GetFirstNodeByName("left_camera_transform"):
             self.left_camera_transform = slicer.vtkMRMLLinearTransformNode()
             self.left_camera_transform.SetName("left_camera_transform")
@@ -97,26 +78,25 @@ class StereoView:
             self.right_camera_transform.SetName("right_camera_transform")
             slicer.mrmlScene.AddNode(self.right_camera_transform)
 
-        self.move_robot = False
-        observerId = self.lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
-        # print(self.lookupNode.GetMatrixTransformToParent())
-        # self.move_camera_position(self.lookupNode.GetMatrixTransformToParent())
-        # self.start_motion()
+        self.initial_center_transform_matrix = vtk.vtkMatrix4x4()
 
+        displacement = vtk.vtkMatrix4x4()
+
+        self.move_robot = False
+
+        for i in range(2):
+            self.displace_camera(displacement) # FIXME: Unsure of why this is necessary
+
+        observerId = self.lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
 
     def start_motion(self):
-        self.initial_left_camera_transform = vtk.vtkMatrix4x4()
-        self.initial_right_camera_transform = vtk.vtkMatrix4x4()
         self.initial_robot_transform = vtk.vtkMatrix4x4() 
-        
-        self.initial_left_camera_transform.DeepCopy(self.camera_node1.GetAppliedTransform())
-        self.initial_right_camera_transform.DeepCopy(self.camera_node2.GetAppliedTransform())
         self.initial_robot_transform.DeepCopy(self.lookupNode.GetMatrixTransformToParent())
-        
         self.move_robot = True
 
     def stop_motion(self):
         self.move_robot = False
+        self.center_transform_matrix = self.center_transform_matrix_end_state
 
     def _callback(self, caller, event):
         if self.move_robot:
@@ -188,15 +168,17 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
 if __name__ == "__main__":
 
     # Create a custom layout
-    popw = create_custom_layout(resolution=[1280, 720])
+    # popw = create_custom_layout(resolution=[1280, 720])
+    popw = create_custom_layout(resolution=[1920, 1080])
     popw.show() # only works if called in the main function
     stereo = StereoView()
     add_model_to_scene("TumorModel.vtk")
     # add_model_to_scene("base.stl")
-    stereo.set_separation(10, 0, 0)
+    stereo.set_separation(10, 10, 10)
 
     stereo.setup()
     # stereo.start_motion()
+    
 
 
 
