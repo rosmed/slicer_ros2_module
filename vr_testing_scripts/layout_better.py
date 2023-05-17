@@ -1,6 +1,11 @@
 import slicer
 import vtk
 import numpy as np
+try:
+    import yaml
+except:
+    pip_install('pyyaml')
+    import yaml
 
 class StereoView:
     def __init__(self):
@@ -37,21 +42,13 @@ class StereoView:
         self.right_camera_transform_matrix = vtk.vtkMatrix4x4()
         new_center_transform_matrix = vtk.vtkMatrix4x4()
 
-        vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_center_transform_matrix, new_center_transform_matrix)
+        # vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_center_transform_matrix, new_center_transform_matrix)
+        vtk.vtkMatrix4x4.Multiply4x4(self.initial_center_transform_matrix, displacement_transform, new_center_transform_matrix)
         # vtk.vtkMatrix4x4.Multiply4x4(displacement_transform, self.initial_right_camera_transform, self.right_camera_transform_matrix)
         self.center_transform_matrix_end_state = new_center_transform_matrix
 
         vtk.vtkMatrix4x4.Multiply4x4(new_center_transform_matrix, self.center_to_left, self.left_camera_transform_matrix)
         vtk.vtkMatrix4x4.Multiply4x4(new_center_transform_matrix, self.center_to_right, self.right_camera_transform_matrix)
-
-        print("New center transform matrix: ")
-        print(new_center_transform_matrix)
-
-        print("New left camera transform matrix: ")
-        print(self.left_camera_transform_matrix)
-
-        print("New right camera transform matrix: ")
-        print(self.right_camera_transform_matrix)
 
         self.left_camera_transform.SetMatrixTransformToParent(self.left_camera_transform_matrix)
         self.camera_node1.SetNodeReferenceID("transform", self.left_camera_transform.GetID())
@@ -66,7 +63,10 @@ class StereoView:
         ros2Node = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
         self.lookupNode = ros2Node.CreateAndAddTf2LookupNode("MTMR_base","MTMR")
         self.lookupNodeID = self.lookupNode.GetID()
-        self.scale_factor = 10
+        self.scale_factor = 5
+
+        self.buttonSubscriber = ros2Node.CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberJoyNode", "/console/camera")
+        
 
         if not slicer.mrmlScene.GetFirstNodeByName("left_camera_transform"):
             self.left_camera_transform = slicer.vtkMRMLLinearTransformNode()
@@ -87,7 +87,20 @@ class StereoView:
         for i in range(2):
             self.displace_camera(displacement) # FIXME: Unsure of why this is necessary
 
+        self.buttonObserverID = self.buttonSubscriber.AddObserver("ModifiedEvent", self._buttonCallback)
         observerId = self.lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
+
+    def _buttonCallback(self, caller, event):
+        msg_yaml = caller.GetLastMessageYAML()
+        msg = yaml.load(msg_yaml, Loader=yaml.FullLoader)
+        button = msg['buttons'][0]
+
+        if button == 1 and self.move_robot == False:
+            self.start_motion()
+        elif button == 0 and self.move_robot == True:
+            self.stop_motion()
+        else:
+            print(f"Received button value: {button}")
 
     def start_motion(self):
         self.initial_robot_transform = vtk.vtkMatrix4x4() 
@@ -96,13 +109,23 @@ class StereoView:
 
     def stop_motion(self):
         self.move_robot = False
-        self.center_transform_matrix = self.center_transform_matrix_end_state
+        self.initial_center_transform_matrix = self.center_transform_matrix_end_state
 
     def _callback(self, caller, event):
         if self.move_robot:
             self.lastTransform = caller.GetMatrixTransformToParent()
             displacement = findDisplacementTransform(self.initial_robot_transform, self.lastTransform, self.scale_factor)
             self.displace_camera(displacement)
+
+    def calibrate(self):
+        self.camera_node1.SetViewUp([0, 0, 1])
+        self.camera_node2.SetViewUp([0, 0, 1])
+
+        # self.camera_node1.SetFocalPoint([0, 0, 0])
+        # self.camera_node2.SetFocalPoint([0, 0, 0])
+
+        # self.camera_node1.SetPosition([0, 0, 0])
+        # self.camera_node2.SetPosition([0, 0, 0])
         
 
 def add_model_to_scene(path_to_model):
@@ -155,8 +178,8 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     # displacement = end * start^-1
     startTransformInverse = vtk.vtkMatrix4x4()
     vtk.vtkMatrix4x4.Invert(startTransform, startTransformInverse)
-    vtk.vtkMatrix4x4.Multiply4x4(endTransform, startTransformInverse, displacementTransform)
-    # vtk.vtkMatrix4x4.Multiply4x4(startTransformInverse, endTransform, displacementTransform)
+    # vtk.vtkMatrix4x4.Multiply4x4(endTransform, startTransformInverse, displacementTransform)
+    vtk.vtkMatrix4x4.Multiply4x4(startTransformInverse, endTransform, displacementTransform)
 
     # divide position by scale factor
     displacementTransform.SetElement(0, 3, displacementTransform.GetElement(0, 3) / scale_factor)
@@ -168,13 +191,13 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
 if __name__ == "__main__":
 
     # Create a custom layout
-    # popw = create_custom_layout(resolution=[1280, 720])
-    popw = create_custom_layout(resolution=[1920, 1080])
+    popw = create_custom_layout(resolution=[1280, 720])
     popw.show() # only works if called in the main function
     stereo = StereoView()
-    add_model_to_scene("TumorModel.vtk")
+    # add_model_to_scene("TumorModel.vtk")
+    stereo.calibrate()
     # add_model_to_scene("base.stl")
-    stereo.set_separation(10, 10, 10)
+    stereo.set_separation(0, 0, 0)
 
     stereo.setup()
     # stereo.start_motion()
