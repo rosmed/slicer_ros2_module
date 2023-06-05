@@ -79,7 +79,7 @@ class StereoView:
         observerId = self.lookupNode.AddObserver(
             slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
         
-    def GetCameraTransform(cameraNode):
+    def GetCameraTransform(self, cameraNode):
         position = cameraNode.GetPosition()
         focalPoint = cameraNode.GetFocalPoint()
         viewUp = cameraNode.GetViewUp()
@@ -106,7 +106,7 @@ class StereoView:
 
         return cameraTransform, magnitude
     
-    def SetCameraTransform(cameraNode, transform, magnitude):
+    def SetCameraTransform(self, cameraNode, transform, magnitude):
 
         position = [transform.GetElement(0, 3), transform.GetElement(1, 3), transform.GetElement(2, 3)]
         
