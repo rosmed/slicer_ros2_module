@@ -20,37 +20,75 @@ class StereoView:
             ).GetViewActiveCameraNode(self.viewNode1)
         self.cameraNode2 = slicer.modules.cameras.logic(
             ).GetViewActiveCameraNode(self.viewNode2)
+        
+    def defineOffset(self, offset, index = 1):
+        # based on index define left and right camera offset 3x1 vectors
+        self.offset = offset
+        if index == 0:
+            self.leftCameraOffset = np.array([offset, 0, 0])
+            self.rightCameraOffset = np.array([-offset, 0, 0])
+        elif index == 1:
+            self.leftCameraOffset = np.array([0, offset, 0])
+            self.rightCameraOffset = np.array([0, -offset, 0])
+        elif index == 2:
+            self.leftCameraOffset = np.array([0, 0, offset])
+            self.rightCameraOffset = np.array([0, 0, -offset])
+        else:
+            raise Exception("Index out of range")
+        
+        self.transformLeftCamera = vtk.vtkMatrix4x4()
+        self.transformRightCamera = vtk.vtkMatrix4x4()
+
+        self.transformLeftCamera.SetElement(0, 3, self.leftCameraOffset[0])
+        self.transformLeftCamera.SetElement(1, 3, self.leftCameraOffset[1])
+        self.transformLeftCamera.SetElement(2, 3, self.leftCameraOffset[2])
+
+        self.transformRightCamera.SetElement(0, 3, self.rightCameraOffset[0])
+        self.transformRightCamera.SetElement(1, 3, self.rightCameraOffset[1])
+        self.transformRightCamera.SetElement(2, 3, self.rightCameraOffset[2])
 
     def displaceCamera(self, displacementRotationMatrix4x4, positionDisplacementVector):
-        leftCameraCurrentTransform, focal_disp_magnitude = self.GetCameraTransform(self.cameraNode1)
+        leftCameraCurrentTransform, focal_disp_magnitude_left = self.GetCameraTransform(self.cameraNode1)
+        rightCameraCurrentTransform, focal_disp_magnitude_right = self.GetCameraTransform(self.cameraNode2)
+
+        centerCameraCurrentTransform = leftCameraCurrentTransform # Arbitrary choice since rotation is the same for both cameras
 
         leftCameraNextTransform = vtk.vtkMatrix4x4()
+        rightCameraNextTransform = vtk.vtkMatrix4x4()
+        centerCameraNextTransform = vtk.vtkMatrix4x4()
 
-        currentCameraPosition = [leftCameraCurrentTransform.GetElement(
+        currentLeftCameraPosition = [leftCameraCurrentTransform.GetElement(
             0, 3), leftCameraCurrentTransform.GetElement(1, 3), leftCameraCurrentTransform.GetElement(2, 3)]
+        currentRightCameraPosition = [rightCameraCurrentTransform.GetElement(
+            0, 3), rightCameraCurrentTransform.GetElement(1, 3), rightCameraCurrentTransform.GetElement(2, 3)]
         
-        leftCameraCurrentTransform.SetElement(0, 3, 0)
-        leftCameraCurrentTransform.SetElement(1, 3, 0)
-        leftCameraCurrentTransform.SetElement(2, 3, 0)
+        currentCenterCameraPosition = (np.array(currentLeftCameraPosition) + np.array(currentRightCameraPosition))/2
+        
+        centerCameraNextTransform.SetElement(0, 3, 0)
+        centerCameraNextTransform.SetElement(1, 3, 0)
+        centerCameraNextTransform.SetElement(2, 3, 0)
 
         vtk.vtkMatrix4x4.Multiply4x4(
-            displacementRotationMatrix4x4, leftCameraCurrentTransform, leftCameraNextTransform)
+            displacementRotationMatrix4x4, centerCameraCurrentTransform, centerCameraNextTransform)
         
-        leftCameraNextTransform.SetElement(
-            0, 3,  positionDisplacementVector[0] + currentCameraPosition[0])
-        leftCameraNextTransform.SetElement(
-            1, 3,  positionDisplacementVector[1] + currentCameraPosition[1])
-        leftCameraNextTransform.SetElement(
-            2, 3,  positionDisplacementVector[2] + currentCameraPosition[2])
+        centerCameraNextTransform.SetElement(
+            0, 3,  positionDisplacementVector[0] + currentCenterCameraPosition[0])
+        centerCameraNextTransform.SetElement(
+            1, 3,  positionDisplacementVector[1] + currentCenterCameraPosition[1])
+        centerCameraNextTransform.SetElement(
+            2, 3,  positionDisplacementVector[2] + currentCenterCameraPosition[2])
         
-        self.SetCameraTransform(self.cameraNode1, leftCameraNextTransform, focal_disp_magnitude)
-        self.SetCameraTransform(self.cameraNode2, leftCameraNextTransform, focal_disp_magnitude)
+        vtk.vtkMatrix4x4.Multiply4x4(centerCameraNextTransform, self.transformLeftCamera, leftCameraNextTransform)
+        vtk.vtkMatrix4x4.Multiply4x4(centerCameraNextTransform, self.transformRightCamera, rightCameraNextTransform)
+        
+        self.SetCameraTransform(self.cameraNode1, leftCameraNextTransform, focal_disp_magnitude_left)
+        self.SetCameraTransform(self.cameraNode2, rightCameraNextTransform, focal_disp_magnitude_right)
 
         self.leftCameraSittingTransform.SetMatrixTransformToParent(
             leftCameraNextTransform)
 
         self.rightCameraSittingTransform.SetMatrixTransformToParent(
-            leftCameraNextTransform)
+            rightCameraNextTransform)
 
     def setup(self):
         ros2Node = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
@@ -78,6 +116,16 @@ class StereoView:
             "ModifiedEvent", self._buttonCallback)
         observerId = self.lookupNode.AddObserver(
             slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
+        
+    def ResetCameraPosition(self, ydisp = 500):
+        offset = self.offset
+        self.cameraNode1.SetPosition(0, offset, ydisp)
+        self.cameraNode1.SetFocalPoint(0, 0, 0)
+        self.cameraNode1.SetViewUp(0, 0, 1)
+
+        self.cameraNode2.SetPosition(0, -offset, ydisp)
+        self.cameraNode2.SetFocalPoint(0, 0, 0)
+        self.cameraNode2.SetViewUp(0, 0, 1)
         
     def GetCameraTransform(self, cameraNode):
         position = cameraNode.GetPosition()
@@ -230,7 +278,8 @@ if __name__ == "__main__":
     stereo = StereoView()
     # add_model_to_scene("TumorModel.vtk")
     stereo.setup()
-
+    stereo.defineOffset(20)
+    stereo.ResetCameraPosition()
 
 
 # exec(open('layout_custom.py').read())
