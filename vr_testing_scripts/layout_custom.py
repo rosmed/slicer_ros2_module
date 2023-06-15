@@ -267,6 +267,13 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
         1, 3, 0)
     displacementTransform.SetElement(
         2, 3, 0)
+    
+    # if magnitude of positionDisplacementVector is greater than 5 set displacementTransform to identity
+    print("Position Displacement Magnitude: ", np.linalg.norm(positionDisplacementVector), "\n")
+    if np.linalg.norm(positionDisplacementVector) > 0.8:
+        displacementTransform = vtk.vtkMatrix4x4()
+    else:
+        positionDisplacementVector = [0,0,0]
 
     return displacementTransform, positionDisplacementVector
 
@@ -278,8 +285,10 @@ if __name__ == "__main__":
     stereo = StereoView()
     # add_model_to_scene("TumorModel.vtk")
     stereo.setup()
-    stereo.defineOffset(20)
+    stereo.defineOffset(200,0)
+
     stereo.ResetCameraPosition()
+    stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
 
 
 # exec(open('layout_custom.py').read())
