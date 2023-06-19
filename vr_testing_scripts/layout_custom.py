@@ -7,6 +7,9 @@ except:
     pip_install('pyyaml')
     import yaml
 
+from scipy.spatial.transform import Rotation as R
+
+
 class StereoView:
     def __init__(self):
         self.layoutManager = slicer.app.layoutManager()
@@ -117,7 +120,7 @@ class StereoView:
         observerId = self.lookupNode.AddObserver(
             slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
         
-    def ResetCameraPosition(self, ydisp = 500):
+    def ResetCameraPosition(self, ydisp = 80):
         offset = self.offset
         self.cameraNode1.SetPosition(0, offset, ydisp)
         self.cameraNode1.SetFocalPoint(0, 0, 0)
@@ -244,6 +247,7 @@ def createCustomLayout(position=[100, 100], resolution=[1920, 1080]):
 
     return popupWindow
 
+DEBUG_INTERPOLATION = 0.0
 
 def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform = vtk.vtkMatrix4x4()
@@ -268,6 +272,9 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform.SetElement(
         2, 3, 0)
     
+    # displacementTransform = slerp_vtk_rotation_matrix(displacementTransform)
+    displacementTransform = interpolate_vtk_matrix(displacementTransform, DEBUG_INTERPOLATION)
+    
     # if magnitude of positionDisplacementVector is greater than 5 set displacementTransform to identity
     print("Position Displacement Magnitude: ", np.linalg.norm(positionDisplacementVector), "\n")
     if np.linalg.norm(positionDisplacementVector) > 0.8:
@@ -275,7 +282,61 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     else:
         positionDisplacementVector = [0,0,0]
 
+    print(displacementTransform)
+
     return displacementTransform, positionDisplacementVector
+
+
+def slerp(q0, q1, t):
+    dot_product = np.dot(q0, q1)
+    dot_product = np.clip(dot_product, -1.0, 1.0)
+    theta = np.arccos(dot_product)
+    slerp_q = (np.sin((1-t)*theta) / np.sin(theta)) * q0 + (np.sin(t*theta) / np.sin(theta)) * q1
+    return slerp_q
+
+def interpolate_vtk_matrix(vtk_matrix, t):
+    # Convert vtkMatrix4x4 to numpy array
+    matrix_array = np.array(vtk_matrix)
+
+    matrix_array = np.array([[vtk_matrix.GetElement(i, j) for j in range(4)] for i in range(4)])
+
+    # Extract 3x3 rotation matrix
+    R_mat = matrix_array[0:3, 0:3]
+
+    # Convert R to a quaternion
+    rotation = R.from_matrix(R_mat)
+    qR = rotation.as_quat()
+
+    # Perform slerp between identity quaternion and qR
+    identity_matrix = np.identity(3)
+    identity_rotation = R.from_matrix(identity_matrix)
+    identity_quaternion = identity_rotation.as_quat()
+    qT = slerp(identity_quaternion, qR, t)
+
+    # Convert interpolated quaternion back to rotation matrix
+    intermediate_rotation = R.from_quat(qT)
+    RT = intermediate_rotation.as_matrix()
+
+    # Construct the resulting vtkMatrix4x4
+    result_vtk_matrix = vtk.vtkMatrix4x4()
+    for i in range(3):
+        for j in range(3):
+            result_vtk_matrix.SetElement(i, j, RT[i, j])
+
+    return result_vtk_matrix
+
+def getCentroidofModel(modelName):
+
+    modelNode = slicer.util.getNode(modelName)
+    polyData = modelNode.GetPolyData()
+    numPoints = polyData.GetNumberOfPoints()
+    sumCoords = np.array([0,0,0])
+    for i in range(numPoints):
+        point = [0,0,0]
+        polyData.GetPoint(i, point)
+        sumCoords += np.array(point)
+    centroid = sumCoords / numPoints
+    print("Centroid: ", centroid)
 
 if __name__ == "__main__":
 
@@ -285,7 +346,7 @@ if __name__ == "__main__":
     stereo = StereoView()
     # add_model_to_scene("TumorModel.vtk")
     stereo.setup()
-    stereo.defineOffset(200,0)
+    stereo.defineOffset(20,0)
 
     stereo.ResetCameraPosition()
     stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
