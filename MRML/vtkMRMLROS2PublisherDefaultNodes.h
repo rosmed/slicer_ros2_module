@@ -12,6 +12,7 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_H(double, Double);
 #include <vtkMatrix4x4.h>
 #include <vtkTransformCollection.h>
 #include <vtkTable.h>
+#include <vtkTypeUInt8Array.h>
 
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkIntArray, IntArray);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, DoubleArray);
@@ -20,5 +21,6 @@ VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTable, DoubleTable);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, WrenchStamped);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTransformCollection, PoseArray);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTypeUInt8Array, Image);
 
 #endif // __vtkMRMLROS2PublisherDefaultsNodes_h

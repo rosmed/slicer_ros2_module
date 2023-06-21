@@ -188,6 +188,21 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
   }
 }
 
+void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result,
+         const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  result.header.stamp = rosNode->get_clock()->now();
+  std::vector<uint8_t> picture; 
+  result.width = input->GetNumberOfComponents();
+  result.height = input->GetNumberOfTuples();
+  result.encoding = "mono8"; // grayscale for ultrasound
+  int numberOfValues = input->GetNumberOfValues();
+  for (int i = 0; i < numberOfValues; i ++){
+    picture.push_back(input->GetValue(i));
+  } 
+  result.data = picture;
+}
+
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
   double A[3][3];
