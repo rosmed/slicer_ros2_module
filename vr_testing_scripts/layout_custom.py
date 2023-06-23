@@ -23,22 +23,12 @@ class StereoView:
             ).GetViewActiveCameraNode(self.viewNode1)
         self.cameraNode2 = slicer.modules.cameras.logic(
             ).GetViewActiveCameraNode(self.viewNode2)
-        
-    def defineOffset(self, offset, index = 1):
-        # based on index define left and right camera offset 3x1 vectors
-        self.offset = offset
-        if index == 0:
-            self.leftCameraOffset = np.array([offset, 0, 0])
-            self.rightCameraOffset = np.array([-offset, 0, 0])
-        elif index == 1:
-            self.leftCameraOffset = np.array([0, offset, 0])
-            self.rightCameraOffset = np.array([0, -offset, 0])
-        elif index == 2:
-            self.leftCameraOffset = np.array([0, 0, offset])
-            self.rightCameraOffset = np.array([0, 0, -offset])
-        else:
-            raise Exception("Index out of range")
-        
+
+    def defineOffset(self, xOff = 0, yOff = 0, zOff =0):
+        self.offset = np.array([xOff, yOff, zOff])
+        self.leftCameraOffset = np.array([xOff, yOff, zOff])
+        self.rightCameraOffset = np.array([-xOff, -yOff, -zOff])
+
         self.transformLeftCamera = vtk.vtkMatrix4x4()
         self.transformRightCamera = vtk.vtkMatrix4x4()
 
@@ -98,7 +88,7 @@ class StereoView:
         self.lookupNode = ros2Node.CreateAndAddTf2LookupNode(
             "MTMR_base", "MTMR")
         self.lookupNodeID = self.lookupNode.GetID()
-        self.scale_factor = 5
+        self.scale_factor = 4
 
         self.buttonSubscriber = ros2Node.CreateAndAddSubscriberNode(
             "vtkMRMLROS2SubscriberJoyNode", "/console/camera")
@@ -119,16 +109,18 @@ class StereoView:
             "ModifiedEvent", self._buttonCallback)
         observerId = self.lookupNode.AddObserver(
             slicer.vtkMRMLTransformNode.TransformModifiedEvent, self._callback)
-        
-    def ResetCameraPosition(self, ydisp = 80):
+
+    def ResetCameraPosition(self, xDisp = 0, yDisp = 0, zDisp = 0):
         offset = self.offset
-        self.cameraNode1.SetPosition(0, offset, ydisp)
+        self.cameraNode1.SetPosition(xDisp + self.offset[0], yDisp + self.offset[1], zDisp + self.offset[2])
         self.cameraNode1.SetFocalPoint(0, 0, 0)
         self.cameraNode1.SetViewUp(0, 0, 1)
 
-        self.cameraNode2.SetPosition(0, -offset, ydisp)
+        self.cameraNode2.SetPosition(xDisp - self.offset[0], yDisp - self.offset[1], zDisp - self.offset[2])
         self.cameraNode2.SetFocalPoint(0, 0, 0)
         self.cameraNode2.SetViewUp(0, 0, 1)
+
+
         
     def GetCameraTransform(self, cameraNode):
         position = cameraNode.GetPosition()
@@ -201,6 +193,12 @@ class StereoView:
             # copy contents of nextControllerTransform into currentControllerTransform they are vtkMatrix4x4 objects
             self.currentControllerTransform.DeepCopy(self.nextControllerTransform)
 
+    def debugCameraPosition(self, xDisp, yDisp, zDisp, xOff, yOff, zOff):
+        self.defineOffset(xOff, yOff, zOff)
+        self.ResetCameraPosition(xDisp, yDisp, zDisp)
+        self.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
+        self.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
+
 
 def add_model_to_scene(path_to_model):
     model = slicer.util.loadModel(path_to_model)
@@ -247,7 +245,7 @@ def createCustomLayout(position=[100, 100], resolution=[1920, 1080]):
 
     return popupWindow
 
-DEBUG_INTERPOLATION = 0.0
+DEBUG_INTERPOLATION = 0.3
 
 def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform = vtk.vtkMatrix4x4()
@@ -259,7 +257,7 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     vtk.vtkMatrix4x4.Multiply4x4(
         endTransform, startTransformInverse, displacementTransform)
 
-    scale_factor = 0.2
+    scale_factor = 0.3 ## TODO: clean this up
 
     positionDisplacementVector = [(endTransform.GetElement(
         i, 3) - startTransform.GetElement(i, 3)) * scale_factor for i in range(3)]
@@ -276,13 +274,13 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform = interpolate_vtk_matrix(displacementTransform, DEBUG_INTERPOLATION)
     
     # if magnitude of positionDisplacementVector is greater than 5 set displacementTransform to identity
-    print("Position Displacement Magnitude: ", np.linalg.norm(positionDisplacementVector), "\n")
-    if np.linalg.norm(positionDisplacementVector) > 0.8:
-        displacementTransform = vtk.vtkMatrix4x4()
-    else:
-        positionDisplacementVector = [0,0,0]
+    # print("Position Displacement Magnitude: ", np.linalg.norm(positionDisplacementVector), "\n")
+    # if np.linalg.norm(positionDisplacementVector) > 0.8:
+    #     displacementTransform = vtk.vtkMatrix4x4()
+    # else:
+    #     positionDisplacementVector = [0,0,0]
 
-    print(displacementTransform)
+    # print(displacementTransform)
 
     return displacementTransform, positionDisplacementVector
 
@@ -330,13 +328,14 @@ def getCentroidofModel(modelName):
     modelNode = slicer.util.getNode(modelName)
     polyData = modelNode.GetPolyData()
     numPoints = polyData.GetNumberOfPoints()
-    sumCoords = np.array([0,0,0])
+    sumCoords = np.array([0.0,0.0,0.0])
     for i in range(numPoints):
-        point = [0,0,0]
+        point = [0.0,0.0,0.0]
         polyData.GetPoint(i, point)
         sumCoords += np.array(point)
     centroid = sumCoords / numPoints
     print("Centroid: ", centroid)
+
 
 if __name__ == "__main__":
 
@@ -346,10 +345,10 @@ if __name__ == "__main__":
     stereo = StereoView()
     # add_model_to_scene("TumorModel.vtk")
     stereo.setup()
-    stereo.defineOffset(20,0)
-
-    stereo.ResetCameraPosition()
+    stereo.defineOffset(10, 0, 0)
+    stereo.ResetCameraPosition(0,-80,0)
+    
     stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
-
+    stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
 
 # exec(open('layout_custom.py').read())
