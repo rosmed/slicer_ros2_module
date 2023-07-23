@@ -23,6 +23,8 @@ class StereoView:
             ).GetViewActiveCameraNode(self.viewNode1)
         self.cameraNode2 = slicer.modules.cameras.logic(
             ).GetViewActiveCameraNode(self.viewNode2)
+        
+        # self.leftCameraInitialTransform = vtk.vtkMatrix4x4()
 
     def defineOffset(self, xOff = 0, yOff = 0, zOff =0):
         self.offset = np.array([xOff, yOff, zOff])
@@ -41,6 +43,10 @@ class StereoView:
         self.transformRightCamera.SetElement(2, 3, self.rightCameraOffset[2])
 
     def displaceCamera(self, displacementRotationMatrix4x4, positionDisplacementVector):
+        if self.startFlag:
+            self.helperLogCameraStartState()
+            self.startFlag = False
+
         leftCameraCurrentTransform, focal_disp_magnitude_left = self.GetCameraTransform(self.cameraNode1)
         rightCameraCurrentTransform, focal_disp_magnitude_right = self.GetCameraTransform(self.cameraNode2)
 
@@ -61,8 +67,33 @@ class StereoView:
         centerCameraNextTransform.SetElement(1, 3, 0)
         centerCameraNextTransform.SetElement(2, 3, 0)
 
-        vtk.vtkMatrix4x4.Multiply4x4(
-            displacementRotationMatrix4x4, centerCameraCurrentTransform, centerCameraNextTransform)
+        ###########################################################################################
+        # This is the part that needs to be changed to make the camera move in the right direction #
+
+        initialCameraMatrix = self.leftCameraInitialTransform 
+        positionDisplacementMatrix = vtk.vtkMatrix4x4()
+        initialCameraMatrixInverse = vtk.vtkMatrix4x4()
+        rotationCorrectionMatrix = vtk.vtkMatrix4x4()
+        newPositionDisplacementMatrix = vtk.vtkMatrix4x4()
+        newRotationDisplacementMatrix = vtk.vtkMatrix4x4()
+
+        for i in range(3):
+            centerCameraCurrentTransform.SetElement(i, 3, 0)
+            initialCameraMatrix.SetElement(i, 3, 0)
+            positionDisplacementMatrix.SetElement(i, 3, positionDisplacementVector[i])
+
+        vtk.vtkMatrix4x4.Invert(initialCameraMatrix, initialCameraMatrixInverse)
+        
+        vtk.vtkMatrix4x4.Multiply4x4(initialCameraMatrixInverse, centerCameraCurrentTransform, rotationCorrectionMatrix)
+        
+        vtk.vtkMatrix4x4.Multiply4x4(rotationCorrectionMatrix, positionDisplacementMatrix, newPositionDisplacementMatrix)
+        vtk.vtkMatrix4x4.Multiply4x4( rotationCorrectionMatrix, displacementRotationMatrix4x4, newRotationDisplacementMatrix) 
+
+        positionDisplacementVector = [newPositionDisplacementMatrix.GetElement(0, 3), newPositionDisplacementMatrix.GetElement(1, 3), newPositionDisplacementMatrix.GetElement(2, 3)]
+        ###########################################################################################
+
+        vtk.vtkMatrix4x4.Multiply4x4(newRotationDisplacementMatrix, initialCameraMatrix, centerCameraNextTransform)
+        # vtk.vtkMatrix4x4.Multiply4x4(displacementRotationMatrix4x4, centerCameraCurrentTransform, centerCameraNextTransform)
         
         centerCameraNextTransform.SetElement(
             0, 3,  positionDisplacementVector[0] + currentCenterCameraPosition[0])
@@ -104,6 +135,7 @@ class StereoView:
             slicer.mrmlScene.AddNode(self.rightCameraSittingTransform)
 
         self.moveCamera = False
+        self.startFlag = True
 
         self.buttonObserverID = self.buttonSubscriber.AddObserver(
             "ModifiedEvent", self._buttonCallback)
@@ -175,11 +207,17 @@ class StereoView:
         else:
             print(f"Received button value: {button}")
 
+    def helperLogCameraStartState(self):
+        self.leftCameraInitialTransform, self.focal_disp_magnitude_left_initial = self.GetCameraTransform(self.cameraNode1)
+
     def startCameraControl(self):
         self.currentControllerTransform = vtk.vtkMatrix4x4()
         self.currentControllerTransform.DeepCopy(
             self.lookupNode.GetMatrixTransformToParent())
         self.moveCamera = True
+        if self.startFlag:
+            self.helperLogCameraStartState()
+            self.startFlag = False
 
     def stopCameraControl(self):
         self.moveCamera = False
@@ -245,7 +283,7 @@ def createCustomLayout(position=[100, 100], resolution=[1920, 1080]):
 
     return popupWindow
 
-DEBUG_INTERPOLATION = 0.3
+DEBUG_INTERPOLATION = 1
 
 def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform = vtk.vtkMatrix4x4()
@@ -272,15 +310,6 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     
     # displacementTransform = slerp_vtk_rotation_matrix(displacementTransform)
     displacementTransform = interpolate_vtk_matrix(displacementTransform, DEBUG_INTERPOLATION)
-    
-    # if magnitude of positionDisplacementVector is greater than 5 set displacementTransform to identity
-    # print("Position Displacement Magnitude: ", np.linalg.norm(positionDisplacementVector), "\n")
-    # if np.linalg.norm(positionDisplacementVector) > 0.8:
-    #     displacementTransform = vtk.vtkMatrix4x4()
-    # else:
-    #     positionDisplacementVector = [0,0,0]
-
-    # print(displacementTransform)
 
     return displacementTransform, positionDisplacementVector
 
@@ -345,7 +374,7 @@ if __name__ == "__main__":
     stereo = StereoView()
     # add_model_to_scene("TumorModel.vtk")
     stereo.setup()
-    stereo.defineOffset(10, 0, 0)
+    stereo.defineOffset(0, 0, 0)
     stereo.ResetCameraPosition(0,-80,0)
     
     stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
