@@ -263,7 +263,7 @@ def createCustomLayout(position=[100, 100], resolution=[1920, 1080]):
 
     return popupWindow
 
-DEBUG_INTERPOLATION = 1
+DEBUG_INTERPOLATION = 0.4
 
 def findDisplacementTransform(startTransform, endTransform, scale_factor):
     displacementTransform = vtk.vtkMatrix4x4()
@@ -357,8 +357,8 @@ if __name__ == "__main__":
     stereo = StereoView()
     # add_model_to_scene("TumorModel.vtk")
     stereo.setup()
-    stereo.defineOffset(-10, 0, 0)
-    stereo.ResetCameraPosition(0,-80,0)
+    stereo.defineOffset(-5, 0, 0)
+    stereo.ResetCameraPosition(0,-200,0)
     
     stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
     stereo.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
