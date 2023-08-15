@@ -4,7 +4,12 @@ import slicer
 import vtk
 import numpy as np
 from slicer.ScriptedLoadableModule import ScriptedLoadableModule, ScriptedLoadableModuleWidget, ScriptedLoadableModuleLogic
-from lib.utils import createCustomLayout
+from lib.utils import *
+try:
+    import yaml
+except:
+    pip_install('pyyaml')
+    import yaml
 
 
 class DemoModule(ScriptedLoadableModule):
