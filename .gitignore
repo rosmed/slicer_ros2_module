@@ -40,3 +40,6 @@ docs/_build/
 # VSCode
 .vscode
 
+*__pycache__*
+vr_testing_scripts/*
+

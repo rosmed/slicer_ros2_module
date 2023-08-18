@@ -1,7 +1,7 @@
 import slicer
 import vtk
 import numpy as np
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation as R, Slerp
 import qt
 
 try:
@@ -51,9 +51,7 @@ def createCustomLayout(position, size):
     return popupWindow
 
 
-DEBUG_INTERPOLATION = 0.4 ##TODO clean this up
-
-def findDisplacementTransform(startTransform, endTransform, scale_factor):
+def findDisplacementTransform(startTransform, endTransform, translationScaleFactor = 0.3, rotationScaleFactor = 0.4):
     displacementTransform = vtk.vtkMatrix4x4()
 
     # end = displacement * start
@@ -63,10 +61,8 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
     vtk.vtkMatrix4x4.Multiply4x4(
         endTransform, startTransformInverse, displacementTransform)
 
-    scale_factor = 0.3 ## TODO: clean this up
-
     positionDisplacementVector = [(endTransform.GetElement(
-        i, 3) - startTransform.GetElement(i, 3)) * scale_factor for i in range(3)]
+        i, 3) - startTransform.GetElement(i, 3)) * translationScaleFactor for i in range(3)]
 
     # divide position by scale factor
     displacementTransform.SetElement(
@@ -77,48 +73,40 @@ def findDisplacementTransform(startTransform, endTransform, scale_factor):
         2, 3, 0)
     
     # displacementTransform = slerp_vtk_rotation_matrix(displacementTransform)
-    displacementTransform = interpolate_vtk_matrix(displacementTransform, DEBUG_INTERPOLATION)
+    displacementTransform = interpolateVTKMatrix(displacementTransform, rotationScaleFactor)
 
     return displacementTransform, positionDisplacementVector
 
+def slerpScipy(r0, r1, t):
+    # Times sequence for the start and end rotations
+    times = [0, 1]
+    combinedRotations = R.concatenate([r0, r1])
+    # Create the Slerp object
+    slerpInterpolator = Slerp(times, combinedRotations)
+    # Obtain the interpolated rotation
+    slerpRotation = slerpInterpolator([t])[0]
 
-def slerp(q0, q1, t):
-    dot_product = np.dot(q0, q1)
-    dot_product = np.clip(dot_product, -1.0, 1.0)
-    theta = np.arccos(dot_product)
-    slerp_q = (np.sin((1-t)*theta) / np.sin(theta)) * q0 + (np.sin(t*theta) / np.sin(theta)) * q1
-    return slerp_q
+    # Return the quaternion of the interpolated rotation
+    return slerpRotation
 
-def interpolate_vtk_matrix(vtk_matrix, t):
+def interpolateVTKMatrix(vtkMatrix, t):
     # Convert vtkMatrix4x4 to numpy array
-    matrix_array = np.array(vtk_matrix)
-
-    matrix_array = np.array([[vtk_matrix.GetElement(i, j) for j in range(4)] for i in range(4)])
+    matrixArray = np.array([[vtkMatrix.GetElement(i, j) for j in range(4)] for i in range(4)])
 
     # Extract 3x3 rotation matrix
-    R_mat = matrix_array[0:3, 0:3]
+    rMat = matrixArray[0:3, 0:3]
+    r1 = R.from_matrix(rMat)
 
-    # Convert R to a quaternion
-    rotation = R.from_matrix(R_mat)
-    qR = rotation.as_quat()
+    # Perform slerp between identity quaternion and rotation
+    r0 = R.from_euler('xyz', [0, 0, 0])  # Create an identity rotation
 
-    # Perform slerp between identity quaternion and qR
-    identity_matrix = np.identity(3)
-    identity_rotation = R.from_matrix(identity_matrix)
-    identity_quaternion = identity_rotation.as_quat()
-    qT = slerp(identity_quaternion, qR, t)
-
-    # Convert interpolated quaternion back to rotation matrix
-    if np.isclose(np.linalg.norm(qT), 0):
-        intermediate_rotation = np.identity(3)
-    else:
-        intermediate_rotation = R.from_quat(qT)
-    RT = intermediate_rotation.as_matrix()
+    rScaled = slerpScipy(r0, r1, t)
+    rTransformed = rScaled.as_matrix()
 
     # Construct the resulting vtkMatrix4x4
-    result_vtk_matrix = vtk.vtkMatrix4x4()
+    resultVTKMatrix = vtk.vtkMatrix4x4()
     for i in range(3):
         for j in range(3):
-            result_vtk_matrix.SetElement(i, j, RT[i, j])
+            resultVTKMatrix.SetElement(i, j, rTransformed[i, j])
 
-    return result_vtk_matrix
+    return resultVTKMatrix
