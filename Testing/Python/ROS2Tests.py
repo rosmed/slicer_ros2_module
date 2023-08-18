@@ -15,9 +15,14 @@ try:
 except:
     slicer.util.pip_install('psutil')
 
+import warnings
+
 #
 # ROS2Tests
 #
+
+#Switch off VTK warnings
+vtk.vtkObject.GlobalWarningDisplayOff()
 
 class ROS2Tests(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
@@ -135,6 +140,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.ROS2_EXEC + command,
             shell=True,
             preexec_fn=os.setsid,
+            stdout=subprocess.DEVNULL, # Supress stdout to prevent cluttering the 3D Slicer console
+            stderr=subprocess.DEVNULL, # Supress stderr to prevent cluttering the 3D Slicer console
         )
         return ros2_process
 
@@ -372,25 +379,32 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 "vtkMRMLROS2SubscriberStringNode", "test_string_xkcd"
             )
 
+
+
             # delete publisher which exists
             self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher which exists not removed")
             ROS2TestsLogic.spin_some()
-            # delete publisher which used to exist
-            self.assertFalse(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher which used to exist removed")
-            ROS2TestsLogic.spin_some()
-            # delete publisher which never existed
-            self.assertFalse(self.ros2Node.RemoveAndDeletePublisherNode("random_name"), "Publisher which never existed removed")
-            ROS2TestsLogic.spin_some()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                # delete publisher which used to exist
+                self.assertFalse(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher which used to exist removed")
+                ROS2TestsLogic.spin_some()
+                # delete publisher which never existed
+                self.assertFalse(self.ros2Node.RemoveAndDeletePublisherNode("random_name"), "Publisher which never existed removed")
+                ROS2TestsLogic.spin_some()
             # delete subscriber which exists
             self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber which exists not removed")
             ROS2TestsLogic.spin_some()
-            # delete subscriber which used to exist
-            self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber which used to exist removed")
-            ROS2TestsLogic.spin_some()
-            # delete subscriber which never existed
-            self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("random_name"), "Subscriber which never existed removed")
-            ROS2TestsLogic.spin_some()
-            print("Testing deletion of publisher and subscriber - Done")
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                # delete subscriber which used to exist
+                self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("test_string_xkcd"), "Subscriber which used to exist removed")
+                ROS2TestsLogic.spin_some()
+                # delete subscriber which never existed
+                self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("random_name"), "Subscriber which never existed removed")
+                ROS2TestsLogic.spin_some()
+                print("Testing deletion of publisher and subscriber - Done")
 
         def tearDown(self):
             self.ros2Node.Destroy()
@@ -400,7 +414,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def setUp(self):
             print("\nCreating ROS2 node for parameter tests..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNode")
+            self.ros2Node.Create("testNodeParameter")
             ROS2TestsLogic.spin_some()
             self.create_turtlesim_node_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
@@ -469,16 +483,17 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def tearDown(self):
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
+            ROS2TestsLogic.spin_some()
+            self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node running")
             self.ros2Node.Destroy()
             ROS2TestsLogic.spin_some()
-            print("ROS2 node destroyed")
 
 
     class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         def setUp(self):
             print("\nCreating ROS2 node to test Broadcaster Nodes..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNode")
+            self.ros2Node.Create("testNodeBroadcaster")
             ROS2TestsLogic.spin_some()
 
         def test_broadcaster_functioning(self):
@@ -504,8 +519,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             
 
         def tearDown(self):
-            pass
-            # self.ros2Node.Destroy()
+            self.ros2Node.Destroy()
 
 
     def run(self):
