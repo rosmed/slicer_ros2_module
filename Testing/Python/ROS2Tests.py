@@ -90,7 +90,8 @@ class TestObserverTf2Lookup:
 
     def Callback(self, caller, event):
         self.counter += 1
-        self.lastTransform = caller.GetMatrixTransformToParent()
+        self.lastTransform = vtk.vtkMatrix4x4()
+        caller.GetMatrixTransformToParent(self.lastTransform)
 
 
 class ROS2TestsLogic(ScriptedLoadableModuleLogic):
@@ -490,7 +491,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             broadcastedMat.SetElement(0,3,66) # Set a default value
             broadcaster.Broadcast(broadcastedMat)
             ROS2TestsLogic.spin_some()
-            lookupMat = lookupNode.GetMatrixTransformToParent()
+            lookupMat = vtk.vtkMatrix4x4()
+            lookupNode.GetMatrixTransformToParent(lookupMat)
             self.assertEqual(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3)) # maybe use assert almost equal
             self.assertTrue(observer.counter > 1)
             self.assertEqual(observer.lastTransform.GetElement(0,3), broadcastedMat.GetElement(0,3))
