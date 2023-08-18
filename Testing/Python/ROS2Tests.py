@@ -32,7 +32,7 @@ class ROS2Tests(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = "ROS2Tests"
-        self.parent.categories = ["Examples"] # FIXME: replace with IGT
+        self.parent.categories = ["IGT"] 
         self.parent.dependencies = ['ROS2']
         self.parent.contributors = ["Aravind Kumar (JHU)"]
         self.parent.helpText = """
@@ -42,8 +42,20 @@ tests.run()
 """
         # TODO: replace with organization, grant and thanks
         self.parent.acknowledgementText = """
-This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
-and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
+The initial core developers are:
+
+    Laura Connolly, EE PhD student at Queens University, Kingston, Ontario, Canada
+
+    Aravind S. Kumar, CS Masters student at Johns Hopkins University, Baltimore, Maryland, USA
+
+    Anton Deguet, Associate Research Engineer at Johns Hopkins University, Baltimore, Maryland, USA
+
+This project is supported by:
+
+    The National Institute of Biomedical Imaging and Bio-engineering of the U.S. National Institutes of Health (NIH) under award number R01EB020667, and 3R01EB020667-05S1 (MPI: Tokuda, Krieger, Leonard, and Fuge). The content is solely the responsibility of the authors and does not necessarily represent the official views of the NIH.
+
+    The National Sciences and Engineering Research Council of Canada and the Canadian Institutes of Health Research, the Walter C. Sumner Memorial Award, the Mitacs Globalink Award and the Michael Smith Foreign Study Supplement.
+
 """
 
 
@@ -188,7 +200,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.testObs = TestObserverSubscriber()
             ROS2TestsLogic.spin_some()
 
-        def create_pub_sub(self, type): # TODO: Keep just type to append to vtkMRMLROS2Publisher/Subscriber?
+        def create_pub_sub(self, type): 
             self.topic = "slicer_test_" + type.lower()
             self.pubType = "vtkMRMLROS2Publisher" + type + "Node"
             self.subType = "vtkMRMLROS2Subscriber" + type + "Node"
@@ -485,7 +497,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
             ROS2TestsLogic.spin_some()
             self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node running")
-            self.ros2Node.Destroy()
+            self.ros2Node.Destroy()  # FIXME: This isn't working for some reason
             ROS2TestsLogic.spin_some()
 
 
