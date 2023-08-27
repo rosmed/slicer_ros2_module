@@ -11,6 +11,19 @@ except:
     import yaml
 
 def createCustomLayout(position, size):
+    """
+    The function `createCustomLayout` creates a custom layout in the Slicer application with three 3D
+    views and displays them in a popup window.
+    
+    :param position: The position parameter is the position of the top-left corner of the custom layout
+    window on the screen. It is a tuple of two integers representing the x and y coordinates,
+    respectively. For example, (100, 100) would position the window at coordinates (100, 100) on the
+    screen
+    :param size: The size parameter is the desired size of the popup window that will display the stereo
+    cameras. It is a tuple of two integers representing the width and height of the window
+    :return: a `QWidget` object, which represents a window with a layout containing two 3D widgets for
+    stereo cameras.
+    """
 
     THREE_3D_LAYOUT = """
         <layout type="vertical" >
