@@ -4,11 +4,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R, Slerp
 import qt
 
-try:
-    import yaml
-except:
-    pip_install('pyyaml')
-    import yaml
 
 def createCustomLayout(position, size):
     """
@@ -40,22 +35,22 @@ def createCustomLayout(position, size):
         """
     # Register the custom layout with the application layout manager
     layoutManager = slicer.app.layoutManager()
-    customLayoutId = 100  # an arbitrary ID number for the custom layout
+    customLayoutId = 100  # an arbitrary ID number for the custom layout # TODO: make it max plus one, not arbitrary hundred
     layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(customLayoutId, THREE_3D_LAYOUT)
 
     # Set the application layout to the custom layout
     layoutManager.setLayout(customLayoutId)
 
     # Extract the 3D widgets for stereo cameras
-    threeDWidget1 = layoutManager.threeDWidget(0)
-    threeDWidget2 = layoutManager.threeDWidget(1)
+    threeDWidgetLeft = layoutManager.threeDWidget(0) # TODO: retrieve them by name or by some other tag 
+    threeDWidgetRight = layoutManager.threeDWidget(1)
 
     # Create a new window for the stereo cameras
     popupWindow = qt.QWidget()
     popupWindow.setWindowTitle("Stereo Cameras")
     popupWindow.setLayout(qt.QHBoxLayout())
-    popupWindow.layout().addWidget(threeDWidget1)
-    popupWindow.layout().addWidget(threeDWidget2)
+    popupWindow.layout().addWidget(threeDWidgetLeft)
+    popupWindow.layout().addWidget(threeDWidgetRight)
     popupWindow.show()
 
     popupWindow.move(100, 100)

@@ -92,7 +92,7 @@ class StereoControlModuleLogic(ScriptedLoadableModuleLogic):
         vtk.vtkMatrix4x4.Multiply4x4(mat1, mat2, result)
         return result
 
-    def displaceCamera(self, displacementRotationMatrix4x4, positionDisplacementVector):
+    def displaceCamera(self, displacementRotationMatrix4x4, positionDisplacementVector): #TODO: position, matrix also make it 3x3 matrix
         """
         This function updates the position and orientation of two cameras based on a
         displacement rotation matrix and a position displacement vector.
@@ -108,9 +108,11 @@ class StereoControlModuleLogic(ScriptedLoadableModuleLogic):
         # Get the current camera transforms and focal displacement magnitudes. The focal displacement magnitude 
         # is the distance between the camera position and the focal point. And it is necessary to maintain this/scale this
         # distance when displacing the camera.
-        leftCameraCurrentTransform, focal_disp_magnitude_left = self.GetCameraTransform(self.cameraNode1)
+        leftCameraCurrentTransform, focal_disp_magnitude_left = self.GetCameraTransform(self.cameraNode1) #TODO: fix snake case
         rightCameraCurrentTransform, focal_disp_magnitude_right = self.GetCameraTransform(self.cameraNode2)
 
+        # TODO: Create another class called StereoCamera for encapsulating the camera nodes and setup with just central processing happening here.
+   
         # Extract the camera positions from the transforms
         currentLeftCameraPosition = self.extractPositionFromTransform(leftCameraCurrentTransform)
         currentRightCameraPosition = self.extractPositionFromTransform(rightCameraCurrentTransform)
@@ -125,9 +127,9 @@ class StereoControlModuleLogic(ScriptedLoadableModuleLogic):
         # Since there is no relative rotation between the left and right cameras, we can use the rotation component 
         # of either camera to calculate the central camera's rotation component
         centralCameraCurrentTransform = vtk.vtkMatrix4x4()
-        centralCameraCurrentTransform.DeepCopy(leftCameraCurrentTransform)
+        centralCameraCurrentTransform.DeepCopy(leftCameraCurrentTransform) 
         for i in range(3):
-            centralCameraCurrentTransform.SetElement(i, 3, 0)
+            centralCameraCurrentTransform.SetElement(i, 3, 0) 
             positionDisplacementMatrix.SetElement(i, 3, positionDisplacementVector[i])
 
         # Calculate the new position displacement matrix by multiplying the central camera's current transform with the position displacement matrix
@@ -198,12 +200,19 @@ class StereoControlModuleLogic(ScriptedLoadableModuleLogic):
         self.cameraNode2.SetFocalPoint(0, 0, 0)
         self.cameraNode2.SetViewUp(0, 0, 1)
 
-        
+        self.logic.DisplaceCamera(vtk.vtkMatrix4x4(), [0.0,0.0,0.0])
+
+
+    #  TODO: Create a mono camera and stereo camera has two mono cameras. 
     def GetCameraTransform(self, cameraNode):
         """
         The function `GetCameraTransform` calculates the camera transform matrix and magnitude based on the
         position, focal point, and view up vectors of a camera node. This is required as 3D Slicer does not
         provide a function to get the camera transform matrix directly. 
+
+        Z is View Up
+        Y is Focal Direction
+        X is Left to Right
         
         :param cameraNode: The `cameraNode` parameter is an object representing a camera in a 3D scene. It
         contains information about the camera's position, focal point, and view up vector
@@ -345,18 +354,22 @@ class StereoControlModuleWidget(ScriptedLoadableModuleWidget):
         if self.window:
             self.window.close()
 
+        # Set position and resolution of the window
         self.window = createCustomLayout([100,100],[1280*2,720])
         self.window.show()
 
         self.logic = StereoControlModuleLogic()
-        self.logic.setup()
-        self.logic.defineOffset(-5, 0, 0)
-        self.logic.ResetCameraPosition(0,-200,0)
+        self.logic.Setup()
+        self.logic.DefineOffset(-5.0, 0.0, 0.0) # Setting offset between left, right cameras to the center of the two
+        # TODO: it should only accpt 2* del X. Call it set X basiline and get rid of the x,y arguments
+        # self.logic.SetBaseline(10) # TODO: In the documentation, the coordinate system needs to be defined.
+
+        self.logic.ResetCameraPosition(0.0,-200.0,0.0) #TODO: SetAbsoluteCameraPosition and add VTK matrix as a parameter too
+        # TODO: email laura about measured_cp from 3D Slicer object. (3D markers)
         
-        self.logic.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
-        self.logic.displaceCamera(vtk.vtkMatrix4x4(), [0,0,0])
+        
 
-
+s
 
 
 
