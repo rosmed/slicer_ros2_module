@@ -11,6 +11,7 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLROS2ServiceNode.h>
 #include <vtkMRMLModelNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
@@ -212,6 +213,27 @@ vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::str
   mRobotNames.push_back(robotName);
   robotNode->AddToROS2Node(this->GetID(), robotName, parameterNodeName, parameterName);
   return robotNode;
+}
+
+
+vtkMRMLROS2ServiceNode * vtkMRMLROS2NodeNode::CreateAndAddServiceNode(const std::string & monitoredNodeName)
+{
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddService: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLROS2ServiceNode> serviceNode = vtkMRMLROS2ServiceNode::New();
+  // Add to the scene so the ROS2Node node can find it
+  this->GetScene()->AddNode(serviceNode);
+  if (serviceNode->AddToROS2Node(this->GetID(), monitoredNodeName)) {
+    return serviceNode;
+  }
+  // Something went wrong, cleanup
+  this->GetScene()->RemoveNode(serviceNode);
+  serviceNode->Delete();
+  return nullptr;
 }
 
 

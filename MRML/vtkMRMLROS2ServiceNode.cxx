@@ -4,7 +4,8 @@
 #include <vtkMRMLROS2ServiceInternals.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include "turtlesim/srv/Spawn.hpp"
+#include "turtlesim/srv/spawn.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -83,7 +84,7 @@ bool vtkMRMLROS2ServiceNode::AddToROS2Node(const char * nodeId, const std::strin
 }
 
 void vtkMRMLROS2ServiceNode::spawn_turtle(float x, float y, float theta, const std::string& name) {
-    auto client = mInternals->mServiceClient
+    auto client = mInternals->mServiceClient;
     auto request = std::make_shared<turtlesim::srv::Spawn::Request>();
     request->x = x;
     request->y = y;

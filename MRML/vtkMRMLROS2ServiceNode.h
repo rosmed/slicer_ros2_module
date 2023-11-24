@@ -42,7 +42,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceNode : public vtkMRML
     inline const std::string & GetMonitoredNodeName(void) const {
       return mMonitoredNodeName;
     }
-    void spawn_turtle(float x, float y, float theta, const std::string& name)
+    void spawn_turtle(float x, float y, float theta, const std::string& name);
     bool IsAddedToROS2Node(void) const;
     // bool IsMonitoredNodeReady(void) const;
 

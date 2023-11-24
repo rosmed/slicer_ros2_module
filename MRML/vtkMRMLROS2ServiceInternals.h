@@ -11,7 +11,8 @@
 // Added for modified event
 #include <vtkCommand.h>
 #include <vtkMRMLROS2ServiceNode.h>
-#include "turtlesim/srv/Spawn.hpp"
+#include "std_srvs/srv/set_bool.hpp"
+#include "turtlesim/srv/spawn.hpp"
 
 class vtkMRMLROS2ServiceInternals {
 public:
@@ -75,7 +76,7 @@ public:
 
 protected:
 
-  std::shared_ptr<rclcpp::Service<turtlesim::srv::Spawn> mServiceClient = nullptr;
+  std::shared_ptr<rclcpp::Client<turtlesim::srv::Spawn>> mServiceClient = nullptr;
   //  A pointer to a ROS2 service event subscriber.
   // rclcpp::Subscription<rcl_interfaces::msg::ServiceEvent>::SharedPtr mServiceEventSubscriber = nullptr;
   vtkMRMLROS2ServiceNode *mMRMLNode;

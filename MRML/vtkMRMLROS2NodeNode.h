@@ -15,6 +15,7 @@ class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2Tf2LookupNode;
 class vtkMRMLROS2RobotNode;
+class vtkMRMLROS2ServiceNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 {
@@ -26,6 +27,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   friend class vtkMRMLROS2Tf2BroadcasterNode;
   friend class vtkMRMLROS2Tf2LookupNode;
   friend class vtkMRMLROS2RobotNode;
+  friend class vtkMRMLROS2ServiceInternals;
+  friend class vtkMRMLROS2ServiceNode;
 
  public:
   typedef vtkMRMLROS2NodeNode SelfType;
@@ -72,6 +75,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 
   vtkMRMLROS2RobotNode * CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName);
 
+  vtkMRMLROS2ServiceNode * CreateAndAddServiceNode(const std::string & monitoredNodeName);
+
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode * GetParameterNodeByNode(const std::string & node);
@@ -81,6 +86,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByID(const std::string & nodeID);
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByParentChild(const std::string & parent_id, const std::string & child_id);
   vtkMRMLROS2RobotNode * GetRobotNodeByName(const std::string & robotName);
+  // vtkMRMLROS2ServiceNode * GetServiceNodeByNode(const std::string & node);
 
   bool RemoveAndDeleteSubscriberNode(const std::string & topic);
   bool RemoveAndDeletePublisherNode(const std::string & topic);
