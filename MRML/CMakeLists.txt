@@ -47,6 +47,10 @@ set(${KIT}_SRCS
   vtkMRMLROS2RobotNode.cxx
   vtkMRMLROS2ServiceNode.h
   vtkMRMLROS2ServiceNode.cxx
+  vtkMRMLROS2ServiceClientNode.h
+  vtkMRMLROS2ServiceClientNode.cxx
+  vtkMRMLROS2ServiceClientDefaultNodes.h
+  vtkMRMLROS2ServiceClientDefaultNodes.cxx
   )
 
 if (USE_CISST_MSGS)

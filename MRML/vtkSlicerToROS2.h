@@ -26,6 +26,9 @@
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
+// new
+#include "turtlesim/srv/spawn.hpp"
+
 void vtkSlicerToROS2(const std::string & input,  std_msgs::msg::String & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(const bool & input,  std_msgs::msg::Bool & result,

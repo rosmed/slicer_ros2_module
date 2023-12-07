@@ -12,6 +12,7 @@
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
 #include <vtkMRMLROS2ServiceNode.h>
+#include <vtkMRMLROS2ServiceClientNode.h>
 #include <vtkMRMLModelNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
@@ -236,6 +237,31 @@ vtkMRMLROS2ServiceNode * vtkMRMLROS2NodeNode::CreateAndAddServiceNode(const std:
   return nullptr;
 }
 
+vtkMRMLROS2ServiceClientNode * vtkMRMLROS2NodeNode::CreateAndAddServiceClientNode(const char * className, const std::string & topic)
+{
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddServiceClient: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
+  // Check that this is a serviceClient so we can add it
+  vtkMRMLROS2ServiceClientNode * serviceClientNode = vtkMRMLROS2ServiceClientNode::SafeDownCast(node);
+  if (serviceClientNode == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not derived from vtkMRMLROS2PublisherNode");
+    return nullptr;
+  }
+  // Add to the scene so the ROS2Node node can find it
+  this->GetScene()->AddNode(serviceClientNode);
+  if (serviceClientNode->AddToROS2Node(this->GetID(), topic)) {
+    return serviceClientNode;
+  }
+  // Something went wrong, cleanup
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return nullptr;
+}
 
 vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::GetSubscriberNodeByTopic(const std::string & topic)
 {
@@ -368,6 +394,20 @@ vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::GetRobotNodeByName(const std::string
     }
   }
   return nullptr; // otherwise return a null ptr
+}
+
+vtkMRMLROS2ServiceClientNode* vtkMRMLROS2NodeNode::GetServiceClientNodeByTopic(const std::string & topic)
+{
+  size_t serviceClientRefs = this->GetNumberOfNodeReferences("service_client");
+  for (size_t j = 0; j < serviceClientRefs; ++j) {
+    vtkMRMLROS2ServiceClientNode * node = vtkMRMLROS2ServiceClientNode::SafeDownCast(this->GetNthNodeReference("service_client", j));
+    if (!node) {
+      vtkWarningMacro(<< "vtkMRMLROS2ServiceClientNode: node referenced by role 'service_client' is not a service_client");
+    } else if (node->GetTopic() == topic) {
+      return node;
+    }
+  }
+  return nullptr;
 }
 
 
@@ -505,6 +545,19 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName
   this->RemoveAndDeleteParameterNodeByNodeID(parameterNodeID);
 
   // Remove the robot itself
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteServiceClientNode(const std::string & topic)
+{
+  vtkMRMLROS2ServiceClientNode * node = this->GetServiceClientNodeByTopic(topic);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveServiceClientNode: node referenced by role 'service_client' for topic " << topic << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID(), topic);
   this->GetScene()->RemoveNode(node);
   node->Delete();
   return true;
