@@ -11,8 +11,8 @@
 // Added for modified event
 #include <vtkCommand.h>
 #include <vtkMRMLROS2ServiceNode.h>
-#include "std_srvs/srv/set_bool.hpp"
-#include "turtlesim/srv/spawn.hpp"
+#include "std_srvs/srv/trigger.hpp"
+#include <vtkROS2ToSlicer.h>
 
 class vtkMRMLROS2ServiceInternals {
 public:
@@ -27,63 +27,44 @@ public:
     };
 
 
-// protected:
-//   // Converting a ROS2 service message to a ROS2 service.
-//   static rclcpp::Service ROS2ParamMsgToService(const rcl_interfaces::msg::Service &service) {
-//     rclcpp::Service param;
-//     return param;
-//   }
+protected:
 
-//   // Converting a ROS2 service to a ROS2 service message.
-//   static rcl_interfaces::msg::Service ROS2ParamToServiceMsg(const rclcpp::Service &service) {
-//     rcl_interfaces::msg::Service param;
-//     return param;
-//   }
+  void service_callback(rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
 
-//   // A callback function that is called when the service server responds to the request for services.
-//   void GetServicesCallback(std::shared_future<std::vector<rclcpp::Service>> future) {
-//     try {
-//       auto result = future.get();
-//       for (const auto &param : result) {
-//         mServiceStore[param.get_name()] = ROS2ParamToServiceMsg(param);
-//       }
-//       mMRMLNode->InvokeCustomModifiedEvent(ServiceModifiedEvent);
-//     } catch (std::exception &e) {
-//       std::cerr << "Exception: " << e.what() << std::endl;
-//     }
-//   }
+    this->isRequestInProgress = false;
+    std::shared_ptr<std_srvs::srv::Trigger::Response> service_response_ = future.get();    
 
-//   // A callback function that is called when the service server responds to the request for services.
-//   void ServiceEventCallback(const rcl_interfaces::msg::ServiceEvent::SharedPtr event) {
-//     // Iterate over the new services
-//     for (const auto &new_param : event->new_services) {
-//       // rclcpp::Service param(new_param);
-//       mServiceStore[new_param.name] = new_param;
-//       mMRMLNode->InvokeCustomModifiedEvent(ServiceModifiedEvent);
-//     }
-//     // Iterate over the changed services
-//     for (const auto &changed_param : event->changed_services) {
-//       // rclcpp::Service param(changed_param);
-//       mServiceStore[changed_param.name] = changed_param;
-//       mMRMLNode->InvokeCustomModifiedEvent(ServiceModifiedEvent);
-//     }
-//     // Iterate over the deleted services
-//     for (const auto &deleted_param : event->deleted_services) {
-//       mServiceStore.erase(deleted_param.name);
-//     }
-//   }
+    this->ProcessResponse(service_response_);
+  }
+
+  // Process response
+  void ProcessResponse(const std::shared_ptr<std_srvs::srv::Trigger::Response>& response) {
+    vtkSmartPointer<vtkTable> responseTable = vtkTable::New();
+    vtkROS2ToSlicer(*response, responseTable);
+    std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: " 
+              << responseTable->GetValueByName(0, "message") << std::endl;
+
+    this->lastValidResponse = response;
+    this->lastValidResponseTable = responseTable;
+  }
+
 
 
 protected:
 
-  std::shared_ptr<rclcpp::Client<turtlesim::srv::Spawn>> mServiceClient = nullptr;
-  //  A pointer to a ROS2 service event subscriber.
-  // rclcpp::Subscription<rcl_interfaces::msg::ServiceEvent>::SharedPtr mServiceEventSubscriber = nullptr;
+  std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> mServiceClient = nullptr;
+
+  std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> mServiceResponseFuture;
+  bool isRequestInProgress = false;
+
+  std::shared_ptr<std_srvs::srv::Trigger::Response> lastValidResponse = nullptr;
+  vtkSmartPointer<vtkTable> lastValidResponseTable = vtkTable::New();
+
+  // A pointer to a ROS2 node.
+  std::shared_ptr<rclcpp::Node> mROS2Node = nullptr;
+
   vtkMRMLROS2ServiceNode *mMRMLNode;
-  // rclcpp::Service mEmptyService;
-  // A map of services - specifically, service messages.
-  // std::map<std::string, rcl_interfaces::msg::Service> mServiceStore;
-  // std::shared_ptr<rclcpp::AsyncServicesClient> mServiceClient = nullptr;
+
   int serviceNotReadyCounter = 0;
 };
 

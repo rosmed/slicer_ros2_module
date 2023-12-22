@@ -39,11 +39,12 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
 find_package(turtlesim REQUIRED)
+find_package(std_srvs REQUIRED)
 if (USE_CISST_MSGS)
   find_package(cisst_msgs REQUIRED)
 endif ()
 
-include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS} ${sensor_msgs_INCLUDE_DIRS} ${turtlesim_INCLUDE_DIRS})
+include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS} ${sensor_msgs_INCLUDE_DIRS} ${turtlesim_INCLUDE_DIRS} ${std_srvs_INCLUDE_DIRS})
 
 #-----------------------------------------------------------------------------
 

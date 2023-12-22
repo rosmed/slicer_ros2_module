@@ -6,6 +6,9 @@
 #include <vtkCommand.h>
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 #include <memory> //for shared_ptr
+#include <vtkTable.h>
+// #include <rclcpp/rclcpp.hpp>
+// #include "std_srvs/srv/trigger.hpp"
 
 // forward declaration for internals
 class vtkMRMLROS2ServiceInternals;
@@ -42,7 +45,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceNode : public vtkMRML
     inline const std::string & GetMonitoredNodeName(void) const {
       return mMonitoredNodeName;
     }
-    void spawn_turtle(float x, float y, float theta, const std::string& name);
+
+    vtkTable *GetLastResponseAsTable(void);
+    bool GetLastResponse(vtkSmartPointer<vtkTable> &output);
+    bool InitializeRequest(void);
+    void SendAsyncRequest(void);
+    void SendBlockingRequest(unsigned int wait_time_ms = 10000);
     bool IsAddedToROS2Node(void) const;
     // bool IsMonitoredNodeReady(void) const;
 

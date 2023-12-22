@@ -198,6 +198,16 @@ public:
 
       auto result = this->mServiceClient->async_send_request(request);
       // Handle response in a callback or wait for the response
+
+      // Write a simple python server and trigger it (switch bool response and increment the message response)
+      // Look at subscriber callback on how to handle it
+      // Maybe create a vtkSlicerROS2 fn to convert std_srv callback 
+
+      // put the respones also in a vtkTable
+      // python should be able to show the vtkTable
+
+      // write a test
+
       return 1;
     }
 

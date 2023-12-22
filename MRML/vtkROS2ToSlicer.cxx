@@ -1,6 +1,8 @@
 #include <vtkROS2ToSlicer.h>
 #include <vtkMath.h>
 #include <vtkVariant.h>
+#include <vtkStringArray.h>
+#include <vtkIntArray.h>
 
 
 auto const MM_TO_M_CONVERSION = 1000.00;
@@ -163,4 +165,22 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmar
   result->SetElement(0, 3, x);
   result->SetElement(1, 3, y);
   result->SetElement(2, 3, z);
+}
+
+void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result)
+{
+
+
+    vtkSmartPointer<vtkStringArray> messageArray = vtkSmartPointer<vtkStringArray>::New();
+    messageArray->SetName("message");
+    result->AddColumn(messageArray);
+
+    vtkSmartPointer<vtkIntArray> successArray = vtkSmartPointer<vtkIntArray>::New();
+    successArray->SetName("success");
+    result->AddColumn(successArray);
+
+    result->SetNumberOfRows(1);
+    result->SetValue(0, 0, vtkVariant(input.message));
+    result->SetValue(0, 1, vtkVariant(input.success));
+
 }

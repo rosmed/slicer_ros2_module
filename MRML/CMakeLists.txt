@@ -8,6 +8,7 @@ set(${KIT}_INCLUDE_DIRECTORIES
   ${Slicer_Base_INCLUDE_DIRS}
   ${cisst_msgs_INCLUDE_DIRS}
   ${turtlesim_INCLUDE_DIRS} 
+  ${std_srvs_INCLUDE_DIRS} 
   )
 
 # --------------------------------------------------------------------------
@@ -75,5 +76,5 @@ SlicerMacroBuildModuleMRML(
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES} ${cisst_msgs_LIBRARIES} ${turtlesim_LIBRARIES} 
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES} ${cisst_msgs_LIBRARIES} ${turtlesim_LIBRARIES} ${std_srvs_LIBRARIES} 
   )

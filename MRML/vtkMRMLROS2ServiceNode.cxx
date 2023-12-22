@@ -4,10 +4,17 @@
 #include <vtkMRMLROS2ServiceInternals.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include "turtlesim/srv/spawn.hpp"
-#include "std_srvs/srv/set_bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
 #include <stdexcept>
 #include <utility>
+#include <chrono>
+
+#include <vtkTable.h>
+#include <vtkSmartPointer.h>
+#include <vtkVariant.h>
+#include <vtkStringArray.h>
+#include <vtkIntArray.h>
+#include <vtkROS2ToSlicer.h>
 
 vtkStandardNewMacro(vtkMRMLROS2ServiceNode);
 
@@ -66,9 +73,7 @@ bool vtkMRMLROS2ServiceNode::AddToROS2Node(const char * nodeId, const std::strin
 
   std::shared_ptr<rclcpp::Node> nodePointer = mrmlROSNodePtr->mInternals->mNodePointer;
 
-  mInternals->mServiceClient = nodePointer->create_client<turtlesim::srv::Spawn>("/spawn");
-
-  //TODO: maybe needs a spin?
+  mInternals->mServiceClient = nodePointer->create_client<std_srvs::srv::Trigger>("toggle_state");
 
   // // create a service client
   // mInternals->mServiceClient = std::make_shared<rclcpp::AsyncServicesClient>(nodePointer, monitoredNodeName);
@@ -80,22 +85,161 @@ bool vtkMRMLROS2ServiceNode::AddToROS2Node(const char * nodeId, const std::strin
   this->SetNodeReferenceID("node", nodeId);
   mrmlROSNodePtr->WarnIfNotSpinning("adding service client for \"" + monitoredNodeName + "\"");
   mInternals->mMRMLNode = this;
+  mInternals->mROS2Node = nodePointer;
   return true;
 }
 
-void vtkMRMLROS2ServiceNode::spawn_turtle(float x, float y, float theta, const std::string& name) {
-    auto client = mInternals->mServiceClient;
-    auto request = std::make_shared<turtlesim::srv::Spawn::Request>();
-    request->x = x;
-    request->y = y;
-    request->theta = theta;
-    request->name = name;
-
-    auto result = client->async_send_request(request);
-    // Handle response in a callback or wait for the response
+vtkTable* vtkMRMLROS2ServiceNode::GetLastResponseAsTable() {
+  return mInternals->lastValidResponseTable;
 }
 
+bool vtkMRMLROS2ServiceNode::GetLastResponse(vtkSmartPointer<vtkTable> &output) {
+  if (mInternals->lastValidResponseTable) {
+    output = mInternals->lastValidResponseTable;
+    return true;
+  }
+  vtkErrorMacro("GetLastResponse: No valid response available");
+  return false;
+}
 
+// Common functionality for client initialization and request check
+bool vtkMRMLROS2ServiceNode::InitializeRequest() {
+  if (mInternals->isRequestInProgress) {
+    vtkErrorMacro(<< "ServiceNode::Request: request already in progress");
+    return false;
+  }
+  std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> client = mInternals->mServiceClient;
+  if (!client) {
+    vtkErrorMacro(<< "ServiceNode::Request: service client is not initialized");
+    return false;
+  }
+  return true;
+}
+
+// Asynchronous request sending
+void vtkMRMLROS2ServiceNode::SendAsyncRequest() {
+  if (!InitializeRequest()) return;
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
+  mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1));
+  mInternals->isRequestInProgress = true;
+}
+
+// Blocking request sending
+void vtkMRMLROS2ServiceNode::SendBlockingRequest(unsigned int wait_time_ms) {
+  if (!InitializeRequest()) return;
+  vtkWarningMacro(<< "This is a blocking request. It will block the main thread (which Slicer uses) until the request is completes or times out in " << wait_time_ms << " ms.");
+
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  std::cerr << "ServiceNode::SendBlockingRequest sending request" << std::endl;
+
+  std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request);
+  if (future.wait_for(std::chrono::milliseconds(wait_time_ms)) == std::future_status::ready){ //FIXME: there is a bug here
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response = future.get();
+    mInternals->ProcessResponse(response);
+  } else {
+    vtkErrorMacro(<< "ServiceNode::SendBlockingRequest: request timed out");
+  }
+  mInternals->isRequestInProgress = false;
+}
+
+// void vtkMRMLROS2ServiceNode::SendRequest() {
+
+//     if(mInternals->isRequestInProgress) {
+//         vtkErrorMacro(<< "ServiceNode::SendRequest: request already in progress");
+//         return;
+//     }
+
+//     std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> client = mInternals->mServiceClient;
+//     if (!client) {
+//         vtkErrorMacro(<< "ServiceNode::SendRequest: service client is not initialized");
+//     }
+
+//     mInternals->isRequestInProgress = true;
+//     auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+//     std::cerr << "ServiceNode::SendRequest sending request" << std::endl;
+//     std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = client->
+//                                                                       async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1));
+    
+// }
+
+// void vtkMRMLROS2ServiceNode::SendRequestBlocking(unsigned int wait_time_ms ) {
+//     if(mInternals->isRequestInProgress) {
+//         vtkErrorMacro(<< "ServiceNode::SendRequestBlocking: request already in progress");
+//         return;
+//     }
+
+//     std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> client = mInternals->mServiceClient;
+//     if (!client) {
+//         vtkErrorMacro(<< "ServiceNode::SendRequestBlocking: service client is not initialized");
+//         return;
+//     }
+
+//     auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+//     vtkSmartPointer<vtkTable> responseTable = vtkTable::New();
+//     std::cerr << "ServiceNode::SendRequestBlocking sending request" << std::endl;
+
+//     // Send request synchronously and wait for the response
+//     auto future = client->async_send_request(request);
+//     if(future.wait_for(std::chrono::milliseconds(wait_time_ms)) == std::future_status::ready) {
+//         std::shared_ptr<std_srvs::srv::Trigger::Response> response = future.get();
+
+//         vtkROS2ToSlicer(*response, responseTable);
+
+//         std::cerr << "ServiceNode::SendRequestBlocking: Value stored in the table + received response: " 
+//                   << responseTable->GetValueByName(0, "message") << std::endl;
+
+//         mInternals->lastValidResponse = response;
+//         mInternals->lastValidResponseTable = responseTable;
+//     } else {
+//         vtkErrorMacro(<< "ServiceNode::SendRequestBlocking: request timed out");
+//     }
+
+//     mInternals->isRequestInProgress = false;
+// }
+
+
+
+// vtkTable* vtkMRMLROS2ServiceNode::SendRequestBlocking() {
+//     auto client = mInternals->mServiceClient;
+//     auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+
+//     std::cerr << "ServiceNode::SendRequest sending request" << std::endl;
+    
+//     vtkSmartPointer<vtkTable> result = vtkTable::New();
+//         // Asynchronously send request
+//     auto future = client->async_send_request(request);
+    
+    
+//   if (rclcpp::spin_until_future_complete(mInternals->mROS2Node, future) != // TODO: keep as a feature
+//     rclcpp::FutureReturnCode::SUCCESS)
+//   {
+//     std::cerr << "Failed call service toggle_state" << std::endl;
+//   } else {
+//     auto response = future.get();
+//     std::cerr << "ServiceNode::SendRequest got response" << response->message << std::endl;
+
+//     vtkSmartPointer<vtkStringArray> messageArray = vtkSmartPointer<vtkStringArray>::New();
+//     messageArray->SetName("message");
+//     result->AddColumn(messageArray);
+
+//     vtkSmartPointer<vtkIntArray> successArray = vtkSmartPointer<vtkIntArray>::New();
+//     successArray->SetName("success");
+//     result->AddColumn(successArray);
+
+//     result->SetNumberOfRows(1);
+//     result->SetValue(0, 0, vtkVariant(response->message));
+//     result->SetValue(0, 1, vtkVariant(response->success));
+
+//   }
+
+  
+
+//   std::cerr << "ServiceNode::SendRequest got response" << std::endl;
+
+//   return result;
+    
+// }
 
 
 // // Setting up the service event subscriber. If the service is ready, add all monitored service values to the service server.
