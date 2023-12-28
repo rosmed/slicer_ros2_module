@@ -26,6 +26,13 @@ public:
      ServiceModifiedEvent = vtkCommand::UserEvent + 54
     };
 
+  // enum class ServiceResponseStatus 
+  // {
+  //     Success,
+  //     Timeout,
+  //     Error
+  // };
+
 
 protected:
 
@@ -34,7 +41,11 @@ protected:
     this->isRequestInProgress = false;
     std::shared_ptr<std_srvs::srv::Trigger::Response> service_response_ = future.get();    
 
-    this->ProcessResponse(service_response_);
+    try {
+      this->ProcessResponse(service_response_);
+    } catch (const std::exception& e) {
+      this->ProcessErrorResponse(e.what());
+    }
   }
 
   // Process response
@@ -44,8 +55,17 @@ protected:
     std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: " 
               << responseTable->GetValueByName(0, "message") << std::endl;
 
-    this->lastValidResponse = response;
-    this->lastValidResponseTable = responseTable;
+    this->lastResponse = response;
+    this->lastResponseTable = responseTable;
+    this->lastResponseSuccess = true;
+  }
+
+  void ProcessErrorResponse(const std::string& error_message) {
+    std::cerr << "Received error response: " << error_message << std::endl;
+
+    this->lastResponse = nullptr;
+    this->lastResponseTable = vtkTable::New();
+    this->lastResponseSuccess = false;
   }
 
 
@@ -57,8 +77,10 @@ protected:
   std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> mServiceResponseFuture;
   bool isRequestInProgress = false;
 
-  std::shared_ptr<std_srvs::srv::Trigger::Response> lastValidResponse = nullptr;
-  vtkSmartPointer<vtkTable> lastValidResponseTable = vtkTable::New();
+  std::shared_ptr<std_srvs::srv::Trigger::Response> lastResponse = nullptr;
+  vtkSmartPointer<vtkTable> lastResponseTable = vtkTable::New();
+  bool lastResponseSuccess = false;
+
 
   // A pointer to a ROS2 node.
   std::shared_ptr<rclcpp::Node> mROS2Node = nullptr;

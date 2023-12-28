@@ -48,7 +48,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceNode : public vtkMRML
 
     vtkTable *GetLastResponseAsTable(void);
     bool GetLastResponse(vtkSmartPointer<vtkTable> &output);
-    bool InitializeRequest(void);
+    bool GetLastResponseStatus();
+    bool PreRequestCheck(void);
     void SendAsyncRequest(void);
     void SendBlockingRequest(unsigned int wait_time_ms = 10000);
     bool IsAddedToROS2Node(void) const;

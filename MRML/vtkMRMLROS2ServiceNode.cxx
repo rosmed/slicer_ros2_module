@@ -90,27 +90,46 @@ bool vtkMRMLROS2ServiceNode::AddToROS2Node(const char * nodeId, const std::strin
 }
 
 vtkTable* vtkMRMLROS2ServiceNode::GetLastResponseAsTable() {
-  return mInternals->lastValidResponseTable;
+  if (!GetLastResponseStatus()) {
+    vtkErrorMacro("GetLastResponseAsTable: No valid response available");
+    return nullptr;
+  }
+  return mInternals->lastResponseTable;
 }
 
 bool vtkMRMLROS2ServiceNode::GetLastResponse(vtkSmartPointer<vtkTable> &output) {
-  if (mInternals->lastValidResponseTable) {
-    output = mInternals->lastValidResponseTable;
+  if (!GetLastResponseStatus()) {
+    output = mInternals->lastResponseTable;
     return true;
   }
   vtkErrorMacro("GetLastResponse: No valid response available");
   return false;
 }
 
+bool vtkMRMLROS2ServiceNode::GetLastResponseStatus() {
+  return mInternals->lastResponseSuccess;
+}
+
 // Common functionality for client initialization and request check
-bool vtkMRMLROS2ServiceNode::InitializeRequest() {
-  if (mInternals->isRequestInProgress) {
-    vtkErrorMacro(<< "ServiceNode::Request: request already in progress");
+bool vtkMRMLROS2ServiceNode::PreRequestCheck() { // TODO: Rename --> PreRequestCheck?
+  // Get the shared pointer to the service client
+  std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> client = mInternals->mServiceClient;
+  // Check if the service client is initialized
+  if (!client) {
+    vtkErrorMacro(<< "ServiceNode::PreRequestCheck: service client is not initialized");
     return false;
   }
-  std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> client = mInternals->mServiceClient;
-  if (!client) {
-    vtkErrorMacro(<< "ServiceNode::Request: service client is not initialized");
+  // Check the state of the client to ensure the server is running
+  if (!client->service_is_ready()) {
+    vtkErrorMacro(<< "ServiceNode::PreRequestCheck: service server is not running");
+    // server is not running
+    mInternals->isRequestInProgress = false;
+    mInternals->ProcessErrorResponse("ServiceNode::PreRequestCheck: server is not running");
+    return false;
+  }
+  // Check if a request is already in progress
+  if (mInternals->isRequestInProgress) {
+    vtkErrorMacro(<< "ServiceNode::PreRequestCheck: request already in progress");
     return false;
   }
   return true;
@@ -118,30 +137,73 @@ bool vtkMRMLROS2ServiceNode::InitializeRequest() {
 
 // Asynchronous request sending
 void vtkMRMLROS2ServiceNode::SendAsyncRequest() {
-  if (!InitializeRequest()) return;
+  if (!PreRequestCheck()) return;
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
-  mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1));
+  mInternals->mServiceResponseFuture = mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1));
+  // TODO: Edge case where server dies before callback is called
   mInternals->isRequestInProgress = true;
 }
 
-// Blocking request sending
+// templating url : https://github.com/jhu-cisst/cisst_ros2_bridge/blob/main/include/cisst_ros2_bridge/mtsROSBridge.h
+
 void vtkMRMLROS2ServiceNode::SendBlockingRequest(unsigned int wait_time_ms) {
-  if (!InitializeRequest()) return;
-  vtkWarningMacro(<< "This is a blocking request. It will block the main thread (which Slicer uses) until the request is completes or times out in " << wait_time_ms << " ms.");
+  // Pre-request checks
+  if (!PreRequestCheck()) return;
+  vtkWarningMacro(<< "This is a blocking request. It will block the main thread (which Slicer uses) until the request completes or times out in " << wait_time_ms << " ms.");
 
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   std::cerr << "ServiceNode::SendBlockingRequest sending request" << std::endl;
-
-  std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request);
-  if (future.wait_for(std::chrono::milliseconds(wait_time_ms)) == std::future_status::ready){ //FIXME: there is a bug here
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response = future.get();
-    mInternals->ProcessResponse(response);
-  } else {
-    vtkErrorMacro(<< "ServiceNode::SendBlockingRequest: request timed out");
+  mInternals->isRequestInProgress = true;
+  std::string error_string = "";
+  try {
+    // Sending request and waiting for response
+    std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request);
+    mInternals->mServiceResponseFuture = future;
+    auto resultState = rclcpp::spin_until_future_complete(mInternals->mROS2Node, future, std::chrono::milliseconds(wait_time_ms));
+    
+    switch (resultState) {
+      case rclcpp::FutureReturnCode::SUCCESS:
+        mInternals->ProcessResponse(future.get());
+        break;
+      case rclcpp::FutureReturnCode::TIMEOUT:
+        error_string = "ServiceNode::SendBlockingRequest: request timed out";
+        vtkErrorMacro(<< error_string);
+        mInternals->ProcessErrorResponse(error_string);
+        break;
+      default:
+        error_string = "ServiceNode::SendBlockingRequest: request failed";
+        vtkErrorMacro(<< error_string);
+        mInternals->ProcessErrorResponse(error_string);
+        break;
+    }
+  } catch (const std::exception& e) {
+    error_string = "ServiceNode::SendBlockingRequest: Exception occurred: " + std::string(e.what());
+    vtkErrorMacro(<< error_string);
+    mInternals->ProcessErrorResponse(error_string);
   }
   mInternals->isRequestInProgress = false;
 }
+
+
+// // Blocking request sending
+// void vtkMRMLROS2ServiceNode::SendBlockingRequest(unsigned int wait_time_ms) {
+//   if (!PreRequestCheck()) return;
+//   vtkWarningMacro(<< "This is a blocking request. It will block the main thread (which Slicer uses) until the request is completes or times out in " << wait_time_ms << " ms.");
+
+//   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+//   std::cerr << "ServiceNode::SendBlockingRequest sending request" << std::endl;
+//   mInternals->isRequestInProgress = true;
+//   std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request);
+//   auto resultState = rclcpp::spin_until_future_complete(mInternals->mROS2Node, future, std::chrono::milliseconds(wait_time_ms));
+//   if (resultState == rclcpp::FutureReturnCode::SUCCESS){ //Make a busy loop + change to spin until future complete + switch
+//     std::shared_ptr<std_srvs::srv::Trigger::Response> response = future.get();
+//     mInternals->ProcessResponse(response);
+//   } else {
+//     vtkErrorMacro(<< "ServiceNode::SendBlockingRequest: request timed out");
+//   }
+//   mInternals->isRequestInProgress = false;
+// }
 
 // void vtkMRMLROS2ServiceNode::SendRequest() {
 
@@ -189,8 +251,8 @@ void vtkMRMLROS2ServiceNode::SendBlockingRequest(unsigned int wait_time_ms) {
 //         std::cerr << "ServiceNode::SendRequestBlocking: Value stored in the table + received response: " 
 //                   << responseTable->GetValueByName(0, "message") << std::endl;
 
-//         mInternals->lastValidResponse = response;
-//         mInternals->lastValidResponseTable = responseTable;
+//         mInternals->lastResponse = response;
+//         mInternals->lastResponseTable = responseTable;
 //     } else {
 //         vtkErrorMacro(<< "ServiceNode::SendRequestBlocking: request timed out");
 //     }
