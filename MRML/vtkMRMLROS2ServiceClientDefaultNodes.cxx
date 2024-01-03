@@ -10,7 +10,7 @@
 
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX(vtkIntArray, std_msgs::msg::Int64MultiArray, IntArray);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX(vtkDoubleArray, std_msgs::msg::Float64MultiArray, DoubleArray);
-VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX(vtkTable, vtkTable, std_srvs::srv::SetBool, SetBool);
+VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX(vtkTable, vtkTable, std_srvs::srv::SetBool, SetBool); // TODO: Investigate VTKVariant instead of Native
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX(vtkTable, std_msgs::msg::Float64MultiArray, DoubleTable);
 
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX(vtkMatrix4x4, geometry_msgs::msg::PoseStamped, PoseStamped);

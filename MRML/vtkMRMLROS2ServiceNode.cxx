@@ -110,8 +110,11 @@ bool vtkMRMLROS2ServiceNode::GetLastResponseStatus() {
   return mInternals->lastResponseSuccess;
 }
 
+// TODO : Make a IsRequestInProgress void const
+// TODO : IsAddedtoROS also needs to be there. To be used in PreCheck
+
 // Common functionality for client initialization and request check
-bool vtkMRMLROS2ServiceNode::PreRequestCheck() { // TODO: Rename --> PreRequestCheck?
+bool vtkMRMLROS2ServiceNode::PreRequestCheck() { 
   // Get the shared pointer to the service client
   std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>> client = mInternals->mServiceClient;
   // Check if the service client is initialized
@@ -123,7 +126,7 @@ bool vtkMRMLROS2ServiceNode::PreRequestCheck() { // TODO: Rename --> PreRequestC
   if (!client->service_is_ready()) {
     vtkErrorMacro(<< "ServiceNode::PreRequestCheck: service server is not running");
     // server is not running
-    mInternals->isRequestInProgress = false;
+    mInternals->isRequestInProgress = false; // TODO: This is a hack to handle cases where the server fails midway and the Request is still in progress
     mInternals->ProcessErrorResponse("ServiceNode::PreRequestCheck: server is not running");
     return false;
   }

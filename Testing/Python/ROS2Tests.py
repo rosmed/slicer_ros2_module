@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import vtk
 
@@ -104,7 +105,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     """
 
     ENVIRONMENT_CORRECTION = "export PYTHONPATH=/opt/ros/galactic/lib/python3.8/site-packages; export PYTHONHOME=; "
+    SOURCE_SETUP = "source /home/aravind/ros2_ws/install/setup.bash; "
     ROS2_EXEC = ENVIRONMENT_CORRECTION + "python3.8 /opt/ros/galactic/bin/ros2 "
+    ROS2_EXEC_WITH_SOURCE = ENVIRONMENT_CORRECTION + SOURCE_SETUP + "python3.8 /opt/ros/galactic/bin/ros2 "
 
     def __init__(self):
         """
@@ -138,6 +141,16 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         return ros2_process
 
     @classmethod
+    def run_ros2_cli_command_after_sourcing(self, command):
+        ros2_process = subprocess.Popen(
+            ROS2TestsLogic.ROS2_EXEC_WITH_SOURCE + command,
+            shell=True,
+            executable='/bin/bash',
+            preexec_fn=os.setsid,
+        )
+        return ros2_process
+
+    @classmethod
     def kill_subprocess(self, proc):
         os.killpg(os.getpgid(proc.pid), subprocess.signal.SIGINT)
 
@@ -154,6 +167,25 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         )
         # Assert that the turtlesim node is in the list of running nodes
         return nodeName in nodes
+        
+
+    @classmethod
+    def check_server_running(self, serverName):
+        """
+        Checks if the specified server is running.
+        """
+        try:
+            output = subprocess.check_output(
+                ROS2TestsLogic.ROS2_EXEC + "service list",
+                shell=True,
+            ).decode("utf-8").split("\n")
+
+            print(output)
+
+            return serverName in output
+
+        except subprocess.CalledProcessError as e:
+            return None
 
         # It creates a turtlesim node, checks if it's running, and then kills it
     class TestTurtlesimNode(unittest.TestCase):
@@ -170,6 +202,31 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             # Kill the turtlesim node
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
             self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node still running")
+
+    class TestMyServer(unittest.TestCase):
+        def setUp(self):
+            """
+            Start the server process.
+            """
+            self.server_process = ROS2TestsLogic.run_ros2_cli_command_after_sourcing("run trigger_server start_server")
+            # wait for server to start
+            time.sleep(1)
+
+        def test_server_create_and_destroy(self):
+            """
+            Test the creation and destruction of the server.
+            """
+            print("\nTesting creation and destruction of my server - Starting..")
+            self.assertTrue(ROS2TestsLogic.check_server_running("/toggle_state"), "Server is not running")
+            print("Testing creation and destruction of my server - Done")
+
+        def tearDown(self):
+            """
+            Stop the server process.
+            """
+            ROS2TestsLogic.kill_subprocess(self.server_process)
+            self.assertFalse(ROS2TestsLogic.check_server_running("/toggle_state"), "Server is still running")
+
 
     # It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
     class TestCreateAndAddPubSub(unittest.TestCase):
@@ -505,15 +562,46 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             # pass
             self.ros2Node.Destroy()
 
+    class TestServiceClient(unittest.TestCase):
+        def setUp(self):
+            self.create_service_process = ROS2TestsLogic.run_ros2_cli_command_after_sourcing("run trigger_server start_server") # TODO: Rewrite the server with a spin_some instead of a spin in a while loop. You can type print statements to check if it is running properly
+            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+            self.ros2Node.Create("testNode")
+            ROS2TestsLogic.spin_some()
+
+        def test_service_client(self):
+            print("\nTesting service client - Starting..")
+            serviceClient = self.ros2Node.CreateAndAddServiceNode("toggle_state")
+            serviceClient.SendAsyncRequest()
+            for _ in range(6):
+                ROS2TestsLogic.spin_some()
+                time.sleep(1)
+            outputVtkTable = serviceClient.GetLastResponseAsTable()
+            ExpectedState, ExpectedCounter = True, 1
+            ExpectedString = f'State toggled to: {ExpectedState}, Message Counter : {ExpectedCounter}'
+            ObtainedOutput = outputVtkTable.GetValue(0,0).ToString()
+            print("ObtainedOutput", ObtainedOutput)
+            self.assertEqual(ObtainedOutput, ExpectedString)
+            print("Testing service client - Done")
+
+        def tearDown(self):
+            ROS2TestsLogic.kill_subprocess(self.create_service_process)
+            self.ros2Node.Destroy()
+            ROS2TestsLogic.spin_some()
+
+
+
 
     def run(self):
         print('Running all tests...')
 
         suite = unittest.TestSuite()
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTurtlesimNode))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestMyServer))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestCreateAndAddPubSub))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestParameterNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
 
         runner = unittest.TextTestRunner()
         runner.run(suite)

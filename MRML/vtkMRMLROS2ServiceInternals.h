@@ -47,7 +47,9 @@ protected:
       this->ProcessErrorResponse(e.what());
     }
   }
-
+// TODO: Create a GetEmptyMessage function for this - to easily make the payload
+// TODO: Create an issue to replicate similar functionality for publishers
+// TODO: Open an issue in slicerros2 on error handling in conversion methods
   // Process response
   void ProcessResponse(const std::shared_ptr<std_srvs::srv::Trigger::Response>& response) {
     vtkSmartPointer<vtkTable> responseTable = vtkTable::New();
