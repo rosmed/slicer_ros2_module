@@ -15,7 +15,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
   // friend declarations
   friend class vtkMRMLROS2ServiceClientInternals;
 
-  template <typename _slicer_type, typename _ros_type>
+  template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type>
     friend class vtkMRMLROS2ServiceClientTemplatedInternals;
 
  public:
@@ -33,7 +33,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
 
   const char * GetROSType(void) const;
 
-  const char * GetSlicerType(void) const;
+  const char * GetSlicerTypeIn(void) const;
+
+  const char * GetSlicerTypeOut(void) const;
 
   size_t GetNumberOfCalls(void) const {
     return mNumberOfCalls;

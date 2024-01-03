@@ -53,39 +53,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceNode : public vtkMRML
     void SendAsyncRequest(void);
     void SendBlockingRequest(unsigned int wait_time_ms = 10000);
     bool IsAddedToROS2Node(void) const;
-    // bool IsMonitoredNodeReady(void) const;
-
-//     /*! Add a node and service to monitor */
-//     bool AddService(const std::string& serviceName);
-//     /*! Remove a service that is being monitored. If no services are being monitored for a node, stop monitoring the node as well*/
-//     bool RemoveService(const std::string& serviceName);
-
-//     bool IsServiceSet(const std::string& serviceName, bool noWarning = false) const;
-
-//     /*! Returns data type if the service is monitored. Else it returns an empty string */
-//     bool GetServiceType(const std::string& serviceName, std::string& result);
-//     /*! convenience methods for users to return output, mostly for Python users */
-//     std::string GetServiceType(const std::string& serviceName);
-
-
-//     /*! Prints value of a monitored service after converting it to a
-//       string. Returns empty string if value not set */
-//    std::string PrintService(const std::string& serviceName);
-
-// // todo-address: in RbotoNode, make sure we check with IsServiceSet and GetServiceType
-
-//     /*! Returns true if it is a Integer and it is set. Users should
-//       always make sure that the key exists and the service type is
-//       Integer before calling this method Main method, recommended for
-//       C++ users since we can check return code and avoid copy for
-//       result. */
-//     bool GetServiceAsInteger(const std::string& serviceName, int& result);
-//     /*! Convenience methods for users to return output, mostly for
-//       Python users */
-//     int GetServiceAsInteger(const std::string& serviceName);
-
-
- 
 
     // // Save and load
     // virtual void ReadXMLAttributes(const char** atts) override;

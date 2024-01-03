@@ -16,7 +16,7 @@
 
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkIntArray, IntArray);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkDoubleArray, DoubleArray);
-VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkTable, TurtleSpawn);
+VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkTable, vtkTable, SetBool); // Input Output Name
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkTable, DoubleTable);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkMatrix4x4, PoseStamped);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkDoubleArray, WrenchStamped);

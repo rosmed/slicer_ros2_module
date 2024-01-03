@@ -203,6 +203,44 @@ void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result
   result.data = picture;
 }
 
+
+void vtkSlicerToROS2(vtkTable * input, std_srvs::srv::SetBool::Request & result, const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+    if (!input || !input->GetNumberOfRows() || !input->GetColumn(0))
+    {
+        std::cerr << "Invalid input table" << std::endl;
+        return;
+    }
+
+    vtkIntArray* boolArray = vtkIntArray::SafeDownCast(input->GetColumn(0));
+    if (!boolArray)
+    {
+        std::cerr << "First column is not an int array" << std::endl;
+        return;
+    }
+
+    // Assuming the boolean value is stored in the first row of the first column
+    int boolValue = boolArray->GetValue(0);
+    result.data = (boolValue != 0); // Convert int to bool
+
+    //     # Create a new vtkTable
+    // table = vtk.vtkTable()
+
+    // # Create an vtkIntArray for storing boolean values
+    // boolArray = vtk.vtkIntArray()
+    // boolArray.SetName("BooleanValue")
+
+    // # Add the array to the table
+    // table.AddColumn(boolArray)
+
+    // # Set the number of rows in the table
+    // table.SetNumberOfRows(1)
+
+    // # Insert a false value (0 in this case) into the first row
+    // table.SetValue(0, 0, 0) 
+}
+
+
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
   double A[3][3];

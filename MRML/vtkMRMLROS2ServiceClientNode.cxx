@@ -8,7 +8,8 @@ void vtkMRMLROS2ServiceClientNode::PrintSelf(std::ostream& os, vtkIndent indent)
   Superclass::PrintSelf(os,indent);
   os << indent << "Topic: " << mTopic << "\n";
   os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
-  os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
+  os << indent << "Slicer type Input: " << mInternals->GetSlicerTypeIn() << "\n"; // This is scrambled
+  os << indent << "Slicer type Output: " << mInternals->GetSlicerTypeOut() << "\n"; // This is scrambled
   os << indent << "Number of calls: " << mNumberOfCalls << "\n";
   os << indent << "Number of messages sent:" << mNumberOfRequestsSent << "\n";
 }
@@ -58,9 +59,14 @@ const char * vtkMRMLROS2ServiceClientNode::GetROSType(void) const
 }
 
 
-const char * vtkMRMLROS2ServiceClientNode::GetSlicerType(void) const
+const char * vtkMRMLROS2ServiceClientNode::GetSlicerTypeIn(void) const
 {
-  return mInternals->GetSlicerType();
+  return mInternals->GetSlicerTypeIn();
+}
+
+const char * vtkMRMLROS2ServiceClientNode::GetSlicerTypeOut(void) const
+{
+  return mInternals->GetSlicerTypeOut();
 }
 
 

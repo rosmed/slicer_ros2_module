@@ -23,7 +23,8 @@ public:
                                   const std::string & topic, std::string & errorMessage) = 0;
   virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
-  virtual const char * GetSlicerType(void) const = 0;
+  virtual const char * GetSlicerTypeIn(void) const = 0;
+  virtual const char * GetSlicerTypeOut(void) const = 0;
 protected:
   vtkMRMLROS2ServiceClientNode * mMRMLNode;
   std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
@@ -31,11 +32,11 @@ protected:
 
 
 
-template <typename _slicer_type, typename _ros_type>
+template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type>
 class vtkMRMLROS2ServiceClientTemplatedInternals: public vtkMRMLROS2ServiceClientInternals
 {
 public:
-  typedef vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type, _ros_type> SelfType;
+  typedef vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type_in, _slicer_type_out, _ros_type> SelfType;
 
   vtkMRMLROS2ServiceClientTemplatedInternals(vtkMRMLROS2ServiceClientNode *  mrmlNode):
     vtkMRMLROS2ServiceClientInternals(mrmlNode)
@@ -43,6 +44,8 @@ public:
 
 protected:
   std::shared_ptr<rclcpp::Client<_ros_type>> mServiceClient = nullptr;
+  std::shared_future<std::shared_ptr<typename _ros_type::Response>> mServiceResponseFuture;
+  bool isRequestInProgress = false;
 
   /**
    * Add the ServiceClient to the ROS2 node.  This methods searched the
@@ -102,26 +105,33 @@ protected:
     return rosidl_generator_traits::name<_ros_type>();
   }
 
-  const char * GetSlicerType(void) const override
+  const char * GetSlicerTypeIn(void) const override
   {
-    return typeid(_slicer_type).name();
+    return typeid(_slicer_type_in).name();
   }
+
+  const char * GetSlicerTypeOut(void) const override
+  {
+    return typeid(_slicer_type_out).name();
+  }
+
+  
 };
 
 
 
-template <typename _slicer_type, typename _ros_type>
+template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type>
 class vtkMRMLROS2ServiceClientNativeInternals:
-  public vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type, _ros_type>
+  public vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type_in, _slicer_type_out, _ros_type>
 {
 public:
-  typedef vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type, _ros_type> BaseType;
+  typedef vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type_in, _slicer_type_out, _ros_type> BaseType;
 
   vtkMRMLROS2ServiceClientNativeInternals(vtkMRMLROS2ServiceClientNode * mrmlNode):
     BaseType(mrmlNode)
   {}
 
-  _slicer_type mLastMessageSlicer;
+  _slicer_type_in mLastMessageSlicer;
 
   // size_t Publish(const _slicer_type & message)
   // {
@@ -134,7 +144,7 @@ public:
   //   return nbSubscriber;
   // }
 
-  size_t RequestService()
+  size_t SendAsyncRequest() // TODO: Implement this for native types
   {
     float x = 2;
     float y = 2;
@@ -156,20 +166,20 @@ public:
 
 
 
-template <typename _slicer_type, typename _ros_type>
+template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type>
 class vtkMRMLROS2ServiceClientVTKInternals:
-  public vtkMRMLROS2ServiceClientTemplatedInternals< _slicer_type, _ros_type>
+  public vtkMRMLROS2ServiceClientTemplatedInternals< _slicer_type_in, _slicer_type_out, _ros_type>
 {
 public:
-  typedef vtkMRMLROS2ServiceClientTemplatedInternals< _slicer_type, _ros_type> BaseType;
+  typedef vtkMRMLROS2ServiceClientTemplatedInternals< _slicer_type_in, _slicer_type_out, _ros_type> BaseType;
 
   vtkMRMLROS2ServiceClientVTKInternals(vtkMRMLROS2ServiceClientNode * mrmlNode):
     BaseType(mrmlNode)
   {
-    mLastMessageSlicer = vtkNew<_slicer_type>();
+    mLastMessageSlicer = vtkNew<_slicer_type_in>();
   }
 
-  vtkSmartPointer<_slicer_type> mLastMessageSlicer;
+  vtkSmartPointer<_slicer_type_in> mLastMessageSlicer;
 
   // size_t Publish(_slicer_type * message)
   // {
@@ -182,21 +192,41 @@ public:
   //   return nbSubscriber;
   // }
 
-    size_t RequestService(_slicer_type * message)
+    void service_callback(typename rclcpp::Client<_ros_type>::SharedFuture future) {
+
+      this->isRequestInProgress = false;
+      std::shared_ptr<typename _ros_type::Response> service_response_ = future.get();    
+
+      vtkSmartPointer<_slicer_type_out> response = vtkNew<_slicer_type_out>();
+      // vtkROS2ToSlicer(*service_response_, response);
+      std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: " << std::endl; 
+      //           << responseTable->GetValueByName(0, "message") << std::endl;
+
+      // this->lastResponse = response;
+      // this->lastResponseTable = responseTable;
+    }
+
+    size_t SendAsyncRequest(_slicer_type_in * message)
     {
-      std::cout << "Requested message" << message << std::endl;
-      float x = 2;
-      float y = 2;
-      float theta = 0.15; 
-      std::string name = "TestSlicerServiceClient";
 
       auto request = std::make_shared<typename _ros_type::Request>();
-      request->x = x;
-      request->y = y;
-      request->theta = theta;
-      request->name = name;
+      vtkSlicerToROS2(message, *request, this->mROSNode);
+      std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
+      this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::service_callback, this, std::placeholders::_1));
 
-      auto result = this->mServiceClient->async_send_request(request);
+      // std::cout << "Requested message" << message << std::endl;
+      // float x = 2;
+      // float y = 2;
+      // float theta = 0.15; 
+      // std::string name = "TestSlicerServiceClient";
+
+      // auto request = std::make_shared<typename _ros_type::Request>();
+      // request->x = x;
+      // request->y = y;
+      // request->theta = theta;
+      // request->name = name;
+
+      // auto result = this->mServiceClient->async_send_request(request);
       // Handle response in a callback or wait for the response
 
       // Write a simple python server and trigger it (switch bool response and increment the message response)
