@@ -176,30 +176,28 @@ public:
   vtkMRMLROS2ServiceClientVTKInternals(vtkMRMLROS2ServiceClientNode * mrmlNode):
     BaseType(mrmlNode)
   {
-    mLastMessageSlicer = vtkNew<_slicer_type_in>();
+    mLastMessageSlicer = vtkNew<_slicer_type_out>();
   }
 
-  vtkSmartPointer<_slicer_type_in> mLastMessageSlicer;
+  vtkSmartPointer<_slicer_type_out> mLastMessageSlicer;
 
-  // size_t Publish(_slicer_type * message)
-  // {
-  //   const auto nbSubscriber = this->mServiceClient->get_subscription_count();
-  //   if (nbSubscriber != 0) {
-  //     _ros_type rosMessage;
-  //     vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
-  //     this->mServiceClient->publish(rosMessage);
-  //   }
-  //   return nbSubscriber;
-  // }
+    _slicer_type_out * GetLastResponse()
+    {
+      // todo maybe add some check that we actually received a message?
+      return mLastMessageSlicer.GetPointer(); 
+    }
 
-    void service_callback(typename rclcpp::Client<_ros_type>::SharedFuture future) {
+    void ServiceCallback(typename rclcpp::Client<_ros_type>::SharedFuture future) {
 
       this->isRequestInProgress = false;
       std::shared_ptr<typename _ros_type::Response> service_response_ = future.get();    
 
-      vtkSmartPointer<_slicer_type_out> response = vtkNew<_slicer_type_out>();
-      // vtkROS2ToSlicer(*service_response_, response);
-      std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: " << std::endl; 
+      // vtkSmartPointer<_slicer_type_out> response = vtkNew<_slicer_type_out>();
+      vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
+      std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: "<< std::endl;
+
+      // mLastMessageSlicer = response;
+
       //           << responseTable->GetValueByName(0, "message") << std::endl;
 
       // this->lastResponse = response;
@@ -212,7 +210,7 @@ public:
       auto request = std::make_shared<typename _ros_type::Request>();
       vtkSlicerToROS2(message, *request, this->mROSNode);
       std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
-      this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::service_callback, this, std::placeholders::_1));
+      this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::ServiceCallback, this, std::placeholders::_1));
 
       // std::cout << "Requested message" << message << std::endl;
       // float x = 2;

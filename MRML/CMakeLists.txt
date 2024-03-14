@@ -52,6 +52,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2ServiceClientNode.cxx
   vtkMRMLROS2ServiceClientDefaultNodes.h
   vtkMRMLROS2ServiceClientDefaultNodes.cxx
+  vtkCustomTypes.h
+  vtkCustomTypes.cxx
   )
 
 if (USE_CISST_MSGS)

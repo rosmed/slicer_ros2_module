@@ -249,7 +249,7 @@ vtkMRMLROS2ServiceClientNode * vtkMRMLROS2NodeNode::CreateAndAddServiceClientNod
   // Check that this is a serviceClient so we can add it
   vtkMRMLROS2ServiceClientNode * serviceClientNode = vtkMRMLROS2ServiceClientNode::SafeDownCast(node);
   if (serviceClientNode == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not derived from vtkMRMLROS2PublisherNode");
+    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not derived from vtkMRMLROS2ServiceClientNode");
     return nullptr;
   }
   // Add to the scene so the ROS2Node node can find it

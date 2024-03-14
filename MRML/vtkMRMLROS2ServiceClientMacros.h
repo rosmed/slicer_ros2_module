@@ -68,8 +68,10 @@
     static SelfType * New(void);                                        \
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
+    slicer_type_out * CreateBlankRequest(void);				\
     size_t SendAsyncRequest(slicer_type_in* msg);				\
     size_t SendAsyncRequest(vtkSmartPointer<slicer_type_in> message);	      \
+    slicer_type_out * GetLastResponse(void);				\
     									\
   protected:								\
     vtkMRMLROS2ServiceClient##name##Node();                                \
@@ -103,6 +105,11 @@
   {									\
     return "ROS2ServiceClient"#name;					\
   }									\
+  slicer_type_out * vtkMRMLROS2ServiceClient##name##Node::CreateBlankRequest(void) \
+  {									\
+    vtkSmartPointer<slicer_type_out> result = slicer_type_out::New();	\
+    return result.GetPointer();						\
+  }     \
  									\
   size_t vtkMRMLROS2ServiceClient##name##Node::SendAsyncRequest(slicer_type_in * message) \
   {									\
@@ -115,6 +122,13 @@
   size_t  vtkMRMLROS2ServiceClient##name##Node::SendAsyncRequest(vtkSmartPointer<slicer_type_in> message) \
   {									\
     return this->SendAsyncRequest(message.GetPointer());				\
-  }
+  }                                                                \
+                  \
+  slicer_type_out * vtkMRMLROS2ServiceClient##name##Node::GetLastResponse(void) \
+  {									\
+    slicer_type_out * result; \
+    result = (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->GetLastResponse(); \
+    return result;							\
+  }									
 
 #endif // __vtkMRMLROS2ServiceClientMacros_h

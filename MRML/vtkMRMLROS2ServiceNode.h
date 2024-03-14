@@ -53,6 +53,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceNode : public vtkMRML
     void SendAsyncRequest(void);
     void SendBlockingRequest(unsigned int wait_time_ms = 10000);
     bool IsAddedToROS2Node(void) const;
+    // bool testScalarHolder(void);
 
     // // Save and load
     // virtual void ReadXMLAttributes(const char** atts) override;
@@ -86,6 +87,35 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceNode : public vtkMRML
     std::vector<std::string> GetMonitoredServiceNamesCache();
 
 };
+
+// #include <vtkObject.h>
+// #include <vtkSmartPointer.h>
+// #include <vtkVariant.h>
+
+// class vtkBoolString : public vtkObject
+// {
+// public:
+//   vtkTypeMacro(vtkBoolString, vtkObject);
+//   static vtkBoolString* New();
+
+//   vtkGetMacro(Result, bool); 
+//   vtkSetMacro(Result, bool);
+//   vtkSetMacro(Message, std::string);
+//   vtkGetMacro(Message, std::string);
+
+// protected:
+
+//   bool Result;
+//   std::string Message;
+//   vtkBoolString();
+//   ~vtkBoolString() override;
+
+// private:
+
+//   vtkBoolString(const vtkBoolString&) = delete;
+//   void operator=(const vtkBoolString&) = delete;
+// };
+
 
 #endif  // __vtkMRMLROS2ServiceNode_h
 

@@ -30,6 +30,9 @@
 #include "turtlesim/srv/spawn.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
+// custom types
+#include <vtkCustomTypes.h>
+
 void vtkSlicerToROS2(const std::string & input,  std_msgs::msg::String & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(const bool & input,  std_msgs::msg::Bool & result,
@@ -57,6 +60,8 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
 void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkTable * input, std_srvs::srv::SetBool::Request & result,
+			 const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkBoolString * input, std_srvs::srv::SetBool::Request & result,
 			 const std::shared_ptr<rclcpp::Node> & rosNode);
 
 // helper function

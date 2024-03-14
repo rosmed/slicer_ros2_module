@@ -12,11 +12,15 @@
 // #include <vtkMatrix4x4.h>
 // #include <vtkTransformCollection.h>
 #include <vtkTable.h>
+#include <vtkCustomTypes.h>
+// #include "vtkScalarHolder.h"
+
 // #include <vtkTypeUInt8Array.h>
 
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkIntArray, IntArray);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkDoubleArray, DoubleArray);
 VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkTable, vtkTable, SetBool); // Input Output Name
+VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkBoolString, vtkBoolString, SetBoolString); // Input Output Name
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkTable, DoubleTable);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkMatrix4x4, PoseStamped);
 // VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(vtkDoubleArray, WrenchStamped);

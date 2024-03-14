@@ -15,6 +15,7 @@
 #include <vtkStringArray.h>
 #include <vtkIntArray.h>
 #include <vtkROS2ToSlicer.h>
+// #include "vtkBoolString.h"
 
 vtkStandardNewMacro(vtkMRMLROS2ServiceNode);
 
@@ -188,13 +189,32 @@ void vtkMRMLROS2ServiceNode::SendBlockingRequest(unsigned int wait_time_ms) {
   mInternals->isRequestInProgress = false;
 }
 
-
+ 
 // Check if service node has been added to Ros2Node
 bool vtkMRMLROS2ServiceNode::IsAddedToROS2Node(void) const
 {
   return mInternals->mServiceClient != nullptr;
 }
 
+
+// bool vtkMRMLROS2ServiceNode::testScalarHolder(void)
+// {
+//   vtkNew<vtkBoolString> scalarHolder;
+
+//   // Set a scalar value
+//   scalarHolder->SetValue(vtkVariant(42)); // Example with an integer
+//   scalarHolder->SetValue(vtkVariant(3.14)); // Example with a double
+
+//   // Retrieve and use the scalar value
+//   vtkVariant value = scalarHolder->GetValue();
+//   if (value.IsDouble()) {
+//     double dblValue = value.ToDouble();
+//     // Use dblValue as needed
+//   } else if (value.IsInt()) {
+//     int intValue = value.ToInt();
+//     // Use intValue as needed
+//   }
+// }
 
 // bool vtkMRMLROS2ServiceNode::RemoveFromROS2Node(const char *nodeId)
 // {
@@ -319,3 +339,8 @@ bool vtkMRMLROS2ServiceNode::IsAddedToROS2Node(void) const
 //   }
 //   return true;
 // }
+
+// vtkStandardNewMacro(vtkBoolString);
+
+// vtkBoolString::vtkBoolString() = default;
+// vtkBoolString::~vtkBoolString() = default;

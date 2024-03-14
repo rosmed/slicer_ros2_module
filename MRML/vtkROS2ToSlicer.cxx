@@ -202,3 +202,9 @@ void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPoi
     result->SetValue(0, 1, vtkVariant(input.success));
 
 }
+
+void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result)
+{
+  result->SetResult(input.success);
+  result->SetMessage(input.message);
+}

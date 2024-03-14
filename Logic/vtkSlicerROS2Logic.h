@@ -43,6 +43,9 @@ class vtkMRMLROS2ServiceClientDefaultNode;
 #include <vtkSmartPointer.h>
 #include <vtkSlicerROS2ModuleLogicExport.h>
 
+// #include <vtkMRMLROS2ServiceNode.h>
+#include <vtkCustomTypes.h>
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   public vtkSlicerModuleLogic
@@ -51,6 +54,22 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   static vtkSlicerROS2Logic *New();
   vtkTypeMacro(vtkSlicerROS2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  inline vtkBoolString * GetBoolString(void) const { 
+    vtkBoolString * bs = vtkBoolString::New();
+    bs->SetResult(true);
+    bs->SetMessage("test");
+    // convert to smart pointer
+    return bs;
+   }
+
+   inline vtkIntString * GetIntString(void) const { 
+    vtkIntString * is = vtkIntString::New();
+    is->SetResult(2);
+    is->SetMessage("test");
+    // convert to smart pointer
+    return is;
+   }
 
  protected:
   vtkSlicerROS2Logic();
@@ -62,6 +81,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
+  
 
  public:
   /*! Spin all the ROS nodes attached to the module's core logic.

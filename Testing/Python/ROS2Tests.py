@@ -612,3 +612,4 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
 # ros2 = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
 # pub = ros2.CreateAndAddPublisherNode('vtkMRMLROS2PublisherIntTableNode','testpub2')
+# srv = ros2.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSetBoolStringNode','set_bool')

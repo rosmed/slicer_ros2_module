@@ -22,6 +22,9 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
+// custom types
+#include <vtkCustomTypes.h>
+
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Int64 & input, int & result);
@@ -36,5 +39,6 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPoin
 void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkTable> result);
+void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result);
 
 #endif

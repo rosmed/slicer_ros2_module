@@ -240,6 +240,11 @@ void vtkSlicerToROS2(vtkTable * input, std_srvs::srv::SetBool::Request & result,
     // table.SetValue(0, 0, 0) 
 }
 
+void vtkSlicerToROS2(vtkBoolString * input, std_srvs::srv::SetBool::Request & result, const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+    result.data = input->GetResult();
+}
+
 
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
