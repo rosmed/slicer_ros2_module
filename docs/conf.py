@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Slicer ROS2'
-copyright = '2022, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
+copyright = '2022-2024, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags

@@ -10,19 +10,29 @@ Pre-requisites
 Before you can start compiling the SlicerROS2 module, you will need:
 
 * Some knowledge of Linux, CMake and ROS 2.
+  
 * Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.  This module has
   been developed and tested using Ubuntu 20.04 with ROS Galactic.  It
   might also work on Ubuntu 22.04 with ROS Humble.
+  
 * Slicer 3D built from source is required to build an extension.
-  Before you start compiling Slicer, make sure we use the
-  system/native OpenSSL libraries otherwise you'll get some errors
-  when compiling the Slicer ROS 2 module.  See `Slicer build
-  instructions
-  <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
 
-  After you ran CMake for the first time, in the Slicer build directory, set
-  ``Slicer_USE_SYSTEM_OpenSLL`` to ``ON`` using ``cmake
-  . -DSlicer_USE_SYSTEM_OpenSSL=ON`` or ``ccmake``.
+  * Ubuntu 20.04 only.  Instructions from the Slicer site recommend to
+    install a newer version of Qt on Ubuntu 20.04.  This makes the
+    builds with ROS2 quite difficult so instead, we recommend to use
+    Slicer versions up to 5.2.2 and use the Qt libraries installed by
+    default along Ubuntu.  After you cloned the Slicer sources, make
+    sure you checkout 5.2.2 using ``git checkout v5.2.2``.
+    
+  * Before you start compiling Slicer, make sure we use the
+    system/native OpenSSL libraries otherwise you'll get some errors
+    when compiling the Slicer ROS 2 module.  You will need to do the
+    following after you ran CMake for the first time.  In the Slicer
+    build directory, set ``Slicer_USE_SYSTEM_OpenSLL`` to ``ON`` using
+    ``cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON -DCMAKE_BUILD_TYPE=Release`` or ``ccmake``.
+
+  See `Slicer build instructions
+<https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
 
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
