@@ -31,8 +31,7 @@ Before you can start compiling the SlicerROS2 module, you will need:
     build directory, set ``Slicer_USE_SYSTEM_OpenSLL`` to ``ON`` using
     ``cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON -DCMAKE_BUILD_TYPE=Release`` or ``ccmake``.
 
-  See `Slicer build instructions
-<https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
+  See `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
 
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
