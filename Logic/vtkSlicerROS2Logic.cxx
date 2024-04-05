@@ -138,7 +138,6 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
   // new changes
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolStringNode>::New());
 }
 

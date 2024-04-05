@@ -59,17 +59,60 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
     vtkBoolString * bs = vtkBoolString::New();
     bs->SetResult(true);
     bs->SetMessage("test");
-    // convert to smart pointer
     return bs;
    }
 
-   inline vtkIntString * GetIntString(void) const { 
-    vtkIntString * is = vtkIntString::New();
-    is->SetResult(2);
-    is->SetMessage("test");
-    // convert to smart pointer
-    return is;
-   }
+  inline vtkBuiltinInterfacesTime * GetBuiltinInterfacesTime(void) const { 
+    vtkBuiltinInterfacesTime * bit = vtkBuiltinInterfacesTime::New();
+    bit->SetSec(1);
+    bit->SetNanosec(2);
+    return bit;
+  }
+
+  inline vtkStdMsgsHeader * GetStdMsgsHeader(void) const { 
+    vtkStdMsgsHeader * smh = vtkStdMsgsHeader::New();
+    smh->SetFrame_id("test");
+    
+    vtkBuiltinInterfacesTime * bit = vtkBuiltinInterfacesTime::New();
+    bit->SetSec(1);
+    bit->SetNanosec(2);
+
+    smh->SetStamp(bit);
+
+    return smh;
+  }
+
+  inline vtkGeometryMsgsPoseStamped * GetGeometryMsgsPoseStamped(void) const { 
+    vtkGeometryMsgsPoseStamped * gmps = vtkGeometryMsgsPoseStamped::New();
+    vtkStdMsgsHeader * smh = vtkStdMsgsHeader::New();
+    smh->SetFrame_id("test");
+    
+    vtkBuiltinInterfacesTime * bit = vtkBuiltinInterfacesTime::New();
+    bit->SetSec(1);
+    bit->SetNanosec(2);
+
+    smh->SetStamp(bit);
+
+    gmps->SetHeader(smh);
+
+    vtkGeometryMsgsPose * gmp = vtkGeometryMsgsPose::New();
+    vtkGeometryMsgsPoint * gmpoint = vtkGeometryMsgsPoint::New();
+    gmpoint->SetX(1.0);
+    gmpoint->SetY(2.0);
+    gmpoint->SetZ(3.0);
+    gmp->SetPosition(gmpoint);
+
+    vtkGeometryMsgsQuaternion * gmquat = vtkGeometryMsgsQuaternion::New();
+    gmquat->SetX(1.0);
+    gmquat->SetY(2.0);
+    gmquat->SetZ(3.0);
+    gmquat->SetW(4.0);
+    gmp->SetOrientation(gmquat);
+
+    gmps->SetPose(gmp);
+
+    return gmps;
+  }
 
  protected:
   vtkSlicerROS2Logic();

@@ -185,26 +185,27 @@ void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPoi
 
 }
 
-void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkTable> result)
-{
+// void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkTable> result)
+// {
 
 
-    vtkSmartPointer<vtkStringArray> messageArray = vtkSmartPointer<vtkStringArray>::New();
-    messageArray->SetName("message");
-    result->AddColumn(messageArray);
+//     vtkSmartPointer<vtkStringArray> messageArray = vtkSmartPointer<vtkStringArray>::New();
+//     messageArray->SetName("message");
+//     result->AddColumn(messageArray);
 
-    vtkSmartPointer<vtkIntArray> successArray = vtkSmartPointer<vtkIntArray>::New();
-    successArray->SetName("success");
-    result->AddColumn(successArray);
+//     vtkSmartPointer<vtkIntArray> successArray = vtkSmartPointer<vtkIntArray>::New();
+//     successArray->SetName("success");
+//     result->AddColumn(successArray);
 
-    result->SetNumberOfRows(1);
-    result->SetValue(0, 0, vtkVariant(input.message));
-    result->SetValue(0, 1, vtkVariant(input.success));
+//     result->SetNumberOfRows(1);
+//     result->SetValue(0, 0, vtkVariant(input.message));
+//     result->SetValue(0, 1, vtkVariant(input.success));
 
-}
+// }
 
 void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result)
 {
   result->SetResult(input.success);
   result->SetMessage(input.message);
 }
+

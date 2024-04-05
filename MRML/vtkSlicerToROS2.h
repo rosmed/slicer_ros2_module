@@ -59,10 +59,10 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
-void vtkSlicerToROS2(vtkTable * input, std_srvs::srv::SetBool::Request & result,
+void vtkSlicerToROS2(vtkBool * input, std_srvs::srv::SetBool::Request & result,
 			 const std::shared_ptr<rclcpp::Node> & rosNode);
-void vtkSlicerToROS2(vtkBoolString * input, std_srvs::srv::SetBool::Request & result,
-			 const std::shared_ptr<rclcpp::Node> & rosNode);
+// void vtkSlicerToROS2(vtkInt * input, std_srvs::srv::SetBool::Request & result,
+// 			 const std::shared_ptr<rclcpp::Node> & rosNode);
 
 // helper function
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4]);

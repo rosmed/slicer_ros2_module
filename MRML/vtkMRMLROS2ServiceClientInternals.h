@@ -119,53 +119,6 @@ protected:
 };
 
 
-
-template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type>
-class vtkMRMLROS2ServiceClientNativeInternals:
-  public vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type_in, _slicer_type_out, _ros_type>
-{
-public:
-  typedef vtkMRMLROS2ServiceClientTemplatedInternals<_slicer_type_in, _slicer_type_out, _ros_type> BaseType;
-
-  vtkMRMLROS2ServiceClientNativeInternals(vtkMRMLROS2ServiceClientNode * mrmlNode):
-    BaseType(mrmlNode)
-  {}
-
-  _slicer_type_in mLastMessageSlicer;
-
-  // size_t Publish(const _slicer_type & message)
-  // {
-  //   const auto nbSubscriber = this->mServiceClient->get_subscription_count();
-  //   if (nbSubscriber != 0) {
-  //     _ros_type rosMessage;
-  //     vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
-  //     this->mServiceClient->publish(rosMessage);
-  //   }
-  //   return nbSubscriber;
-  // }
-
-  size_t SendAsyncRequest() // TODO: Implement this for native types
-  {
-    float x = 2;
-    float y = 2;
-    float theta = 0.15; 
-    std::string name = "Test Name";
-
-    auto request = std::make_shared<_ros_type::Request>();
-    request->x = x;
-    request->y = y;
-    request->theta = theta;
-    request->name = name;
-
-    auto result = this->mServiceClient->async_send_request(request);
-    // Handle response in a callback or wait for the response
-    return 1;
-  }
-
-};
-
-
-
 template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type>
 class vtkMRMLROS2ServiceClientVTKInternals:
   public vtkMRMLROS2ServiceClientTemplatedInternals< _slicer_type_in, _slicer_type_out, _ros_type>
@@ -180,6 +133,18 @@ public:
   }
 
   vtkSmartPointer<_slicer_type_out> mLastMessageSlicer;
+  bool lastResponseSuccess = false;
+
+    bool PreRequestCheck(void) const
+    {
+      return (this->mServiceClient != nullptr);
+    }
+
+    bool GetLastResponseStatus()
+    {
+      // if no request is pending and the last response was successful
+      return !this->isRequestInProgress && this->lastResponseSuccess;
+    }
 
     _slicer_type_out * GetLastResponse()
     {
@@ -189,12 +154,14 @@ public:
 
     void ServiceCallback(typename rclcpp::Client<_ros_type>::SharedFuture future) {
 
-      this->isRequestInProgress = false;
+      
       std::shared_ptr<typename _ros_type::Response> service_response_ = future.get();    
-
+      this->isRequestInProgress = false;
       // vtkSmartPointer<_slicer_type_out> response = vtkNew<_slicer_type_out>();
       vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
       std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: "<< std::endl;
+
+      this->lastResponseSuccess = true; // TODO: implement error handling
 
       // mLastMessageSlicer = response;
 
@@ -210,6 +177,7 @@ public:
       auto request = std::make_shared<typename _ros_type::Request>();
       vtkSlicerToROS2(message, *request, this->mROSNode);
       std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
+      this->isRequestInProgress = true;
       this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::ServiceCallback, this, std::placeholders::_1));
 
       // std::cout << "Requested message" << message << std::endl;
