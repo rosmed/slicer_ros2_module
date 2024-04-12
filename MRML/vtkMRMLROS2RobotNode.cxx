@@ -5,6 +5,7 @@
 #include <vtkTransform.h>
 #include <vtkPointSet.h>
 #include <vtkSTLReader.h>
+#include <vtkTransformFilter.h>
 
 #include <vtkMRMLScene.h>
 #include <vtkMRMLTransformNode.h>
@@ -199,6 +200,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
       mInternals->mLinkOrigins[index] = origin;
       // Get stl file name and add it to a list of vectors for python parsing later
       std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry); // How do I put this in the internals??
+      mNthRobot.mRobotScale = {mesh->scale.x, mesh->scale.y, mesh->scale.z};
       if (mesh != nullptr) {
         // See if the file name uses a package url
         std::string filename = mesh->filename;
@@ -276,8 +278,17 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     reader->SetFileName(mNthRobot.mLinkModelFiles[i].c_str());
     reader->Update();
 
+    // Apply the scaling factor
+    vtkSmartPointer<vtkTransform> scaleRobotTransform = vtkSmartPointer<vtkTransform>::New();
+    scaleRobotTransform->Scale(mNthRobot.mRobotScale[0], mNthRobot.mRobotScale[1], mNthRobot.mRobotScale[2]);
+    vtkSmartPointer<vtkTransformFilter> transformFilter = vtkSmartPointer<vtkTransformFilter>::New();
+    transformFilter->SetInputConnection(reader->GetOutputPort());
+    transformFilter->SetTransform(scaleRobotTransform);
+    transformFilter->Update();
+
     vtkSmartPointer<vtkPointSet> meshFromFile;
-    meshFromFile = reader->GetOutput();
+    // meshFromFile = reader->GetOutput();
+    meshFromFile = transformFilter->GetOutput();
     vtkSmartPointer<vtkPointSet> meshToSetInNode;
 
     vtkSmartPointer<vtkMRMLModelNode> modelNode = vtkMRMLModelNode::New();
