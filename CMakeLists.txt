@@ -107,6 +107,8 @@ set(MODULE_RESOURCES
   Resources/qSlicer${MODULE_NAME}Module.qrc
   )
 
+set(CMAKE_INSTALL_PREFIX ${Slicer_DIR} CACHE PATH "Path used to install loadable modules" FORCE)
+
 #-----------------------------------------------------------------------------
 slicerMacroBuildLoadableModule(
   NAME ${MODULE_NAME}
