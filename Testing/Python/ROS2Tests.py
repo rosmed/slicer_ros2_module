@@ -1,6 +1,6 @@
 import logging
 import os
-
+import pathlib
 import vtk
 
 import slicer
@@ -32,7 +32,7 @@ class ROS2Tests(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = "ROS2Tests"
-        self.parent.categories = ["IGT"] 
+        self.parent.categories = ["IGT"]
         self.parent.dependencies = ['ROS2']
         self.parent.contributors = ["Aravind Kumar (JHU)"]
         self.parent.helpText = """
@@ -121,8 +121,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
 
-    ENVIRONMENT_CORRECTION = "export PYTHONPATH=/opt/ros/galactic/lib/python3.8/site-packages; export PYTHONHOME=; "
-    ROS2_EXEC = ENVIRONMENT_CORRECTION + "python3.8 /opt/ros/galactic/bin/ros2 "
+    # determine ROS distribution using environment variable
+    ros_distro = os.environ['ROS_DISTRO']
+    ros_path = "/opt/ros/" + ros_distro
+    ros2_env = ". " + ros_path + "/setup.sh; export PYTHONHOME=; "
+    ros2_exec = ros2_env + "/usr/bin/python3 /opt/ros/" + ros_distro + "/bin/ros2 "
 
     def __init__(self):
         """
@@ -139,9 +142,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     @classmethod
     def run_ros2_cli_command_blocking(self, command):
         ros2_process = subprocess.Popen(
-            ROS2TestsLogic.ROS2_EXEC + command,
+            ROS2TestsLogic.ros2_exec + command,
             shell=True,
             preexec_fn=os.setsid,
+            stdout=subprocess.DEVNULL, # Supress stdout to prevent cluttering the 3D Slicer console
+            stderr=subprocess.DEVNULL, # Supress stderr to prevent cluttering the 3D Slicer console
         )
         ros2_process.wait()
         return ros2_process
@@ -149,7 +154,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     @classmethod
     def run_ros2_cli_command_non_blocking(self, command):
         ros2_process = subprocess.Popen(
-            ROS2TestsLogic.ROS2_EXEC + command,
+            ROS2TestsLogic.ros2_exec + command,
             shell=True,
             preexec_fn=os.setsid,
             stdout=subprocess.DEVNULL, # Supress stdout to prevent cluttering the 3D Slicer console
@@ -166,7 +171,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         # Check if the turtlesim node is running by checking the rosnode list
         nodes = (
             subprocess.check_output(
-                ROS2TestsLogic.ROS2_EXEC + "node list",
+                ROS2TestsLogic.ros2_exec + "node list",
                 shell=True,
             )
             .decode("utf-8")
@@ -200,7 +205,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.testObs = TestObserverSubscriber()
             ROS2TestsLogic.spin_some()
 
-        def create_pub_sub(self, type): 
+        def create_pub_sub(self, type):
             self.topic = "slicer_test_" + type.lower()
             self.pubType = "vtkMRMLROS2Publisher" + type + "Node"
             self.subType = "vtkMRMLROS2Subscriber" + type + "Node"
@@ -526,7 +531,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
             self.assertTrue(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
-            
+
 
         def tearDown(self):
             # pass
