@@ -1,4 +1,3 @@
-
 #include <vtkMRMLROS2RobotNode.h>
 
 #include <vtkEventBroker.h>
@@ -49,9 +48,9 @@ vtkMRMLROS2RobotNode::~vtkMRMLROS2RobotNode()
 
 
 bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
+                                         const std::string & robotName,
                                          const std::string & parameterNodeName,
-                                         const std::string & parameterName,
-                                         const std::string & robotName)
+                                         const std::string & parameterName)
 {
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
@@ -99,7 +98,7 @@ void vtkMRMLROS2RobotNode::ObserveParameterNode(vtkMRMLROS2ParameterNode * node)
     return;
   }
   node->AddObserver(vtkMRMLROS2ParameterNode::ParameterModifiedEvent, this, &vtkMRMLROS2RobotNode::ObserveParameterNodeCallback);
-  this->SetAndObserveNodeReferenceID("ObservedParameter", node->GetID());
+  this->SetAndObserveNodeReferenceID("parameter", node->GetID());
 }
 
 
@@ -136,7 +135,7 @@ bool vtkMRMLROS2RobotNode::ParseRobotDescription(void)
 {
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   if (!mInternals->mURDFModel.initString(mNthRobot.mRobotDescription)) {
-      return false;
+    return false;
   }
   return true;
 }
@@ -154,10 +153,9 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
   mNthRobot.mLinkParentNames.push_back(root_name);
   mInternals->mVisualVector.push_back(root->visual);
   mInternals->mMaterialsMap = mInternals->mURDFModel.materials_;
-  if (root->visual != nullptr){
+  if (root->visual != nullptr) {
     mInternals->mLinkMaterials.push_back(root->visual->material_name);
-  }
-  else{
+  } else {
     mInternals->mLinkMaterials.push_back("");
   }
   // Go through the rest of the robot and save to list
@@ -170,10 +168,9 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
       mNthRobot.mLinkNames.push_back(i->name);
       mNthRobot.mLinkParentNames.push_back(mInternals->mParentLinkPointer->name);
       mInternals->mVisualVector.push_back(i->visual); // need to get the origin from the visual
-      if (i->visual != nullptr){
+      if (i->visual != nullptr) {
         mInternals->mLinkMaterials.push_back(i->visual->material_name);
-      }
-      else{
+      } else {
         mInternals->mLinkMaterials.push_back("");
       }
     }
@@ -197,9 +194,8 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
     auto i = mInternals->mVisualVector[index];
     if (i == nullptr) {
       vtkWarningMacro(<< "InitializeOffsetListAndModelFilesFromURDF: no visual vector available for link " << index);
-    }
-    else {
-    //   urdf::Pose origin;
+    } else {
+      //   urdf::Pose origin;
       auto origin = i->origin;
       mInternals->mLinkOrigins[index] = origin;
       // Get stl file name and add it to a list of vectors for python parsing later
@@ -215,7 +211,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
           const std::string relativeFile = match[2];
           // Anton: add try/catch here in case the package is not found!
           const std::string packageShareDirectory
-             = ament_index_cpp::get_package_share_directory(package);
+            = ament_index_cpp::get_package_share_directory(package);
           filename = packageShareDirectory + "/" + relativeFile;
         }
         mNthRobot.mLinkModelFiles[index] = filename;
@@ -304,18 +300,17 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
 
     // Create display node
     if (modelNode->GetDisplayNode() == NULL) {
-        vtkNew< vtkMRMLModelDisplayNode > displayNode;
-        this->GetScene()->AddNode( displayNode.GetPointer() );
-        displayNode->SetName((mNthRobot.mLinkNames[i] + "_model_display_node").c_str());
-        modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
-        if (!mInternals->mMaterialsMap.empty()){
-          if (mInternals->mLinkMaterials[i] == ""){
-            displayNode->SetColor(0.5, 0.5, 0.5);
-          }
-          else{
-            displayNode->SetColor((mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.r, (mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.g, (mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.b);
-          }
+      vtkNew< vtkMRMLModelDisplayNode > displayNode;
+      this->GetScene()->AddNode( displayNode.GetPointer() );
+      displayNode->SetName((mNthRobot.mLinkNames[i] + "_model_display_node").c_str());
+      modelNode->SetAndObserveDisplayNodeID( displayNode->GetID() );
+      if (!mInternals->mMaterialsMap.empty()) {
+        if (mInternals->mLinkMaterials[i] == "") {
+          displayNode->SetColor(0.5, 0.5, 0.5);
+        } else {
+          displayNode->SetColor((mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.r, (mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.g, (mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]])->color.b);
         }
+      }
     }
     modelNode->ApplyTransform(transform); // instead of set and observe
   }
@@ -405,7 +400,7 @@ void vtkMRMLROS2RobotNode::UpdateScene(vtkMRMLScene *scene)
     // assigned to the default ROS node
     auto defaultNode = scene->GetFirstNodeByName("ros2:node:slicer");
     auto nodeId = defaultNode->GetID();
-    if(!defaultNode){
+    if(!defaultNode) {
       vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for broadcaster \"" << GetName() << "\"");
       return;
     }

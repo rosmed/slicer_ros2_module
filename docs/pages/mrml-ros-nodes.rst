@@ -142,7 +142,7 @@ To retrieve the default ROS node:
 
          vtkMRMLROS2NodeNode * rosNode = this->GetDefaultROS2Node();
 
-      If you're working on a new module that relies on the slicerROS2
+      If you're working on a new module that relies on the SlicerROS2
       module, you can use the ``GetModuleLogic`` method and then the
       ``GetDefaultROS2Node``.
 
@@ -180,12 +180,8 @@ To retrieve the default ROS node:
              // now we can use the node
            }
          }
-         
-To remove the node, use the following method: 
 
-.. code-block:: python
-
-   rosNode.Destroy()
+We don't recommend that you delete the default node. If you create another node and need to delete it, use the method ``vtkMRMLROS2NodeNode::Destroy``.
 
 ======
 Topics
@@ -256,7 +252,7 @@ To create a new publisher, one should use the MRML ROS2 Node method
 two parameters:
 
 * the class (type) of publisher to be used.  We provide some
-  publishers for the most commonn data types (from Slicer to ROS
+  publishers for the most common data types (from Slicer to ROS
   messages).  The full list can be found in the Slicer ROS logic class
   (``Logic/vtkSlicerROS2Logic.cxx``) in the method ``RegisterNodes``.
 * the topic name (``std::string``).
@@ -289,11 +285,10 @@ Publishers are triggered by calling the ``Publish`` method.
          // run ros2 topic echo /my_string in a terminal to see the output
          pubString->Publish("my first string");
 
-To remove the publisher, use the following method: 
+To remove the publisher node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeletePublisherNode``. This method takes
+one parameter:
 
-.. code-block:: python
-
-   rosNode.RemoveAndDeletePublisherNode('/my_string') # accepts the topic name
+* the topic name (``std::string``)
 
 
 Subscribers
@@ -335,14 +330,11 @@ can be retrieved using ``GetLastMessage``.
          auto pubString = rosNode->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/my_string");
          // run ros2 topic echo /my_string in a terminal to see the output
          pubString->Publish("my first string");
-         
 
-To remove the subscriber, use the following method: 
+To remove the subscriber node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeleteSubscriberNode``. This method takes
+one parameter:
 
-.. code-block:: python
-
-   rosNode.RemoveAndDeleteSubscriberNode('/my_string') # accepts the topic name
-
+* the topic name (``std::string``)
 
 ==========
 Parameters
@@ -352,7 +344,7 @@ This version of SlicerROS2 only supports parameter clients,
 i.e. retrieving parameters held by other ROS nodes (i.e. ROS processes
 running along Slicer).
 
-The parameter MRML ROS node is sligthly different from the other MRML
+The parameter MRML ROS node is slightly different from the other MRML
 ROS nodes implemented in SlicerROS2.  A ROS parameter is fully
 identified by the ROS node *n* that hold the parameter and the
 parameter name *p* so we could have an implementation that would
@@ -431,7 +423,7 @@ human readable description of the parameter whatever the type is
          # setup to get parameter robot_description from node state_publisher
          parameterNode = rosNode.CreateAndAddParameterNode('state_publisher')
          parameterNode.AddParameter('robot_description')
-         # check if parameter is set, C++ example is more detailled
+         # check if parameter is set, C++ example is more detailed
          if parameterNode.IsParameterSet('robot_description'):
            # then check the type
            if parameterNode.GetParameterType('robot_description') == 'string':
@@ -465,12 +457,12 @@ human readable description of the parameter whatever the type is
            return;
          }
          std::string robotDescription = parameterNode->GetParameterAsString("robot_description");
-         
-To remove the parameter, use the following method: 
 
-.. code-block:: python
+To remove the broadcaster node, use the method
+``vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNode``. This method
+takes one parameter:
 
-   rosNode.RemoveAndDeleteParameterNode('state_publisher') # accepts the monitored node name
+* the monitored node name (``std::string``) i.e. 'robot_state_publisher'
 
 ===
 Tf2
@@ -496,13 +488,13 @@ To create a new Tf2 broadcaster, one should use the MRML ROS2 Node
 method ``vtkMRMLROS2NodeNode::CreateAndAddTf2BroadcasterNode``.  This
 method takes two parameters:
 
-* the parent ID (``std::string``).
-* the child ID (``std::string``).
+* the parent ID (``std::string``)
+* the child ID (``std::string``)
 
 Broadcasters are triggered by calling the ``Broadcast`` method.  It is
 also possible to set the Tf2 broadcast as an observer for an existing
 ``vtkMRMLTransformNode`` using the method ``ObserveTransformNode``.
-The broadcast will then automically occur when the observed transform
+The broadcast will then automatically occur when the observed transform
 node is modified.
 
 .. tabs::
@@ -528,13 +520,13 @@ node is modified.
          vtkSmartPointer<vtkMatrix4x4> broadcastedMat = vtkMatrix4x4::New();
          broadcastedMat->SetElement(0, 3, 66.0);
          broadcaster->Broadcast(broadcastedMat);
-         
-To remove the broadcaster node, use the following method: 
 
-.. code-block:: python
+To remove the broadcaster node, use the method
+``vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode``. This
+method takes two parameters:
 
-   rosNode.RemoveAndDeleteTf2BroadcasterNode('Parent', 'Child')  
-
+* the parent ID (``std::string``)
+* the child ID (``std::string``)
 
 Lookups
 =======
@@ -543,8 +535,8 @@ To create a new Tf2 lookup, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode``.  This method takes
 two parameters:
 
-* the parent ID (``std::string``).
-* the child ID (``std::string``).
+* the parent ID (``std::string``)
+* the child ID (``std::string``)
 
 The class ``vtkMRMLROS2Tf2LookupNode`` is derived from
 ``vtkMRMLTransformNode`` so it can be used as any other transformation
@@ -577,19 +569,24 @@ be retrieved using ``GetMatrixTransformToParent``.
          # Broadcast a 4x4 matrix
          vtkSmartPointer<vtkMatrix4x4> lookupMat = vtkMatrix4x4::New();
          lookupMat->GetMatrixTransformToParent(lookupMat);
-         
-To remove the lookup node, use the following method: 
 
-.. code-block:: python
+To remove the lookup node, the method
+``vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode``. This method
+takes two parameters:
 
-   rosNode.RemoveAndDeleteTf2LookupNode('Parent', 'Child')
-   
+* the parent ID (``std::string``)
+* the child ID (``std::string``)
 
 ======
 Robots
 ======
 
-To create a new Robot node, one can either use the UI (instructions in Section 3.3) or create the robot programmatically with the following commands. The convenience function "AddRobot" was added to the module logic that accepts three arguments (``std::string parameterNodeName``, ``std::string parameterName``, ``std::string robotName``).
+To create a new Robot node, one can either use the UI (instructions in
+Section 3.3) or create the robot programmatically with the following
+commands. The convenience function
+``vtkMRMLROS2NodeNode::CreateAndAddRobotNode`` was added to the module
+logic that accepts three arguments (``std::string robotName``,
+``std::string parameterNodeName``, ``std::string parameterName``).
 
 .. tabs::
 
@@ -598,20 +595,28 @@ To create a new Robot node, one can either use the UI (instructions in Section 3
       .. code-block:: python
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
-         rosLogic.AddRobot('PSM1/robot_state_publisher', 'robot_description', 'PSM') # Using the PSM as an example
+         rosNode = rosLogic.GetDefaultROS2Node()
+         rosNode.CreateAndAddRobotNode('PSM','PSM1/robot_state_publisher','robot_description') # Using the PSM as an example
 
    .. tab:: **C++**
 
       .. code-block:: C++
 
-         vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
-         this->GetMRMLScene()->AddNode(robot);
-         robot->AddToROS2Node(rosNode->GetID(), "PSM1/robot_state_publisher", "robot_description", "PSM");
+         auto robot = rosNode.CreateAndAddRobotNode("PSM","PSM1/robot_state_publisher","robot_description");
 
-The robot node creates an observer on the parameter node that contains the robot description. If the parameter node is modified (indicating that the robot description is available), it begins the process of loading the visuals for the robot into the scene. This process involves: parsing the urdf file, creating a list of Tf2 lookups in the scene, creating the models for each link of the robot and applying the correct colour and offset position relative to the base of the robot. Once the visuals have been created, the Tf2 lookups start to check the Tf2 buffer and update the position of the model according to the joint state publisher.
+The robot node creates an observer on the parameter node that contains
+the robot description. If the parameter node is modified (indicating
+that the robot description is available), it begins the process of
+loading the visuals for the robot into the scene. This process
+involves: parsing the URDF file, creating a list of Tf2 lookups in the
+scene, creating the models for each link of the robot and applying the
+correct color and offset position relative to the base of the
+robot. Once the visuals have been created, the Tf2 lookups start to
+check the Tf2 buffer and update the position of the model according to
+the joint state publisher.
 
-To remove the robot, use the "Remove robot" button on the UI or the following method: 
+To remove the robot, use the "Remove robot" button on the UI or the
+method ``vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode``. This method
+takes one parameter:
 
-.. code-block:: python
-    
-   rosLogic.RemoveRobot('robot') # accepts the name of the robot that you want to delete as a string
+* the robot name (``std::string``)

@@ -34,7 +34,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     const char* GetNodeTagName(void) override;
 
     bool AddToROS2Node(const char* nodeId, const std::string& monitoredNodeName);
-    bool RemoveFromROS2Node(const char *nodeId, const std::string &monitoredNodeName);
+    bool RemoveFromROS2Node(const char *nodeId);
 
     bool Spin(void);
 

@@ -10,7 +10,8 @@
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
-
+#include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLModelNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
 
@@ -63,7 +64,7 @@ void vtkMRMLROS2NodeNode::Destroy()
     vtkWarningMacro(<< "Destroy: node does not contain any ROS2 internals. Not destroying ROS2 node.");
     return;
   }
-  mROS2NodeName = "undefined"; // FIXME: this is a hack to prevent half destroyed nodes from being spun
+  mROS2NodeName = "undefined";
   mMRMLNodeName = "ros2:node:undefined";
   this->SetName(mMRMLNodeName.c_str());
   this->Scene->RemoveNode(this);
@@ -194,6 +195,26 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode(const 
 }
 
 
+vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName)
+{
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddRobotNode: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+
+  // Create the robot node
+  vtkSmartPointer<vtkMRMLROS2RobotNode> robotNode = vtkMRMLROS2RobotNode::New();
+
+  // Add it to the scene
+  this->GetScene()->AddNode(robotNode);
+  robotNode->SetRobotName(robotName);
+  mRobotNames.push_back(robotName);
+  robotNode->AddToROS2Node(this->GetID(), robotName, parameterNodeName, parameterName);
+  return robotNode;
+}
+
+
 vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::GetSubscriberNodeByTopic(const std::string & topic)
 {
   size_t subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
@@ -239,6 +260,21 @@ vtkMRMLROS2ParameterNode* vtkMRMLROS2NodeNode::GetParameterNodeByNode(const std:
 }
 
 
+vtkMRMLROS2ParameterNode* vtkMRMLROS2NodeNode::GetParameterNodeByNodeID(const std::string & nodeID)
+{
+  size_t parameterRefs = this->GetNumberOfNodeReferences("parameter");
+  for (size_t j = 0; j < parameterRefs; ++j) {
+    vtkMRMLROS2ParameterNode * node = vtkMRMLROS2ParameterNode::SafeDownCast(this->GetNthNodeReference("parameter", j));
+    if (!node) {
+      vtkWarningMacro(<< "GetParameterNodeByNodeID: node referenced by role 'parameter' is not a parameter.");
+    } else if (nodeID == node->GetID()) {
+      return node;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
+
 vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterNodeByID(const std::string & nodeID)
 {
   size_t broadcasterRefs = this->GetNumberOfNodeReferences("broadcaster");
@@ -252,6 +288,7 @@ vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterNodeByID(c
   }
   return nullptr; // otherwise return a null ptr
 }
+
 
 vtkMRMLROS2Tf2BroadcasterNode * vtkMRMLROS2NodeNode::GetTf2BroadcasterNodeByParentChild(const std::string & parent_id, const std::string & child_id)
 {
@@ -282,6 +319,7 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByID(const std::
   return nullptr; // otherwise return a null ptr
 }
 
+
 vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByParentChild(const std::string & parent_id, const std::string & child_id)
 {
   size_t lookupRefs = this->GetNumberOfNodeReferences("lookup");
@@ -290,6 +328,20 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::GetTf2LookupNodeByParentChild(co
     if (!node) {
       vtkWarningMacro(<< "GetTf2LookupNodeByParentChild: node referenced by role 'lookup' is not a lookup");
     } else if (node->GetParentID() == parent_id && node->GetChildID() == child_id) {
+      return node;
+    }
+  }
+  return nullptr; // otherwise return a null ptr
+}
+
+vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::GetRobotNodeByName(const std::string & robotName)
+{
+  size_t robotRefs = this->GetNumberOfNodeReferences("robot");
+  for (size_t j = 0; j < robotRefs; ++j) {
+    vtkSmartPointer<vtkMRMLROS2RobotNode> node = vtkMRMLROS2RobotNode::SafeDownCast(this->GetNthNodeReference("robot", j));
+    if (!node) {
+      vtkWarningMacro(<< "GetRobotNodeByName: node referenced by role 'robot' is not a robot");
+    } else if (node->GetRobotName() == robotName) {
       return node;
     }
   }
@@ -329,14 +381,29 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNode(const std::string & monit
 {
   vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNode(monitoredNodeName);
   if (!node) {
-    vtkWarningMacro(<< "RemoveParameterNode: node referenced by role 'parameter' for node " << monitoredNodeName << " does not exist");
+    vtkWarningMacro(<< "RemoveParameterNode: node referenced by role 'parameter' does not exist");
     return false;
   }
-  node->RemoveFromROS2Node(this->GetID(), monitoredNodeName);
+  node->RemoveFromROS2Node(this->GetID());
   this->GetScene()->RemoveNode(node);
   node->Delete();
   return true;
 }
+
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNodeByNodeID(const std::string & nodeID)
+{
+  vtkMRMLROS2ParameterNode * node = this->GetParameterNodeByNodeID(nodeID);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveParameterNode: node referenced by role 'parameter' does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID());
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
 
 bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & nodeID)
 {
@@ -351,6 +418,7 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & nodeI
   return true;
 }
 
+
 bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & parent_id, const std::string & child_id)
 {
   vtkMRMLROS2Tf2LookupNode * node = this->GetTf2LookupNodeByParentChild(parent_id, child_id);
@@ -363,6 +431,7 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode(const std::string & paren
   node->Delete();
   return true;
 }
+
 
 bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & nodeID)
 {
@@ -377,6 +446,7 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & 
   return true;
 }
 
+
 bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id)
 {
   vtkMRMLROS2Tf2BroadcasterNode * node = this->GetTf2BroadcasterNodeByParentChild(parent_id, child_id);
@@ -389,6 +459,35 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteTf2BroadcasterNode(const std::string & 
   node->Delete();
   return true;
 }
+
+
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName)
+{
+  vtkMRMLROS2RobotNode * node = this->GetRobotNodeByName(robotName);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveAndDeleteRobotNode: node referenced by role 'robot' for node " << robotName << " does not exist");
+    return false;
+  }
+
+  // Remove the lookups on that robot
+  int numLookups = node->GetNumberOfNodeReferences("lookup");
+  for (int i = 0; i < numLookups; i++) {
+    auto lookupNodeID = node->GetNthNodeReferenceID("lookup", 0); // always grab the first one because the ref id changes
+    auto modelNode = vtkMRMLModelNode::SafeDownCast(node->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
+    this->RemoveAndDeleteTf2LookupNode(lookupNodeID);
+    this->GetScene()->RemoveNode(modelNode);
+    modelNode->Delete();
+  }
+
+  auto parameterNodeID = node->GetNthNodeReferenceID("parameter", 0);
+  this->RemoveAndDeleteParameterNodeByNodeID(parameterNodeID);
+
+  // Remove the robot itself
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
 
 bool vtkMRMLROS2NodeNode::SetTf2Buffer(void)
 {

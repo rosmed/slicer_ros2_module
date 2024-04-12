@@ -42,7 +42,7 @@ if (USE_CISST_MSGS)
   find_package(cisst_msgs REQUIRED)
 endif ()
 
-include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS})
+include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS} ${sensor_msgs_INCLUDE_DIRS})
 
 #-----------------------------------------------------------------------------
 
@@ -96,6 +96,7 @@ set(MODULE_MOC_SRCS
 
 set(MODULE_UI_SRCS
   Resources/UI/qSlicer${MODULE_NAME}ModuleWidget.ui
+  Resources/UI/qSlicer${MODULE_NAME}RobotWidget.ui
   )
 
 set(MODULE_TARGET_LIBRARIES

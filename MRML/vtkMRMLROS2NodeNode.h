@@ -14,6 +14,7 @@ class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2Tf2LookupNode;
+class vtkMRMLROS2RobotNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 {
@@ -33,6 +34,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
   vtkMRMLNode * CreateNodeInstance(void) override;
   const char * GetNodeTagName(void) override;
+
+  std::vector<std::string> mRobotNames;
 
   /*! Calls rclcpp::init if needed and then create the internal ROS
     node. */
@@ -67,21 +70,27 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 
   vtkMRMLROS2Tf2LookupNode * CreateAndAddTf2LookupNode(const std::string & parent_id, const std::string & child_id);
 
+  vtkMRMLROS2RobotNode * CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName);
+
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
   vtkMRMLROS2ParameterNode * GetParameterNodeByNode(const std::string & node);
+  vtkMRMLROS2ParameterNode * GetParameterNodeByNodeID(const std::string & nodeID);
   vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterNodeByID(const std::string & nodeID);
   vtkMRMLROS2Tf2BroadcasterNode * GetTf2BroadcasterNodeByParentChild(const std::string & parent_id, const std::string & child_id);
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByID(const std::string & nodeID);
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByParentChild(const std::string & parent_id, const std::string & child_id);
-  
+  vtkMRMLROS2RobotNode * GetRobotNodeByName(const std::string & robotName);
+
   bool RemoveAndDeleteSubscriberNode(const std::string & topic);
   bool RemoveAndDeletePublisherNode(const std::string & topic);
   bool RemoveAndDeleteParameterNode(const std::string & nodeName);
+  bool RemoveAndDeleteParameterNodeByNodeID(const std::string & nodeID);
   bool RemoveAndDeleteTf2LookupNode(const std::string & nodeID);
   bool RemoveAndDeleteTf2LookupNode(const std::string & parent_id, const std::string & child_id);
   bool RemoveAndDeleteTf2BroadcasterNode(const std::string & nodeID);
   bool RemoveAndDeleteTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id);
+  bool RemoveAndDeleteRobotNode(const std::string & robotName);
 
   void Spin(void);
   inline bool GetSpinning(void) const {

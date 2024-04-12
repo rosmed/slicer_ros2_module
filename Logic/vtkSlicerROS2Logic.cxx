@@ -172,8 +172,6 @@ void vtkSlicerROS2Logic::Spin(void)
   mTimerLog->StartTimer();
   SlicerRenderBlocker renderBlocker;
   for (auto & n : mROS2Nodes) {
-    // check if output of GetROS2NodeName() is equal to "undefined" -> This implies that Create() has not been called yet
-    if (n->GetROS2NodeName() == "undefined") continue; // FIXME: This is a hack to prevent a crash when the ROS2 node is not created yet
     n->Spin();
   }
   mTimerLog->StopTimer();
@@ -187,36 +185,17 @@ vtkMRMLROS2NodeNode * vtkSlicerROS2Logic::GetDefaultROS2Node(void) const
 }
 
 
-void vtkSlicerROS2Logic::AddRobot(const std::string & parameterNodeName, const std::string & parameterName, const std::string & robotName)
+void vtkSlicerROS2Logic::AddRobot(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName)
 {
-  vtkSmartPointer<vtkMRMLROS2RobotNode> robot = vtkMRMLROS2RobotNode::New();
-  this->GetMRMLScene()->AddNode(robot);
-  robot->AddToROS2Node(mDefaultROS2Node->GetID(), parameterNodeName, parameterName, robotName);
+  if (mDefaultROS2Node){
+    mDefaultROS2Node->CreateAndAddRobotNode(robotName, parameterNodeName, parameterName);
+  }
 }
 
 
 void vtkSlicerROS2Logic::RemoveRobot(const std::string & robotName)
 {
-  // Get the robot from the node (first make sure it's the right one)
-  int numRobots = mDefaultROS2Node->GetNumberOfNodeReferences("robot");
-  for (int i = 0; i < numRobots; i++){
-    vtkMRMLROS2RobotNode * robotNode = vtkMRMLROS2RobotNode::SafeDownCast(mDefaultROS2Node->GetNthNodeReference("robot", i));
-    std::string currentRobot = robotNode->GetRobotName();
-    if (currentRobot == robotName){
-      // Remove the lookups on that robot
-      int numLookups = robotNode->GetNumberOfNodeReferences("lookup");
-      for (int i = 0; i < numLookups; i++) {
-        vtkMRMLROS2Tf2LookupNode * lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robotNode->GetNthNodeReference("lookup", 0)); // always grab the first one because the ref id changes
-        vtkMRMLModelNode * modelNode = vtkMRMLModelNode::SafeDownCast(robotNode->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
-        vtkMRMLROS2ParameterNode * parameterNode = vtkMRMLROS2ParameterNode::SafeDownCast(robotNode->GetNthNodeReference("ObservedParameter", 0)); // always grab the first one because the ref id changes
-        this->GetMRMLScene()->RemoveNode(lookupNode);
-        this->GetMRMLScene()->RemoveNode(modelNode);
-        this->GetMRMLScene()->RemoveNode(parameterNode);
-      }
-
-      // Remove the robot itself
-      this->GetMRMLScene()->RemoveNode(robotNode);
-      return;
-    }
+  if (mDefaultROS2Node){
+    mDefaultROS2Node->RemoveAndDeleteRobotNode(robotName);
   }
 }

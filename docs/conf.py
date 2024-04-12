@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Slicer ROS2'
-copyright = '2022, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
+copyright = '2022-2024, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
@@ -31,7 +31,7 @@ release = '0.9'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx_tabs.tabs'
+    'sphinx_tabs.tabs', 'sphinx_rtd_theme'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -48,11 +48,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
+html_logo = '../Resources/Icons/SlicerROS2.png'
 html_title = project + ' ' + release

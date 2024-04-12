@@ -391,8 +391,6 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 "vtkMRMLROS2SubscriberStringNode", "test_string_xkcd"
             )
 
-
-
             # delete publisher which exists
             self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode("test_string_xkcd"), "Publisher which exists not removed")
             ROS2TestsLogic.spin_some()
@@ -531,6 +529,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             
 
         def tearDown(self):
+            # pass
             self.ros2Node.Destroy()
 
 

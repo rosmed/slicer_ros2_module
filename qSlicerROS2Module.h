@@ -33,24 +33,22 @@ qSlicerROS2Module
   Q_INTERFACES(qSlicerLoadableModule);
 
 public:
-
   typedef qSlicerLoadableModule Superclass;
   explicit qSlicerROS2Module(QObject *parent=nullptr);
   ~qSlicerROS2Module() override;
 
   qSlicerGetTitleMacro(QTMODULE_TITLE);
 
-  QString helpText()const override;
-  QString acknowledgementText()const override;
-  QStringList contributors()const override;
+  QString helpText() const override;
+  QString acknowledgementText() const override;
+  QStringList contributors() const override;
 
-  QIcon icon()const override;
+  QIcon icon() const override;
 
-  QStringList categories()const override;
+  QStringList categories() const override;
   QStringList dependencies() const override;
 
 protected:
-
   /// Initialize the module. Register the volumes reader/writer
   void setup() override;
 
@@ -62,7 +60,6 @@ protected:
 
 private:
   Q_DISABLE_COPY(qSlicerROS2Module);
-
 };
 
 #endif
