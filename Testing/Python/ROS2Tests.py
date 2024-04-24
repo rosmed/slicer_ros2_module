@@ -123,9 +123,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     # determine ROS distribution using environment variable
     ros_distro = os.environ['ROS_DISTRO']
-    ros_path = "/opt/ros/" + ros_distro
-    ros2_env = ". " + ros_path + "/setup.sh; export PYTHONHOME=; "
-    ros2_exec = ros2_env + "/usr/bin/python3 /opt/ros/" + ros_distro + "/bin/ros2 "
+    ros_path = '/opt/ros/' + ros_distro
+    ros2_env = 'unset PYTHONHOME ; unset PYTHONPATH ; . ' + ros_path + '/setup.sh ; '
+    ros2_exec = ros2_env + '/usr/bin/python3 /opt/ros/' + ros_distro + '/bin/ros2 '
 
     def __init__(self):
         """
@@ -145,8 +145,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.ros2_exec + command,
             shell=True,
             preexec_fn=os.setsid,
-            stdout=subprocess.DEVNULL, # Supress stdout to prevent cluttering the 3D Slicer console
-            stderr=subprocess.DEVNULL, # Supress stderr to prevent cluttering the 3D Slicer console
+            stdout=subprocess.DEVNULL, # Suppress stdout to prevent cluttering the 3D Slicer console
+            stderr=subprocess.DEVNULL, # Suppress stderr to prevent cluttering the 3D Slicer console
         )
         ros2_process.wait()
         return ros2_process
@@ -168,16 +168,14 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def check_ros2_node_running(self, nodeName):
-        # Check if the turtlesim node is running by checking the rosnode list
-        nodes = (
-            subprocess.check_output(
-                ROS2TestsLogic.ros2_exec + "node list",
-                shell=True,
-            )
-            .decode("utf-8")
-            .split("\n")
+        # Check if a node is running by checking the rosnode list
+        output = subprocess.check_output(
+            ROS2TestsLogic.ros2_exec + 'node list',
+            shell = True,
         )
-        # Assert that the turtlesim node is in the list of running nodes
+        nodes = output.decode("utf-8").split("\n")
+
+        # Assert that the nodeName is in the list of running nodes
         return nodeName in nodes
 
         # It creates a turtlesim node, checks if it's running, and then kills it
