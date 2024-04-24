@@ -68,7 +68,6 @@
     static SelfType * New(void);                                        \
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    size_t Publish(slicer_type* msg);				\
     size_t Publish(vtkSmartPointer<slicer_type> message);	      \
     									\
   protected:								\
@@ -104,17 +103,12 @@
     return "ROS2Publisher"#name;					\
   }									\
  									\
-  size_t vtkMRMLROS2Publisher##name##Node::Publish(slicer_type * message) \
-  {									\
-    mNumberOfCalls++;							\
-    const auto justSent = (reinterpret_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message); \
-    mNumberOfMessagesSent += justSent;					\
-    return justSent;							\
-  }									\
-									\
   size_t  vtkMRMLROS2Publisher##name##Node::Publish(vtkSmartPointer<slicer_type> message) \
   {									\
-    return this->Publish(message.GetPointer());				\
+    mNumberOfCalls++;							\
+    const auto justSent = (reinterpret_cast<vtkMRMLROS2Publisher##name##Internals *>(mInternals))->Publish(message.GetPointer()); \
+    mNumberOfMessagesSent += justSent;					\
+    return justSent;							\
   }
 
 #endif // __vtkMRMLROS2PublisherMacros_h
