@@ -95,19 +95,16 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
 
     gmps->SetHeader(smh);
 
-    vtkGeometryMsgsPose * gmp = vtkGeometryMsgsPose::New();
-    vtkGeometryMsgsPoint * gmpoint = vtkGeometryMsgsPoint::New();
-    gmpoint->SetX(1.0);
-    gmpoint->SetY(2.0);
-    gmpoint->SetZ(3.0);
-    gmp->SetPosition(gmpoint);
+    vtkMatrix4x4 * gmp = vtkMatrix4x4::New();
+    // vtkGeometryMsgsPoint* gmpoint = vtkGeometryMsgsPoint::New();
+    // std::vector<double> pointData = {1.0, 2.0, 3.0};
+    // gmpoint->SetGeometryMsgsPointVector(pointData);
+    // gmp->SetPosition(gmpoint);
 
-    vtkGeometryMsgsQuaternion * gmquat = vtkGeometryMsgsQuaternion::New();
-    gmquat->SetX(1.0);
-    gmquat->SetY(2.0);
-    gmquat->SetZ(3.0);
-    gmquat->SetW(4.0);
-    gmp->SetOrientation(gmquat);
+    // vtkGeometryMsgsQuaternion * gmquat = vtkGeometryMsgsQuaternion::New();
+    // std::vector<double> quatData = {1.0, 2.0, 3.0, 4.0};
+    // gmquat->SetGeometryMsgsQuaternionVector(quatData);
+    // gmp->SetOrientation(gmquat);
 
     gmps->SetPose(gmp);
 

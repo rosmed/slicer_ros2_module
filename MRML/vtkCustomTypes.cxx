@@ -5,28 +5,16 @@ vtkStandardNewMacro(vtkGeometryMsgsPoseStamped);
 vtkGeometryMsgsPoseStamped::vtkGeometryMsgsPoseStamped()
 {
     header_ = vtkStdMsgsHeader::New();
-    pose_ = vtkGeometryMsgsPose::New();
+    pose_ = vtkMatrix4x4::New();
 }
 
 vtkGeometryMsgsPoseStamped::~vtkGeometryMsgsPoseStamped() = default;
-
-vtkStandardNewMacro(vtkGeometryMsgsPose);
-
-vtkGeometryMsgsPose::vtkGeometryMsgsPose()
-{
-    position_ = vtkGeometryMsgsPoint::New();
-    orientation_ = vtkGeometryMsgsQuaternion::New();
-}
-
-vtkGeometryMsgsPose::~vtkGeometryMsgsPose() = default;
 
 vtkStandardNewMacro(vtkGeometryMsgsPoint);
 
 vtkGeometryMsgsPoint::vtkGeometryMsgsPoint()
 {
-    x_ = 0.0;
-    y_ = 0.0;
-    z_ = 0.0;
+    data_.resize(3);
 }
 
 vtkGeometryMsgsPoint::~vtkGeometryMsgsPoint() = default;
@@ -35,23 +23,10 @@ vtkStandardNewMacro(vtkGeometryMsgsQuaternion);
 
 vtkGeometryMsgsQuaternion::vtkGeometryMsgsQuaternion()
 {
-    x_ = 0.0;
-    y_ = 0.0;
-    z_ = 0.0;
-    w_ = 0.0;
+    data_.resize(4);
 }
 
 vtkGeometryMsgsQuaternion::~vtkGeometryMsgsQuaternion() = default;
-
-vtkStandardNewMacro(vtkStdMsgsHeader);
-
-vtkStdMsgsHeader::vtkStdMsgsHeader()
-{
-    stamp_ = vtkBuiltinInterfacesTime::New();
-    frame_id_ = "";
-}
-
-vtkStdMsgsHeader::~vtkStdMsgsHeader() = default;
 
 vtkStandardNewMacro(vtkBuiltinInterfacesTime);
 
@@ -62,6 +37,16 @@ vtkBuiltinInterfacesTime::vtkBuiltinInterfacesTime()
 }
 
 vtkBuiltinInterfacesTime::~vtkBuiltinInterfacesTime() = default;
+
+vtkStandardNewMacro(vtkStdMsgsHeader);
+
+vtkStdMsgsHeader::vtkStdMsgsHeader()
+{
+    stamp_ = vtkBuiltinInterfacesTime::New();
+    frame_id_ = "";
+}
+
+vtkStdMsgsHeader::~vtkStdMsgsHeader() = default;
 
 vtkStandardNewMacro(vtkBoolString);
 

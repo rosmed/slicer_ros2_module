@@ -103,10 +103,26 @@ void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Float64MultiArray & resul
   }
 }
 
+void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::Pose & result,
+		     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+
+  double q[4] = {0.0, 0.0, 0.0, 0.0};
+  vtkMatrix4x4ToQuaternion(input, q);
+  result.position.x = input->GetElement(0, 3) * M_TO_MM;
+  result.position.y = input->GetElement(1, 3) * M_TO_MM;
+  result.position.z = input->GetElement(2, 3) * M_TO_MM;
+  result.orientation.w = q[0];
+  result.orientation.x = q[1];
+  result.orientation.y = q[2];
+  result.orientation.z = q[3];
+}
+
 // Work in Progress
 void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode)
 {
+  vtkSlicerToROS2(input, result.pose, rosNode);
   result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
   result.header.stamp = rosNode->get_clock()->now();
 

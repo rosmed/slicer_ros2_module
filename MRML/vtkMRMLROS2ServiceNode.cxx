@@ -144,7 +144,7 @@ void vtkMRMLROS2ServiceNode::SendAsyncRequest() {
   if (!PreRequestCheck()) return;
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
-  mInternals->mServiceResponseFuture = mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1));
+  mInternals->mServiceResponseFuture = mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1)).future;
   // TODO: Edge case where server dies before callback is called
   mInternals->isRequestInProgress = true;
 }
@@ -162,7 +162,8 @@ void vtkMRMLROS2ServiceNode::SendBlockingRequest(unsigned int wait_time_ms) {
   std::string error_string = "";
   try {
     // Sending request and waiting for response
-    std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request);
+    // std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request);
+    std::shared_future<std::shared_ptr<std_srvs::srv::Trigger::Response>> future = mInternals->mServiceClient->async_send_request(request).future.share();
     mInternals->mServiceResponseFuture = future;
     auto resultState = rclcpp::spin_until_future_complete(mInternals->mROS2Node, future, std::chrono::milliseconds(wait_time_ms));
     

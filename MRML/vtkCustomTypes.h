@@ -6,13 +6,13 @@
 #include <string>
 #include <vtkSmartPointer.h>
 #include <vtkMRMLNode.h>
+#include <vtkMatrix4x4.h>
 
 class vtkGeometryMsgsPoseStamped;
-class vtkGeometryMsgsPose;
 class vtkGeometryMsgsPoint;
 class vtkGeometryMsgsQuaternion;
-class vtkStdMsgsHeader;
 class vtkBuiltinInterfacesTime;
+class vtkStdMsgsHeader;
 class vtkBoolString;
 class vtkBool;
 
@@ -30,50 +30,20 @@ public:
         header_ = value;
     }
 
-    vtkGeometryMsgsPose* GetPose() {
+    vtkMatrix4x4* GetPose() {
         return pose_;
     }
 
-    void SetPose(vtkGeometryMsgsPose* value) {
+    void SetPose(vtkMatrix4x4* value) {
         pose_ = value;
     }
 
 protected:
     vtkSmartPointer<vtkStdMsgsHeader> header_;
-    vtkSmartPointer<vtkGeometryMsgsPose> pose_;
+    vtkSmartPointer<vtkMatrix4x4> pose_;
 
     vtkGeometryMsgsPoseStamped();
     ~vtkGeometryMsgsPoseStamped() override;
-};
-
-class vtkGeometryMsgsPose : public vtkObject
-{
-public:
-    vtkTypeMacro(vtkGeometryMsgsPose, vtkObject);
-    static vtkGeometryMsgsPose* New();
-
-    vtkGeometryMsgsPoint* GetPosition() {
-        return position_;
-    }
-
-    void SetPosition(vtkGeometryMsgsPoint* value) {
-        position_ = value;
-    }
-
-    vtkGeometryMsgsQuaternion* GetOrientation() {
-        return orientation_;
-    }
-
-    void SetOrientation(vtkGeometryMsgsQuaternion* value) {
-        orientation_ = value;
-    }
-
-protected:
-    vtkSmartPointer<vtkGeometryMsgsPoint> position_;
-    vtkSmartPointer<vtkGeometryMsgsQuaternion> orientation_;
-
-    vtkGeometryMsgsPose();
-    ~vtkGeometryMsgsPose() override;
 };
 
 class vtkGeometryMsgsPoint : public vtkObject
@@ -82,34 +52,16 @@ public:
     vtkTypeMacro(vtkGeometryMsgsPoint, vtkObject);
     static vtkGeometryMsgsPoint* New();
 
-    const double& GetX() const {
-        return x_;
+    const std::vector<double>& GetGeometryMsgsPointVector() const {
+        return data_;
     }
 
-    void SetX(const double& value) {
-        x_ = value;
-    }
-
-    const double& GetY() const {
-        return y_;
-    }
-
-    void SetY(const double& value) {
-        y_ = value;
-    }
-
-    const double& GetZ() const {
-        return z_;
-    }
-
-    void SetZ(const double& value) {
-        z_ = value;
+    void SetGeometryMsgsPointVector(const std::vector<double>& value) {
+        data_ = value;
     }
 
 protected:
-    double x_;
-    double y_;
-    double z_;
+    std::vector<double> data_;
 
     vtkGeometryMsgsPoint();
     ~vtkGeometryMsgsPoint() override;
@@ -121,76 +73,19 @@ public:
     vtkTypeMacro(vtkGeometryMsgsQuaternion, vtkObject);
     static vtkGeometryMsgsQuaternion* New();
 
-    const double& GetX() const {
-        return x_;
+    const std::vector<double>& GetGeometryMsgsQuaternionVector() const {
+        return data_;
     }
 
-    void SetX(const double& value) {
-        x_ = value;
-    }
-
-    const double& GetY() const {
-        return y_;
-    }
-
-    void SetY(const double& value) {
-        y_ = value;
-    }
-
-    const double& GetZ() const {
-        return z_;
-    }
-
-    void SetZ(const double& value) {
-        z_ = value;
-    }
-
-    const double& GetW() const {
-        return w_;
-    }
-
-    void SetW(const double& value) {
-        w_ = value;
+    void SetGeometryMsgsQuaternionVector(const std::vector<double>& value) {
+        data_ = value;
     }
 
 protected:
-    double x_;
-    double y_;
-    double z_;
-    double w_;
+    std::vector<double> data_;
 
     vtkGeometryMsgsQuaternion();
     ~vtkGeometryMsgsQuaternion() override;
-};
-
-class vtkStdMsgsHeader : public vtkObject
-{
-public:
-    vtkTypeMacro(vtkStdMsgsHeader, vtkObject);
-    static vtkStdMsgsHeader* New();
-
-    vtkBuiltinInterfacesTime* GetStamp() {
-        return stamp_;
-    }
-
-    void SetStamp(vtkBuiltinInterfacesTime* value) {
-        stamp_ = value;
-    }
-
-    const std::string& GetFrame_id() const {
-        return frame_id_;
-    }
-
-    void SetFrame_id(const std::string& value) {
-        frame_id_ = value;
-    }
-
-protected:
-    vtkSmartPointer<vtkBuiltinInterfacesTime> stamp_;
-    std::string frame_id_;
-
-    vtkStdMsgsHeader();
-    ~vtkStdMsgsHeader() override;
 };
 
 class vtkBuiltinInterfacesTime : public vtkObject
@@ -221,6 +116,36 @@ protected:
 
     vtkBuiltinInterfacesTime();
     ~vtkBuiltinInterfacesTime() override;
+};
+
+class vtkStdMsgsHeader : public vtkObject
+{
+public:
+    vtkTypeMacro(vtkStdMsgsHeader, vtkObject);
+    static vtkStdMsgsHeader* New();
+
+    vtkBuiltinInterfacesTime* GetStamp() {
+        return stamp_;
+    }
+
+    void SetStamp(vtkBuiltinInterfacesTime* value) {
+        stamp_ = value;
+    }
+
+    const std::string& GetFrame_id() const {
+        return frame_id_;
+    }
+
+    void SetFrame_id(const std::string& value) {
+        frame_id_ = value;
+    }
+
+protected:
+    vtkSmartPointer<vtkBuiltinInterfacesTime> stamp_;
+    std::string frame_id_;
+
+    vtkStdMsgsHeader();
+    ~vtkStdMsgsHeader() override;
 };
 
 class vtkBoolString : public vtkObject

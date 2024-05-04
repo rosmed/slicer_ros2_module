@@ -178,8 +178,8 @@ public:
       vtkSlicerToROS2(message, *request, this->mROSNode);
       std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
       this->isRequestInProgress = true;
-      this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::ServiceCallback, this, std::placeholders::_1));
-
+     this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::ServiceCallback, this, std::placeholders::_1)).future;
+      //mInternals->mServiceResponseFuture = mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1)).future.share();
       // std::cout << "Requested message" << message << std::endl;
       // float x = 2;
       // float y = 2;
