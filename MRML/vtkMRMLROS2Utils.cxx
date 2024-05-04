@@ -5,6 +5,15 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <signal.h>
+
+
+void vtkMRMLROS2SignalHandler(int)
+{
+  vtkMRMLROS2::ROSShutdown();
+  abort();
+}
+
 
 bool vtkMRMLROS2::ROSInit(void)
 {
@@ -16,6 +25,10 @@ bool vtkMRMLROS2::ROSInit(void)
     strcpy(argv[0], nodeName.c_str());
     int argc = 1;
     rclcpp::init(argc, argv);
+    // remove ROS signal handlers since they won't abort
+    rclcpp::uninstall_signal_handlers();
+    // use our own to make sure ROS closes properly
+    signal(SIGINT, vtkMRMLROS2SignalHandler);
   } catch (...) {
     std::cerr << "vtkMRMLROS2::ROSInit: rclcpp::init was called multiple times. This is fine." << std::endl; // Key word this
     return false;
