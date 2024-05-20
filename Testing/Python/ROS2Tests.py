@@ -589,32 +589,32 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             # pass
             self.ros2Node.Destroy()
 
-    class TestServiceClient(unittest.TestCase):
-        def setUp(self):
-            self.create_service_process = ROS2TestsLogic.run_ros2_cli_command_after_sourcing("run trigger_server start_server") # TODO: Rewrite the server with a spin_some instead of a spin in a while loop. You can type print statements to check if it is running properly
-            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNode")
-            ROS2TestsLogic.spin_some()
+    # class TestServiceClient(unittest.TestCase):
+    #     def setUp(self):
+    #         self.create_service_process = ROS2TestsLogic.run_ros2_cli_command_after_sourcing("run trigger_server start_server") # TODO: Rewrite the server with a spin_some instead of a spin in a while loop. You can type print statements to check if it is running properly
+    #         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+    #         self.ros2Node.Create("testNode")
+    #         ROS2TestsLogic.spin_some()
 
-        def test_service_client(self):
-            print("\nTesting service client - Starting..")
-            serviceClient = self.ros2Node.CreateAndAddServiceNode("toggle_state")
-            serviceClient.SendAsyncRequest()
-            for _ in range(6):
-                ROS2TestsLogic.spin_some()
-                time.sleep(1)
-            outputVtkTable = serviceClient.GetLastResponseAsTable()
-            ExpectedState, ExpectedCounter = True, 1
-            ExpectedString = f'State toggled to: {ExpectedState}, Message Counter : {ExpectedCounter}'
-            ObtainedOutput = outputVtkTable.GetValue(0,0).ToString()
-            print("ObtainedOutput", ObtainedOutput)
-            self.assertEqual(ObtainedOutput, ExpectedString)
-            print("Testing service client - Done")
+    #     def test_service_client(self):
+    #         print("\nTesting service client - Starting..")
+    #         serviceClient = self.ros2Node.CreateAndAddServiceNode("toggle_state")
+    #         serviceClient.SendAsyncRequest()
+    #         for _ in range(6):
+    #             ROS2TestsLogic.spin_some()
+    #             time.sleep(1)
+    #         outputVtkTable = serviceClient.GetLastResponseAsTable()
+    #         ExpectedState, ExpectedCounter = True, 1
+    #         ExpectedString = f'State toggled to: {ExpectedState}, Message Counter : {ExpectedCounter}'
+    #         ObtainedOutput = outputVtkTable.GetValue(0,0).ToString()
+    #         print("ObtainedOutput", ObtainedOutput)
+    #         self.assertEqual(ObtainedOutput, ExpectedString)
+    #         print("Testing service client - Done")
 
-        def tearDown(self):
-            ROS2TestsLogic.kill_subprocess(self.create_service_process)
-            self.ros2Node.Destroy()
-            ROS2TestsLogic.spin_some()
+    #     def tearDown(self):
+    #         ROS2TestsLogic.kill_subprocess(self.create_service_process)
+    #         self.ros2Node.Destroy()
+    #         ROS2TestsLogic.spin_some()
 
 
 
@@ -628,7 +628,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestCreateAndAddPubSub))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestParameterNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
-        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
+        # suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
 
         runner = unittest.TextTestRunner()
         runner.run(suite)

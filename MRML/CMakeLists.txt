@@ -6,7 +6,7 @@ set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT"
 
 set(${KIT}_INCLUDE_DIRECTORIES
   ${Slicer_Base_INCLUDE_DIRS}
-  ${cisst_msgs_INCLUDE_DIRS}
+  ${cisst_msgs_INCLUDE_DIRS} 
   ${turtlesim_INCLUDE_DIRS} 
   ${std_srvs_INCLUDE_DIRS} 
   )
@@ -16,9 +16,9 @@ set(${KIT}_INCLUDE_DIRECTORIES
 
 set(_ROS_MESSAGES
   "geometry_msgs/msg/PoseStamped"
-  "geometry_msgs/msg/WrenchStamped"
-  "sensor_msgs/msg/JointState"
-  "sensor_msgs/msg/Joy")
+  "std_msgs/msg/Header"
+  "builtin_interfaces/msg/Time"
+  )
 
 foreach(_msg ${_ROS_MESSAGES})
   # convert to class name, camel case

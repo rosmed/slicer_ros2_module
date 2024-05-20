@@ -119,23 +119,23 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::Pose & result,
 }
 
 // Work in Progress
-void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
-		     const std::shared_ptr<rclcpp::Node> & rosNode)
-{
-  vtkSlicerToROS2(input, result.pose, rosNode);
-  result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
-  result.header.stamp = rosNode->get_clock()->now();
+// void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::PoseStamped & result,
+// 		     const std::shared_ptr<rclcpp::Node> & rosNode)
+// {
+//   vtkSlicerToROS2(input, result.pose, rosNode);
+//   result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
+//   result.header.stamp = rosNode->get_clock()->now();
 
-  double q[4] = {0.0, 0.0, 0.0, 0.0};
-  vtkMatrix4x4ToQuaternion(input, q);
-  result.pose.position.x = input->GetElement(0, 3) * M_TO_MM;
-  result.pose.position.y = input->GetElement(1, 3) * M_TO_MM;
-  result.pose.position.z = input->GetElement(2, 3) * M_TO_MM;
-  result.pose.orientation.w = q[0];
-  result.pose.orientation.x = q[1];
-  result.pose.orientation.y = q[2];
-  result.pose.orientation.z = q[3];
-}
+//   double q[4] = {0.0, 0.0, 0.0, 0.0};
+//   vtkMatrix4x4ToQuaternion(input, q);
+//   result.pose.position.x = input->GetElement(0, 3) * M_TO_MM;
+//   result.pose.position.y = input->GetElement(1, 3) * M_TO_MM;
+//   result.pose.position.z = input->GetElement(2, 3) * M_TO_MM;
+//   result.pose.orientation.w = q[0];
+//   result.pose.orientation.x = q[1];
+//   result.pose.orientation.y = q[2];
+//   result.pose.orientation.z = q[3];
+// }
 
 
 void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::TransformStamped & result,

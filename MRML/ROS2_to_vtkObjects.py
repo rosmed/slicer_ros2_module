@@ -66,6 +66,9 @@ vtk_equivalent_types = {
 def snake_to_camel(name):
     return ''.join(word.capitalize() for word in name.split('_'))
 
+def camel_to_snake(name):
+    return ''.join('_' + c.lower() if c.isupper() else c for c in name).lstrip('_')
+
 def is_vtk_object(field_type, message_attribute_map):
     return '/' in field_type #and field_type in message_attribute_map
 
@@ -78,23 +81,17 @@ def is_vector_type(fields, static_type_mapping, message_attribute_map):
 
     return use_vector
 
-def msgname_to_msgcpptype(msgname):
-    # if a message name is like 'geometry_msgs/PoseStamped', the corresponding class name will be geometry_msgs::msg::PoseStamped
-    parts = msgname.split('/')
-    output = parts[0] + "::msg::" + parts[1]
-    return output
-
 def get_vtk_type(field_type, vtk_equivalent_types):
-    
+    # return True if equivalent type is found
 
     parts = field_type.split('/')
     if parts[-1] in vtk_equivalent_types.keys():
-        return vtk_equivalent_types[parts[-1]]
+        return True, vtk_equivalent_types[parts[-1]]
     parts[0] = snake_to_camel(parts[0])
     field_type = parts[0] + parts[-1]
 
 
-    return field_type
+    return False, field_type
 
 ################################################################33
 
@@ -187,7 +184,7 @@ def generate_class(class_name, fields, message_attribute_map):
         for field_name, field_type in fields.items():
             # Check if the field is a VTK object or not 
             if is_vtk_object(field_type, message_attribute_map):
-                field_type = get_vtk_type(field_type, vtk_equivalent_types)
+                is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
                 method_code_hpp = generate_vtk_getset(method_code_hpp, field_name, field_type)
                 attribute_code_hpp += f"    vtkSmartPointer<vtk{field_type}> {field_name}_;\n"
                 attribute_code_cpp += f"    {field_name}_ = vtk{field_type}::New();\n"
@@ -217,7 +214,7 @@ def generate_class(class_name, fields, message_attribute_map):
 
     return class_code_hpp, class_code_cpp
 
-def identify_imports(class_name, fields, message_attribute_map):
+def identify_imports(class_name, namespace, package_name, fields, message_attribute_map):
     imports = ""
     # usual suspects
     imports += "#include <vtkObject.h>\n"
@@ -226,64 +223,144 @@ def identify_imports(class_name, fields, message_attribute_map):
     imports += "#include <vtkSmartPointer.h>\n"
     imports += "#include <vtkMRMLNode.h>\n\n"
 
+    # include the message type
+    imports += f"#include <rclcpp/rclcpp.hpp>\n"
+    imports += f"#include <{package_name}/{namespace}/{camel_to_snake(class_name)}.hpp>\n"
+
+    # include vtkROS2ToSlicer and vtkSlicerToROS2
+    imports += f"#include \"vtkROS2ToSlicer.h\"\n"
+    imports += f"#include \"vtkSlicerToROS2.h\"\n"
+
     for field_name, field_type in fields.items():
         if is_vtk_object(field_type, message_attribute_map):
-            field_type = get_vtk_type(field_type, vtk_equivalent_types)
-            imports+=f"#include \"vtk{field_type}.h\"\n"
+            is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
+            if not is_equivalent_type_available:
+                imports+=f"#include \"vtkROS2{field_type}.h\"\n"
+            else:
+                imports += f"#include \"vtk{field_type}.h\"\n"
     return imports
 
 
 def ROS2_to_vtkObject_v2(_message, _directory): ## TODO: Can be optimized and variable names can be improved
     [package, namespace, msg_name] = _message.split('/')
-    # message_attribute_map = clean_dict(generate_message_dict(_message))
+    print(f"Generating code for message: {_message}")
+
     message_attribute_map = generate_message_dict_v2(_message)
-    # for key, value in message_attribute_map.items():
-    #     print(f"{key} : {value}")
-    for class_name, fields in message_attribute_map.items():
-        class_name_formatted, class_type_identifier = get_class_name_formatted(class_name)
-        if class_type_identifier in vtk_equivalent_types.keys():
-            continue
 
-        hpp_code = ""
-        cpp_code = ""
-        class_definitions_code_hpp = ""
-        class_definitions_code_cpp = ""
+    fields = message_attribute_map[_message]
 
-        filename = f"vtk{class_name_formatted}"
-        hpp_code += f"#ifndef {filename}_h\n"
-        hpp_code += f"#define {filename}_h\n\n"
+    # for class_name, fields in message_attribute_map.items():
+    class_name_formatted, class_type_identifier = get_class_name_formatted(_message)
+    if class_type_identifier in vtk_equivalent_types.keys():
+        return
 
-        cpp_code += f"#include \"{filename}.h\"\n\n"
+    hpp_code = ""
+    cpp_code = ""
+    class_definitions_code_hpp = ""
+    class_definitions_code_cpp = ""
 
-        imports = identify_imports(class_name, fields, message_attribute_map)
-        hpp_code += imports
-        hpp_code += f"// Forward declarations\n"
+    filename = f"vtkROS2{class_name_formatted}"
+    hpp_code += f"#ifndef {filename}_h\n"
+    hpp_code += f"#define {filename}_h\n\n"
 
-        # forward declarations
-        hpp_code += f"class vtk{class_name_formatted};\n"
-        class_code_hpp_single, class_code_cpp_single = generate_class(class_name_formatted, fields, message_attribute_map)
-        class_definitions_code_hpp += class_code_hpp_single
-        class_definitions_code_cpp += class_code_cpp_single
+    cpp_code += f"#include \"{filename}.h\"\n\n"
 
-        vtk_equivalent_types[class_type_identifier] = class_name_formatted
+    imports = identify_imports(msg_name, namespace, package, fields, message_attribute_map,)
+    hpp_code += imports
+    hpp_code += f"// Forward declarations\n"
 
-        hpp_code += "\n"
-        hpp_code += class_definitions_code_hpp
-        hpp_code += f"#endif // {filename}_h\n"
+    # forward declarations
+    hpp_code += f"class vtk{class_name_formatted};\n"
+    class_code_hpp_single, class_code_cpp_single = generate_class(class_name_formatted, fields, message_attribute_map)
+    class_definitions_code_hpp += class_code_hpp_single
+    class_definitions_code_cpp += class_code_cpp_single
 
-        cpp_code += class_definitions_code_cpp
+    vtk_equivalent_types[class_type_identifier] = class_name_formatted
 
-        with open(_directory + '/' + filename + '.h', 'w') as h:
-            h.write(hpp_code)
+    hpp_code += "\n"
+    hpp_code += class_definitions_code_hpp
+    cpp_code += class_definitions_code_cpp
 
-        with open(_directory + '/' + filename + '.cxx', 'w') as cxx:
-            cxx.write(cpp_code)
+    # Add Slicer to ROS2 conversion functions and vice versa
+    hpp_code += f"// Conversion functions\n"
+    
+    msg_ros2_type = f"{package}::{namespace}::{msg_name}"
+    hpp_code_single, cpp_code_single = generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields, message_attribute_map)
+    hpp_code += hpp_code_single
+    cpp_code += cpp_code_single
+
+    hpp_code_single, cpp_code_single = generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields, message_attribute_map)
+    hpp_code += hpp_code_single
+    cpp_code += cpp_code_single
+    
+
+    hpp_code += f"\n#endif // {filename}_h\n"
+
+    
+    with open(_directory + '/' + filename + '.h', 'w') as h:
+        h.write(hpp_code)
+
+    with open(_directory + '/' + filename + '.cxx', 'w') as cxx:
+        cxx.write(cpp_code)
+
+def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields, message_attribute_map):
+    code_string_cpp = "\n"
+    code_string_hpp = ""
+
+    class_name_formatted = vtk_equivalent_types.get(class_type_identifier, class_name_formatted)
+    code_string_cpp += f"void vtkSlicerToROS2( vtk{class_name_formatted} * input , {msg_ros2_type} & result, const std::shared_ptr<rclcpp::Node> & rosNode) {{\n "
+    code_string_hpp += f"void vtkSlicerToROS2( vtk{class_name_formatted} * input , {msg_ros2_type} & result, const std::shared_ptr<rclcpp::Node> & rosNode);\n"
+
+    use_vector = is_vector_type(fields, static_type_mapping, message_attribute_map)
+    if use_vector:
+        idx = 0
+        for field_name, field_type in fields.items():
+            code_string_cpp += f"\tresult.{field_name} = input->Get{class_name_formatted}Vector()[{idx}];\n"
+            idx += 1
+        
+    else:
+        for field_name, field_type in fields.items():
+            if is_vtk_object(field_type, message_attribute_map):
+                is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
+                code_string_cpp += f"\tvtkSlicerToROS2(input->Get{field_name.capitalize()}(), result.{field_name}, rosNode);\n"
+            else:
+                code_string_cpp += f"\tresult.{field_name} = input->Get{field_name.capitalize()}();\n"
+
+    code_string_cpp += "}\n\n"
+    return code_string_hpp, code_string_cpp
+
+def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields, message_attribute_map):
+    code_string_cpp = "\n"
+    code_string_hpp = ""
+    class_name_formatted = vtk_equivalent_types.get(class_type_identifier, class_name_formatted)
+    code_string_hpp += f"void vtkROS2ToSlicer( const {msg_ros2_type} & input , vtkSmartPointer<vtk{class_name_formatted}> result);\n"
+    code_string_cpp += f"void vtkROS2ToSlicer( const {msg_ros2_type} & input , vtkSmartPointer<vtk{class_name_formatted}> result) {{\n "
+
+    use_vector = is_vector_type(fields, static_type_mapping, message_attribute_map)
+    if use_vector:
+        vector_type = list(fields.values())[0]
+        code_string_cpp += f"\tstd::vector<{vector_type}> data;\n"
+        for field_name, field_type in fields.items():
+            code_string_cpp += f"\tdata.push_back(input.{field_name});\n"
+        code_string_cpp += f"\tresult->Set{class_name_formatted}Vector(data);\n"
+
+    else:
+        for field_name, field_type in fields.items():
+            if is_vtk_object(field_type, message_attribute_map):
+                is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
+                code_string_cpp += f"\tvtkSmartPointer<vtk{field_type}> {field_name} = vtkSmartPointer<vtk{field_type}>::New();\n"
+                code_string_cpp += f"\tvtkROS2ToSlicer(input.{field_name}, {field_name});\n"
+                code_string_cpp += f"\tresult->Set{field_name.capitalize()}({field_name});\n"
+            else:
+                code_string_cpp += f"\tresult->Set{field_name.capitalize()}(input.{field_name});\n"
+
+    code_string_cpp += "}\n\n"
+    return code_string_hpp, code_string_cpp
 
 def generate_message_dict_v2(message_type): ## TODO: Refactor this function
     [package_name, namespace, msg_name] = message_type.split('/')
-    imported_package_name_to_package = {}
+
     msg_package = importlib.import_module(f"{package_name}.msg")
-    imported_package_name_to_package[package_name] = msg_package
     msg_attributes = getattr(msg_package, msg_name)
 
     attributes = msg_attributes.get_fields_and_field_types()
@@ -291,32 +368,23 @@ def generate_message_dict_v2(message_type): ## TODO: Refactor this function
     msg_dict = {}
     msg_dict[message_type] = {}
 
-    def recursive_generate(attributes, prefix):
-        for attribute, attribute_type in attributes.items():
-            if '/' in attribute_type:
-                [package_name, msg_name] = attribute_type.split('/')
-                if package_name not in imported_package_name_to_package:
-                    msg_package = importlib.import_module(f"{package_name}.msg")
-                    imported_package_name_to_package[package_name] = msg_package
-                msg_attributes = getattr(imported_package_name_to_package[package_name], msg_name)
-                sub_attributes = msg_attributes.get_fields_and_field_types()
-                sub_message_type = f"{package_name}/{namespace}/{msg_name}"
-                msg_dict[prefix][attribute] = sub_message_type
-                msg_dict[sub_message_type] = {}
-                recursive_generate(sub_attributes, sub_message_type)
-            else:
-                msg_dict[prefix][attribute] = attribute_type
+    prefix = message_type
 
-    recursive_generate(attributes, message_type)
+    for attribute, attribute_type in attributes.items():
+        if '/' in attribute_type:
+            [package_name, msg_name] = attribute_type.split('/')
+            sub_message_type = f"{package_name}/{namespace}/{msg_name}"
+            msg_dict[prefix][attribute] = sub_message_type
+        else:
+            msg_dict[prefix][attribute] = attribute_type
 
     return msg_dict
-    
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--message', type = str, required=True,
-                        help = 'ROS message type.  For example \"geometry_msgs/msg/PointStamped\"')
+                        help = 'ROS message type.  For example \"geometry_msgs/msg/PoseStamped\"')
     parser.add_argument('-c', '--class-name', type = str, required = True)
     parser.add_argument('-d', '--directory', type = str, required = True)
     args = parser.parse_args(sys.argv[1:])

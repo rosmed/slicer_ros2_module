@@ -46,7 +46,7 @@ class vtkMRMLROS2ServiceClientDefaultNode;
 // #include <vtkMRMLROS2ServiceNode.h>
 #include <vtkCustomTypes.h>
 // REMOVE THIS LATER
-#include <vtkROS2SensorMsgsJoy.h>
+#include <vtkROS2GeometryMsgsPoseStamped.h>
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
@@ -56,6 +56,7 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   static vtkSlicerROS2Logic *New();
   vtkTypeMacro(vtkSlicerROS2Logic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+
 
   inline vtkBoolString * GetBoolString(void) const { 
     vtkBoolString * bs = vtkBoolString::New();
@@ -98,20 +99,12 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
     gmps->SetHeader(smh);
 
     vtkMatrix4x4 * gmp = vtkMatrix4x4::New();
-    // vtkGeometryMsgsPoint* gmpoint = vtkGeometryMsgsPoint::New();
-    // std::vector<double> pointData = {1.0, 2.0, 3.0};
-    // gmpoint->SetGeometryMsgsPointVector(pointData);
-    // gmp->SetPosition(gmpoint);
-
-    // vtkGeometryMsgsQuaternion * gmquat = vtkGeometryMsgsQuaternion::New();
-    // std::vector<double> quatData = {1.0, 2.0, 3.0, 4.0};
-    // gmquat->SetGeometryMsgsQuaternionVector(quatData);
-    // gmp->SetOrientation(gmquat);
 
     gmps->SetPose(gmp);
 
     return gmps;
   }
+
 
  protected:
   vtkSlicerROS2Logic();
@@ -127,10 +120,10 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
 
  public:
   // REMOVE THIS LATER
-  inline vtkSmartPointer<vtkROS2SensorMsgsJoy> GetSensor(void) {
-    vtkNew<vtkROS2SensorMsgsJoy> sensor;
-    return sensor;
-  }
+  // inline vtkSmartPointer<vtkROS2SensorMsgsJoy> GetSensor(void) {
+  //   vtkNew<vtkROS2SensorMsgsJoy> sensor;
+  //   return sensor;
+  // }
    
   /*! Spin all the ROS nodes attached to the module's core logic.
     This method needs to be called periodically to dequeue all the ROS
