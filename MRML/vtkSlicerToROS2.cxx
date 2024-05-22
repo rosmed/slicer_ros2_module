@@ -203,6 +203,7 @@ void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result
   result.data = picture;
 }
 
+
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
   double A[3][3];

@@ -164,3 +164,14 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmar
   result->SetElement(1, 3, y);
   result->SetElement(2, 3, z);
 }
+
+void vtkROS2ToSlicer(const sensor_msgs::msg::Image& input, vtkSmartPointer<vtkTypeUInt8Array> result)
+{
+    // Work in progress - some horizontal lines in image on Slicer side
+    result->SetNumberOfComponents(input.width);
+    result->SetNumberOfTuples(input.height);
+
+    for (int i = 0; i < input.data.size(); i++) {
+      result->InsertValue(i, input.data[i]);
+    }
+}
