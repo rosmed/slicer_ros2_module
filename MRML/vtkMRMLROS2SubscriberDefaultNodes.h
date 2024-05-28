@@ -13,6 +13,7 @@ VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(double, Double);
 #include <vtkTable.h>
 #include <vtkTable.h>
 #include <vtkTypeUInt8Array.h>
+#include <vtkPoints.h>
 
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkIntArray, IntArray);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkDoubleArray, DoubleArray);
@@ -21,5 +22,6 @@ VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, DoubleTable);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTable, Joy);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkMatrix4x4, PoseStamped);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTypeUInt8Array, UInt8Image);
+VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkPoints, PointCloud);
 
 #endif // __vtkMRMLROS2SubscriberDefaultNodes_h

@@ -167,11 +167,25 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmar
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::Image& input, vtkSmartPointer<vtkTypeUInt8Array> result)
 {
-    // Work in progress - some horizontal lines in image on Slicer side
+    // Initialize the array to the correct size
     result->SetNumberOfComponents(input.width);
     result->SetNumberOfTuples(input.height);
 
-    for (int i = 0; i < input.data.size(); i++) {
+    // Populate the array with the data from the ros image
+    for (std::vector<unsigned char>::size_type i = 0; i < input.data.size(); i++) {
       result->InsertValue(i, input.data[i]);
+    }
+}
+
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result)
+{
+    // Initialize the vtkPoints
+    result->Reset();
+    result->Allocate(input.points.size());
+
+    // Iterate through all points in the input PointCloud
+    for (const auto& point : input.points) {
+        // Add each point to the vtkPoints object
+        result->InsertNextPoint(point.x, point.y, point.z);
     }
 }

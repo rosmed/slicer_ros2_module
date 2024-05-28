@@ -203,6 +203,25 @@ void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result
   result.data = picture;
 }
 
+void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
+             const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  result.header.stamp = rosNode->get_clock()->now();
+  // Initialize the point cloud
+  result.points.clear();
+  result.points.reserve(input->GetNumberOfPoints());
+
+  double p[3];
+  for (vtkIdType i = 0; i < input->GetNumberOfPoints(); i++) {
+    input->GetPoint(i, p); // Get the point at index i
+    geometry_msgs::msg::Point32 new_point;
+    new_point.x = static_cast<float>(p[0]);
+    new_point.y = static_cast<float>(p[1]);
+    new_point.z = static_cast<float>(p[2]);
+    result.points.push_back(new_point);
+   }
+}
+
 
 void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
 {
