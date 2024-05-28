@@ -194,6 +194,7 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
                   onLoadRobotClicked(robotWidgetUi->robotNameLineEdit,
                                      robotWidgetUi->parameterNodeNameLineEdit,
                                      robotWidgetUi->parameterLineEdit,
+                                     robotWidgetUi->fixedFrameLineEdit,
                                      loadRobotButton, removeRobotButton);
                 });
   this->connect(removeRobotButton, &QPushButton::clicked, this,
@@ -201,8 +202,10 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
                   onRemoveRobotClicked(robotWidgetUi->robotNameLineEdit,
                                        robotWidgetUi->parameterNodeNameLineEdit,
                                        robotWidgetUi->parameterLineEdit,
+                                       robotWidgetUi->fixedFrameLineEdit,
                                        loadRobotButton, removeRobotButton, robotWidget);
                 });
+
   // This handles the case where a robot is added from the python console (instead of by button press)
   if (active == true) {
     robotWidgetUi->robotNameLineEdit->setEnabled(false);
@@ -384,6 +387,7 @@ void qSlicerROS2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look her
 void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
                                                  QLineEdit * parameterNodeNameLineEdit,
                                                  QLineEdit * parameterNameLineEdit,
+                                                 QLineEdit * fixedFrameLineEdit,
                                                  QPushButton * loadRobotButton,
                                                  QPushButton * removeRobotButton)
 {
@@ -395,11 +399,13 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
   robotsAddedToTheWidget.push_back(robotNameLineEdit->text().toStdString());
   logic->AddRobot(robotNameLineEdit->text().toStdString(),
                   parameterNodeNameLineEdit->text().toStdString(),
-                  parameterNameLineEdit->text().toStdString());
+                  parameterNameLineEdit->text().toStdString(),
+                  fixedFrameLineEdit->text().toStdString());
   loadRobotButton->setEnabled(false);
   robotNameLineEdit->setEnabled(false);
   parameterNodeNameLineEdit->setEnabled(false);
   parameterNameLineEdit->setEnabled(false);
+  fixedFrameLineEdit->setEnabled(false);
   removeRobotButton->setEnabled(true);
 }
 
@@ -407,6 +413,7 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
 void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit,
                                                    QLineEdit * parameterNodeNameLineEdit,
                                                    QLineEdit * parameterNameLineEdit,
+                                                   QLineEdit * fixedFrameLineEdit,
                                                    QPushButton * loadRobotButton,
                                                    QPushButton * removeRobotButton,
                                                    QWidget * robotWidget)
@@ -423,6 +430,7 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
   robotNameLineEdit->setEnabled(true);
   parameterNodeNameLineEdit->setEnabled(true);
   parameterNameLineEdit->setEnabled(true);
+  fixedFrameLineEdit->setEnabled(true);
   removeRobotButton->setEnabled(false);
   d->robotTabLayout->removeWidget(robotWidget);
   delete robotWidget;

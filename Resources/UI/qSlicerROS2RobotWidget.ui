@@ -56,21 +56,21 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0" colspan="2">
+   <item row="4" column="0" colspan="2">
     <widget class="QPushButton" name="loadRobotButton">
      <property name="text">
       <string>Load robot</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="0" colspan="2">
+   <item row="5" column="0" colspan="2">
     <widget class="QPushButton" name="removeRobotButton">
      <property name="text">
       <string>Remove robot</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="0" colspan="2">
+   <item row="6" column="0" colspan="2">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -82,6 +82,20 @@
       </size>
      </property>
     </spacer>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="fixedFrameLineEdit">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>Fixed frame:</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

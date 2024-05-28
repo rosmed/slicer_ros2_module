@@ -50,7 +50,8 @@ vtkMRMLROS2RobotNode::~vtkMRMLROS2RobotNode()
 bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
                                          const std::string & robotName,
                                          const std::string & parameterNodeName,
-                                         const std::string & parameterName)
+                                         const std::string & parameterName,
+                                         const std::string & fixedFrame)
 {
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
@@ -67,6 +68,7 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
   mMRMLROS2Node = mrmlROSNodePtr;
   mNthRobot.mParameterNodeName = parameterNodeName;
   mNthRobot.mParameterName = parameterName;
+  mNthRobot.mFixedFrame = fixedFrame;
   SetRobotDescriptionParameterNode();
   SetRobotName(robotName);
   return true;
@@ -227,9 +229,17 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 {
   // Initialize the lookups for the robot based on the previously stored parent and children names of the transform.
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-    vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
-    mNthRobot.mLookupNodes.push_back(lookup);
-    this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
+      if (i == 0 && !mNthRobot.mFixedFrame.empty()){
+            std::cerr <<  "MY FIXED FRAME: " << mNthRobot.mFixedFrame << std::endl;
+            vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mFixedFrame, mNthRobot.mLinkNames[i]);
+            mNthRobot.mLookupNodes.push_back(lookup);
+            this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
+       }
+      else{
+            vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
+            mNthRobot.mLookupNodes.push_back(lookup);
+            this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
+      }
   }
 }
 

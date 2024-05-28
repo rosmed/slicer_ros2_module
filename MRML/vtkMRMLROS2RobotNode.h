@@ -37,7 +37,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   bool AddToROS2Node(const char * nodeId,
          const std::string & robotName,
 		     const std::string & parameterNodeName,
-		     const std::string & parameterName = "robot_description");
+		     const std::string & parameterName = "robot_description",
+		     const std::string & fixedFrame = "");
 
   bool SetRobotDescriptionParameterNode();
   void ObserveParameterNode(vtkMRMLROS2ParameterNode * node);
@@ -73,6 +74,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
     vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
     std::string mParameterNodeName;
     std::string mParameterName;
+    std::string mFixedFrame;
   } mNthRobot;
 
   std::string mRobotName = "undefined";
