@@ -172,3 +172,13 @@ widget will update with additional line edits for the second robot.
   :width: 300
   :align: center
   :alt: Defining a robot with a namespace in Slicer
+
+For robots with non-holonomic constraints, we have also added a field
+to specify the fixed frame of the robot. The default behaviour is to use
+the first link of the robot as the fixed frame if this field is left empty.
+Below shows a rendering of the TurtleBot in 3D Slicer using this feature.
+
+.. image:: ../images/turtlebot.gif
+  :width: 300
+  :align: center
+  :alt: Defining a robot with a namespace in Slicer
