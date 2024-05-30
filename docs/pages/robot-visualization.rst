@@ -179,6 +179,6 @@ the first link of the robot as the fixed frame if this field is left empty.
 Below shows a rendering of the TurtleBot in 3D Slicer using this feature.
 
 .. image:: ../images/turtlebot.gif
-  :width: 300
+  :width: 800
   :align: center
   :alt: Defining a robot with a namespace in Slicer
