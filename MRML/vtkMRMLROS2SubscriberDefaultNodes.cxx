@@ -3,8 +3,6 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2SubscriberInternals.h>
 
-#include <vtkROS2GeometryMsgsPoseStamped.h>
-
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::String, std::string, String);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::Bool, bool, Bool);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::Int64, int, Int);
@@ -18,3 +16,8 @@ VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(std_msgs::msg::Float64MultiArray, vtkTable, Doub
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::Joy, vtkTable, Joy)
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::PoseStamped, vtkGeometryMsgsPoseStamped, PoseStamped)
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::Pose, vtkMatrix4x4, Pose)
+
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::Wrench, vtkDoubleArray, Wrench)
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::WrenchStamped, vtkGeometryMsgsWrenchStamped, WrenchStamped)
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::Joy, vtkSensorMsgsJoy, JoyV2)
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::JointState, vtkSensorMsgsJointState, JointState)

@@ -14,8 +14,28 @@ set(${KIT}_INCLUDE_DIRECTORIES
 # --------------------------------------------------------------------------
 # Sources
 
+# SLICER_ROS (
+#   PUBLISHERS "geometry_msgs/msg/PoseStamped"
+#   SUBSCRIBERS "geometry_msgs/msg/WrenchStamped"
+#   SERVICES "std_srvs/srv/Empty"
+#   )
+# macro will:
+# 1. List all ROS mssages usedand create conversion methods as needed
+# 2. Create a ROS2 MRML node for each publisher, subscriber, service
+# 2.1. Create a header + cpp file for each node using existing C++  macros
+# 2.2. Add the node to the RegisterNode of logic using CMAKE configure_file
+
+
+
+### Include the new cmake file with the macros instead of having the full logic here
+
+
+
 set(_ROS_MESSAGES
   "geometry_msgs/msg/PoseStamped"
+  "sensor_msgs/msg/JointState"
+  "sensor_msgs/msg/Joy"
+  "geometry_msgs/msg/WrenchStamped"
   "std_msgs/msg/Header"
   "builtin_interfaces/msg/Time"
   )
@@ -34,12 +54,6 @@ foreach(_msg ${_ROS_MESSAGES})
     string(REGEX REPLACE "^.(.*)" "${_first}\\1" _4 "${_3}")
     string(APPEND _class_name ${_4})
   endforeach ()
-
-  # ^ I'm not a fan of the snake to camel conversion here. 
-  #  Maybe the class name portion can be handled inside python.
-  #  Given a message type, the class name can be derived from the message type.
-  #  This also makes it harder to find dependant classes in the msg.
-  #  I think it is easier to find dependant classes using rclpy in python
 
   # create custom command
   set(_h "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")

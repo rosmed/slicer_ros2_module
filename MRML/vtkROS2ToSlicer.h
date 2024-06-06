@@ -18,6 +18,7 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "std_srvs/srv/set_bool.hpp"
@@ -36,7 +37,9 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
 void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::Pose & input, vtkSmartPointer<vtkMatrix4x4> result);
+void vtkROS2ToSlicer(const geometry_msgs::msg::Transform & input, vtkSmartPointer<vtkMatrix4x4> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
+void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<vtkDoubleArray> result);
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result);
 

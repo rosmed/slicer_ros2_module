@@ -47,6 +47,9 @@ class vtkMRMLROS2ServiceClientDefaultNode;
 #include <vtkCustomTypes.h>
 // REMOVE THIS LATER
 #include <vtkROS2GeometryMsgsPoseStamped.h>
+#include <vtkROS2SensorMsgsJoy.h>
+#include <vtkROS2SensorMsgsJointState.h>
+#include <vtkROS2GeometryMsgsWrenchStamped.h>
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
@@ -103,6 +106,74 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
     gmps->SetPose(gmp);
 
     return gmps;
+  }
+
+  inline vtkGeometryMsgsWrenchStamped * GetGeometryMsgsWrenchStamped(void) const { 
+    vtkGeometryMsgsWrenchStamped * gmps = vtkGeometryMsgsWrenchStamped::New();
+    vtkStdMsgsHeader * smh = vtkStdMsgsHeader::New();
+    smh->SetFrame_id("test");
+    
+    vtkBuiltinInterfacesTime * bit = vtkBuiltinInterfacesTime::New();
+    bit->SetSec(1);
+    bit->SetNanosec(2);
+
+    smh->SetStamp(bit);
+
+    gmps->SetHeader(smh);
+
+    vtkDoubleArray * gmp = vtkDoubleArray::New();
+
+    gmps->SetWrench(gmp);
+
+    return gmps;
+  }
+
+  inline vtkSensorMsgsJoy * GetSensorMsgsJoy(void) const { 
+    vtkSensorMsgsJoy * smj = vtkSensorMsgsJoy::New();
+    vtkStdMsgsHeader * smh = vtkStdMsgsHeader::New();
+    smh->SetFrame_id("test");
+    
+    vtkBuiltinInterfacesTime * bit = vtkBuiltinInterfacesTime::New();
+    bit->SetSec(1);
+    bit->SetNanosec(2);
+
+    smh->SetStamp(bit);
+
+    smj->SetHeader(smh);
+
+    std::vector<float> axes = {1, 2, 3};
+    std::vector<int> buttons = {1, 2, 3};
+
+    smj->SetAxesVector(axes);
+    smj->SetButtonsVector(buttons);
+
+    return smj;
+  }
+
+  inline vtkSensorMsgsJointState * GetSensorMsgsJointState(void) const { 
+    vtkSensorMsgsJointState * smjs = vtkSensorMsgsJointState::New();
+    vtkStdMsgsHeader * smh = vtkStdMsgsHeader::New();
+    smh->SetFrame_id("test");
+    
+    vtkBuiltinInterfacesTime * bit = vtkBuiltinInterfacesTime::New();
+    bit->SetSec(1);
+    bit->SetNanosec(2);
+
+    smh->SetStamp(bit);
+
+    smjs->SetHeader(smh);
+
+    std::vector<std::string> name = {"test1", "test2", "test3"};
+    std::vector<double> position = {1, 2, 3};
+    std::vector<double> velocity = {1, 2, 3};
+    std::vector<double> effort = {1, 2, 3};
+
+    smjs->SetNameVector(name);
+    smjs->SetPositionVector(position);
+    smjs->SetVelocityVector(velocity);
+    smjs->SetEffortVector(effort);
+
+    return smjs;
   }
 
 

@@ -136,6 +136,38 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Pose & input, vtkSmartPointer<vtk
   result->SetElement(2, 3, z);
 }
 
+void vtkROS2ToSlicer(const geometry_msgs::msg::Transform & input, vtkSmartPointer<vtkMatrix4x4> result)
+{
+  // Basically the same as the function above except the getting method is different
+  // Get individual elements from the ros message
+  auto x = input.translation.x*MM_TO_M_CONVERSION;
+  auto y = input.translation.y*MM_TO_M_CONVERSION;
+  auto z = input.translation.z*MM_TO_M_CONVERSION;
+  auto q_w = input.rotation.w;
+  auto q_x = input.rotation.x;
+  auto q_y = input.rotation.y;
+  auto q_z = input.rotation.z;
+
+  // Copy contents into a vtkMRMLTransformNode
+  const double q[4] = {q_w, q_x, q_y, q_z};
+  double A[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+
+  // Is there a more efficient way to do this??
+  // Apply rotation
+  vtkMath::QuaternionToMatrix3x3(q, A); // Convert quaternion to a 3x3 matrix
+  for (size_t row = 0; row < 3; row++) {
+    for (size_t column = 0; column < 3; column++) {
+      result->SetElement(row, column, A[row][column]); // Set the 3x3 matrix as the rotation component of the homogeneous transform
+    }
+  }
+
+  // Apply translation vector
+  result->SetElement(0, 3, x);
+  result->SetElement(1, 3, y);
+  result->SetElement(2, 3, z);
+}
+
+// transform stamped
 void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmartPointer<vtkMatrix4x4> result)
 {
   // Basically the same as the function above except the getting method is different
@@ -165,6 +197,17 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmar
   result->SetElement(0, 3, x);
   result->SetElement(1, 3, y);
   result->SetElement(2, 3, z);
+}
+
+void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<vtkDoubleArray> result)
+{
+  result->SetNumberOfValues(6);
+  result->SetValue(0, input.force.x);
+  result->SetValue(1, input.force.y);
+  result->SetValue(2, input.force.z);
+  result->SetValue(3, input.torque.x);
+  result->SetValue(4, input.torque.y);
+  result->SetValue(5, input.torque.z);
 }
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result)

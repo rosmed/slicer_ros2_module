@@ -10,30 +10,6 @@ import importlib
 import json
 from rosidl_runtime_py import message_to_ordereddict
 
-def ROS2_to_vtkObject(_message, _class_name, _directory):
-    [package, namespace, message] = _message.split('/')
-    with open(_directory + '/' + _class_name + '.h', 'w') as h:
-        h.write('#ifndef _' + _class_name + '_h\n')
-        h.write('#define _' + _class_name + '_h\n')
-        h.write('#include <vtkObject.h>\n')
-        h.write('class ' + _class_name + ': public vtkObject {\n')
-        h.write('public:\n')
-        h.write('  vtkTypeMacro(' + _class_name + ', vtkObject);\n')
-        h.write('  static ' + _class_name + ' * New(void);\n')
-        h.write('protected:\n')
-        h.write('  ' + _class_name + '() {};\n')
-        h.write('  ~' + _class_name + '() {};\n')
-        h.write('};\n')
-        h.write('#endif\n')
-
-    with open(_directory + '/' + _class_name + '.cxx', 'w') as cxx:
-        cxx.write('#include <vtkObjectFactory.h>\n')
-        cxx.write('#include <' + _class_name + '.h>\n')
-        cxx.write('vtkStandardNewMacro(' + _class_name + ');\n')
-        cxx.write('\n')
-
-########################### CONFIG ###########################
-
 static_type_mapping = {
     'bool': 'bool',
     'uint32': 'uint32_t',
@@ -58,7 +34,9 @@ static_type_default_value = {
 }
 
 vtk_equivalent_types = {
-    'Pose' : 'Matrix4x4'
+    'Pose' : 'Matrix4x4',
+    'Wrench': 'DoubleArray',
+    'Transform': 'Matrix4x4'
 }
 
 ############### UTILS ####################
@@ -149,11 +127,19 @@ def generate_static_getset(method_code_hpp, field_name, field_type, static_type_
     return method_code_hpp
 
 def generate_static_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-    method_code_hpp += f"    const {static_type_mapping[field_type]}* Get{field_name.capitalize()}Array() const {{\n"
+    # method_code_hpp += f"    const {static_type_mapping[field_type]}* Get{field_name.capitalize()}Vector() const {{\n"
+    # method_code_hpp += f"        return {field_name}_;\n"
+    # method_code_hpp += f"    }}\n\n"
+
+    method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{field_name.capitalize()}Vector() const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
 
-    method_code_hpp += f"    void Set{field_name.capitalize()}Array(const {static_type_mapping[field_type]}* value) {{\n"
+    # method_code_hpp += f"    void Set{field_name.capitalize()}Vector(const {static_type_mapping[field_type]}* value) {{\n"
+    # method_code_hpp += f"        {field_name}_ = value;\n"
+    # method_code_hpp += f"    }}\n\n"
+
+    method_code_hpp += f"    void Set{field_name.capitalize()}Vector(const std::vector<{static_type_mapping[field_type]}>& value) {{\n"
     method_code_hpp += f"        {field_name}_ = value;\n"
     method_code_hpp += f"    }}\n\n"
 
@@ -192,7 +178,8 @@ def generate_class(class_name, fields, message_attribute_map):
             elif "sequence" in field_type:
                 static_type = field_type.split('<')[1].split('>')[0]
                 method_code_hpp = generate_static_sequence_getset(method_code_hpp, field_name, static_type, static_type_mapping)
-                attribute_code_hpp += f"    {static_type_mapping[static_type]}* {field_name}_;\n"
+                # attribute_code_hpp += f"    {static_type_mapping[static_type]}* {field_name}_;\n"
+                attribute_code_hpp += f"    std::vector<{static_type_mapping[static_type]}> {field_name}_;\n"
 
             else:
                 method_code_hpp = generate_static_getset(method_code_hpp, field_name, field_type, static_type_mapping)
@@ -323,6 +310,9 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
             if is_vtk_object(field_type, message_attribute_map):
                 is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
                 code_string_cpp += f"\tvtkSlicerToROS2(input->Get{field_name.capitalize()}(), result.{field_name}, rosNode);\n"
+            elif "sequence" in field_type:
+                static_type = field_type.split('<')[1].split('>')[0]
+                code_string_cpp += f"\tresult.{field_name} = input->Get{field_name.capitalize()}Vector();\n"
             else:
                 code_string_cpp += f"\tresult.{field_name} = input->Get{field_name.capitalize()}();\n"
 
@@ -351,6 +341,13 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
                 code_string_cpp += f"\tvtkSmartPointer<vtk{field_type}> {field_name} = vtkSmartPointer<vtk{field_type}>::New();\n"
                 code_string_cpp += f"\tvtkROS2ToSlicer(input.{field_name}, {field_name});\n"
                 code_string_cpp += f"\tresult->Set{field_name.capitalize()}({field_name});\n"
+            elif "sequence" in field_type:
+                static_type = field_type.split('<')[1].split('>')[0]
+                # code_string_cpp += f"\tstd::vector<{static_type_mapping[static_type]}> {field_name}_(input.{field_name}.begin(), input.{field_name}.end());\n"
+                # code_string_cpp += f"\tfor (auto& elem : input.{field_name}) {{\n"
+                # code_string_cpp += f"\t\tdata.push_back(elem);\n"
+                # code_string_cpp += f"\t}}\n"
+                code_string_cpp += f"\tresult->Set{field_name.capitalize()}Vector(input.{field_name});\n"
             else:
                 code_string_cpp += f"\tresult->Set{field_name.capitalize()}(input.{field_name});\n"
 

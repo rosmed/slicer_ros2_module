@@ -51,9 +51,11 @@ void vtkSlicerToROS2(vtkTable * input,  std_msgs::msg::Float64MultiArray & resul
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::Pose & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
-void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::TransformStamped & result,
+void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::Transform & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
-void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::WrenchStamped & result,
+void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::TransformStamped & result,
+			 const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::Wrench & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArray & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode);

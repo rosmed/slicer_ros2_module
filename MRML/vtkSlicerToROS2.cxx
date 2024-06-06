@@ -118,12 +118,27 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::Pose & result,
   result.orientation.z = q[3];
 }
 
-void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::TransformStamped & result,
+void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::Transform & result,
 		     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  double q[4] = {0.0, 0.0, 0.0, 0.0};
+  vtkMatrix4x4ToQuaternion(input, q);
+  result.translation.x = input->GetElement(0, 3) * M_TO_MM;
+  result.translation.y = input->GetElement(1, 3) * M_TO_MM;
+  result.translation.z = input->GetElement(2, 3) * M_TO_MM;
+  result.rotation.w = q[0];
+  result.rotation.x = q[1];
+  result.rotation.y = q[2];
+  result.rotation.z = q[3];
+}
+
+// transform stamped
+void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::TransformStamped & result,
+         const std::shared_ptr<rclcpp::Node> & rosNode)
 {
   result.header.frame_id = "slicer"; // VTK 9.2 will support input->GetObjectName();
   result.header.stamp = rosNode->get_clock()->now();
-
+  result.child_frame_id = "slicer_child"; // VTK 9.2 will support input->GetObjectName();
   double q[4] = {0.0, 0.0, 0.0, 0.0};
   vtkMatrix4x4ToQuaternion(input, q);
   result.transform.translation.x = input->GetElement(0, 3) * M_TO_MM;
@@ -135,24 +150,24 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input,  geometry_msgs::msg::TransformStamped
   result.transform.rotation.z = q[3];
 }
 
-void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::WrenchStamped & result,
+void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::Wrench & result,
 		     const std::shared_ptr<rclcpp::Node> &)
 {
   if (input->GetNumberOfValues() == 6){
-    result.wrench.force.x = input->GetValue(0); // for now I'm going to make it 0
-    result.wrench.force.y = input->GetValue(1);
-    result.wrench.force.z = input->GetValue(2);
-    result.wrench.torque.x = input->GetValue(3);
-    result.wrench.torque.y = input->GetValue(4);
-    result.wrench.torque.z = input->GetValue(5);
+    result.force.x = input->GetValue(0); // for now I'm going to make it 0
+    result.force.y = input->GetValue(1);
+    result.force.z = input->GetValue(2);
+    result.torque.x = input->GetValue(3);
+    result.torque.y = input->GetValue(4);
+    result.torque.z = input->GetValue(5);
   }
   else{
-    result.wrench.force.x = 0.0;
-    result.wrench.force.y = 0.0;
-    result.wrench.force.z = 0.0;
-    result.wrench.torque.x = 0.0;
-    result.wrench.torque.y = 0.0;
-    result.wrench.torque.z = 0.0;
+    result.force.x = 0.0;
+    result.force.y = 0.0;
+    result.force.z = 0.0;
+    result.torque.x = 0.0;
+    result.torque.y = 0.0;
+    result.torque.z = 0.0;
   }
 }
 
