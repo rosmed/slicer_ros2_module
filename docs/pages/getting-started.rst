@@ -20,9 +20,9 @@ Before you can start compiling the SlicerROS2 module, you will need:
   * Ubuntu 20.04 only.  Instructions from the Slicer site recommend to
     install a newer version of Qt on Ubuntu 20.04.  This makes the
     builds with ROS2 quite difficult so instead, we recommend to use
-    Slicer versions up to 5.2.2 and use the Qt libraries installed by
-    default along Ubuntu.  After you cloned the Slicer sources, make
-    sure you checkout 5.2.2 using ``git checkout v5.2.2``.
+    this patch: `SlicerROS2-Patch <https://github.com/LauraConnolly/Slicer/tree/SlicerROS2_patch>`_  and use the Qt libraries installed by
+    default along Ubuntu (this was tested with Qt 5.12.8).  After you cloned the Slicer sources, make
+    sure you checkout the branch SlicerROS2_patch using ``git checkout SlicerROS2_patch``.
     
   * Before you start compiling Slicer, make sure we use the
     system/native OpenSSL libraries otherwise you'll get some errors

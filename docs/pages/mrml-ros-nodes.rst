@@ -236,6 +236,12 @@ subscribers to convert messages between ROS and Slicer.
    * - vtkTransformCollection
      - geometry_msgs::msg::PoseArray
      - PoseArray
+   * - vtkUInt8Array
+     - sensor_msgs::msg::Image
+     - UInt8Image
+   * - vtkPoints
+     - sensor_msgs::msg::PointCloud
+     - PointCloud
 
 For example, if you need to create a publisher that will take a
 `vtkMatrix4x4` on the Slicer side and publish a

@@ -8,6 +8,8 @@
 #include <vtkIntArray.h>
 #include <vtkDoubleArray.h>
 #include <vtkTable.h>
+#include <vtkTypeUInt8Array.h>
+#include <vtkPoints.h>
 
 // ROS2
 #include <std_msgs/msg/string.hpp>
@@ -17,8 +19,10 @@
 #include <std_msgs/msg/int64_multi_array.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <sensor_msgs/msg/joy.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include "geometry_msgs/msg/transform_stamped.hpp"
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result);
@@ -32,5 +36,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 void vtkROS2ToSlicer(const sensor_msgs::msg::Joy & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::PoseStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::TransformStamped & input, vtkSmartPointer<vtkMatrix4x4> result);
+void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkTypeUInt8Array> result);
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result);
 
 #endif

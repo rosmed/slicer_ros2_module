@@ -15,3 +15,5 @@ VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(std_msgs::msg::Float64MultiArray, vtkTable, Doub
 
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::Joy, vtkTable, Joy)
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::PoseStamped, vtkMatrix4x4, PoseStamped)
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::Image, vtkTypeUInt8Array, UInt8Image);
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::PointCloud, vtkPoints, PointCloud);

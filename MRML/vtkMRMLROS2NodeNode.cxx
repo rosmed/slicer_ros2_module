@@ -195,7 +195,7 @@ vtkMRMLROS2Tf2LookupNode * vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode(const 
 }
 
 
-vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName)
+vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName, const std::string & fixedFrame)
 {
   // Check if this has been added to the scene
   if (this->GetScene() == nullptr) {
@@ -210,7 +210,7 @@ vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::str
   this->GetScene()->AddNode(robotNode);
   robotNode->SetRobotName(robotName);
   mRobotNames.push_back(robotName);
-  robotNode->AddToROS2Node(this->GetID(), robotName, parameterNodeName, parameterName);
+  robotNode->AddToROS2Node(this->GetID(), robotName, parameterNodeName, parameterName, fixedFrame);
   return robotNode;
 }
 
