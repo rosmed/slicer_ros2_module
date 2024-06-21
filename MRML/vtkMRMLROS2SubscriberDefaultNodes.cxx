@@ -13,7 +13,9 @@ VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(std_msgs::msg::Float64MultiArray, vtkDoubleArray
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(std_msgs::msg::Int64MultiArray, vtkTable, IntTable);
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(std_msgs::msg::Float64MultiArray, vtkTable, DoubleTable);
 
-VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::Joy, vtkTable, Joy)
-VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::PoseStamped, vtkMatrix4x4, PoseStamped)
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::Image, vtkTypeUInt8Array, UInt8Image);
 VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(sensor_msgs::msg::PointCloud, vtkPoints, PointCloud);
+
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::Pose, vtkMatrix4x4, Pose)
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::Transform, vtkMatrix4x4, Transform)
+VTK_MRML_ROS_SUBSCRIBER_VTK_CXX(geometry_msgs::msg::Wrench, vtkDoubleArray, Wrench)

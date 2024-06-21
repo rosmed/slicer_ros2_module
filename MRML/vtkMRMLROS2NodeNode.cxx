@@ -11,6 +11,8 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLROS2ServiceNode.h>
+#include <vtkMRMLROS2ServiceClientNode.h>
 #include <vtkMRMLModelNode.h>
 
 vtkStandardNewMacro(vtkMRMLROS2NodeNode);
@@ -215,6 +217,52 @@ vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::CreateAndAddRobotNode(const std::str
 }
 
 
+vtkMRMLROS2ServiceNode * vtkMRMLROS2NodeNode::CreateAndAddServiceNode(const std::string & monitoredNodeName)
+{
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddService: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLROS2ServiceNode> serviceNode = vtkMRMLROS2ServiceNode::New();
+  // Add to the scene so the ROS2Node node can find it
+  this->GetScene()->AddNode(serviceNode);
+  if (serviceNode->AddToROS2Node(this->GetID(), monitoredNodeName)) {
+    return serviceNode;
+  }
+  // Something went wrong, cleanup
+  this->GetScene()->RemoveNode(serviceNode);
+  serviceNode->Delete();
+  return nullptr;
+}
+
+vtkMRMLROS2ServiceClientNode * vtkMRMLROS2NodeNode::CreateAndAddServiceClientNode(const char * className, const std::string & topic)
+{
+  // Check if this has been added to the scene
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddServiceClient: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return nullptr;
+  }
+  // CreateNodeByClass
+  vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
+  // Check that this is a serviceClient so we can add it
+  vtkMRMLROS2ServiceClientNode * serviceClientNode = vtkMRMLROS2ServiceClientNode::SafeDownCast(node);
+  if (serviceClientNode == nullptr) {
+    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not derived from vtkMRMLROS2ServiceClientNode");
+    return nullptr;
+  }
+  // Add to the scene so the ROS2Node node can find it
+  this->GetScene()->AddNode(serviceClientNode);
+  if (serviceClientNode->AddToROS2Node(this->GetID(), topic)) {
+    return serviceClientNode;
+  }
+  // Something went wrong, cleanup
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return nullptr;
+}
+
 vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::GetSubscriberNodeByTopic(const std::string & topic)
 {
   size_t subscriberRefs = this->GetNumberOfNodeReferences("subscriber");
@@ -346,6 +394,20 @@ vtkMRMLROS2RobotNode * vtkMRMLROS2NodeNode::GetRobotNodeByName(const std::string
     }
   }
   return nullptr; // otherwise return a null ptr
+}
+
+vtkMRMLROS2ServiceClientNode* vtkMRMLROS2NodeNode::GetServiceClientNodeByTopic(const std::string & topic)
+{
+  size_t serviceClientRefs = this->GetNumberOfNodeReferences("service_client");
+  for (size_t j = 0; j < serviceClientRefs; ++j) {
+    vtkMRMLROS2ServiceClientNode * node = vtkMRMLROS2ServiceClientNode::SafeDownCast(this->GetNthNodeReference("service_client", j));
+    if (!node) {
+      vtkWarningMacro(<< "vtkMRMLROS2ServiceClientNode: node referenced by role 'service_client' is not a service_client");
+    } else if (node->GetTopic() == topic) {
+      return node;
+    }
+  }
+  return nullptr;
 }
 
 
@@ -488,6 +550,19 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName
   return true;
 }
 
+bool vtkMRMLROS2NodeNode::RemoveAndDeleteServiceClientNode(const std::string & topic)
+{
+  vtkMRMLROS2ServiceClientNode * node = this->GetServiceClientNodeByTopic(topic);
+  if (!node) {
+    vtkWarningMacro(<< "RemoveServiceClientNode: node referenced by role 'service_client' for topic " << topic << " does not exist");
+    return false;
+  }
+  node->RemoveFromROS2Node(this->GetID(), topic);
+  this->GetScene()->RemoveNode(node);
+  node->Delete();
+  return true;
+}
+
 
 bool vtkMRMLROS2NodeNode::SetTf2Buffer(void)
 {
@@ -522,7 +597,7 @@ void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
         // check how old we want the data to be (right now it's doing it no matter how old) - for now we don't care
         transformStamped = mInternals->mTf2Buffer->lookupTransform(parent_id, child_id, tf2::TimePointZero);
         if (lookupNode->IsDifferentFromLast(transformStamped.header.stamp.sec, transformStamped.header.stamp.nanosec)) {
-          vtkROS2ToSlicer(transformStamped, mTemporaryMatrix);
+          vtkROS2ToSlicer(transformStamped.transform, mTemporaryMatrix);
           if (lookupNode->GetModifiedOnLookup()) {
             lookupNode->SetMatrixTransformToParent(mTemporaryMatrix);
           } else {

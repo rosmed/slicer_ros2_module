@@ -176,7 +176,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMRMLTransformNode * message)
   geometry_msgs::msg::TransformStamped rosTransform;
   vtkNew<vtkMatrix4x4> matrix;
   message->GetMatrixTransformToParent(matrix); // Note this is an overloaded method (definition below don't need to get matrix from transform)
-  vtkSlicerToROS2(matrix, rosTransform, mInternals->mROSNode);
+  vtkSlicerToROS2(matrix, rosTransform.transform, mInternals->mROSNode);
   rosTransform.header.frame_id = mParentID;
   rosTransform.child_frame_id = mChildID;
 
@@ -198,7 +198,7 @@ bool vtkMRMLROS2Tf2BroadcasterNode::Broadcast(vtkMatrix4x4 * message)
 
   // Prepare the transform
   geometry_msgs::msg::TransformStamped rosTransform;
-  vtkSlicerToROS2(message, rosTransform, mInternals->mROSNode);
+  vtkSlicerToROS2(message, rosTransform.transform, mInternals->mROSNode);
   rosTransform.header.frame_id = mParentID;
   rosTransform.child_frame_id = mChildID;
 

@@ -10,6 +10,7 @@ VTK_MRML_ROS_PUBLISHER_NATIVE_H(int, Int);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(double, Double);
 
 #include <vtkMatrix4x4.h>
+#include <vtkDoubleArray.h>
 #include <vtkTransformCollection.h>
 #include <vtkTable.h>
 #include <vtkTypeUInt8Array.h>
@@ -19,9 +20,11 @@ VTK_MRML_ROS_PUBLISHER_VTK_H(vtkIntArray, IntArray);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, DoubleArray);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTable, IntTable);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTable, DoubleTable);
-VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, PoseStamped);
-VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, WrenchStamped);
+
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, Pose);
+VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, Wrench);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTransformCollection, PoseArray);
+
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTypeUInt8Array, UInt8Image);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkPoints, PointCloud);
 

@@ -35,14 +35,15 @@ class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2RobotNode;
+class vtkMRMLROS2ServiceNode;
+class vtkMRMLROS2ServiceClientDefaultNode;
 
 // Slicer includes
 #include <vtkSlicerModuleLogic.h>
 #include <vtkSmartPointer.h>
 #include <vtkSlicerROS2ModuleLogicExport.h>
 
-// REMOVE THIS LATER
-#include <vtkROS2SensorMsgsJoy.h>
+// #include <vtkMRMLROS2ServiceNode.h>
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
@@ -63,14 +64,9 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
   void UpdateFromMRMLScene() override;
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
+  
 
  public:
-  // REMOVE THIS LATER
-  inline vtkSmartPointer<vtkROS2SensorMsgsJoy> GetSensor(void) {
-    vtkNew<vtkROS2SensorMsgsJoy> sensor;
-    return sensor;
-  }
-   
   /*! Spin all the ROS nodes attached to the module's core logic.
     This method needs to be called periodically to dequeue all the ROS
     incomming messages (subscriptions, parameters and tf2 lookups.  By
