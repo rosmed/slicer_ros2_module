@@ -322,9 +322,9 @@ can be retrieved using ``GetLastMessage``.
          rosNode = rosLogic.GetDefaultROS2Node()
          subString = rosNode.CreateAndAddSubscriberNode('vtkMRMLROS2SubscriberStringNode', '/my_string')
          # run `ros2 topic pub /my_string` to send a string
-         m_string = sub.GetLastMessage()
+         m_string = subString.GetLastMessage()
          # alternate, get a string with the full message
-         m_string_yaml = sub.GetLastMessageYAML()
+         m_string_yaml = subString.GetLastMessageYAML()
          # since the subscriber is a MRML node, you can also create an observer (callback)
          # to trigger some code when a new message is received
          observerId = subString.AddObserver('ModifiedEvent', myCallback)
@@ -333,9 +333,9 @@ can be retrieved using ``GetLastMessage``.
 
       .. code-block:: C++
 
-         auto pubString = rosNode->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/my_string");
+         auto subString = rosNode->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/my_string");
          // run ros2 topic echo /my_string in a terminal to see the output
-         pubString->Publish("my first string");
+         subString->Publish("my first string");
 
 To remove the subscriber node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeleteSubscriberNode``. This method takes
 one parameter:

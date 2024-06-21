@@ -31,12 +31,12 @@ def get_class_name_formatted(class_name):
 
 
 def generate_vector_code(class_code_hpp, class_code_cpp, class_name, fields):
-    class_code_cpp += "// generate_vector_code\n"
+    class_code_cpp += f"{__} // generate_vector_code\n"
     class_code_cpp += f"{__} data_.resize({len(fields)});\n"
 
     vector_type = list(fields.values())[0]
 
-    class_code_hpp += "//generate_vector_code\n"
+    class_code_hpp += f"{__} //generate_vector_code\n"
     class_code_hpp += f"{__} const std::vector<{vector_type}>& Get{class_name}Vector() const {{\n"
     class_code_hpp += f"{____} return data_;\n"
     class_code_hpp += f"{____} }}\n\n"
@@ -51,7 +51,7 @@ def generate_vector_code(class_code_hpp, class_code_cpp, class_name, fields):
 
 
 def generate_vtk_getset(method_code_hpp, field_name, field_type):
-    method_code_hpp += "// generate_vtk_getset\n"
+    method_code_hpp += f"{__} // generate_vtk_getset\n"
     method_code_hpp += f"{__} vtk{field_type} * Get{field_name.capitalize()}() {{\n"
     method_code_hpp += f"{____} return {field_name}_;\n"
     method_code_hpp += f"{__} }}\n\n"
@@ -63,7 +63,7 @@ def generate_vtk_getset(method_code_hpp, field_name, field_type):
 
 
 def generate_static_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-    method_code_hpp += "// generate_static_getset\n"
+    method_code_hpp += f"{__}// generate_static_getset\n"
     method_code_hpp += f"{__} const {static_type_mapping[field_type]}& Get{field_name.capitalize()}() const {{\n"
     method_code_hpp += f"{____} return {field_name}_;\n"
     method_code_hpp += f"{__} }}\n\n"
@@ -173,7 +173,7 @@ def identify_imports(class_name, namespace, package_name, fields, message_attrib
         if is_vtk_object(field_type, message_attribute_map):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             if not is_equivalent_type_available:
-                imports+=f"#include <vtkROS2{field_type}.h>\n"
+                imports+=f"#include <vtk{field_type}.h>\n"
             else:
                 imports += f"#include <vtk{field_type}.h>\n"
     return imports
@@ -283,7 +283,7 @@ def ROS2_to_vtkObject_v2(_message, _directory):
     class_definitions_code_hpp = ""
     class_definitions_code_cpp = ""
 
-    filename = f"vtkROS2{class_name_formatted}"
+    filename = f"vtk{class_name_formatted}"
     hpp_code += f"#ifndef {filename}_h\n"
     hpp_code += f"#define {filename}_h\n\n"
 
@@ -291,10 +291,11 @@ def ROS2_to_vtkObject_v2(_message, _directory):
 
     imports = identify_imports(msg_name, namespace, package, fields, message_attribute_map,)
     hpp_code += imports
-    hpp_code += f"// Forward declarations\n"
 
     # forward declarations
-    hpp_code += f"class vtk{class_name_formatted};\n"
+    # hpp_code += f"// Forward declarations\n"
+    # hpp_code += f"class vtk{class_name_formatted};\n"
+
     class_code_hpp_single, class_code_cpp_single = generate_class(class_name_formatted, fields, message_attribute_map)
     class_definitions_code_hpp += class_code_hpp_single
     class_definitions_code_cpp += class_code_cpp_single
