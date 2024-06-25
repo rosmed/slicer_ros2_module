@@ -84,6 +84,14 @@ vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode(cons
   }
   // CreateNodeByClass
   vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
+  if (node == nullptr) {
+    const std::string fromShortName = "vtkMRMLROS2Subscriber" + std::string(className) + "Node";
+    node = this->GetScene()->CreateNodeByClass(fromShortName.c_str());
+    if (node == nullptr) {
+      vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << className << "\" nor \"" << fromShortName << "\" is a node type");
+      return nullptr;
+    }
+  }
   // Check that this is a subscriber so we can add it
   vtkMRMLROS2SubscriberNode * subscriberNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
   if (subscriberNode == nullptr) {
@@ -111,6 +119,14 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisherNode(const 
   }
   // CreateNodeByClass
   vtkSmartPointer<vtkMRMLNode> node = this->GetScene()->CreateNodeByClass(className);
+  const std::string fromShortName = "vtkMRMLROS2Publisher" + std::string(className) + "Node";
+  if (node == nullptr) {
+    node = this->GetScene()->CreateNodeByClass(fromShortName.c_str());
+    if (node == nullptr) {
+      vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" nor \"" << fromShortName << "\" is a node type");
+      return nullptr;
+    }
+  }
   // Check that this is a publisher so we can add it
   vtkMRMLROS2PublisherNode * publisherNode = vtkMRMLROS2PublisherNode::SafeDownCast(node);
   if (publisherNode == nullptr) {
