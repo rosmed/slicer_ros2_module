@@ -48,6 +48,12 @@ public:
   QStringList categories() const override;
   QStringList dependencies() const override;
 
+public slots:
+  void stopTimer(void);
+
+protected slots:
+  void onTimerTimeOut(void);
+
 protected:
   /// Initialize the module. Register the volumes reader/writer
   void setup() override;
@@ -60,6 +66,8 @@ protected:
 
 private:
   Q_DISABLE_COPY(qSlicerROS2Module);
+
+  QTimer* mTimer;
 };
 
 #endif

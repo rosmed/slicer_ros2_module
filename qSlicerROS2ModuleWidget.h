@@ -44,18 +44,12 @@ public:
   qSlicerROS2ModuleWidget(QWidget *parent=0);
   virtual ~qSlicerROS2ModuleWidget();
 
-public slots:
-  void stopTimer(void);
-
 protected:
   QScopedPointer<qSlicerROS2ModuleWidgetPrivate> d_ptr;
 
   void setup() override;
-  QTimer* mTimer;
-  bool timerOff = false;
 
 protected slots:
-  void onTimerTimeOut(void);
   void updateWidget(void);
   void updateSubscriberTable(vtkMRMLROS2SubscriberNode * sub, size_t row);
   void updatePublisherTable(vtkMRMLROS2PublisherNode * sub, size_t row);
