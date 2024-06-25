@@ -80,6 +80,7 @@
     const char * GetNodeTagName(void) override;                         \
     void GetLastMessage(slicer_type * message) const;                   \
     slicer_type * GetLastMessage(void) const;                           \
+    slicer_type * GetBlankMessage(void) const;                          \
     void GetLastMessage(vtkSmartPointer<slicer_type> message) const;    \
     vtkVariant GetLastMessageVariant(void) override;                    \
                                                                         \
@@ -125,6 +126,12 @@
   {                                                                     \
     vtkSmartPointer<slicer_type> result = slicer_type::New();           \
     this->GetLastMessage(result);                                       \
+    return result;                                                      \
+  }                                                                     \
+                                                                        \
+  slicer_type * vtkMRMLROS2Subscriber##name##Node::GetBlankMessage(void) const \
+  {                                                                     \
+    vtkSmartPointer<slicer_type> result = slicer_type::New();           \
     return result;                                                      \
   }                                                                     \
                                                                         \
