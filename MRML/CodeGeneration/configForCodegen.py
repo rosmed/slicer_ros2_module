@@ -1,9 +1,11 @@
+# mapping from ROS to vtk/C++ types with upcast to Python wrappers are
+# generated
 static_type_mapping = {
     'bool': 'bool',
-    'uint32': 'uint32_t',
-    'int32': 'int32_t',
-    'int' : 'int32_t',
-    'float': 'float',
+    'uint32': 'int',
+    'int32': 'int',
+    'int' : 'int',
+    'float': 'double',
     'double': 'double',
     'string': 'std::string',
     'str': 'std::string'
