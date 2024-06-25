@@ -21,9 +21,6 @@ import warnings
 # ROS2Tests
 #
 
-#Switch off VTK warnings
-vtk.vtkObject.GlobalWarningDisplayOff()
-
 class ROS2Tests(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
@@ -621,6 +618,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     def run(self):
         print('Running all tests...')
+        # Switch off VTK warnings
+        vtk.vtkObject.GlobalWarningDisplayOff()
 
         suite = unittest.TestSuite()
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTurtlesimNode))
@@ -632,6 +631,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         runner = unittest.TextTestRunner()
         runner.run(suite)
+        # Restore VTK warnings
+        vtk.vtkObject.GlobalWarningDisplayOn()
 
 
 # tests = slicer.util.getModuleLogic('ROS2Tests')
