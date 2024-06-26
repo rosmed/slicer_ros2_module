@@ -20,14 +20,14 @@ undefine_python ()
 # needs to be the first thing we do
 find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
-project(ROS2)
+project(slicer_ros2_module)
 
 option (USE_CISST_MSGS "Add topics for cisst messages (https://github.com/jhu-cisst/ros2_cisst_msgs)" OFF)
 
 configure_file (
-  "${ROS2_SOURCE_DIR}/SlicerROS2Config.h.in"
-  "${ROS2_BINARY_DIR}/include/SlicerROS2Config.h")
-include_directories ("${ROS2_BINARY_DIR}/include")
+  "${slicer_ros2_module_SOURCE_DIR}/SlicerROS2Config.h.in"
+  "${slicer_ros2_module_BINARY_DIR}/include/SlicerROS2Config.h")
+include_directories ("${slicer_ros2_module_BINARY_DIR}/include")
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -135,4 +135,7 @@ endif()
 set(Python3_EXECUTABLE ${ROS_Python3_EXECUTABLE} CACHE STRING "ROS Python" FORCE)
 set(PYTHON_EXECUTABLE ${ROS_Python3_EXECUTABLE} CACHE STRING "ROS Python" FORCE)
 
+# Slicer macro will change the project name to ROS2 and ament_package
+# will report this as an error
+project(slicer_ros2_module)
 ament_package()
