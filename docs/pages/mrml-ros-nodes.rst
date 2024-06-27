@@ -253,6 +253,18 @@ For example, if you need to create a publisher that will take a
 `geometry_msgs::msg::PoseStamped` on the ROS side, the full SlicerROS2
 node name will be `vtkMRMLROSPublisherPoseStampedNode`.
 
+To find the current list of supported publishers and subscribers, one can do:
+
+.. code-block:: python
+
+   rosLogic = slicer.util.getModuleLogic('ROS2')
+   rosNode = rosLogic.GetDefaultROS2Node()
+   rosNode.RegisteredROS2PublisherNodes()
+   rosNode.RegisteredROS2SubscriberNodes()
+
+The method ``RegisteredROS2xxxxxNodes`` returns a long string with all the
+publisher or subscriber classes available.
+
 .. _publishers:
 
 Publishers
@@ -279,6 +291,8 @@ Publishers are triggered by calling the ``Publish`` method.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
+         # optional, shows which publishers are available
+         rosNode.RegisteredROS2PublisherNodes()
          # example with full class name
          pubString = rosNode.CreateAndAddPublisherNode('vtkMRMLROS2PublisherStringNode', '/my_string')
          # run `ros2 topic echo /my_string` in a terminal to see the output
@@ -303,7 +317,7 @@ Publishers are triggered by calling the ``Publish`` method.
          // example with short class name, String will be expended to vtkMRMLROS2PublisherStringNode
          auto pubString2 = rosNode->CreateAndAddPublisherNode("String", "/my_second_string");
 
-         
+
 To remove the publisher node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeletePublisherNode``. This method takes
 one parameter:
 
@@ -333,8 +347,10 @@ can be retrieved using ``GetLastMessage``.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
+         # optional, shows which subscribers are available
+         rosNode.RegisteredROS2SubscriberNodes()
          subString = rosNode.CreateAndAddSubscriberNode('String', '/my_string')
-         # run `ros2 topic pub /my_string` to send a string
+         # run `ros2 topic pub /my_string` in a terminal to send a string to Slicer
          m_string = subString.GetLastMessage()
          # alternate, get a string with the full message
          m_string_yaml = subString.GetLastMessageYAML()
@@ -347,8 +363,8 @@ can be retrieved using ``GetLastMessage``.
       .. code-block:: C++
 
          auto subString = rosNode->CreateAndAddSubscriberNode("String", "/my_string");
-         // run ros2 topic echo /my_string in a terminal to see the output
-         subString->Publish("my first string");
+         // run `ros2 topic pub /my_string` in a terminal to send a string to Slicer
+         auto result = subString->GetLastMessage();
 
 To remove the subscriber node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeleteSubscriberNode``. This method takes
 one parameter:

@@ -75,6 +75,42 @@ void vtkMRMLROS2NodeNode::Destroy()
 }
 
 
+std::string vtkMRMLROS2NodeNode::RegisteredROS2SubscriberNodes(void)
+{
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "RegisteredROS2SubscriberNodes: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return "";
+  }
+  std::string subscribers;
+  int nbRegisteredClasses = this->GetScene()->GetNumberOfRegisteredNodeClasses();
+  for (int i = 0; i < nbRegisteredClasses; ++i) {
+    vtkMRMLNode * node = this->GetScene()->GetNthRegisteredNodeClass(i);
+    if (vtkMRMLROS2SubscriberNode::SafeDownCast(node)) {
+      subscribers.append(std::string(node->GetClassName()) + " ");
+    }
+  }
+  return subscribers;
+}
+
+
+std::string vtkMRMLROS2NodeNode::RegisteredROS2PublisherNodes(void)
+{
+  if (this->GetScene() == nullptr) {
+    vtkErrorMacro(<< "RegisteredROS2PublisherNodes: \"" << mROS2NodeName << "\" must be added to a MRML scene first");
+    return "";
+  }
+  std::string publishers;
+  int nbRegisteredClasses = this->GetScene()->GetNumberOfRegisteredNodeClasses();
+  for (int i = 0; i < nbRegisteredClasses; ++i) {
+    vtkMRMLNode * node = this->GetScene()->GetNthRegisteredNodeClass(i);
+    if (vtkMRMLROS2PublisherNode::SafeDownCast(node)) {
+      publishers.append(std::string(node->GetClassName()) + " ");
+    }
+  }
+  return publishers;
+}
+
+
 vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode(const char * className, const std::string & topic)
 {
   // Check if this has been added to the scene
@@ -88,14 +124,14 @@ vtkMRMLROS2SubscriberNode * vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode(cons
     const std::string fromShortName = "vtkMRMLROS2Subscriber" + std::string(className) + "Node";
     node = this->GetScene()->CreateNodeByClass(fromShortName.c_str());
     if (node == nullptr) {
-      vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << className << "\" nor \"" << fromShortName << "\" is a node type");
+      vtkErrorMacro(<< "CreateAndAddSubscriber: neither \"" << className << "\" nor \"" << fromShortName << "\" is a node type, supported types are: " << RegisteredROS2SubscriberNodes());
       return nullptr;
     }
   }
   // Check that this is a subscriber so we can add it
   vtkMRMLROS2SubscriberNode * subscriberNode = vtkMRMLROS2SubscriberNode::SafeDownCast(node);
   if (subscriberNode == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << className << "\" is not derived from vtkMRMLROS2SubscriberNode");
+    vtkErrorMacro(<< "CreateAndAddSubscriber: \"" << className << "\" is not derived from vtkMRMLROS2SubscriberNode, supported types are: " << RegisteredROS2SubscriberNodes());
     return nullptr;
   }
   // Add to the scene so the ROS2Node node can find it
@@ -123,14 +159,14 @@ vtkMRMLROS2PublisherNode * vtkMRMLROS2NodeNode::CreateAndAddPublisherNode(const 
   if (node == nullptr) {
     node = this->GetScene()->CreateNodeByClass(fromShortName.c_str());
     if (node == nullptr) {
-      vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" nor \"" << fromShortName << "\" is a node type");
+      vtkErrorMacro(<< "CreateAndAddPublisher: neither \"" << className << "\" nor \"" << fromShortName << "\" is a node type, supported types are: " << RegisteredROS2PublisherNodes());
       return nullptr;
     }
   }
   // Check that this is a publisher so we can add it
   vtkMRMLROS2PublisherNode * publisherNode = vtkMRMLROS2PublisherNode::SafeDownCast(node);
   if (publisherNode == nullptr) {
-    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not derived from vtkMRMLROS2PublisherNode");
+    vtkErrorMacro(<< "CreateAndAddPublisher: \"" << className << "\" is not derived from vtkMRMLROS2PublisherNode, supported types are: " << RegisteredROS2PublisherNodes());
     return nullptr;
   }
   // Add to the scene so the ROS2Node node can find it

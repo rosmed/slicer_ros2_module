@@ -50,6 +50,14 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
     return mROS2NodeName;
   }
 
+  /*! List all existing subscribers classes registered
+    in the scene. */
+  std::string RegisteredROS2SubscriberNodes(void);
+
+  /*! List all existing publishers classes registered
+    in the scene. */
+  std::string RegisteredROS2PublisherNodes(void);
+
   /*! Helper method to create a subscriber given a subscriber type and
     a topic. This method will create the corresponding MRML node if
     there is no existing subscriber for the given topic and add it to
