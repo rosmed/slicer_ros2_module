@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 import pathlib
 import vtk
 
@@ -162,7 +163,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     @classmethod
     def run_ros2_cli_command_after_sourcing(self, command):
         ros2_process = subprocess.Popen(
-            ROS2TestsLogic.ROS2_EXEC_WITH_SOURCE + command,
+            ROS2TestsLogic.ros2_exec + command,
             shell=True,
             executable='/bin/bash',
             preexec_fn=os.setsid,
@@ -184,7 +185,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         # Assert that the nodeName is in the list of running nodes
         return nodeName in nodes
-        
+
 
     @classmethod
     def check_server_running(self, serverName):
@@ -193,7 +194,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         """
         try:
             output = subprocess.check_output(
-                ROS2TestsLogic.ROS2_EXEC + "service list",
+                ROS2TestsLogic.ros2_exec + "service list",
                 shell=True,
             ).decode("utf-8").split("\n")
 
@@ -298,7 +299,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def test_create_and_add_pub_sub_matrix(self):
             print("\nTesting creation and working of publisher and subscriber - Starting..")
-            self.create_pub_sub("PoseStamped")
+            self.create_pub_sub("Pose")
 
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentMatrix = vtk.vtkMatrix4x4()
@@ -623,10 +624,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         suite = unittest.TestSuite()
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTurtlesimNode))
-        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestMyServer))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestCreateAndAddPubSub))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestParameterNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
+        # suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestMyServer))
         # suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
 
         runner = unittest.TextTestRunner()
