@@ -10,11 +10,11 @@ Pre-requisites
 Before you can start compiling the SlicerROS2 module, you will need:
 
 * Some knowledge of Linux, CMake and ROS 2.
-  
+
 * Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.  This module has
-  been developed and tested using Ubuntu 20.04 with ROS Galactic.  It
-  might also work on Ubuntu 22.04 with ROS Humble.
-  
+  been developed and tested using Ubuntu 20.04 with ROS Galactic and
+  Ubuntu 22.04 with ROS Humble.
+
 * Slicer 3D built from source is required to build an extension.
 
   * Ubuntu 20.04 only.  Instructions from the Slicer site recommend to
@@ -23,7 +23,7 @@ Before you can start compiling the SlicerROS2 module, you will need:
     this patch: `SlicerROS2-Patch <https://github.com/LauraConnolly/Slicer/tree/SlicerROS2_patch>`_  and use the Qt libraries installed by
     default along Ubuntu (this was tested with Qt 5.12.8).  After you cloned the Slicer sources, make
     sure you checkout the branch SlicerROS2_patch using ``git checkout SlicerROS2_patch``.
-    
+
   * Before you start compiling Slicer, make sure we use the
     system/native OpenSSL libraries otherwise you'll get some errors
     when compiling the Slicer ROS 2 module.  You will need to do the
@@ -31,14 +31,10 @@ Before you can start compiling the SlicerROS2 module, you will need:
     build directory, set ``Slicer_USE_SYSTEM_OpenSLL`` to ``ON`` using
     ``cmake . -DSlicer_USE_SYSTEM_OpenSSL=ON -DCMAKE_BUILD_TYPE=Release`` or ``ccmake``.
 
-  See `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
+  See also `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
 
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
-
-.. note:: If you need to build Slicer from old sources, make sure
-  ``CMAKE_CXX_STANDARD`` is set to ``14`` (required to compile Slicer
-  code along ROS 2).
 
 ===========
 Compilation
@@ -74,13 +70,6 @@ The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
 first ``colcon`` call.  For future builds, you can revert back to just
 using ``colcon build``.
 
-Note that the build directory name is ``ROS2``, not
-``slicer_ros2_module``.  You will see some CMake warnings mentioning
-that the module's name (``ROS2``) doesn't follow the ROS2 package
-naming convention.  ROS2 expects all packages to use the "snake_case"
-naming convention but we decided to ignore this to follow the
-VTK/Slicer naming convention, i.e. "CamelCase".
-
 If the ``Slicer_DIR`` is not set properly (or you simply forgot), you
 should see the following error messages"
 
@@ -94,7 +83,7 @@ should see the following error messages"
 
 At that point, you don't need to clean your ROS workspace.  You can
 fix the issue by running CMake on the build directory for the Slicer
-module (``ROS2``) ``ccmake ~/ros2_ws/build/ROS2``.  In CMake, set
+module ``ccmake ~/ros2_ws/build/slicer_ros2_module``.  In CMake, set
 ``Slicer_DIR`` to point to your Slicer build directory then hit ``c``
 to configure until you can hit ``g`` to generate the makefiles.  If
 you prefer a graphical interface, you can use ``cmake-gui`` instead of
@@ -123,17 +112,6 @@ instructions, this should look like:
   cd ~/something_something/Slicer-SuperBuild/Slicer-build
   ./Slicer
 
-The first time you run Slicer, you need to add the module directory in
-the application settings so that the module can be dynamically loaded.
-
-To do so, open Slicer and navigate through the menus: `Edit` |rarr|
-`Application Settings` |rarr| `Modules` |rarr| `Additional module
-paths` |rarr| `Add`.  The path to add is based on your ROS workspace
-location as well as the Slicer version (5.3 in this example).  It should look like:
-
-.. code-block:: bash
-
-    ~ros2_ws/build/ROS2/lib/Slicer-5.3/qt-loadable-modules
-
-At that point, Slicer will offer to restart.  Do so and then load the
-module using the drop down menu: `Modules` |rarr| `IGT` |rarr| *ROS2*
+During the ``colcon`` build, the files required for the SlicerROS2 module are
+installed in the Slicer build directory so the user doesn't have to
+change the module paths to load the newly created module.

@@ -40,9 +40,14 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 #include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2ServiceNode.h>
+#include <vtkMRMLROS2ServiceClientDefaultNodes.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+
+// Automatically generated nodes
+#include <vtkMRMLROS2GeneratedNodes.h>
 
 #if USE_CISST_MSGS
 #include <vtkMRMLROS2CISST.h>
@@ -94,50 +99,61 @@ void vtkSlicerROS2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 //-----------------------------------------------------------------------------
 void vtkSlicerROS2Logic::RegisterNodes(void)
 {
-  assert(this->GetMRMLScene() != 0);
+  vtkSmartPointer<vtkMRMLScene> scene = this->GetMRMLScene();
+  assert(scene != 0);
+ 
   // ROS2 node
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
   // Subscribers
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberBoolNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberDoubleNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberBoolNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberDoubleNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntArrayNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberDoubleArrayNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntTableNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberDoubleTableNode>::New());
 
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntArrayNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberDoubleArrayNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntTableNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberDoubleTableNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPoseStampedNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberJoyNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberUInt8ImageNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPoseNode>::New());
+
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberUInt8ImageNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
 
   // Publishers
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherBoolNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherBoolNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntArrayNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleArrayNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntTableNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleTableNode>::New());
 
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntArrayNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleArrayNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntTableNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleTableNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseStampedNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchStampedNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseArrayNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherUInt8ImageNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloudNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseArrayNode>::New());
+
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherUInt8ImageNode>::New());
 
 #if USE_CISST_MSGS
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
 #endif
   // Parameters
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
+
   // Tf2
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2BroadcasterNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>::New());
+
   // Robot
-  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
+
+  // Services
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolStringNode>::New());
+
+  // Register automatically generated nodes
+  vtkMRMLROS2GeneratedNodesRegister(scene);
 }
 
 

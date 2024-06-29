@@ -75,10 +75,6 @@ this periodic call.
 .. note::
    The default frequency for the SlicerROS2 module is 50Hz, i.e. 20ms
 
-.. warning:: Since we rely on a Qt timer to trigger the ROS spin, the
-   module will not receive any ROS messages until the GUI is created,
-   i.e. until the ROS module is manually loaded in Slicer.
-
 Templates vs Inheritance
 ========================
 
@@ -91,12 +87,21 @@ are booleans, integers, floating points, strings or vector of
 aforementioned types, tf2 uses transforms only...) so this is not a
 major issue.
 
-The main difficulty lies in supporting ROS topics and services For
-your code, we ended up using templates for our internal data
-structures and add some macros to generate the user classes.  These
+The main difficulty lies in supporting many ROS topics and services
+For our code, we ended up using templates for our internal data
+structures and add some macros to generate the vtk user classes.  These
 macros use template specialization and add some methods to create a
 C++ class that can be used within Slicer (including the Python
 bindings generation).
+
+To make life easier we also added a code generator that can create a
+vtk object mimicking a ROS message.  The code generator will also
+create the overloaded conversion methods (``vtkSlicerToROS2` and
+`vtkROS2ToSlicer`) as well as code to call all the macros required to
+create the publisher or subscriber node.  The macro
+``generate_ros2_nodes`` is used in `MRML/CMakeLists.txt` and one can
+add new ROS messages types.  New publisher and subscriber nodes will
+be available after the SlicerROS2 module is recompiled.
 
 Coordinate Systems and Units
 ============================
@@ -248,6 +253,18 @@ For example, if you need to create a publisher that will take a
 `geometry_msgs::msg::PoseStamped` on the ROS side, the full SlicerROS2
 node name will be `vtkMRMLROSPublisherPoseStampedNode`.
 
+To find the current list of supported publishers and subscribers, one can do:
+
+.. code-block:: python
+
+   rosLogic = slicer.util.getModuleLogic('ROS2')
+   rosNode = rosLogic.GetDefaultROS2Node()
+   rosNode.RegisteredROS2PublisherNodes()
+   rosNode.RegisteredROS2SubscriberNodes()
+
+The method ``RegisteredROS2xxxxxNodes`` returns a long string with all the
+publisher or subscriber classes available.
+
 .. _publishers:
 
 Publishers
@@ -257,10 +274,11 @@ To create a new publisher, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddPublisherNode``.  This method takes
 two parameters:
 
-* the class (type) of publisher to be used.  We provide some
-  publishers for the most common data types (from Slicer to ROS
-  messages).  The full list can be found in the Slicer ROS logic class
-  (``Logic/vtkSlicerROS2Logic.cxx``) in the method ``RegisterNodes``.
+* the class (type) of publisher to be used (full or short name).  We
+  provide some publishers for the most common data types (from Slicer
+  to ROS messages).  The full list can be found in the Slicer ROS
+  logic class (``Logic/vtkSlicerROS2Logic.cxx``) in the method
+  ``RegisterNodes``.
 * the topic name (``std::string``).
 
 Publishers are triggered by calling the ``Publish`` method.
@@ -273,13 +291,17 @@ Publishers are triggered by calling the ``Publish`` method.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
+         # optional, shows which publishers are available
+         rosNode.RegisteredROS2PublisherNodes()
+         # example with full class name
          pubString = rosNode.CreateAndAddPublisherNode('vtkMRMLROS2PublisherStringNode', '/my_string')
          # run `ros2 topic echo /my_string` in a terminal to see the output
          pubString.Publish('my first string')
 
-         pubMatrix = ros2.CreateAndAddPublisher('vtkMRMLROS2PublisherPoseStampedNode', '/my_matrix')
+         # example with short class name, Pose will be expended to vtkMRMLROS2PublisherPoseNode
+         pubMatrix = rosNode.CreateAndAddPublisherNode('Pose', '/my_matrix')
          # run `ros2 topic echo /my_matrix` in a terminal to see the output
-         mat = vtk.vtkMatrix4x4()
+         mat = pubMatrix.GetBlankMessage() # returns a vtkMatrix4x4
          mat.SetElement(0, 3, 3.1415) # Modify the matrix so we can see something changing
          pubMatrix.Publish(mat)
 
@@ -287,9 +309,14 @@ Publishers are triggered by calling the ``Publish`` method.
 
       .. code-block:: C++
 
+         // example with full class name
          auto pubString = rosNode->CreateAndAddPublisherNode("vtkMRMLROS2PublisherStringNode", "/my_string");
          // run ros2 topic echo /my_string in a terminal to see the output
          pubString->Publish("my first string");
+
+         // example with short class name, String will be expended to vtkMRMLROS2PublisherStringNode
+         auto pubString2 = rosNode->CreateAndAddPublisherNode("String", "/my_second_string");
+
 
 To remove the publisher node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeletePublisherNode``. This method takes
 one parameter:
@@ -320,11 +347,13 @@ can be retrieved using ``GetLastMessage``.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
-         subString = rosNode.CreateAndAddSubscriberNode('vtkMRMLROS2SubscriberStringNode', '/my_string')
-         # run `ros2 topic pub /my_string` to send a string
-         m_string = sub.GetLastMessage()
+         # optional, shows which subscribers are available
+         rosNode.RegisteredROS2SubscriberNodes()
+         subString = rosNode.CreateAndAddSubscriberNode('String', '/my_string')
+         # run `ros2 topic pub /my_string` in a terminal to send a string to Slicer
+         m_string = subString.GetLastMessage()
          # alternate, get a string with the full message
-         m_string_yaml = sub.GetLastMessageYAML()
+         m_string_yaml = subString.GetLastMessageYAML()
          # since the subscriber is a MRML node, you can also create an observer (callback)
          # to trigger some code when a new message is received
          observerId = subString.AddObserver('ModifiedEvent', myCallback)
@@ -333,9 +362,9 @@ can be retrieved using ``GetLastMessage``.
 
       .. code-block:: C++
 
-         auto pubString = rosNode->CreateAndAddSubscriberNode("vtkMRMLROS2SubscriberStringNode", "/my_string");
-         // run ros2 topic echo /my_string in a terminal to see the output
-         pubString->Publish("my first string");
+         auto subString = rosNode->CreateAndAddSubscriberNode("String", "/my_string");
+         // run `ros2 topic pub /my_string` in a terminal to send a string to Slicer
+         auto result = subString->GetLastMessage();
 
 To remove the subscriber node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDeleteSubscriberNode``. This method takes
 one parameter:
@@ -561,7 +590,7 @@ be retrieved using ``GetMatrixTransformToParent``.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
-         lookupNode = self.ros2Node.CreateAndAddTf2LookupNode('Parent', 'Child')
+         lookupNode = ros2Node.CreateAndAddTf2LookupNode('Parent', 'Child')
          # get the transform "manually"
          lookupMat = lookupNode.GetMatrixTransformToParent()
          # or use an observer
@@ -608,7 +637,7 @@ logic that accepts three arguments (``std::string robotName``,
 
       .. code-block:: C++
 
-         auto robot = rosNode.CreateAndAddRobotNode("PSM","PSM1/robot_state_publisher","robot_description");
+         auto robot = rosNode->CreateAndAddRobotNode("PSM","PSM1/robot_state_publisher","robot_description");
 
 The robot node creates an observer on the parameter node that contains
 the robot description. If the parameter node is modified (indicating

@@ -68,7 +68,8 @@
     static SelfType * New(void);                                        \
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    size_t Publish(vtkSmartPointer<slicer_type> message);	      \
+    slicer_type * GetBlankMessage(void) const;                          \
+    size_t Publish(vtkSmartPointer<slicer_type> message);               \
     									\
   protected:								\
     vtkMRMLROS2Publisher##name##Node();                                \
@@ -102,7 +103,13 @@
   {									\
     return "ROS2Publisher"#name;					\
   }									\
- 									\
+                                                                        \
+  slicer_type * vtkMRMLROS2Publisher##name##Node::GetBlankMessage(void) const \
+  {                                                                     \
+    vtkSmartPointer<slicer_type> result = slicer_type::New();           \
+    return result;                                                      \
+  }                                                                     \
+                                                                        \
   size_t  vtkMRMLROS2Publisher##name##Node::Publish(vtkSmartPointer<slicer_type> message) \
   {									\
     mNumberOfCalls++;							\

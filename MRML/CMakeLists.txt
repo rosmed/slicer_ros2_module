@@ -7,10 +7,31 @@ set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT"
 set(${KIT}_INCLUDE_DIRECTORIES
   ${Slicer_Base_INCLUDE_DIRS}
   ${cisst_msgs_INCLUDE_DIRS}
+  ${turtlesim_INCLUDE_DIRS}
+  ${std_srvs_INCLUDE_DIRS}
   )
 
-# --------------------------------------------------------------------------
-# Sources
+# include SlicerROS2 for code generation functions
+include(SlicerROS2.cmake)
+
+generate_ros2_nodes(
+  GENERATED_FILES "SRCS_GENERATED"
+  PUBLISHERS
+  "geometry_msgs/msg/PoseStamped"
+  "geometry_msgs/msg/TransformStamped"
+  "geometry_msgs/msg/WrenchStamped"
+  "sensor_msgs/msg/Joy"
+  "sensor_msgs/msg/JointState"
+  SUBSCRIBERS
+  "geometry_msgs/msg/PoseStamped"
+  "geometry_msgs/msg/TransformStamped"
+  "geometry_msgs/msg/WrenchStamped"
+  "sensor_msgs/msg/Joy"
+  "sensor_msgs/msg/JointState"
+  DEPENDENCIES
+  "std_msgs/msg/Header"
+  "builtin_interfaces/msg/Time"
+  )
 
 set(_SRCS_INTERNAL
   # conversion methods
@@ -25,6 +46,8 @@ set(_SRCS_INTERNAL
 set(${KIT}_SRCS
   # private classes
   ${_SRCS_INTERNAL}
+  # generated classes
+  ${SRCS_GENERATED}
   # public classes
   vtkMRMLROS2NodeNode.h
   vtkMRMLROS2NodeNode.cxx
@@ -44,6 +67,14 @@ set(${KIT}_SRCS
   vtkMRMLROS2Tf2LookupNode.cxx
   vtkMRMLROS2RobotNode.h
   vtkMRMLROS2RobotNode.cxx
+  vtkMRMLROS2ServiceNode.h
+  vtkMRMLROS2ServiceNode.cxx
+  vtkMRMLROS2ServiceClientNode.h
+  vtkMRMLROS2ServiceClientNode.cxx
+  vtkMRMLROS2ServiceClientDefaultNodes.h
+  vtkMRMLROS2ServiceClientDefaultNodes.cxx
+  vtkCustomTypes.h
+  vtkCustomTypes.cxx
   )
 
 if (USE_CISST_MSGS)
@@ -68,5 +99,5 @@ SlicerMacroBuildModuleMRML(
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES} ${cisst_msgs_LIBRARIES}
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES} ${cisst_msgs_LIBRARIES} ${turtlesim_LIBRARIES} ${std_srvs_LIBRARIES}
   )

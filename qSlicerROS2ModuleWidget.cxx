@@ -16,7 +16,6 @@
 ==============================================================================*/
 
 // Qt includes
-#include <QTimer>
 #include <QDebug>
 #include <QtGui>
 #include <QCloseEvent>
@@ -37,7 +36,7 @@
 // Slicer includes
 #include "qSlicerROS2ModuleWidget.h"
 #include "ui_qSlicerROS2ModuleWidget.h"
-#include "qSlicerApplication.h"
+// #include "qSlicerApplication.h"
 #include "ui_qSlicerROS2RobotWidget.h"
 
 // MRML includes
@@ -78,18 +77,12 @@ qSlicerROS2ModuleWidget::qSlicerROS2ModuleWidget(QWidget* _parent)
   : Superclass( _parent )
   , d_ptr( new qSlicerROS2ModuleWidgetPrivate )
 {
-  this->mTimer = new QTimer();
-  mTimer->setSingleShot(false);
-  mTimer->setInterval(20); // 20 ms, 50Hz
-  mTimer->start();
 }
 
 
 //-----------------------------------------------------------------------------
 qSlicerROS2ModuleWidget::~qSlicerROS2ModuleWidget()
 {
-  mTimer->stop();
-  delete this->mTimer;
 }
 
 
@@ -99,10 +92,6 @@ void qSlicerROS2ModuleWidget::setup(void)
   Q_D(qSlicerROS2ModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
-
-  // Set up timer connections
-  connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
-  connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopTimer()));
 
   // Set up signals / slots for dynamically loaded widgets
   this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
@@ -117,17 +106,6 @@ void qSlicerROS2ModuleWidget::setup(void)
   this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(updateWidget()));
   this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceRemovedEvent,this, SLOT(updateWidget()));
   updateWidget(); // if the scene is loaded before the widget is activated
-}
-
-
-void qSlicerROS2ModuleWidget::onTimerTimeOut()
-{
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  logic->Spin();
 }
 
 
@@ -375,12 +353,6 @@ void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
                    .arg(pub->GetNumberOfMessagesSent()));
     msgBox.exec();
   }
-}
-
-
-void qSlicerROS2ModuleWidget::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
-{
-  mTimer->stop();
 }
 
 

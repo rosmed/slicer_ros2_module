@@ -12,7 +12,7 @@ and 3D Slicer.
 
 This module currently supports ROS 2 topics (subscribers and
 publishers), tf2 (broadcasters and lookups) as well as a parameter
-client (no server yet).
+client (no server yet).  One can add new publishers and subscribers with the CMake macro ``generate_ros2_nodes``.
 
 This module can also be used to visualize a ROS robot in action using a
 parameter client and tf2 lookups.  The robot visualization

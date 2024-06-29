@@ -19,8 +19,12 @@
 #include <vtkSlicerROS2Logic.h>
 
 // SlicerROS2 includes
+#include "qSlicerApplication.h"
 #include "qSlicerROS2Module.h"
 #include "qSlicerROS2ModuleWidget.h"
+
+#include <QTimer>
+#include <QDebug>
 
 //-----------------------------------------------------------------------------
 // qSlicerROS2Module methods
@@ -29,17 +33,23 @@
 qSlicerROS2Module::qSlicerROS2Module(QObject* _parent)
   : Superclass(_parent)
 {
+  this->mTimer = new QTimer();
+  mTimer->setSingleShot(false);
+  mTimer->setInterval(20); // 20 ms, 50Hz
+  mTimer->start();
 }
 
 //-----------------------------------------------------------------------------
 qSlicerROS2Module::~qSlicerROS2Module()
 {
+  mTimer->stop();
+  delete this->mTimer;
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerROS2Module::helpText() const
 {
-  return "ROS 2 Slicer Module.  See https://github.com/rosmed/slicer_ros2_module";
+  return "ROS2 Slicer Module.  See https://github.com/rosmed/slicer_ros2_module";
 }
 
 //-----------------------------------------------------------------------------
@@ -52,7 +62,7 @@ QString qSlicerROS2Module::acknowledgementText() const
 QStringList qSlicerROS2Module::contributors() const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Laura Connolly (Queen’s University, Kingston, Canada), Anton Deguet (Johns Hopkins University, Baltimore, USA)");
+  moduleContributors << QString("Laura Connolly (Queen’s University, Kingston, Canada), Anton Deguet (Johns Hopkins University, Baltimore, USA), Aravind Kumar (Johns Hopkins University, Baltimore, USA)");
   return moduleContributors;
 }
 
@@ -78,6 +88,9 @@ QStringList qSlicerROS2Module::dependencies() const
 void qSlicerROS2Module::setup()
 {
   this->Superclass::setup();
+  // Set up timer connections
+  connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimerTimeOut()));
+  connect(qSlicerApplication::application(), SIGNAL(lastWindowClosed()), this, SLOT(stopTimer()));
 }
 
 //-----------------------------------------------------------------------------
@@ -92,3 +105,21 @@ vtkMRMLAbstractLogic* qSlicerROS2Module::createLogic()
 {
   return vtkSlicerROS2Logic::New();
 }
+
+
+void qSlicerROS2Module::onTimerTimeOut()
+{
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+  logic->Spin();
+}
+
+
+void qSlicerROS2Module::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
+{
+  mTimer->stop();
+}
+
