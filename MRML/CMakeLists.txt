@@ -31,6 +31,8 @@ generate_ros2_nodes(
   DEPENDENCIES
   "std_msgs/msg/Header"
   "builtin_interfaces/msg/Time"
+  SERVICE_CLIENTS
+  "turtlesim/srv/Spawn"
   )
 
 set(_SRCS_INTERNAL

@@ -269,14 +269,15 @@ def ROS2_to_vtkObject(full_type_name, output_directory):
     for class_name_formatted, class_type_identifier, fields, msg_ros2_type in generation_class_stack:
 
         class_code_hpp_single, class_code_cpp_single = generate_class(class_name_formatted, fields, message_attribute_map)
-        class_definitions_code_hpp += class_code_hpp_single
-        class_definitions_code_cpp += class_code_cpp_single
+        hpp_code += "\n"
+        hpp_code += class_code_hpp_single
+        cpp_code += class_code_cpp_single
 
         vtk_equivalent_types[class_type_identifier] = class_name_formatted
 
-        hpp_code += "\n"
-        hpp_code += class_definitions_code_hpp
-        cpp_code += class_definitions_code_cpp
+        # hpp_code += "\n"
+        # hpp_code += class_definitions_code_hpp
+        # cpp_code += class_definitions_code_cpp
 
         # Add Slicer to ROS2 conversion functions and vice versa
         hpp_code += f"// Conversion functions\n"
