@@ -8,7 +8,7 @@ def camel_to_snake(name):
     return ''.join('_' + c.lower() if c.isupper() else c for c in name).lstrip('_')
 
 
-def is_vtk_object(field_type, message_attribute_map):
+def is_vtk_object(field_type):
     return '/' in field_type #and field_type in message_attribute_map
 
 
