@@ -550,7 +550,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
             ROS2TestsLogic.spin_some()
             self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node running")
-            self.ros2Node.Destroy()  # FIXME: This isn't working for some reason
+            self.ros2Node.Destroy()
             ROS2TestsLogic.spin_some()
 
 

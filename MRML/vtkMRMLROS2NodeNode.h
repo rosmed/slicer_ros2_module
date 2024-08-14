@@ -45,7 +45,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   /*! Calls rclcpp::init if needed and then create the internal ROS
     node. */
   void Create(const std::string & nodeName);
-  void Destroy(void); // THIS IS KILLING SLICER
+  void Destroy(void);
   inline const std::string GetROS2NodeName(void) const {
     return mROS2NodeName;
   }

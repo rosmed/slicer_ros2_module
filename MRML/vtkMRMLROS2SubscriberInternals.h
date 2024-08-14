@@ -42,6 +42,9 @@ public:
     vtkMRMLROS2SubscriberInternals(mrmlNode)
   {}
 
+  ~vtkMRMLROS2SubscriberTemplatedInternals()
+  {}
+
 protected:
   _ros_type mLastMessageROS;
   std::shared_ptr<rclcpp::Subscription<_ros_type>> mSubscription = nullptr;
