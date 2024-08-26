@@ -93,7 +93,7 @@ function(generate_ros2_message _msg _files_generated)
   set(_generator_dependencies
     "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/configForCodegen.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/utils.py")
-  add_custom_command(
+  add_custom_command(           ## Refactor. There is code repetition
     OUTPUT ${_h_file} ${_cxx_file}
     COMMAND ${_generator}
     -m ${_msg}
