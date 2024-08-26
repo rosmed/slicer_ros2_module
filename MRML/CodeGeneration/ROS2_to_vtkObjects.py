@@ -200,27 +200,6 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
     code_string_cpp += "}\n\n"
     return code_string_hpp, code_string_cpp
 
-# def generate_attribute_dict(full_type_name, is_service=False):
-#     [package_name, namespace, type_name] = full_type_name.split('/')
-    
-#     if is_service:
-#         package = importlib.import_module(f"{package_name}.srv")
-#         attributes = getattr(package, type_name)
-#         request_attributes = attributes.Request.get_fields_and_field_types()
-#         response_attributes = attributes.Response.get_fields_and_field_types()
-        
-#         result = {
-#             full_type_name: {
-#                 'request': process_attributes(request_attributes, namespace),
-#                 'response': process_attributes(response_attributes, namespace)
-#             }
-#         }
-#         return result, set(list(request_attributes.values()) + list(response_attributes.values()))
-#     else:
-#         package = importlib.import_module(f"{package_name}.msg")
-#         attributes = getattr(package, type_name).get_fields_and_field_types()
-        
-#         return {full_type_name: process_attributes(attributes, namespace)}, list(attributes.values())
     
 def generate_attribute_dict_service(full_type_name):
     [package_name, namespace, type_name] = full_type_name.split('/')
@@ -253,79 +232,6 @@ def process_attributes(attributes, namespace):
         else:
             result[attribute] = attribute_type
     return result
-
-# def ROS2_to_vtkObject(full_type_name, output_directory, is_service=False):
-#     [package, namespace, msg_name] = full_type_name.split('/')
-#     print(f"Generating code for message: {full_type_name}")
-
-#     vtk_class_name, vtk_type_identifier = get_class_name_formatted(full_type_name)
-#     if vtk_class_name in vtk_equivalent_types.keys():
-#         return
-    
-#     # is_service = '/srv/' in full_type_name
-
-#     hpp_code = ""
-#     cpp_code = ""
-#     class_definitions_code_hpp = ""
-#     class_definitions_code_cpp = ""
-
-#     filename = f"vtk{vtk_class_name}"
-#     hpp_code += f"#ifndef {filename}_h\n"
-#     hpp_code += f"#define {filename}_h\n\n"
-
-#     cpp_code += f"#include \"{filename}.h\"\n\n"
-
-#     # message_attribute_map, unique_attributes = generate_attribute_dict(full_type_name, is_service)
-#     if is_service:
-#         message_attribute_map, unique_attributes = generate_attribute_dict_service(full_type_name)
-#     else:
-#         message_attribute_map, unique_attributes = generate_attribute_dict_message(full_type_name)
-
-#     imports = identify_imports(msg_name, namespace, package, unique_attributes)
-#     hpp_code += imports
-
-#     generation_class_stack = []
-
-#     if is_service:
-#         for io_variable in ['request', 'response']:
-#             generation_class_stack.append((vtk_class_name + io_variable.capitalize(), vtk_type_identifier + io_variable.capitalize(), message_attribute_map[full_type_name][io_variable], f"{package}::{namespace}::{msg_name}::{io_variable.capitalize()}"))
-#     else:
-#         generation_class_stack.append((vtk_class_name, vtk_type_identifier, message_attribute_map[full_type_name], f"{package}::{namespace}::{msg_name}"))
-
-#     for class_name_formatted, class_type_identifier, fields, msg_ros2_type in generation_class_stack:
-
-#         class_code_hpp_single, class_code_cpp_single = generate_class(class_name_formatted, fields)
-#         hpp_code += "\n"
-#         hpp_code += class_code_hpp_single
-#         cpp_code += class_code_cpp_single
-
-#         vtk_equivalent_types[class_type_identifier] = class_name_formatted
-
-#         # hpp_code += "\n"
-#         # hpp_code += class_definitions_code_hpp
-#         # cpp_code += class_definitions_code_cpp
-
-#         # Add Slicer to ROS2 conversion functions and vice versa
-#         hpp_code += f"// Conversion functions\n"
-
-        
-#         hpp_code_single, cpp_code_single = generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields)
-#         hpp_code += hpp_code_single
-#         cpp_code += cpp_code_single
-
-#         hpp_code_single, cpp_code_single = generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields)
-#         hpp_code += hpp_code_single
-#         cpp_code += cpp_code_single
-
-
-#     hpp_code += f"\n#endif // {filename}_h\n"
-
-
-#     with open(output_directory + '/' + filename + '.h', 'w') as h:
-#         h.write(hpp_code)
-
-#     with open(output_directory + '/' + filename + '.cxx', 'w') as cxx:
-#         cxx.write(cpp_code)
 
 
 def write_files(output_directory, filename, hpp_code, cpp_code):
@@ -416,17 +322,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--message', type=str,
                         help='ROS message type. For example "geometry_msgs/msg/PoseStamped"')
-    # parser.add_argument('-s', '--service', type=str,
-    #                     help='ROS service type. For example "turtlesim/srv/Spawn"')
+    parser.add_argument('-s', '--service', type=str,
+                        help='ROS service type. For example "turtlesim/srv/Spawn"')
     parser.add_argument('-c', '--class-name', type=str, required=True)
     parser.add_argument('-d', '--directory', type=str, required=True)
     args = parser.parse_args()
     # ROS2_to_vtkObject(args.message, args.directory)
 
-    is_service = '/srv/' in args.message
-
-    if not is_service:
+    if args.message:
         ROS2_message_to_vtkObject(args.message, args.directory)
-    else:
-        ROS2_service_to_vtkObject(args.message, args.directory)
+    elif args.service:
+        ROS2_service_to_vtkObject(args.service, args.directory)
 
