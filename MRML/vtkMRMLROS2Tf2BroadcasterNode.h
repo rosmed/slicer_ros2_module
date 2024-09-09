@@ -1,6 +1,8 @@
 #ifndef __vtkMRMLROS2Tf2BroadcasterNode_h
 #define __vtkMRMLROS2Tf2BroadcasterNode_h
 
+#include <memory>
+
 // MRML includes
 #include <vtkMRMLNode.h>
 

@@ -1,6 +1,8 @@
 #ifndef __vtkMRMLROS2NodeNode_h
 #define __vtkMRMLROS2NodeNode_h
 
+#include <memory>
+
 // MRML includes
 #include <vtkMRMLNode.h>
 
