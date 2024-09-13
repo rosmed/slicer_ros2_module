@@ -55,17 +55,9 @@ def generate_static_getset(method_code_hpp, field_name, field_type, static_type_
 
 
 def generate_static_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-    # method_code_hpp += f"    const {static_type_mapping[field_type]}* Get{field_name.capitalize()}(void) const {{\n"
-    # method_code_hpp += f"        return {field_name}_;\n"
-    # method_code_hpp += f"    }}\n\n"
-
     method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{field_name.capitalize()}(void) const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
-
-    # method_code_hpp += f"    void Set{field_name.capitalize()}(const {static_type_mapping[field_type]}* value) {{\n"
-    # method_code_hpp += f"        {field_name}_ = value;\n"
-    # method_code_hpp += f"    }}\n\n"
 
     method_code_hpp += f"    void Set{field_name.capitalize()}(const std::vector<{static_type_mapping[field_type]}>& value) {{\n"
     method_code_hpp += f"        {field_name}_ = value;\n"
@@ -86,6 +78,7 @@ def generate_class(class_name, fields, message_attribute_map):
     class_code_hpp += f"class vtk{class_name} : public vtkObject\n{{\npublic:\n"
     class_code_hpp += f"{__} vtkTypeMacro(vtk{class_name}, vtkObject);\n"
     class_code_hpp += f"{__} static vtk{class_name}* New(void);\n\n"
+    class_code_hpp += f"{__} void PrintSelf(std::ostream& os, vtkIndent indent) override;\n\n"
 
     method_code_hpp = ""
     attribute_code_hpp = ""
@@ -150,6 +143,30 @@ def identify_imports(class_name, namespace, package_name, fields, message_attrib
             else:
                 imports += f"#include <vtk{field_type}.h>\n"
     return imports
+
+
+def generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields, message_attribute_map):
+    code_string_cpp = "\n// generate_print_self_methods_for_class\n"
+
+    class_name_formatted = vtk_equivalent_types.get(class_type_identifier, class_name_formatted)
+    code_string_cpp += f"void vtk{class_name_formatted}::PrintSelf(std::ostream& os, vtkIndent indent) {{\n"
+
+    code_string_cpp+= f"{__} Superclass::PrintSelf(os, indent);\n";
+
+    for field_name, field_type in fields.items():
+        if is_vtk_object(field_type, message_attribute_map):
+            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << std::endl;\n"
+            code_string_cpp += f"{__} {field_name}_->PrintSelf(os, indent.GetNextIndent());\n"
+        elif "sequence" in field_type:
+            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\";\n"
+            code_string_cpp += f"{__} for (const auto & __data : {field_name}_) os << __data << \" \";\n"
+            code_string_cpp += f"{__} os << std::endl;\n"
+
+        else:
+            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << {field_name}_ << std::endl;\n"
+
+    code_string_cpp += "}\n\n"
+    return code_string_cpp
 
 
 def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields, message_attribute_map):
@@ -252,10 +269,6 @@ def ROS2_to_vtkObject_v2(_message, _directory):
     imports = identify_imports(msg_name, namespace, package, fields, message_attribute_map,)
     hpp_code += imports
 
-    # forward declarations
-    # hpp_code += f"// Forward declarations\n"
-    # hpp_code += f"class vtk{class_name_formatted};\n"
-
     class_code_hpp_single, class_code_cpp_single = generate_class(class_name_formatted, fields, message_attribute_map)
     class_definitions_code_hpp += class_code_hpp_single
     class_definitions_code_cpp += class_code_cpp_single
@@ -266,6 +279,8 @@ def ROS2_to_vtkObject_v2(_message, _directory):
     hpp_code += class_definitions_code_hpp
     cpp_code += class_definitions_code_cpp
 
+    cpp_code += generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields, message_attribute_map)
+    
     # Add Slicer to ROS2 conversion functions and vice versa
     hpp_code += f"// Conversion functions\n"
 

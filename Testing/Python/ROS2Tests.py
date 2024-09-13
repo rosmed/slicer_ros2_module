@@ -516,8 +516,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
             # Valid Parameter which will be added
             self.assertEqual(testParam.GetParameterType("background_r"), "", "Parameter type not empty")
-            self.assertEqual(testParam.GetParameterType("background_r"tests = slicer.util.getModuleLogic('ROS2Tests')
-tests.run()), "", "Parameter type not empty")
+            self.assertEqual(testParam.GetParameterType("background_r"), "", "Parameter type not empty")
 
             # Parameter which does not exist
             self.assertEqual(testParam.GetParameterType("background_y"), "", "Parameter type not empty")

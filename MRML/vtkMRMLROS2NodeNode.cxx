@@ -46,6 +46,7 @@ vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 void vtkMRMLROS2NodeNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
+  os << indent << "ROS node name: " << mROS2NodeName << std::endl; 
 }
 
 
