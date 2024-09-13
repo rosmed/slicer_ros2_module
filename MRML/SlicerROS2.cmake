@@ -72,8 +72,8 @@ function(generate_ros2_message _msg _files_generated)
   # create custom command
   set(_h_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")
   set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
-  set_source_files_properties(${_h} PROPERTIES GENERATED 1)
-  set_source_files_properties(${_cxx} PROPERTIES GENERATED 1)
+  set_source_files_properties(${_h_file} PROPERTIES GENERATED 1)
+  set_source_files_properties(${_cxx_file} PROPERTIES GENERATED 1)
   set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/ROS2_to_vtkObjects.py")
   set(_generator_dependencies
     "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/configForCodegen.py"
