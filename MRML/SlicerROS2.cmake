@@ -3,7 +3,7 @@
 #
 function(generate_ros2_nodes)
   set(_options)
-  set(_oneValueArgs GENERATED_FILES)
+  set(_oneValueArgs GENERATED_FILES_PREFIX)
   set(_multiValueArgs PUBLISHERS SUBSCRIBERS DEPENDENCIES)
   cmake_parse_arguments(_slicer_ros "${_options}" "${_oneValueArgs}" "${_multiValueArgs}" ${ARGN})
 
@@ -13,10 +13,12 @@ function(generate_ros2_nodes)
   endforeach()
   list(REMOVE_DUPLICATES _ros_messages)
 
-  set(_all_files_generated)
+  set(_all_files_generated_h)
+  set(_all_files_generated_cxx)
   foreach(_msg ${_ros_messages})
     generate_ros2_message(${_msg} _files_generated)
-    list(APPEND _all_files_generated ${_files_generated})
+    list(APPEND _all_files_generated_h ${_files_generated_H})
+    list(APPEND _all_files_generated_cxx ${_files_generated_CXX})
   endforeach ()
 
   set(h_file "${CMAKE_CURRENT_BINARY_DIR}/vtkMRMLROS2GeneratedNodes.h")
@@ -58,7 +60,8 @@ function(generate_ros2_nodes)
   file(WRITE ${h_file} "${_h}")
   file(WRITE ${cxx_file} "${_cxx}")
 
-  set(${_slicer_ros_GENERATED_FILES} ${_all_files_generated} ${h_file} ${cxx_file} PARENT_SCOPE)
+  set(${_slicer_ros_GENERATED_FILES_PREFIX}_H ${_all_files_generated_h} ${h_file} PARENT_SCOPE)
+  set(${_slicer_ros_GENERATED_FILES_PREFIX}_CXX ${_all_files_generated_cxx} ${cxx_file} PARENT_SCOPE)
 endfunction()
 
 
@@ -66,7 +69,7 @@ endfunction()
 # generate the vtk class corresponding to the ROS message as well as
 # conversion methods between ROS and vtk
 #
-function(generate_ros2_message _msg _files_generated)
+function(generate_ros2_message _msg _files_generated_prefix)
   # convert msg to class name
   ros2_msg_to_vtk_class(${_msg} _class_name)
   # create custom command
@@ -87,7 +90,8 @@ function(generate_ros2_message _msg _files_generated)
     DEPENDS ${_generator} ${_generator_dependencies}
     COMMENT "Generating class ${_class_name} for ${_msg}"
     )
-  set(${_files_generated} ${_h_file} ${_cxx_file} PARENT_SCOPE)
+  set(${_files_generated_prefix}_H ${_h_file} PARENT_SCOPE)
+  set(${_files_generated_prefix}_CXX ${_cxx_file} PARENT_SCOPE)
 endfunction()
 
 
