@@ -84,14 +84,6 @@ set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 # --------------------------------------------------------------------------
 # Build the library
 
-# dummy library is here just to force a dependency on the module build
-# to generate the header files first. otherwise the vtk Python
-# wrapping might not wrap the generated header files.  These must be a better solution.
-add_library(
-  dummy
-  dummy.cxx
-  ${SLICER_ROS2_GENERATED_H})
-
 set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
@@ -103,7 +95,6 @@ set(${KIT}_TARGET_LIBRARIES
   ${urdf_LIBRARIES}
   ${turtlesim_LIBRARIES}
   ${std_srvs_LIBRARIES}
-  dummy
   )
 
 SlicerMacroBuildModuleMRML(
@@ -111,5 +102,7 @@ SlicerMacroBuildModuleMRML(
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES dummy ${${KIT}_TARGET_LIBRARIES}
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES}
   )
+
+add_dependencies(vtkSlicerROS2ModuleMRMLHierarchy ${SLICER_ROS2_GENERATED_TARGET})
