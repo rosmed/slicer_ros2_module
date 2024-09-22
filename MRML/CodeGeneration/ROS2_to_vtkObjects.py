@@ -125,23 +125,16 @@ def identify_imports(class_name, namespace, package_name, fields, message_attrib
     imports += "#include <vtkNew.h>\n"
     imports += "#include <string>\n"
     imports += "#include <vtkSmartPointer.h>\n"
-    imports += "#include <vtkMRMLNode.h>\n\n"
 
     # include the message type
     imports += f"#include <rclcpp/rclcpp.hpp>\n"
     imports += f"#include <{package_name}/{namespace}/{camel_to_snake(class_name)}.hpp>\n"
 
-    # include vtkROS2ToSlicer and vtkSlicerToROS2
-    imports += f"#include <vtkROS2ToSlicer.h>\n"
-    imports += f"#include <vtkSlicerToROS2.h>\n"
-
     for field_name, field_type in fields.items():
         if is_vtk_object(field_type, message_attribute_map):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
-            if not is_equivalent_type_available:
-                imports+=f"#include <vtk{field_type}.h>\n"
-            else:
-                imports += f"#include <vtk{field_type}.h>\n"
+            imports += f"#include <vtk{field_type}.h>\n"
+
     return imports
 
 
@@ -244,7 +237,7 @@ def generate_message_dict_v2(message_type): ## TODO: Refactor this function
 
 def ROS2_to_vtkObject_v2(_message, _directory):
     [package, namespace, msg_name] = _message.split('/')
-    print(f"Generating code for message: {_message}")
+    print(f"ROS2_to_vtkObject: generating code for message \"{_message}\"")
 
     message_attribute_map = generate_message_dict_v2(_message)
 
@@ -264,7 +257,9 @@ def ROS2_to_vtkObject_v2(_message, _directory):
     hpp_code += f"#ifndef {filename}_h\n"
     hpp_code += f"#define {filename}_h\n\n"
 
-    cpp_code += f"#include \"{filename}.h\"\n\n"
+    cpp_code += f"#include \"{filename}.h\"\n"
+    cpp_code += f"#include <vtkROS2ToSlicer.h>\n"
+    cpp_code += f"#include <vtkSlicerToROS2.h>\n\n"
 
     imports = identify_imports(msg_name, namespace, package, fields, message_attribute_map,)
     hpp_code += imports

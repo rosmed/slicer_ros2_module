@@ -128,11 +128,11 @@ bool vtkMRMLROS2ParameterNode::Spin()
 
   // get a vector of std::string from the map
   std::vector<std::string> parameterNames;
-  for (auto &parameter : mInternals->mParameterStore) {
+  for (auto & parameter : mInternals->mParameterStore) {
     parameterNames.push_back(parameter.first);
   }
 
-  for (auto &parameter : mInternals->mParameterStore) {
+  for (auto & parameter : mInternals->mParameterStore) {
     // use get_parameters to get the parameter value from the parameter server
     auto parameters_future =
       mInternals->mParameterClient->get_parameters({parameter.first},
@@ -369,7 +369,7 @@ bool vtkMRMLROS2ParameterNode::GetParameterAsVectorOfIntegers(const std::string 
     vtkErrorMacro(<< "GetParameterAsVectorOfIntegers: caught exception for parameter " << parameterName << ": " << e.what());
     return false;
   }
-  for (auto &i : tempResult) {
+  for (auto & i : tempResult) {
     result.push_back(static_cast<int>(i));
   }
   return true;
@@ -491,7 +491,7 @@ void vtkMRMLROS2ParameterNode::SetMonitoredParameterNamesCache(const std::vector
 {
   this->MonitoredParameterNamesCache.clear();
   // iterate through the vector and add each parameter name to the list
-  for (const auto parameter : monitoredParameterNames) {
+  for (const auto & parameter : monitoredParameterNames) {
     this->MonitoredParameterNamesCache.push_back(parameter);
   }
   this->Modified();
@@ -503,7 +503,7 @@ void vtkMRMLROS2ParameterNode::SetMonitoredParameterNamesCache(const std::vector
 std::vector<std::string> vtkMRMLROS2ParameterNode::GetMonitoredParameterNamesCache()
 {
   std::vector<std::string> monitoredParameterNames;
-  for (const auto parameter : this->MonitoredParameterNamesCache) {
+  for (const auto & parameter : this->MonitoredParameterNamesCache) {
     monitoredParameterNames.push_back(parameter);
   }
   return monitoredParameterNames;
