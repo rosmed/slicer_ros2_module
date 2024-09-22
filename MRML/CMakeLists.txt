@@ -34,6 +34,9 @@ generate_ros2_nodes(
   "builtin_interfaces/msg/Time"
   )
 
+get_directory_property(_current_prop ADDITIONAL_CLEAN_FILES)
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${SLICER_ROS2_GENERATED_H};${SLICER_ROS2_GENERATED_CXX};${_current_prop}")
+  
 set(_SRCS_INTERNAL
   # conversion methods
   # vtkROS2ToSlicer.h
@@ -104,5 +107,3 @@ SlicerMacroBuildModuleMRML(
   SRCS ${${KIT}_SRCS}
   TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES}
   )
-
-add_dependencies(vtkSlicerROS2ModuleMRMLHierarchy ${SLICER_ROS2_GENERATED_TARGET})

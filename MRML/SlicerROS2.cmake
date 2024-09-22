@@ -15,12 +15,10 @@ function(generate_ros2_nodes)
 
   set(_all_files_generated_h)
   set(_all_files_generated_cxx)
-  set(_all_files_generated_target)
   foreach(_msg ${_ros_messages})
     generate_ros2_message(${_msg} _file_generated)
     list(APPEND _all_files_generated_h ${_file_generated_H})
     list(APPEND _all_files_generated_cxx ${_file_generated_CXX})
-    list(APPEND _all_files_generated_target ${_file_generated_TARGET})	
   endforeach ()
 
   set(h_file "${CMAKE_CURRENT_BINARY_DIR}/vtkMRMLROS2GeneratedNodes.h")
@@ -64,7 +62,6 @@ function(generate_ros2_nodes)
 
   set(${_slicer_ros_GENERATED_FILES_PREFIX}_H ${_all_files_generated_h} ${h_file} PARENT_SCOPE)
   set(${_slicer_ros_GENERATED_FILES_PREFIX}_CXX ${_all_files_generated_cxx} ${cxx_file} PARENT_SCOPE)
-  set(${_slicer_ros_GENERATED_FILES_PREFIX}_TARGET ${_all_files_generated_target} PARENT_SCOPE)
 endfunction()
 
 
@@ -78,26 +75,16 @@ function(generate_ros2_message _msg _files_generated_prefix)
   # create custom command
   set(_h_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")
   set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
-  set(_target "${_class_name}_generation")
-  set_source_files_properties(${_h_file} PROPERTIES GENERATED 1)
-  set_source_files_properties(${_cxx_file} PROPERTIES GENERATED 1)
   set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/ROS2_to_vtkObjects.py")
-  set(_generator_dependencies
-    "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/configForCodegen.py"
-    "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/utils.py")
-  add_custom_command(
-    OUTPUT ${_h_file} ${_cxx_file}
-    COMMAND ${_generator}
-    -m ${_msg}
-    -c ${_class_name}
-    -d ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS ${_generator} ${_generator_dependencies}
-    COMMENT "Generating class ${_class_name} for ${_msg}"
+  # check if files exist
+  if (NOT EXISTS ${_h_file} OR NOT EXISTS ${_cxx_file})
+    execute_process(
+      COMMAND ${_generator} -m ${_msg} -c ${_class_name} -d "${CMAKE_CURRENT_BINARY_DIR}"
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
-  add_custom_target(${_target} DEPENDS ${_h_file} ${cxx_file})
+  endif()
   set(${_files_generated_prefix}_H ${_h_file} PARENT_SCOPE)
   set(${_files_generated_prefix}_CXX ${_cxx_file} PARENT_SCOPE)
-  set(${_files_generated_prefix}_TARGET ${_target} PARENT_SCOPE)
 endfunction()
 
 
