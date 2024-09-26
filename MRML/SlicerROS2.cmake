@@ -15,13 +15,13 @@ function(generate_ros2_nodes)
 
   set(_all_files_generated)
   foreach(_msg ${_ros_messages})
-    generate_ros2_message(${_msg} _files_generated)
+    generate_ros2_object("-m" ${_msg} _files_generated)
     list(APPEND _all_files_generated ${_files_generated})
   endforeach ()
 
   # Generate service message files
   foreach(_srv ${_slicer_ros_SERVICE_CLIENTS})
-    generate_ros2_service_message(${_srv} _files_generated)
+    generate_ros2_object("-s" ${_srv} _files_generated)
     list(APPEND _all_files_generated ${_files_generated})
   endforeach ()
 
@@ -81,33 +81,23 @@ endfunction()
 # generate the vtk class corresponding to the ROS message as well as
 # conversion methods between ROS and vtk
 #
-function(generate_ros2_message _msg _files_generated)
-  # convert msg to class name
-  ros2_msg_to_vtk_class(${_msg} _class_name)
-  # create custom command
-  set(_h_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")
-  set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
-  set_source_files_properties(${_h} PROPERTIES GENERATED 1)
-  set_source_files_properties(${_cxx} PROPERTIES GENERATED 1)
-  set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/ROS2_to_vtkObjects.py")
-  set(_generator_dependencies
-    "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/configForCodegen.py"
-    "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/utils.py")
-  add_custom_command(
-    OUTPUT ${_h_file} ${_cxx_file}
-    COMMAND ${_generator}
-    -m ${_msg}
-    -c ${_class_name}
-    -d ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS ${_generator} ${_generator_dependencies}
-    COMMENT "Generating class ${_class_name} for ${_msg}"
-    )
-  set(${_files_generated} ${_h_file} ${_cxx_file} PARENT_SCOPE)
-endfunction()
+function(generate_ros2_object _object_tag _object _files_generated)
 
-function(generate_ros2_service_message _srv _files_generated)
-  # convert srv to class name
-  ros2_srv_to_vtk_class(${_srv} _class_name)
+  # if object_tag is "-m", then object is a message
+  if (${_object_tag} STREQUAL "-m")
+    # ros2_msg_to_vtk_class(${_object} _class_name)
+    ros2_to_vtk_class("msg" ${_object} _class_name)
+  endif()
+  # if object_tag is "-s", then object is a service
+  if (${_object_tag} STREQUAL "-s")
+    # ros2_srv_to_vtk_class(${_object} _class_name)
+    ros2_to_vtk_class("srv" ${_object} _class_name)
+  endif()
+  # else throw an error
+  if (NOT DEFINED _class_name)
+    message(FATAL_ERROR "Unknown object tag ${_object_tag}")
+  endif()
+
   # create custom command
   set(_h_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")
   set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
@@ -120,11 +110,11 @@ function(generate_ros2_service_message _srv _files_generated)
   add_custom_command(
     OUTPUT ${_h_file} ${_cxx_file}
     COMMAND ${_generator}
-    -m ${_srv}
+    ${_object_tag} ${_object}
     -c ${_class_name}
     -d ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS ${_generator} ${_generator_dependencies}
-    COMMENT "Generating class ${_class_name} for ${_srv}"
+    COMMENT "Generating class ${_class_name} for ${_object}"
     )
   set(${_files_generated} ${_h_file} ${_cxx_file} PARENT_SCOPE)
 endfunction()
@@ -132,10 +122,10 @@ endfunction()
 #
 # convert std_msgs/msg/Float to StdMsgsFloat
 #
-function(ros2_msg_to_vtk_class _msg _result)
-  # convert to class name, camel case
-  # remove redundant /msg/
-  string(REPLACE "/msg/" "_" _1 ${_msg})
+
+function(ros2_to_vtk_class _object_tag _ros2_object _result)
+  # Remove redundant /msg/ or /srv/
+  string(REGEX REPLACE "/${_object_tag}/" "_" _1 "${_ros2_object}")
   # replace _ by ; to make a list
   string(REPLACE "_" ";" _2 ${_1})
   set(_vtk "vtk")
@@ -150,30 +140,13 @@ function(ros2_msg_to_vtk_class _msg _result)
   set(${_result} ${_vtk} PARENT_SCOPE)
 endfunction()
 
-function(ros2_srv_to_vtk_class _srv _result)
-  # convert to class name, camel case
-  # remove redundant /srv/
-  string(REPLACE "/srv/" "_" _1 ${_srv})
-  # replace _ by ; to make a list
-  string(REPLACE "_" ";" _2 ${_1})
-  set(_vtk "vtk")
-  foreach(_3 ${_2})
-    # extract first letter, toupper it and replace in original
-    string(SUBSTRING ${_3} 0 1 _first)
-    string(TOUPPER ${_first} _first)
-    string(REGEX REPLACE "^.(.*)" "${_first}\\1" _4 "${_3}")
-    string(APPEND _vtk ${_4})
-  endforeach()
-  # return result
-  set(${_result} ${_vtk} PARENT_SCOPE)
-endfunction()
 
 
 #
 # convert std_msgs/msg/Float to std_msgs::msg::Float
 #
-function(ros2_msg_to_ros_class _msg _result)
-  string(REPLACE "/" "::" _1 ${_msg})
+function(ros2_obj_to_ros_class _obj _result)
+  string(REPLACE "/" "::" _1 ${_obj})
   set(${_result} ${_1} PARENT_SCOPE)
 endfunction()
 
@@ -181,17 +154,12 @@ endfunction()
 #
 # convert std_msg/msg/Float to Float
 #
-function(ros2_msg_to_ros_short_class _msg _result)
-  string(REPLACE "/" ";" _list ${_msg})
+function(ros2_obj_to_ros_short_class _obj _result)
+  string(REPLACE "/" ";" _list ${_obj})
   list(GET _list -1 _class_name)
   set(${_result} ${_class_name} PARENT_SCOPE)
 endfunction()
 
-
-function(ros2_srv_to_ros_class _srv _result)
-  string(REPLACE "/" "::" _1 ${_srv})
-  set(${_result} ${_1} PARENT_SCOPE)
-endfunction()
 
 function(ros2_srv_to_ros_short_class _srv _result)
   string(REPLACE "/" ";" _list ${_srv})
@@ -204,9 +172,9 @@ endfunction()
 # header and implementation code
 #
 function(generate_ros2_publisher_code _msg _h _cxx _reg)
-  ros2_msg_to_vtk_class(${_msg} vtk_class)
-  ros2_msg_to_ros_class(${_msg} ros_class)
-  ros2_msg_to_ros_short_class(${_msg} message_name)
+  ros2_to_vtk_class("msg" ${_msg} vtk_class)
+  ros2_obj_to_ros_class(${_msg} ros_class)
+  ros2_obj_to_ros_short_class(${_msg} message_name)
 
   set(file_name "${vtk_class}.h")
 
@@ -231,9 +199,9 @@ endfunction()
 # header and implementation code
 #
 function(generate_ros2_subscriber_code _msg _h _cxx _reg)
-  ros2_msg_to_vtk_class(${_msg} vtk_class)
-  ros2_msg_to_ros_class(${_msg} ros_class)
-  ros2_msg_to_ros_short_class(${_msg} message_name)
+  ros2_to_vtk_class("msg" ${_msg} vtk_class)
+  ros2_obj_to_ros_class(${_msg} ros_class)
+  ros2_obj_to_ros_short_class(${_msg} message_name)
 
   set(file_name "${vtk_class}.h")
 
@@ -254,9 +222,9 @@ endfunction()
 
 
 function(generate_ros2_service_client_code _srv _h _cxx _reg)
-  ros2_srv_to_vtk_class(${_srv} vtk_class)
-  ros2_srv_to_ros_class(${_srv} ros_class)
-  ros2_srv_to_ros_short_class(${_srv} service_name)
+  ros2_to_vtk_class("srv" ${_srv} vtk_class)
+  ros2_obj_to_ros_class(${_srv} ros_class)
+  ros2_obj_to_ros_short_class(${_srv} service_name)
 
   set(file_name "${vtk_class}.h")
 
