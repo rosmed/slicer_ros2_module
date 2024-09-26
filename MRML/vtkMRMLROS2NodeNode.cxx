@@ -39,13 +39,14 @@ vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 
 vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 {
-  // this->Destroy(); // FIXME: This causes a recursive call to Destroy()
+  this->Destroy();
 }
 
 
 void vtkMRMLROS2NodeNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
+  os << indent << "ROS node name: " << mROS2NodeName << std::endl; 
 }
 
 
@@ -59,17 +60,16 @@ void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
 }
 
 
-void vtkMRMLROS2NodeNode::Destroy()
+void vtkMRMLROS2NodeNode::Destroy(void)
 {
-
   if (!mInternals || !mInternals->mNodePointer ) {
     vtkWarningMacro(<< "Destroy: node does not contain any ROS2 internals. Not destroying ROS2 node.");
     return;
   }
+  this->Scene->RemoveNode(this);
   mROS2NodeName = "undefined";
   mMRMLNodeName = "ros2:node:undefined";
   this->SetName(mMRMLNodeName.c_str());
-  this->Scene->RemoveNode(this);
   mInternals->mNodePointer.reset();
   mInternals.reset();
 }

@@ -15,7 +15,8 @@ set(${KIT}_INCLUDE_DIRECTORIES
 include(SlicerROS2.cmake)
 
 generate_ros2_nodes(
-  GENERATED_FILES "SRCS_GENERATED"
+  GENERATED_FILES_PREFIX
+  "SLICER_ROS2_GENERATED"
   PUBLISHERS
   "geometry_msgs/msg/PoseStamped"
   "geometry_msgs/msg/TransformStamped"
@@ -35,6 +36,9 @@ generate_ros2_nodes(
   "turtlesim/srv/Spawn"
   )
 
+get_directory_property(_current_prop ADDITIONAL_CLEAN_FILES)
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${SLICER_ROS2_GENERATED_H};${SLICER_ROS2_GENERATED_CXX};${_current_prop}")
+  
 set(_SRCS_INTERNAL
   # conversion methods
   # vtkROS2ToSlicer.h
@@ -49,7 +53,8 @@ set(${KIT}_SRCS
   # private classes
   ${_SRCS_INTERNAL}
   # generated classes
-  ${SRCS_GENERATED}
+  ${SLICER_ROS2_GENERATED_H}
+  ${SLICER_ROS2_GENERATED_CXX}
   # public classes
   vtkMRMLROS2NodeNode.h
   vtkMRMLROS2NodeNode.cxx
@@ -79,13 +84,6 @@ set(${KIT}_SRCS
   vtkCustomTypes.cxx
   )
 
-if (USE_CISST_MSGS)
-  set (${KIT}_SRCS
-    ${${KIT}_SRCS}
-    vtkMRMLROS2CISST.h
-    vtkMRMLROS2CISST.cxx)
-endif ()
-
 set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 
 # --------------------------------------------------------------------------
@@ -94,6 +92,14 @@ set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
+  ${rclcpp_LIBRARIES}
+  ${sensor_msgs_LIBRARIES}
+  ${tf2_ros_LIBRARIES}
+  ${tf2_msgs_LIBRARIES}
+  ${tf2_LIBRARIES}
+  ${urdf_LIBRARIES}
+  ${turtlesim_LIBRARIES}
+  ${std_srvs_LIBRARIES}
   )
 
 SlicerMacroBuildModuleMRML(
@@ -101,5 +107,5 @@ SlicerMacroBuildModuleMRML(
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${urdf_LIBRARIES} ${cisst_msgs_LIBRARIES} ${turtlesim_LIBRARIES} ${std_srvs_LIBRARIES}
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES}
   )

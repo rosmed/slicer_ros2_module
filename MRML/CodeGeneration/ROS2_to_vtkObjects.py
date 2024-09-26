@@ -55,17 +55,10 @@ def generate_static_getset(method_code_hpp, field_name, field_type, static_type_
 
 
 def generate_static_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-    # method_code_hpp += f"    const {static_type_mapping[field_type]}* Get{field_name.capitalize()}(void) const {{\n"
-    # method_code_hpp += f"        return {field_name}_;\n"
-    # method_code_hpp += f"    }}\n\n"
 
     method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{field_name.capitalize()}(void) const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
-
-    # method_code_hpp += f"    void Set{field_name.capitalize()}(const {static_type_mapping[field_type]}* value) {{\n"
-    # method_code_hpp += f"        {field_name}_ = value;\n"
-    # method_code_hpp += f"    }}\n\n"
 
     method_code_hpp += f"    void Set{field_name.capitalize()}(const std::vector<{static_type_mapping[field_type]}>& value) {{\n"
     method_code_hpp += f"        {field_name}_ = value;\n"
@@ -86,6 +79,7 @@ def generate_class(class_name, fields):
     class_code_hpp += f"class vtk{class_name} : public vtkObject\n{{\npublic:\n"
     class_code_hpp += f"{__} vtkTypeMacro(vtk{class_name}, vtkObject);\n"
     class_code_hpp += f"{__} static vtk{class_name}* New(void);\n\n"
+    class_code_hpp += f"{__} void PrintSelf(std::ostream& os, vtkIndent indent) override;\n\n"
 
     method_code_hpp = ""
     attribute_code_hpp = ""
@@ -145,12 +139,31 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
     for field_type in attribute_list:
         if is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
-            if not is_equivalent_type_available:
-                imports+=f"#include <vtk{field_type}.h>\n"
-            else:
-                imports += f"#include <vtk{field_type}.h>\n"
+            imports += f"#include <vtk{field_type}.h>\n"
     return imports
 
+def generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields):
+    code_string_cpp = "\n// generate_print_self_methods_for_class\n"
+
+    class_name_formatted = vtk_equivalent_types.get(class_type_identifier, class_name_formatted)
+    code_string_cpp += f"void vtk{class_name_formatted}::PrintSelf(std::ostream& os, vtkIndent indent) {{\n"
+
+    code_string_cpp+= f"{__} Superclass::PrintSelf(os, indent);\n";
+
+    for field_name, field_type in fields.items():
+        if is_vtk_object(field_type):
+            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << std::endl;\n"
+            code_string_cpp += f"{__} {field_name}_->PrintSelf(os, indent.GetNextIndent());\n"
+        elif "sequence" in field_type:
+            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\";\n"
+            code_string_cpp += f"{__} for (const auto & __data : {field_name}_) os << __data << \" \";\n"
+            code_string_cpp += f"{__} os << std::endl;\n"
+
+        else:
+            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << {field_name}_ << std::endl;\n"
+
+    code_string_cpp += "}\n\n"
+    return code_string_cpp
 
 def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields):
     code_string_cpp = "\n// generate_slicer_to_ros2_methods_for_class\n"
@@ -249,6 +262,8 @@ def generate_class_and_conversion_methods(class_name_formatted, class_type_ident
 
     vtk_equivalent_types[class_type_identifier] = class_name_formatted
 
+    cpp_code += generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields)
+
     # Add Slicer to ROS2 conversion functions and vice versa
     hpp_code += f"// Conversion functions\n"
     hpp_code_single, cpp_code_single = generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_identifier, msg_ros2_type, fields)
@@ -274,6 +289,8 @@ def ROS2_service_to_vtkObject(full_type_name, output_directory):
     hpp_code = f"#ifndef {filename}_h\n"
     hpp_code += f"#define {filename}_h\n\n"
     cpp_code = f"#include \"{filename}.h\"\n\n"
+    cpp_code += f"#include <vtkROS2ToSlicer.h>\n"
+    cpp_code += f"#include <vtkSlicerToROS2.h>\n\n"
 
     imports = identify_imports(msg_name, namespace, package, unique_attributes)
     hpp_code += imports
@@ -305,6 +322,8 @@ def ROS2_message_to_vtkObject(full_type_name, output_directory):
     hpp_code = f"#ifndef {filename}_h\n"
     hpp_code += f"#define {filename}_h\n\n"
     cpp_code = f"#include \"{filename}.h\"\n\n"
+    cpp_code += f"#include <vtkROS2ToSlicer.h>\n"
+    cpp_code += f"#include <vtkSlicerToROS2.h>\n\n"
 
     message_attribute_map, unique_attributes = generate_attribute_dict_message(full_type_name)
 
@@ -333,4 +352,3 @@ if __name__ == '__main__':
         ROS2_message_to_vtkObject(args.message, args.directory)
     elif args.service:
         ROS2_service_to_vtkObject(args.service, args.directory)
-

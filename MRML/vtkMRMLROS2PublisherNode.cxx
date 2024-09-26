@@ -41,7 +41,6 @@ bool vtkMRMLROS2PublisherNode::RemoveFromROS2Node(const char * nodeId,
     vtkErrorMacro(<< "RemoveFromROS2Node: " << errorMessage);
     return false;
   }
-  std::cerr<<"RemoveFromROS2Node: topic: "<<topic<<std::endl;
   return true;
 }
 
