@@ -134,78 +134,135 @@ public:
 
   vtkSmartPointer<_slicer_type_out> mLastMessageSlicer;
   bool lastResponseSuccess = false;
+  bool isRequestInProgress = false;
+  std::chrono::steady_clock::time_point lastRequestTime;
+  std::chrono::duration<double> mConnectionTimeout;
+  std::chrono::duration<double> mRequestTimeout;
+
 
     bool PreRequestCheck(void) const
     {
-      return (this->mServiceClient != nullptr);
+      // return (this->mServiceClient != nullptr);
+      if(!this->mServiceClient)
+      {
+        std::cerr << "ServiceNode::PreRequestCheck: ServiceClient is not initialized" << std::endl;
+        return false;
+      }
+      if(!this->IsServerConnected()){
+        std::cerr << "ServiceNode::PreRequestCheck: Server is not connected" << std::endl;
+        return false;
+      }
+      if (this->isRequestInProgress)
+      {
+        std::cerr << "ServiceNode::PreRequestCheck: Request is already in progress" << std::endl;
+        return false;
+      }
+      return true;
     }
 
-    bool GetLastResponseStatus()
+    bool IsServerConnected() const
+    {
+      return this->mServiceClient && this->mServiceClient->service_is_ready();
+    }
+
+
+    bool GetLastResponseStatus() const
     {
       // if no request is pending and the last response was successful
       return !this->isRequestInProgress && this->lastResponseSuccess;
     }
 
-    _slicer_type_out * GetLastResponse()
+    _slicer_type_out* GetLastResponse()
     {
-      // todo maybe add some check that we actually received a message?
+      if (!this->lastResponseSuccess) {
+        std::cerr<< "GetLastResponse: No valid response available" << std::endl;
+        return nullptr;
+      }
       return mLastMessageSlicer.GetPointer();
     }
 
-    void ServiceCallback(typename rclcpp::Client<_ros_type>::SharedFuture future) {
-
-
-      std::shared_ptr<typename _ros_type::Response> service_response_ = future.get();
+    void ServiceCallback(typename rclcpp::Client<_ros_type>::SharedFuture future)
+    {
+      try {
+        std::shared_ptr<typename _ros_type::Response> service_response_ = future.get();
+        this->isRequestInProgress = false;
+        vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
+        std::cerr << "ServiceNode ServiceCallback has received response"<< std::endl;
+        this->lastResponseSuccess = true;
+      }
+      catch (const std::exception& e) {
+        std::cerr << "ServiceNode::ServiceCallback: Exception: " << e.what() << std::endl;
+        this->lastResponseSuccess = false;
+      }
       this->isRequestInProgress = false;
-      // vtkSmartPointer<_slicer_type_out> response = vtkNew<_slicer_type_out>();
-      vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
-      std::cerr << "ServiceNode::ProcessResponse: Value stored in the table + received response: "<< std::endl;
-
-      this->lastResponseSuccess = true; // TODO: implement error handling
-
-      // mLastMessageSlicer = response;
-
-      //           << responseTable->GetValueByName(0, "message") << std::endl;
-
-      // this->lastResponse = response;
-      // this->lastResponseTable = responseTable;
     }
 
-    size_t SendAsyncRequest(_slicer_type_in * message)
-    {
+  size_t SendAsyncRequest(_slicer_type_in* message)
+  {
+    if (!this->PreRequestCheck()) {
+      return 0;
+    }
 
-      auto request = std::make_shared<typename _ros_type::Request>();
-      vtkSlicerToROS2(message, *request, this->mROSNode);
-      std::cerr << "ServiceNode::SendAsyncRequest sending request" << std::endl;
-      this->isRequestInProgress = true;
-      std::cerr << __FILE__ << ": " << __LINE__ << " .future not supported on galactic 20.04" << std::endl;
-      // this->mServiceResponseFuture = this->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::ServiceCallback, this, std::placeholders::_1)).future;
-      //mInternals->mServiceResponseFuture = mInternals->mServiceClient->async_send_request(request, std::bind(&vtkMRMLROS2ServiceInternals::service_callback, mInternals, std::placeholders::_1)).future.share();
-      // std::cout << "Requested message" << message << std::endl;
-      // float x = 2;
-      // float y = 2;
-      // float theta = 0.15;
-      // std::string name = "TestSlicerServiceClient";
+    auto request = std::make_shared<typename _ros_type::Request>();
+    vtkSlicerToROS2(message, *request, this->mROSNode);
+    // vtkDebugMacro("ServiceNode::SendAsyncRequest sending request");
 
-      // auto request = std::make_shared<typename _ros_type::Request>();
-      // request->x = x;
-      // request->y = y;
-      // request->theta = theta;
-      // request->name = name;
+    this->isRequestInProgress = true;
+    this->lastRequestTime = std::chrono::steady_clock::now();
 
-      // auto result = this->mServiceClient->async_send_request(request);
-      // Handle response in a callback or wait for the response
-
-      // Write a simple python server and trigger it (switch bool response and increment the message response)
-      // Look at subscriber callback on how to handle it
-      // Maybe create a vtkSlicerROS2 fn to convert std_srv callback
-
-      // put the respones also in a vtkTable
-      // python should be able to show the vtkTable
-
-      // write a test
-
+    try {
+      this->mServiceResponseFuture = this->mServiceClient->async_send_request(
+        request,
+        std::bind(&vtkMRMLROS2ServiceClientVTKInternals<_slicer_type_in, _slicer_type_out, _ros_type>::ServiceCallback,
+                  this,
+                  std::placeholders::_1)).future;
       return 1;
+    }
+    catch (const std::exception& e) {
+      std::cerr << "Error sending async request: " << e.what() << std::endl;
+      this->isRequestInProgress = false;
+      return 0;
+    }
+  }
+
+  // Not using these functions yet
+
+    bool WaitForServer(const std::chrono::duration<double>& timeout = std::chrono::seconds(5))
+    {
+      if (!this->mServiceClient) {
+        std::cerr << "Service client is not initialized" << std::endl;
+        return false;
+      }
+
+      return this->mServiceClient->wait_for_service(timeout);
+    }
+
+    void SetConnectionTimeout(double seconds)
+    {
+      this->mConnectionTimeout = std::chrono::duration<double>(seconds);
+    }
+
+    void SetRequestTimeout(double seconds)
+    {
+      this->mRequestTimeout = std::chrono::duration<double>(seconds);
+    }
+
+    bool IsRequestTimedOut() const
+    {
+      if (!this->isRequestInProgress) {
+        return false;
+      }
+      auto elapsed = std::chrono::steady_clock::now() - this->lastRequestTime;
+      return elapsed > this->mRequestTimeout;
+    }
+
+    void CancelCurrentRequest()
+    {
+      if (this->isRequestInProgress && this->mServiceResponseFuture.valid()) {
+        this->mServiceResponseFuture.cancel();
+        this->isRequestInProgress = false;
+        std::cerr << "ServiceNode::CancelCurrentRequest: Request has been cancelled" << std::endl;
+      }
     }
 
 
