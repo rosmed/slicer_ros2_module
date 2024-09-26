@@ -16,14 +16,14 @@ function(generate_ros2_nodes)
   set(_all_files_generated_h)
   set(_all_files_generated_cxx)
   foreach(_msg ${_ros_messages})
-    generate_ros2_object("-m" ${_msg} _files_generated)
-    list(APPEND _all_files_generated_h ${_files_generated_H})
+    generate_ros2_object("-m" ${_msg} _file_generated)
+    list(APPEND _all_files_generated_h ${_file_generated_H})
     list(APPEND _all_files_generated_cxx ${_file_generated_CXX})
   endforeach ()
 
   # Generate service message files
   foreach(_srv ${_slicer_ros_SERVICE_CLIENTS})
-    generate_ros2_object("-s" ${_srv} _files_generated)
+    generate_ros2_object("-s" ${_srv} _file_generated)
     list(APPEND _all_files_generated_h ${_file_generated_H})
     list(APPEND _all_files_generated_cxx ${_file_generated_CXX})
   endforeach ()
@@ -85,7 +85,7 @@ endfunction()
 # generate the vtk class corresponding to the ROS message as well as
 # conversion methods between ROS and vtk
 #
-function(generate_ros2_object _object_tag _object _files_generated)
+function(generate_ros2_object _object_tag _object _files_generated_prefix)
 
   # if object_tag is "-m", then object is a message
   if (${_object_tag} STREQUAL "-m")
