@@ -403,6 +403,6 @@ if __name__ == '__main__':
     # ROS2_to_vtkObject(args.message, args.directory)
 
     if args.message:
-        ROS2_message_to_vtkObject(args.message, directory)
+        ROS2_message_to_vtkObject(args.message, args.directory)
     elif args.service:
-        ROS2_service_to_vtkObject(args.service, directory)
+        ROS2_service_to_vtkObject(args.service, args.directory)
