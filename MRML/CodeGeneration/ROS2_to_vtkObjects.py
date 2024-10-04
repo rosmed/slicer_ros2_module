@@ -67,6 +67,19 @@ def generate_static_sequence_getset(method_code_hpp, field_name, field_type, sta
     return method_code_hpp
 
 
+def generate_vtk_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
+    method_code_hpp += f"    const std::vector<vtkSmartPointer<vtk{field_type}>>& Get{field_name.capitalize()}(void) const {{\n"
+    method_code_hpp += f"        return {field_name}_;\n"
+    method_code_hpp += f"    }}\n\n"
+
+    method_code_hpp += f"    void Set{field_name.capitalize()}(const std::vector<vtkSmartPointer<vtk{field_type}>>& value) {{\n"
+    method_code_hpp += f"        {field_name}_ = value;\n"
+    method_code_hpp += f"    }}\n\n"
+
+    return method_code_hpp
+
+
+
 def generate_class(class_name, fields):
 
     # Create the class code for the .cpp file
@@ -87,18 +100,24 @@ def generate_class(class_name, fields):
 
     for field_name, field_type in fields.items():
         # Check if the field is a VTK object or not
-        if is_vtk_object(field_type):
+
+        if "sequence" in field_type:
+            element_type = field_type.split('<')[1].split('>')[0]
+            # check if element_type is a vtk object or static type
+            if is_vtk_object(element_type):
+                is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
+                method_code_hpp = generate_vtk_sequence_getset(method_code_hpp, field_name, element_type, static_type_mapping)
+                attribute_code_hpp += f"{__} std::vector<vtkSmartPointer<vtk{element_type}>> {field_name}_;\n"
+                attribute_code_cpp += f"{__} {field_name}_ = std::vector<vtkSmartPointer<vtk{element_type}>>();\n"
+            else:
+                method_code_hpp = generate_static_sequence_getset(method_code_hpp, field_name, element_type, static_type_mapping)
+                attribute_code_hpp += f"{__} std::vector<{static_type_mapping[element_type]}> {field_name}_;\n"
+
+        elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             method_code_hpp = generate_vtk_getset(method_code_hpp, field_name, field_type)
             attribute_code_hpp += f"{__} vtkSmartPointer<vtk{field_type}> {field_name}_;\n"
             attribute_code_cpp += f"{__} {field_name}_ = vtk{field_type}::New();\n"
-
-        elif "sequence" in field_type:
-            static_type = field_type.split('<')[1].split('>')[0]
-            method_code_hpp = generate_static_sequence_getset(method_code_hpp, field_name, static_type, static_type_mapping)
-            # attribute_code_hpp += f"    {static_type_mapping[static_type]}* {field_name}_;\n"
-            attribute_code_hpp += f"{__} std::vector<{static_type_mapping[static_type]}> {field_name}_;\n"
-
         else:
             method_code_hpp = generate_static_getset(method_code_hpp, field_name, field_type, static_type_mapping)
             attribute_code_hpp += f"{__} {static_type_mapping[field_type]} {field_name}_;\n"
@@ -137,9 +156,15 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
     imports += f"#include <vtkSlicerToROS2.h>\n"
 
     for field_type in attribute_list:
-        if is_vtk_object(field_type):
+        if "sequence" in field_type:
+            element_type = field_type.split('<')[1].split('>')[0]
+            if is_vtk_object(element_type):
+                is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
+                imports += f"#include <vtk{element_type}.h>\n"
+        elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             imports += f"#include <vtk{field_type}.h>\n"
+        
     return imports
 
 def generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields):
@@ -151,13 +176,25 @@ def generate_print_self_methods_for_class(class_name_formatted, class_type_ident
     code_string_cpp+= f"{__} Superclass::PrintSelf(os, indent);\n";
 
     for field_name, field_type in fields.items():
-        if is_vtk_object(field_type):
+
+        if "sequence" in field_type:
+            element_type = field_type.split('<')[1].split('>')[0]
+            # based on whether the element type is a vtk object or not, print the sequence. For vtk objects, print using calls to PrintSelf of the individual elements
+            if is_vtk_object(element_type):
+                is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
+                code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << std::endl;\n"
+                code_string_cpp += f"{__} for (const auto & __data : {field_name}_) {{\n"
+                code_string_cpp += f"{____} __data->PrintSelf(os, indent.GetNextIndent());\n"
+                code_string_cpp += f"{__} }}\n"
+                code_string_cpp += f"{__} os << std::endl;\n"
+            else:
+                code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\";\n"
+                code_string_cpp += f"{__} for (const auto & __data : {field_name}_) os << __data << \" \";\n"
+                code_string_cpp += f"{__} os << std::endl;\n"
+
+        elif is_vtk_object(field_type):
             code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << std::endl;\n"
             code_string_cpp += f"{__} {field_name}_->PrintSelf(os, indent.GetNextIndent());\n"
-        elif "sequence" in field_type:
-            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\";\n"
-            code_string_cpp += f"{__} for (const auto & __data : {field_name}_) os << __data << \" \";\n"
-            code_string_cpp += f"{__} os << std::endl;\n"
 
         else:
             code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << {field_name}_ << std::endl;\n"
@@ -174,12 +211,19 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
     code_string_hpp += f"void vtkSlicerToROS2( vtk{class_name_formatted} * input, {msg_ros2_type} & result, const std::shared_ptr<rclcpp::Node> & rosNode);\n"
 
     for field_name, field_type in fields.items():
-        if is_vtk_object(field_type):
+        if "sequence" in field_type:  
+            if is_vtk_object(field_type):
+                is_equivalent_type_available, vtk_field_type = get_vtk_type(field_type, vtk_equivalent_types)
+                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{field_name.capitalize()}().size());\n"
+                code_string_cpp += f"{__} for (size_t i = 0; i < input->Get{field_name.capitalize()}().size(); ++i) {{\n"
+                code_string_cpp += f"{____} vtkSlicerToROS2(input->Get{field_name.capitalize()}()[i], result.{field_name}[i], rosNode);\n"
+                code_string_cpp += f"{__} }}\n"
+            else:
+                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{field_name.capitalize()}().size());\n"
+                code_string_cpp += f"{__} std::copy(input->Get{field_name.capitalize()}().begin(), input->Get{field_name.capitalize()}().end(), result.{field_name}.begin());\n"
+        elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             code_string_cpp += f"{__} vtkSlicerToROS2(input->Get{field_name.capitalize()}(), result.{field_name}, rosNode);\n"
-        elif "sequence" in field_type:
-            code_string_cpp += f"{__} result.{field_name}.resize(input->Get{field_name.capitalize()}().size());\n"
-            code_string_cpp += f"{__} std::copy(input->Get{field_name.capitalize()}().begin(), input->Get{field_name.capitalize()}().end(), result.{field_name}.begin());\n"
         else:
             code_string_cpp += f"{__} result.{field_name} = input->Get{field_name.capitalize()}();\n"
 
@@ -195,18 +239,28 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
     code_string_cpp += f"void vtkROS2ToSlicer(const {msg_ros2_type} & input, vtkSmartPointer<vtk{class_name_formatted}> result) {{\n"
 
     for field_name, field_type in fields.items():
-        if is_vtk_object(field_type):
+        if "sequence" in field_type:
+            element_type = field_type.split('<')[1].split('>')[0]
+            if is_vtk_object(element_type):
+                is_equivalent_type_available, vtk_element_type = get_vtk_type(element_type, vtk_equivalent_types)
+                code_string_cpp += f"{__} std::vector<vtkSmartPointer<vtk{vtk_element_type}>> temp_{field_name};\n"
+                code_string_cpp += f"{__} temp_{field_name}.resize(input.{field_name}.size());\n"
+                code_string_cpp += f"{__} for (size_t i = 0; i < input.{field_name}.size(); ++i) {{\n"
+                code_string_cpp += f"{____} vtkSmartPointer<vtk{vtk_element_type}> temp_{field_name}_element = vtkSmartPointer<vtk{vtk_element_type}>::New();\n"
+                code_string_cpp += f"{____} vtkROS2ToSlicer(input.{field_name}[i], temp_{field_name}_element);\n"
+                code_string_cpp += f"{____} temp_{field_name}[i] = temp_{field_name}_element;\n"
+                code_string_cpp += f"{__} }}\n"
+            else:
+                static_element_type = static_type_mapping[element_type]
+                code_string_cpp += f"{__} std::vector<{static_element_type}> temp_{field_name};\n"
+                code_string_cpp += f"{__} temp_{field_name}.resize(input.{field_name}.size());\n"
+                code_string_cpp += f"{__} std::copy(input.{field_name}.begin(), input.{field_name}.end(), temp_{field_name}.begin());\n"
+            code_string_cpp += f"{__} result->Set{field_name.capitalize()}(temp_{field_name});\n"
+        elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             code_string_cpp += f"{__} vtkSmartPointer<vtk{field_type}> {field_name} = vtkSmartPointer<vtk{field_type}>::New();\n"
             code_string_cpp += f"{__} vtkROS2ToSlicer(input.{field_name}, {field_name});\n"
             code_string_cpp += f"{__} result->Set{field_name.capitalize()}({field_name});\n"
-        elif "sequence" in field_type:
-            is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
-            element_type = field_type.split('<')[1].split('>')[0]
-            code_string_cpp += f"{__} std::vector<{static_type_mapping[element_type]}> temp_{field_name};\n"
-            code_string_cpp += f"{__} temp_{field_name}.resize(input.{field_name}.size());\n"
-            code_string_cpp += f"{__} std::copy(input.{field_name}.begin(), input.{field_name}.end(), temp_{field_name}.begin());\n"
-            code_string_cpp += f"{__} result->Set{field_name.capitalize()}(temp_{field_name});\n"
         else:
             code_string_cpp += f"{__} result->Set{field_name.capitalize()}(input.{field_name});\n"
 
@@ -349,6 +403,6 @@ if __name__ == '__main__':
     # ROS2_to_vtkObject(args.message, args.directory)
 
     if args.message:
-        ROS2_message_to_vtkObject(args.message, args.directory)
+        ROS2_message_to_vtkObject(args.message, directory)
     elif args.service:
-        ROS2_service_to_vtkObject(args.service, args.directory)
+        ROS2_service_to_vtkObject(args.service, directory)
