@@ -32,10 +32,10 @@ def get_class_name_formatted(class_name):
 
 def generate_vtk_getset(method_code_hpp, field_name, field_type):
     method_code_hpp += f"{__} // generate_vtk_getset\n"
-    method_code_hpp += f"{__} vtk{field_type} * Get{field_name.capitalize()}(void) {{\n"
+    method_code_hpp += f"{__} vtk{field_type} * Get{snake_to_camel(field_name)}(void) {{\n"
     method_code_hpp += f"{____} return {field_name}_;\n"
     method_code_hpp += f"{__} }}\n\n"
-    method_code_hpp += f"{__} void Set{field_name.capitalize()}(vtk{field_type} * value) {{\n"
+    method_code_hpp += f"{__} void Set{snake_to_camel(field_name)}(vtk{field_type} * value) {{\n"
     method_code_hpp += f"{____} {field_name}_ = value;\n"
     method_code_hpp += f"{__} }}\n\n"
 
@@ -44,10 +44,10 @@ def generate_vtk_getset(method_code_hpp, field_name, field_type):
 
 def generate_static_getset(method_code_hpp, field_name, field_type, static_type_mapping):
     method_code_hpp += f"{__}// generate_static_getset\n"
-    method_code_hpp += f"{__} const {static_type_mapping[field_type]}& Get{field_name.capitalize()}(void) const {{\n"
+    method_code_hpp += f"{__} const {static_type_mapping[field_type]}& Get{snake_to_camel(field_name)}(void) const {{\n"
     method_code_hpp += f"{____} return {field_name}_;\n"
     method_code_hpp += f"{__} }}\n\n"
-    method_code_hpp += f"{__} void Set{field_name.capitalize()}(const {static_type_mapping[field_type]}& value) {{\n"
+    method_code_hpp += f"{__} void Set{snake_to_camel(field_name)}(const {static_type_mapping[field_type]}& value) {{\n"
     method_code_hpp += f"{____} {field_name}_ = value;\n"
     method_code_hpp += f"{__} }}\n\n"
 
@@ -56,11 +56,11 @@ def generate_static_getset(method_code_hpp, field_name, field_type, static_type_
 
 def generate_static_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
 
-    method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{field_name.capitalize()}(void) const {{\n"
+    method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{snake_to_camel(field_name)}(void) const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
 
-    method_code_hpp += f"    void Set{field_name.capitalize()}(const std::vector<{static_type_mapping[field_type]}>& value) {{\n"
+    method_code_hpp += f"    void Set{snake_to_camel(field_name)}(const std::vector<{static_type_mapping[field_type]}>& value) {{\n"
     method_code_hpp += f"        {field_name}_ = value;\n"
     method_code_hpp += f"    }}\n\n"
 
@@ -68,11 +68,11 @@ def generate_static_sequence_getset(method_code_hpp, field_name, field_type, sta
 
 
 def generate_vtk_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-    method_code_hpp += f"    const std::vector<vtkSmartPointer<vtk{field_type}>>& Get{field_name.capitalize()}(void) const {{\n"
+    method_code_hpp += f"    const std::vector<vtkSmartPointer<vtk{field_type}>>& Get{snake_to_camel(field_name)}(void) const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
 
-    method_code_hpp += f"    void Set{field_name.capitalize()}(const std::vector<vtkSmartPointer<vtk{field_type}>>& value) {{\n"
+    method_code_hpp += f"    void Set{snake_to_camel(field_name)}(const std::vector<vtkSmartPointer<vtk{field_type}>>& value) {{\n"
     method_code_hpp += f"        {field_name}_ = value;\n"
     method_code_hpp += f"    }}\n\n"
 
@@ -214,18 +214,18 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
         if "sequence" in field_type:  
             if is_vtk_object(field_type):
                 is_equivalent_type_available, vtk_field_type = get_vtk_type(field_type, vtk_equivalent_types)
-                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{field_name.capitalize()}().size());\n"
-                code_string_cpp += f"{__} for (size_t i = 0; i < input->Get{field_name.capitalize()}().size(); ++i) {{\n"
-                code_string_cpp += f"{____} vtkSlicerToROS2(input->Get{field_name.capitalize()}()[i], result.{field_name}[i], rosNode);\n"
+                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
+                code_string_cpp += f"{__} for (size_t i = 0; i < input->Get{snake_to_camel(field_name)}().size(); ++i) {{\n"
+                code_string_cpp += f"{____} vtkSlicerToROS2(input->Get{snake_to_camel(field_name)}()[i], result.{field_name}[i], rosNode);\n"
                 code_string_cpp += f"{__} }}\n"
             else:
-                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{field_name.capitalize()}().size());\n"
-                code_string_cpp += f"{__} std::copy(input->Get{field_name.capitalize()}().begin(), input->Get{field_name.capitalize()}().end(), result.{field_name}.begin());\n"
+                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
+                code_string_cpp += f"{__} std::copy(input->Get{snake_to_camel(field_name)}().begin(), input->Get{snake_to_camel(field_name)}().end(), result.{field_name}.begin());\n"
         elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
-            code_string_cpp += f"{__} vtkSlicerToROS2(input->Get{field_name.capitalize()}(), result.{field_name}, rosNode);\n"
+            code_string_cpp += f"{__} vtkSlicerToROS2(input->Get{snake_to_camel(field_name)}(), result.{field_name}, rosNode);\n"
         else:
-            code_string_cpp += f"{__} result.{field_name} = input->Get{field_name.capitalize()}();\n"
+            code_string_cpp += f"{__} result.{field_name} = input->Get{snake_to_camel(field_name)}();\n"
 
     code_string_cpp += "}\n\n"
     return code_string_hpp, code_string_cpp
@@ -255,14 +255,14 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
                 code_string_cpp += f"{__} std::vector<{static_element_type}> temp_{field_name};\n"
                 code_string_cpp += f"{__} temp_{field_name}.resize(input.{field_name}.size());\n"
                 code_string_cpp += f"{__} std::copy(input.{field_name}.begin(), input.{field_name}.end(), temp_{field_name}.begin());\n"
-            code_string_cpp += f"{__} result->Set{field_name.capitalize()}(temp_{field_name});\n"
+            code_string_cpp += f"{__} result->Set{snake_to_camel(field_name)}(temp_{field_name});\n"
         elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             code_string_cpp += f"{__} vtkSmartPointer<vtk{field_type}> {field_name} = vtkSmartPointer<vtk{field_type}>::New();\n"
             code_string_cpp += f"{__} vtkROS2ToSlicer(input.{field_name}, {field_name});\n"
-            code_string_cpp += f"{__} result->Set{field_name.capitalize()}({field_name});\n"
+            code_string_cpp += f"{__} result->Set{snake_to_camel(field_name)}({field_name});\n"
         else:
-            code_string_cpp += f"{__} result->Set{field_name.capitalize()}(input.{field_name});\n"
+            code_string_cpp += f"{__} result->Set{snake_to_camel(field_name)}(input.{field_name});\n"
 
     code_string_cpp += "}\n\n"
     return code_string_hpp, code_string_cpp
