@@ -23,12 +23,14 @@ generate_ros2_nodes(
   "geometry_msgs/msg/WrenchStamped"
   "sensor_msgs/msg/Joy"
   "sensor_msgs/msg/JointState"
+  "geometry_msgs/msg/PoseArray"
   SUBSCRIBERS
   "geometry_msgs/msg/PoseStamped"
   "geometry_msgs/msg/TransformStamped"
   "geometry_msgs/msg/WrenchStamped"
   "sensor_msgs/msg/Joy"
   "sensor_msgs/msg/JointState"
+  "geometry_msgs/msg/PoseArray"
   DEPENDENCIES
   "std_msgs/msg/Header"
   "builtin_interfaces/msg/Time"

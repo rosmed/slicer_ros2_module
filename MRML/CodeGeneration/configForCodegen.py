@@ -8,7 +8,8 @@ static_type_mapping = {
     'float': 'double',
     'double': 'double',
     'string': 'std::string',
-    'str': 'std::string'
+    'str': 'std::string',
+    'boolean': 'bool'
 }
 
 static_type_default_value = {
@@ -20,7 +21,8 @@ static_type_default_value = {
     'double': '0.0',
     'string': '""',
     'str': '""',
-    'default': '0'
+    'default': '0',
+    'boolean': 'false'
 }
 
 vtk_equivalent_types = {
