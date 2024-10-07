@@ -15,7 +15,6 @@ VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTable, std_msgs::msg::Float64MultiArray, Doubl
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkMatrix4x4, geometry_msgs::msg::Pose, Pose);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, geometry_msgs::msg::Wrench, Wrench);
-VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTransformCollection, geometry_msgs::msg::PoseArray, PoseArray);
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTypeUInt8Array, sensor_msgs::msg::Image, UInt8Image);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkPoints, sensor_msgs::msg::PointCloud, PointCloud);
