@@ -212,10 +212,15 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
         if (std::regex_search(filename, match, param_regex)) {
           const std::string package = match[1];
           const std::string relativeFile = match[2];
-          // Anton: add try/catch here in case the package is not found!
-          const std::string packageShareDirectory
-            = ament_index_cpp::get_package_share_directory(package);
-          filename = packageShareDirectory + "/" + relativeFile;
+          try {
+	    const std::string packageShareDirectory
+	      = ament_index_cpp::get_package_share_directory(package);
+	    filename = packageShareDirectory + "/" + relativeFile;
+	  } catch (...) {
+	    vtkErrorMacro(<< "failed to find directory for package "
+			  << package
+			  << ", did you source the correct workspace setup.bash?");
+	  }
         }
         mNthRobot.mLinkModelFiles[index] = filename;
       } else {
