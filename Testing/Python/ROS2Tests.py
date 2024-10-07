@@ -135,6 +135,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     def spin_some(self):
         ros2Logic = slicer.util.getModuleLogic('ROS2')
         for i in range(3):
+            time.sleep(0.01)
             ros2Logic.Spin()
 
     @classmethod
@@ -418,28 +419,28 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             pose1.SetElement(0, 3, 1.0)
             pose1.SetElement(1, 3, 2.0)
             pose1.SetElement(2, 3, 3.0)
-            pose1.SetElement(0, 0, 0)  
-            pose1.SetElement(0, 1, -1)  
-            pose1.SetElement(1, 0, 1)  
-            pose1.SetElement(1, 1, 0)  
+            pose1.SetElement(0, 0, 0)
+            pose1.SetElement(0, 1, -1)
+            pose1.SetElement(1, 0, 1)
+            pose1.SetElement(1, 1, 0)
 
             pose2 = vtk.vtkMatrix4x4()
             pose2.SetElement(0, 3, 4.0)
             pose2.SetElement(1, 3, 5.0)
             pose2.SetElement(2, 3, 6.0)
-            pose2.SetElement(0, 0, 0.707) 
-            pose2.SetElement(0, 1, -0.707) 
-            pose2.SetElement(1, 0, 0.707)  
-            pose2.SetElement(1, 1, 0.707)  
+            pose2.SetElement(0, 0, 0.707)
+            pose2.SetElement(0, 1, -0.707)
+            pose2.SetElement(1, 0, 0.707)
+            pose2.SetElement(1, 1, 0.707)
 
             pose3 = vtk.vtkMatrix4x4()
             pose3.SetElement(0, 3, 7.0)
             pose3.SetElement(1, 3, 8.0)
             pose3.SetElement(2, 3, 9.0)
-            pose3.SetElement(0, 0, 0.866)  
-            pose3.SetElement(0, 1, -0.5)  
-            pose3.SetElement(1, 0, 0.5)  
-            pose3.SetElement(1, 1, 0.866)  
+            pose3.SetElement(0, 0, 0.866)
+            pose3.SetElement(0, 1, -0.5)
+            pose3.SetElement(1, 0, 0.5)
+            pose3.SetElement(1, 1, 0.866)
 
             # create a tuple of three poses
             poses = (pose1, pose2, pose3)
@@ -463,9 +464,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 receivedPose = receivedPoseArray.GetPoses()[i]
                 for row in range(4):
                     for col in range(4):
-                        self.assertAlmostEqual(sentPose.GetElement(row, col), 
-                                               receivedPose.GetElement(row, col), 
-                                               places=3, 
+                        self.assertAlmostEqual(sentPose.GetElement(row, col),
+                                               receivedPose.GetElement(row, col),
+                                               places=3,
                                                msg=f"Mismatch in pose {i}, element ({row}, {col})")
 
             self.delete_pub_sub()
