@@ -50,7 +50,8 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
                                          const std::string & robotName,
                                          const std::string & parameterNodeName,
                                          const std::string & parameterName,
-                                         const std::string & fixedFrame)
+                                         const std::string & fixedFrame,
+                                         const std::string & tfPrefix)
 {
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
@@ -68,6 +69,7 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
   mNthRobot.mParameterNodeName = parameterNodeName;
   mNthRobot.mParameterName = parameterName;
   mNthRobot.mFixedFrame = fixedFrame;
+  mNthRobot.mTfPrefix = tfPrefix;
   SetRobotDescriptionParameterNode();
   SetRobotName(robotName);
   return true;
@@ -238,12 +240,16 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     if (i == 0 && !mNthRobot.mFixedFrame.empty()){
       std::cerr <<  "MY FIXED FRAME: " << mNthRobot.mFixedFrame << std::endl;
-      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mFixedFrame, mNthRobot.mLinkNames[i]);
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup
+        = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mFixedFrame,
+                                                   mNthRobot.mTfPrefix + mNthRobot.mLinkNames[i]);
       mNthRobot.mLookupNodes.push_back(lookup);
       this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
     }
     else {
-      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup
+        = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mTfPrefix + mNthRobot.mLinkParentNames[i],
+                                                   mNthRobot.mTfPrefix + mNthRobot.mLinkNames[i]);
       mNthRobot.mLookupNodes.push_back(lookup);
       this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
     }

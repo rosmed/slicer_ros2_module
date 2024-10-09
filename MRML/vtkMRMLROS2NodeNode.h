@@ -85,7 +85,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
 
   vtkMRMLROS2Tf2LookupNode * CreateAndAddTf2LookupNode(const std::string & parent_id, const std::string & child_id);
 
-  vtkMRMLROS2RobotNode * CreateAndAddRobotNode(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName, const std::string & fixedFrame);
+  vtkMRMLROS2RobotNode * CreateAndAddRobotNode(const std::string & robotName,
+                                               const std::string & parameterNodeName,
+                                               const std::string & parameterName,
+                                               const std::string & fixedFrame,
+                                               const std::string & tfPrefix);
 
   // new
   vtkMRMLROS2ServiceNode * CreateAndAddServiceNode(const std::string & monitoredNodeName);

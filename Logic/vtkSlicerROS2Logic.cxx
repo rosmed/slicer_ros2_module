@@ -205,10 +205,15 @@ vtkMRMLROS2NodeNode * vtkSlicerROS2Logic::GetDefaultROS2Node(void) const
 }
 
 
-void vtkSlicerROS2Logic::AddRobot(const std::string & robotName, const std::string & parameterNodeName, const std::string & parameterName, const std::string & fixedFrame)
+void vtkSlicerROS2Logic::AddRobot(const std::string & robotName,
+                                  const std::string & parameterNodeName,
+                                  const std::string & parameterName,
+                                  const std::string & fixedFrame,
+                                  const std::string & tfPrefix)
 {
   if (mDefaultROS2Node){
-    mDefaultROS2Node->CreateAndAddRobotNode(robotName, parameterNodeName, parameterName, fixedFrame);
+    mDefaultROS2Node->CreateAndAddRobotNode(robotName, parameterNodeName,
+                                            parameterName, fixedFrame, tfPrefix);
   }
 }
 

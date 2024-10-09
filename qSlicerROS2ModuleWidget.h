@@ -64,12 +64,14 @@ protected slots:
                           QLineEdit * parameterNodeNameLineEdit,
                           QLineEdit * parameterNameLineEdit,
                           QLineEdit * fixedFrameLineEdit,
+                          QLineEdit * tfPrefixLineEdit,
                           QPushButton * loadRobotButton,
                           QPushButton * removeRobotButton);
   void onRemoveRobotClicked(QLineEdit * robotNameLineEdit,
                             QLineEdit * parameterNodeNameLineEdit,
                             QLineEdit * parameterNameLineEdit,
                             QLineEdit * fixedFrameLineEdit,
+                            QLineEdit * tfPrefixLineEdit,
                             QPushButton * loadRobotButton,
                             QPushButton * removeRobotButton,
                             QWidget * robotWidget);
