@@ -69,7 +69,11 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
   mNthRobot.mParameterNodeName = parameterNodeName;
   mNthRobot.mParameterName = parameterName;
   mNthRobot.mFixedFrame = fixedFrame;
-  mNthRobot.mTfPrefix = tfPrefix;
+  if ((tfPrefix == "") || ((*(tfPrefix.crend()) == '/'))) {
+    mNthRobot.mTfPrefix = tfPrefix;
+  } else {
+    mNthRobot.mTfPrefix = tfPrefix + '/';
+  }
   SetRobotDescriptionParameterNode();
   SetRobotName(robotName);
   return true;
