@@ -39,7 +39,7 @@ node is modified.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
-         broadcaster = ros2Node.CreateAndAddTf2BroadcasterNode('Parent', 'Child')
+         broadcaster = rosNode.CreateAndAddTf2BroadcasterNode('Parent', 'Child')
          # Broadcast a 4x4 matrix
          broadcastedMat = vtk.vtkMatrix4x4()
          broadcastedMat.SetElement(0, 3, 66.0) # Set a default value
@@ -89,7 +89,8 @@ be retrieved using ``GetMatrixTransformToParent``.
 
          rosLogic = slicer.util.getModuleLogic('ROS2')
          rosNode = rosLogic.GetDefaultROS2Node()
-         lookupNode = ros2Node.CreateAndAddTf2LookupNode('Parent', 'Child')
+         # Note that this next line will give you a repeated error if there is nothing broadcasting to Parent -> Child
+         lookupNode = rosNode.CreateAndAddTf2LookupNode('Parent', 'Child')
          # get the transform "manually"
          lookupMat = lookupNode.GetMatrixTransformToParent()
          # or use an observer

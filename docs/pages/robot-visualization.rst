@@ -7,7 +7,7 @@ Robot Visualization
 Overview
 ========
 
-For the robot visualization in Slicer 3D, one first need to properly
+For the robot visualization in 3D Slicer, one first need to properly
 configure a robot in ROS 2.  The default ROS approach requires:
 
 * an XML robot definition file (``UFA``) and usually CAD files for
@@ -174,10 +174,10 @@ widget will update with additional line edits for the second robot.
   :align: center
   :alt: Defining a robot with a namespace in Slicer
 
-For robots with non-holonomic constraints, we have also added a field
-to specify the fixed frame of the robot. The default behaviour is to use
+We have also added a field to specify the fixed frame of the robot. The default behaviour is to use
 the first link of the robot as the fixed frame if this field is left empty.
-Below shows a rendering of the TurtleBot in 3D Slicer using this feature.
+For non-holonomic robots, this feature may be necessary for visualization. The example below shows a rendering
+of the TurtleBot in 3D Slicer using this feature.
 
 .. image:: ../images/turtlebot.gif
   :width: 800

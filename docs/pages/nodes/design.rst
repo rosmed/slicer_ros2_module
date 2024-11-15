@@ -28,7 +28,7 @@ i.e. ``vtkMRMLxxxxNode``.  We added the ``ROS2`` "prefix" for all the
 class names so we're using ``vtkMRMLROS2xxxxNode`` where ``xxxx``
 represents a ROS functionality.  This works fairly well but makes it a
 bit hard to read for the MRML node than encapsulates a ROS node,
-i.e. a ``vtkMRMLROS2NodeNode``.
+i.e. a ``vtkMRMLROS2NodeNode``. No - this is not a typo.
 
 C++ vs Python
 =============

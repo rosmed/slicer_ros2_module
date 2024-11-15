@@ -43,8 +43,8 @@ subscribers to convert messages between ROS and Slicer.
      - std_msgs::msg::Float64MultiArray
      - DoubleTable
    * - vtkMatrix4x4
-     - geometry_msgs::msg::PoseStamped
-     - PoseStamped
+     - geometry_msgs::msg::Pose
+     - Pose
    * - vtkDoubleArray
      - geometry_msgs::msg::WrenchStamped
      - WrenchStamped
@@ -166,7 +166,23 @@ can be retrieved using ``GetLastMessage``.
          m_string_yaml = subString.GetLastMessageYAML()
          # since the subscriber is a MRML node, you can also create an observer (callback)
          # to trigger some code when a new message is received
+         # example callback function:
+         def myCallback(caller=None, event=None):
+            message = subString.GetLastMessage()
+            print("Last message recieved by subscriber: {}.".format(message))
+
          observerId = subString.AddObserver('ModifiedEvent', myCallback)
+         # The last message recieved will print in the python console in Slicer when data is published to /my_string
+
+         # Another example - updating transforms based on subscribed pose data (ie. for an optical tracker with a ros wrapper)
+         subPose = rosNode.CreateAndAddSubscriberNode('Pose', '/StylusToTracker')
+         transform = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLLinearTransformNode', 'StylusToTracker')
+         def updateTransforms(caller=None, event=None):
+            pose = subPose.GetLastMessage()
+            transform.SetMatrixTransformToParent(pose)
+            print("Last message recieved by subscriber: {}.".format(message))
+
+         observerId = subPose.AddObserver('ModifiedEvent', updateTransforms)
 
    .. tab:: **C++**
 
