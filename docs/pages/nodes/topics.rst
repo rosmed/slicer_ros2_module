@@ -164,24 +164,31 @@ can be retrieved using ``GetLastMessage``.
          m_string = subString.GetLastMessage()
          # alternate, get a string with the full message
          m_string_yaml = subString.GetLastMessageYAML()
-         # since the subscriber is a MRML node, you can also create an observer (callback)
-         # to trigger some code when a new message is received
+
+
+         # since the subscriber is a MRML node,
+	 # you can also create an observer (callback)
+         # to trigger some code when a new message is received.
          # example callback function:
          def myCallback(caller=None, event=None):
             message = subString.GetLastMessage()
-            print("Last message recieved by subscriber: {}.".format(message))
-
+            print("Last message received by subscriber: {}.".format(message))
+         # add the observer with callback
          observerId = subString.AddObserver('ModifiedEvent', myCallback)
-         # The last message recieved will print in the python console in Slicer when data is published to /my_string
+         # the last message received will print in the python console
+	 # in Slicer when data is published to /my_string
 
-         # Another example - updating transforms based on subscribed pose data (ie. for an optical tracker with a ros wrapper)
+
+         # another example - updating transforms based on subscribed pose data
+	 # (ie. for an optical tracker with a ros wrapper)
          subPose = rosNode.CreateAndAddSubscriberNode('Pose', '/StylusToTracker')
          transform = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLLinearTransformNode', 'StylusToTracker')
+	 # define the callback
          def updateTransforms(caller=None, event=None):
             pose = subPose.GetLastMessage()
             transform.SetMatrixTransformToParent(pose)
-            print("Last message recieved by subscriber: {}.".format(message))
-
+            print("Last message received by subscriber: {}.".format(message))
+         # add the observer with callback
          observerId = subPose.AddObserver('ModifiedEvent', updateTransforms)
 
    .. tab:: **C++**
