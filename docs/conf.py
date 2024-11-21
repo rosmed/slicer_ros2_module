@@ -56,3 +56,11 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 html_logo = '../Resources/Icons/SlicerROS2.png'
 html_title = project + ' ' + release
+
+# For the edit in github link
+html_context = {
+  'display_github': True,
+  'github_user': 'rosmed',
+  'github_repo': 'slicer_ros2_module',
+  'github_version': 'devel/docs/',
+}
