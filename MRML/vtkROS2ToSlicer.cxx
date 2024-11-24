@@ -237,20 +237,13 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointe
         return;
     }
 
-    // Access raw data
     const uint8_t *data = input.data.data();
     size_t point_step = input.point_step; // Size of each point in bytes
-
-    // Prepare VTK array for bulk insertion
     vtkSmartPointer<vtkFloatArray> vtkArray = vtkSmartPointer<vtkFloatArray>::New();
     vtkArray->SetNumberOfComponents(3); // x, y, z
     vtkArray->SetNumberOfTuples(num_points);
-
-    // Iterate over points in raw data
     for (size_t i = 0; i < num_points; ++i) {
         const uint8_t *point_data = data + i * point_step;
-
-        // Extract x, y, z
         float x, y, z;
         memcpy(&x, point_data + offset_x, sizeof(float));
         memcpy(&y, point_data + offset_y, sizeof(float));
@@ -258,7 +251,6 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointe
 
         // Check if the point is valid
         if (std::isfinite(x) && std::isfinite(y) && std::isfinite(z)) {
-            // Insert directly into vtkArray
             vtkArray->SetTuple3(i, x, y, z);
         }
     }
