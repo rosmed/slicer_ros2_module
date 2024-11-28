@@ -36,6 +36,7 @@ Here is an example for SlicerIGT (a module that supports pivot calibration, poin
 Note that SlicerIGT has a dependency of SlicerIGSIO so we will build this too.
 
 .. code-block:: bash
+
   git clone https://github.com/SlicerIGT/SlicerIGT.git
   mkdir SlicerIGT-build
   git clone https://github.com/IGSIO/SlicerIGSIO.git
