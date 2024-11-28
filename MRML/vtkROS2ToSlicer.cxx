@@ -3,7 +3,6 @@
 #include <vtkVariant.h>
 #include <vtkStringArray.h>
 #include <vtkIntArray.h>
-#include <vtkFloatArray.h>
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
@@ -204,20 +203,11 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result)
 {
-    // A PointCloud2 is a data structure for storing arrays of points such that the points can have multiple 
-    // attributes like x,y,z,intensity or R,A,S,label. The PointCloud2 is structured like a table with a width and 
-    // height - this is how we can determine the size of the point cloud. In each of the elements of the table, or points
-    // in the cloud, we have a field that tells you the name of the attribute (ie. "x"), the byte offset of that field in the 
-    // point for accessing, the type of data (eg. FLOAT), and the number of elements in the field (usually one).
-    // You can aslo determine whether or not the PointCloud is big or little endian, the number of bytes per element and
-    // per row, whether or not the point cloud contains naan points or not and then finally the data as an array.
-
     // Initialize the vtkPoints
     result->Reset();
-    size_t num_points = input.width * input.height;
-    result->Allocate(num_points);
+    result->Allocate(input.width * input.height);
 
-    // Check if there is data in the PointCloud2
+    // Check if the input PointCloud2 message is valid
     if (input.data.empty() || input.width == 0 || input.height == 0) {
         std::cerr << "No points in the PointCloud2" << std::endl;
         return;
@@ -231,40 +221,28 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointe
         if (field.name == "z") offset_z = field.offset;
     }
 
-    // Ensure x, y, and z offset fields exist
+    // Ensure x, y, and z fields are present
     if (offset_x == -1 || offset_y == -1 || offset_z == -1) {
-        std::cerr << "Offset data does not exist." << std::endl;
+        std::cerr << "Offset data is not present" << std::endl;
         return;
     }
 
-    // Access raw data
-    const uint8_t *data = input.data.data();
-    size_t point_step = input.point_step; // Size of each point in bytes
+    // Calculate the size of each point (in bytes)
+    const uint32_t point_step = input.point_step;
 
-    // Prepare VTK array for bulk insertion
-    vtkSmartPointer<vtkFloatArray> vtkArray = vtkSmartPointer<vtkFloatArray>::New();
-    vtkArray->SetNumberOfComponents(3); // x, y, z
-    vtkArray->SetNumberOfTuples(num_points);
+    // Iterate through all the points in the input point cloud and add them to returned vtkPoints
+    const uint8_t* data_ptr = input.data.data();
+    for (size_t i = 0; i < input.width * input.height; ++i) {
+        const float* x_ptr = reinterpret_cast<const float*>(data_ptr + offset_x);
+        const float* y_ptr = reinterpret_cast<const float*>(data_ptr + offset_y);
+        const float* z_ptr = reinterpret_cast<const float*>(data_ptr + offset_z);
 
-    // Iterate over points in raw data
-    for (size_t i = 0; i < num_points; ++i) {
-        const uint8_t *point_data = data + i * point_step;
+        // Add the point to vtkPoints
+        result->InsertNextPoint(*x_ptr, *y_ptr, *z_ptr);
 
-        // Extract x, y, z
-        float x, y, z;
-        memcpy(&x, point_data + offset_x, sizeof(float));
-        memcpy(&y, point_data + offset_y, sizeof(float));
-        memcpy(&z, point_data + offset_z, sizeof(float));
-
-        // Check if the point is valid
-        if (std::isfinite(x) && std::isfinite(y) && std::isfinite(z)) {
-            // Insert directly into vtkArray
-            vtkArray->SetTuple3(i, x, y, z);
-        }
+        // Advance to the next point
+        data_ptr += point_step;
     }
-
-    // Set the vtkPoints with the data in the vtkArray
-    result->SetData(vtkArray);
 }
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result)
