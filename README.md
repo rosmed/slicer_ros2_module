@@ -4,6 +4,10 @@ This module is designed to enable direct communication between ROS 2 and 3D Slic
 
 The documentation is available on readthedocs: https://slicer-ros2.readthedocs.io/en/latest/index.html
 
+Please check out this video below for an overview of some of the features and use-cases.
+
+[![SlicerROS2 demonstration](https://img.youtube.com/vi/k3VGs0YaE3g/0.jpg)](https://www.youtube.com/watch?v=k3VGs0YaE3g)
+
 ## Acknowledgement
 This project is supported by:
 * The National Institute of Biomedical Imaging and Bioengineering of the U.S. National Institutes of Health (NIH) under award number R01EB020667, and 3R01EB020667-05S1 (MPI: Tokuda, Krieger, Leonard, and Fuge).  The content is solely the responsibility of the authors and does not necessarily represent the official views of the NIH.
