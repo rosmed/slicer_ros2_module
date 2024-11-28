@@ -201,49 +201,6 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer
     }
 }
 
-void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result)
-{
-    // Initialize the vtkPoints
-    result->Reset();
-    result->Allocate(input.width * input.height);
-
-    // Check if the input PointCloud2 message is valid
-    if (input.data.empty() || input.width == 0 || input.height == 0) {
-        std::cerr << "No points in the PointCloud2" << std::endl;
-        return;
-    }
-
-    // Get the field offsets for x, y, z
-    int offset_x = -1, offset_y = -1, offset_z = -1;
-    for (const auto& field : input.fields) {
-        if (field.name == "x") offset_x = field.offset;
-        if (field.name == "y") offset_y = field.offset;
-        if (field.name == "z") offset_z = field.offset;
-    }
-
-    // Ensure x, y, and z fields are present
-    if (offset_x == -1 || offset_y == -1 || offset_z == -1) {
-        std::cerr << "Offset data is not present" << std::endl;
-        return;
-    }
-
-    // Calculate the size of each point (in bytes)
-    const uint32_t point_step = input.point_step;
-
-    // Iterate through all the points in the input point cloud and add them to returned vtkPoints
-    const uint8_t* data_ptr = input.data.data();
-    for (size_t i = 0; i < input.width * input.height; ++i) {
-        const float* x_ptr = reinterpret_cast<const float*>(data_ptr + offset_x);
-        const float* y_ptr = reinterpret_cast<const float*>(data_ptr + offset_y);
-        const float* z_ptr = reinterpret_cast<const float*>(data_ptr + offset_z);
-
-        // Add the point to vtkPoints
-        result->InsertNextPoint(*x_ptr, *y_ptr, *z_ptr);
-
-        // Advance to the next point
-        data_ptr += point_step;
-    }
-}
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result)
 {

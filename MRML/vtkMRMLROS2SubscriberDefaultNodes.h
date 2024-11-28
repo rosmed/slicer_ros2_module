@@ -25,6 +25,5 @@ VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkDoubleArray, Wrench);
 
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTypeUInt8Array, UInt8Image);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkPoints, PointCloud);
-VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkPoints, PointCloud2);
 
 #endif // __vtkMRMLROS2SubscriberDefaultNodes_h
