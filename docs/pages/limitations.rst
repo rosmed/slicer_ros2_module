@@ -1,7 +1,9 @@
-===========
+"""""""""""""""""""
 Limitations
+"""""""""""""""""""
 ===========
-
+Scope of support
+===========
 * We only support STL and OBJ meshes for the ``visual`` defined in the
   URDF.  If any ``visual`` is defined using a ``geometry`` (sphere,
   box...) or another mesh format, it will not be displayed in Slicer
