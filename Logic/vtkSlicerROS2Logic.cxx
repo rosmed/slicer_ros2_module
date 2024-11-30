@@ -120,6 +120,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
 
   // Publishers
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherEmptyNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherBoolNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntNode>::New());
