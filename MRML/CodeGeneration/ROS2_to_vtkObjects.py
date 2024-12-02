@@ -164,7 +164,7 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
         elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             imports += f"#include <vtk{field_type}.h>\n"
-        
+
     return imports
 
 def generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields):
@@ -182,22 +182,22 @@ def generate_print_self_methods_for_class(class_name_formatted, class_type_ident
             # based on whether the element type is a vtk object or not, print the sequence. For vtk objects, print using calls to PrintSelf of the individual elements
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
-                code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << std::endl;\n"
+                code_string_cpp += f"{__} os << indent << \"{snake_to_camel(field_name)}:\" << std::endl;\n"
                 code_string_cpp += f"{__} for (const auto & __data : {field_name}_) {{\n"
                 code_string_cpp += f"{____} __data->PrintSelf(os, indent.GetNextIndent());\n"
                 code_string_cpp += f"{__} }}\n"
                 code_string_cpp += f"{__} os << std::endl;\n"
             else:
-                code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\";\n"
+                code_string_cpp += f"{__} os << indent << \"{snake_to_camel(field_name)}:\";\n"
                 code_string_cpp += f"{__} for (const auto & __data : {field_name}_) os << __data << \" \";\n"
                 code_string_cpp += f"{__} os << std::endl;\n"
 
         elif is_vtk_object(field_type):
-            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << std::endl;\n"
+            code_string_cpp += f"{__} os << indent << \"{snake_to_camel(field_name)}:\" << std::endl;\n"
             code_string_cpp += f"{__} {field_name}_->PrintSelf(os, indent.GetNextIndent());\n"
 
         else:
-            code_string_cpp += f"{__} os << indent << \"{field_name.capitalize()}:\" << {field_name}_ << std::endl;\n"
+            code_string_cpp += f"{__} os << indent << \"{snake_to_camel(field_name)}:\" << {field_name}_ << std::endl;\n"
 
     code_string_cpp += "}\n\n"
     return code_string_cpp
@@ -211,7 +211,7 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
     code_string_hpp += f"void vtkSlicerToROS2( vtk{class_name_formatted} * input, {msg_ros2_type} & result, const std::shared_ptr<rclcpp::Node> & rosNode);\n"
 
     for field_name, field_type in fields.items():
-        if "sequence" in field_type:  
+        if "sequence" in field_type:
             if is_vtk_object(field_type):
                 is_equivalent_type_available, vtk_field_type = get_vtk_type(field_type, vtk_equivalent_types)
                 code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
@@ -267,14 +267,14 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
     code_string_cpp += "}\n\n"
     return code_string_hpp, code_string_cpp
 
-    
+
 def generate_attribute_dict_service(full_type_name):
     [package_name, namespace, type_name] = full_type_name.split('/')
     package = importlib.import_module(f"{package_name}.srv")
     attributes = getattr(package, type_name)
     request_attributes = attributes.Request.get_fields_and_field_types()
     response_attributes = attributes.Response.get_fields_and_field_types()
-    
+
     result = {
         full_type_name: {
             'request': process_attributes(request_attributes, namespace),
@@ -287,7 +287,7 @@ def generate_attribute_dict_message(full_type_name):
     [package_name, namespace, type_name] = full_type_name.split('/')
     package = importlib.import_module(f"{package_name}.msg")
     attributes = getattr(package, type_name).get_fields_and_field_types()
-    
+
     return {full_type_name: process_attributes(attributes, namespace)}, list(attributes.values())
 
 def process_attributes(attributes, namespace):
