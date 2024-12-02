@@ -6,6 +6,10 @@
 
 auto const MM_TO_M_CONVERSION = 1000.00;
 
+void vtkROS2ToSlicer(const std_msgs::msg::Empty &, std::string &)
+{
+}
+
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result)
 {
   result = input.data;
@@ -223,4 +227,3 @@ void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPoi
   result->SetResult(input.success);
   result->SetMessage(input.message);
 }
-

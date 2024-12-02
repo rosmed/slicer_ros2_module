@@ -4,7 +4,7 @@
 #include <vtkMRMLROS2PublisherNode.h>
 #include <vtkMRMLROS2PublisherMacros.h>
 
-VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Empty);
+VTK_MRML_ROS_PUBLISHER_NATIVE_H(std::string, Empty);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(std::string, String);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Bool);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(int, Int);

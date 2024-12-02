@@ -39,7 +39,7 @@
 #include <vtkCustomTypes.h>
 
 // std_msgs
-void vtkSlicerToROS2(const bool & input, std_msgs::msg::Empty & result,
+void vtkSlicerToROS2(const std::string & input, std_msgs::msg::Empty & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(const std::string & input, std_msgs::msg::String & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);

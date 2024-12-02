@@ -12,6 +12,7 @@
 #include <vtkPoints.h>
 
 // ROS2
+#include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/int64.hpp>
@@ -33,6 +34,7 @@
 #include <vtkCustomTypes.h>
 
 // std_msgs
+void vtkROS2ToSlicer(const std_msgs::msg::Empty & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Int64 & input, int & result);

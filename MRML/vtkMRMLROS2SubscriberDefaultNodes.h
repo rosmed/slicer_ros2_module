@@ -4,6 +4,7 @@
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2SubscriberMacros.h>
 
+VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(std::string, Empty);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(std::string, String);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(bool, Bool);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(int, Int);

@@ -3,7 +3,7 @@
 
 const double M_TO_MM = 0.001;
 
-void vtkSlicerToROS2(const bool & input, std_msgs::msg::Empty &,
+void vtkSlicerToROS2(const std::string &, std_msgs::msg::Empty &,
 		     const std::shared_ptr<rclcpp::Node> &)
 {
 }

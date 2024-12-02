@@ -279,6 +279,22 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(self.topic), "Subscriber not deleted")
             return
 
+        def test_create_and_add_pub_sub_empty(self):
+            print("\nTesting creation and working of publisher and subscriber for empty- Starting..")
+            self.create_pub_sub("Empty")
+
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
+            sentString = ""
+            self.testPub.Publish(sentString)
+
+            self.generic_assertions(initSubMessageCount)
+
+            receivedString = self.testSub.GetLastMessage()
+            self.assertTrue(sentString == receivedString, "Message not received correctly")
+
+            self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
+
         def test_create_and_add_pub_sub_string(self):
             print("\nTesting creation and working of publisher and subscriber for string- Starting..")
             self.create_pub_sub("String")

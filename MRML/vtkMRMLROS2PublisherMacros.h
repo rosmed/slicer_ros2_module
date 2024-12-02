@@ -13,7 +13,7 @@
     static SelfType * New(void);					\
     vtkMRMLNode * CreateNodeInstance(void) override;			\
     const char * GetNodeTagName(void) override;				\
-    size_t Publish(const slicer_type & message = 0);			\
+    size_t Publish(const slicer_type & message);			\
     									\
   protected:								\
     vtkMRMLROS2Publisher##name##Node();					\
