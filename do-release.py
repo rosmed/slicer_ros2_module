@@ -4,7 +4,9 @@ import argparse
 import sys
 import os
 import subprocess
-import lsb_release
+
+#import lsb_release
+import distro
 
 def execute_command(directory, cmd):
     owd = os.getcwd()
@@ -57,8 +59,12 @@ print(f'---- Found Slicer tgz file: {slicer_tgz}')
 slicer_dir = slicer_tgz.replace('.tar.gz', '')
 
 # build new name
-lsb = lsb_release.get_distro_information()
-sr2_dir = f'{slicer_dir}-SlicerROS2-{args.slicer_ros2_version}-{lsb["ID"]}-{lsb["RELEASE"]}-{ros_distro}'
+
+#lsb = lsb_release.get_distro_information()
+# sr2_dir = f'{slicer_dir}-SlicerROS2-{args.slicer_ros2_version}-{lsb["ID"]}-{lsb["RELEASE"]}-{ros_distro}'
+
+lsb = distro.lsb_release_info()
+sr2_dir = f'{slicer_dir}-SlicerROS2-{args.slicer_ros2_version}-{lsb["distributor_id"]}-{lsb["release"]}-{ros_distro}'
 
 # extract install for Slicer only
 execute_command(slicer_bin, f'tar zxf {slicer_tgz}')
@@ -70,8 +76,8 @@ module_subdir = 'lib/Slicer-5.6/qt-loadable-modules'
 execute_command(slicer_bin, f'cp {module_subdir}/*ROS2* {slicer_dir}/{module_subdir}')
 
 # cleanup
-execute_command(slicer_bin, 'find . -name *.so -exec strip {} \;')
-execute_command(slicer_bin, 'find . -name *.pyc -exec rm {} \;')
+execute_command(slicer_bin, 'find . -name *.so -exec strip {} \\;')
+execute_command(slicer_bin, 'find . -name *.pyc -exec rm {} \\;')
 
 # build new tar file
 execute_command(slicer_bin, f'mv {slicer_dir} {sr2_dir}')
