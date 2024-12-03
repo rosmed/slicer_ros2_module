@@ -40,5 +40,6 @@ docs/_build/
 # VSCode
 .vscode
 
-#python
+# python
 __pycache__
+

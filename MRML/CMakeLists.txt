@@ -34,6 +34,8 @@ generate_ros2_nodes(
   DEPENDENCIES
   "std_msgs/msg/Header"
   "builtin_interfaces/msg/Time"
+  SERVICE_CLIENTS
+  "turtlesim/srv/Spawn"
   )
 
 get_directory_property(_current_prop ADDITIONAL_CLEAN_FILES)

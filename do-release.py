@@ -41,8 +41,7 @@ nb_files = len(slicer_tgz_files)
 if nb_files == 0:
     print('---- No tgz file found, assuming we need to run cmake package')
     result = execute_command(slicer_bin, 'make package')
-    print(result)
-    slicer_tgz_files = [f for f in os.listdir(slicer_bin) if f.startswith(f'Slicer-{slicer_version}')]
+    slicer_tgz_files = [f for f in os.listdir(slicer_bin) if (f.startswith('Slicer-') and f.endswith('.tar.gz'))]
     nb_files = len(slicer_tgz_files)
 
 if nb_files == 0:

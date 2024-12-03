@@ -4,7 +4,7 @@
 function(generate_ros2_nodes)
   set(_options)
   set(_oneValueArgs GENERATED_FILES_PREFIX)
-  set(_multiValueArgs PUBLISHERS SUBSCRIBERS DEPENDENCIES)
+  set(_multiValueArgs PUBLISHERS SUBSCRIBERS DEPENDENCIES SERVICE_CLIENTS)
   cmake_parse_arguments(_slicer_ros "${_options}" "${_oneValueArgs}" "${_multiValueArgs}" ${ARGN})
 
   set(_ros_messages)
@@ -16,7 +16,14 @@ function(generate_ros2_nodes)
   set(_all_files_generated_h)
   set(_all_files_generated_cxx)
   foreach(_msg ${_ros_messages})
-    generate_ros2_message(${_msg} _file_generated)
+    generate_ros2_object("-m" ${_msg} _file_generated)
+    list(APPEND _all_files_generated_h ${_file_generated_H})
+    list(APPEND _all_files_generated_cxx ${_file_generated_CXX})
+  endforeach ()
+
+  # Generate service message files
+  foreach(_srv ${_slicer_ros_SERVICE_CLIENTS})
+    generate_ros2_object("-s" ${_srv} _file_generated)
     list(APPEND _all_files_generated_h ${_file_generated_H})
     list(APPEND _all_files_generated_cxx ${_file_generated_CXX})
   endforeach ()
@@ -29,6 +36,7 @@ function(generate_ros2_nodes)
   string(APPEND _h "\n#include <vtkMRMLScene.h>\n")
   string(APPEND _h "\n#include <vtkMRMLROS2PublisherNode.h>\n#include <vtkMRMLROS2PublisherMacros.h>\n")
   string(APPEND _h "\n#include <vtkMRMLROS2SubscriberNode.h>\n#include <vtkMRMLROS2SubscriberMacros.h>\n")
+  string(APPEND _h "\n#include <vtkMRMLROS2ServiceClientNode.h>\n#include <vtkMRMLROS2ServiceClientMacros.h>\n")
 
   string(APPEND _h "\nvoid vtkMRMLROS2GeneratedNodesRegister(vtkSmartPointer<vtkMRMLScene>);\n")
 
@@ -36,6 +44,7 @@ function(generate_ros2_nodes)
   string(APPEND _cxx "\n#include <vtkMRMLROS2GeneratedNodes.h>")
   string(APPEND _cxx "\n#include <vtkSlicerToROS2.h>\n#include <vtkMRMLROS2PublisherInternals.h>\n")
   string(APPEND _cxx "\n#include <vtkROS2ToSlicer.h>\n#include <vtkMRMLROS2SubscriberInternals.h>\n")
+  string(APPEND _cxx "\n#include <vtkMRMLROS2ServiceClientInternals.h>\n")
 
   set(_reg)
   foreach(_pub ${_slicer_ros_PUBLISHERS})
@@ -52,6 +61,13 @@ function(generate_ros2_nodes)
     string(APPEND _reg "\n${_sub_reg}")
   endforeach()
 
+  foreach(_srv ${_slicer_ros_SERVICE_CLIENTS})
+    generate_ros2_service_client_code(${_srv} _srv_h _srv_cxx _srv_reg)
+    string(APPEND _h   "\n${_srv_h}")
+    string(APPEND _cxx "\n${_srv_cxx}")
+    string(APPEND _reg "\n${_srv_reg}")
+  endforeach()
+
   string(APPEND _h "\n#endif\n")
 
   string(APPEND _cxx "\nvoid vtkMRMLROS2GeneratedNodesRegister(vtkSmartPointer<vtkMRMLScene> scene) {")
@@ -62,6 +78,46 @@ function(generate_ros2_nodes)
 
   set(${_slicer_ros_GENERATED_FILES_PREFIX}_H ${_all_files_generated_h} ${h_file} PARENT_SCOPE)
   set(${_slicer_ros_GENERATED_FILES_PREFIX}_CXX ${_all_files_generated_cxx} ${cxx_file} PARENT_SCOPE)
+endfunction()
+
+
+#
+# generate the vtk class corresponding to the ROS message as well as
+# conversion methods between ROS and vtk
+#
+function(generate_ros2_object _object_tag _object _files_generated_prefix)
+
+  # if object_tag is "-m", then object is a message
+  if (${_object_tag} STREQUAL "-m")
+    # ros2_msg_to_vtk_class(${_object} _class_name)
+    ros2_to_vtk_class("msg" ${_object} _class_name)
+  endif()
+  # if object_tag is "-s", then object is a service
+  if (${_object_tag} STREQUAL "-s")
+    # ros2_srv_to_vtk_class(${_object} _class_name)
+    ros2_to_vtk_class("srv" ${_object} _class_name)
+  endif()
+  # else throw an error
+  if (NOT DEFINED _class_name)
+    message(FATAL_ERROR "Unknown object tag ${_object_tag}")
+  endif()
+
+  # create custom command
+  set(_h_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")
+  set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
+  set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/ROS2_to_vtkObjects.py")
+
+  # check if files exist
+  if (NOT EXISTS ${_h_file} OR NOT EXISTS ${_cxx_file})
+    execute_process(
+      COMMAND ${_generator} ${_object_tag} ${_object} -c ${_class_name} -d "${CMAKE_CURRENT_BINARY_DIR}"
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  endif()
+
+
+  set(${_files_generated_prefix}_H ${_h_file} PARENT_SCOPE)
+  set(${_files_generated_prefix}_CXX ${_cxx_file} PARENT_SCOPE)
 endfunction()
 
 
@@ -87,14 +143,13 @@ function(generate_ros2_message _msg _files_generated_prefix)
   set(${_files_generated_prefix}_CXX ${_cxx_file} PARENT_SCOPE)
 endfunction()
 
-
 #
 # convert std_msgs/msg/Float to StdMsgsFloat
 #
-function(ros2_msg_to_vtk_class _msg _result)
-  # convert to class name, camel case
-  # remove redundant /msg/
-  string(REPLACE "/msg/" "_" _1 ${_msg})
+
+function(ros2_to_vtk_class _object_tag _ros2_object _result)
+  # Remove redundant /msg/ or /srv/
+  string(REGEX REPLACE "/${_object_tag}/" "_" _1 "${_ros2_object}")
   # replace _ by ; to make a list
   string(REPLACE "_" ";" _2 ${_1})
   set(_vtk "vtk")
@@ -110,11 +165,12 @@ function(ros2_msg_to_vtk_class _msg _result)
 endfunction()
 
 
+
 #
 # convert std_msgs/msg/Float to std_msgs::msg::Float
 #
-function(ros2_msg_to_ros_class _msg _result)
-  string(REPLACE "/" "::" _1 ${_msg})
+function(ros2_obj_to_ros_class _obj _result)
+  string(REPLACE "/" "::" _1 ${_obj})
   set(${_result} ${_1} PARENT_SCOPE)
 endfunction()
 
@@ -122,21 +178,27 @@ endfunction()
 #
 # convert std_msg/msg/Float to Float
 #
-function(ros2_msg_to_ros_short_class _msg _result)
-  string(REPLACE "/" ";" _list ${_msg})
+function(ros2_obj_to_ros_short_class _obj _result)
+  string(REPLACE "/" ";" _list ${_obj})
   list(GET _list -1 _class_name)
   set(${_result} ${_class_name} PARENT_SCOPE)
 endfunction()
 
+
+# function(ros2_srv_to_ros_short_class _srv _result)
+#   string(REPLACE "/" ";" _list ${_srv})
+#   list(GET _list -1 _class_name)
+#   set(${_result} ${_class_name} PARENT_SCOPE)
+# endfunction()
 
 #
 # create the code for a publisher, the result is two strings,
 # header and implementation code
 #
 function(generate_ros2_publisher_code _msg _h _cxx _reg)
-  ros2_msg_to_vtk_class(${_msg} vtk_class)
-  ros2_msg_to_ros_class(${_msg} ros_class)
-  ros2_msg_to_ros_short_class(${_msg} message_name)
+  ros2_to_vtk_class("msg" ${_msg} vtk_class)
+  ros2_obj_to_ros_class(${_msg} ros_class)
+  ros2_obj_to_ros_short_class(${_msg} message_name)
 
   set(file_name "${vtk_class}.h")
 
@@ -161,9 +223,9 @@ endfunction()
 # header and implementation code
 #
 function(generate_ros2_subscriber_code _msg _h _cxx _reg)
-  ros2_msg_to_vtk_class(${_msg} vtk_class)
-  ros2_msg_to_ros_class(${_msg} ros_class)
-  ros2_msg_to_ros_short_class(${_msg} message_name)
+  ros2_to_vtk_class("msg" ${_msg} vtk_class)
+  ros2_obj_to_ros_class(${_msg} ros_class)
+  ros2_obj_to_ros_short_class(${_msg} message_name)
 
   set(file_name "${vtk_class}.h")
 
@@ -180,4 +242,26 @@ function(generate_ros2_subscriber_code _msg _h _cxx _reg)
   string(APPEND _reg_tmp "  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2Subscriber${message_name}Node>::New());")
   set(${_reg} "${_reg_tmp}" PARENT_SCOPE)
 
+endfunction()
+
+
+function(generate_ros2_service_client_code _srv _h _cxx _reg)
+  ros2_to_vtk_class("srv" ${_srv} vtk_class)
+  ros2_obj_to_ros_class(${_srv} ros_class)
+  ros2_obj_to_ros_short_class(${_srv} service_name)
+
+  set(file_name "${vtk_class}.h")
+
+  set(_h_tmp)
+  string(APPEND _h_tmp "#include <${file_name}>\n")
+  string(APPEND _h_tmp "VTK_MRML_ROS_SERVICE_CLIENT_VTK_H(${vtk_class}Request, ${vtk_class}Response, ${service_name});\n")
+  set(${_h} "${_h_tmp}" PARENT_SCOPE)
+
+  set(_cxx_tmp)
+  string(APPEND _cxx_tmp "VTK_MRML_ROS_SERVICE_CLIENT_VTK_CXX( ${vtk_class}Request, ${vtk_class}Response, ${ros_class}, ${service_name});\n")
+  set(${_cxx} "${_cxx_tmp}" PARENT_SCOPE)
+
+  set(_reg_tmp)
+  string(APPEND _reg_tmp "  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClient${service_name}Node>::New());\n")
+  set(${_reg} "${_reg_tmp}" PARENT_SCOPE)
 endfunction()
