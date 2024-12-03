@@ -1,7 +1,6 @@
 #include <vtkMRMLROS2RobotNode.h>
 
 #include <vtkEventBroker.h>
-// #include <vtkMatrix4x4.h>
 #include <vtkTransform.h>
 #include <vtkPointSet.h>
 #include <vtkSTLReader.h>
@@ -51,7 +50,8 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
                                          const std::string & robotName,
                                          const std::string & parameterNodeName,
                                          const std::string & parameterName,
-                                         const std::string & fixedFrame)
+                                         const std::string & fixedFrame,
+                                         const std::string & tfPrefix)
 {
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
@@ -69,6 +69,11 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
   mNthRobot.mParameterNodeName = parameterNodeName;
   mNthRobot.mParameterName = parameterName;
   mNthRobot.mFixedFrame = fixedFrame;
+  if ((tfPrefix == "") || ((*(tfPrefix.crend()) == '/'))) {
+    mNthRobot.mTfPrefix = tfPrefix;
+  } else {
+    mNthRobot.mTfPrefix = tfPrefix + '/';
+  }
   SetRobotDescriptionParameterNode();
   SetRobotName(robotName);
   return true;
@@ -137,6 +142,7 @@ bool vtkMRMLROS2RobotNode::ParseRobotDescription(void)
 {
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
   if (!mInternals->mURDFModel.initString(mNthRobot.mRobotDescription)) {
+    vtkErrorMacro(<< "ParseRobotDescription: failed to parse robot description");
     return false;
   }
   return true;
@@ -179,6 +185,7 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
     lastExplored++;
   }
   mNumberOfLinks = mNthRobot.mLinkNames.size();
+  vtkDebugMacro(<< "InitializeLookupListFromURDF complete");
 }
 
 
@@ -202,26 +209,32 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
       mInternals->mLinkOrigins[index] = origin;
       // Get stl file name and add it to a list of vectors for python parsing later
       std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry); // How do I put this in the internals??
-      mNthRobot.mRobotScale = {mesh->scale.x, mesh->scale.y, mesh->scale.z};
       if (mesh != nullptr) {
-        // See if the file name uses a package url
+	mNthRobot.mRobotScale = {mesh->scale.x, mesh->scale.y, mesh->scale.z};
+	// See if the file name uses a package url
         std::string filename = mesh->filename;
         std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
         std::smatch match;
         if (std::regex_search(filename, match, param_regex)) {
           const std::string package = match[1];
           const std::string relativeFile = match[2];
-          // Anton: add try/catch here in case the package is not found!
-          const std::string packageShareDirectory
-            = ament_index_cpp::get_package_share_directory(package);
-          filename = packageShareDirectory + "/" + relativeFile;
+          try {
+	    const std::string packageShareDirectory
+	      = ament_index_cpp::get_package_share_directory(package);
+	    filename = packageShareDirectory + "/" + relativeFile;
+	  } catch (...) {
+	    vtkErrorMacro(<< "failed to find directory for package "
+			  << package
+			  << ", did you source the correct workspace setup.bash?");
+	  }
         }
         mNthRobot.mLinkModelFiles[index] = filename;
       } else {
-        vtkErrorMacro(<< "InitializeOffsetListAndModelFilesFromURDF: link" <<  index << " has a visual, but not from a file");
+        vtkWarningMacro(<< "InitializeOffsetListAndModelFilesFromURDF: link " <<  index << " has a visual, but not a mesh so it won't be displayed");
       }
     }
   }
+  vtkDebugMacro(<< "InitializeOffsetListAndModelFilesFromURDF complete");
 }
 
 
@@ -229,18 +242,23 @@ void vtkMRMLROS2RobotNode::InitializeLookups(void)
 {
   // Initialize the lookups for the robot based on the previously stored parent and children names of the transform.
   for (size_t i = 0; i < mNumberOfLinks; i++) {
-      if (i == 0 && !mNthRobot.mFixedFrame.empty()){
-            std::cerr <<  "MY FIXED FRAME: " << mNthRobot.mFixedFrame << std::endl;
-            vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mFixedFrame, mNthRobot.mLinkNames[i]);
-            mNthRobot.mLookupNodes.push_back(lookup);
-            this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
-       }
-      else{
-            vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mLinkParentNames[i], mNthRobot.mLinkNames[i]);
-            mNthRobot.mLookupNodes.push_back(lookup);
-            this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
-      }
+    if (i == 0 && !mNthRobot.mFixedFrame.empty()){
+      std::cerr <<  "MY FIXED FRAME: " << mNthRobot.mFixedFrame << std::endl;
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup
+        = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mFixedFrame,
+                                                   mNthRobot.mTfPrefix + mNthRobot.mLinkNames[i]);
+      mNthRobot.mLookupNodes.push_back(lookup);
+      this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
+    }
+    else {
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup
+        = mMRMLROS2Node->CreateAndAddTf2LookupNode(mNthRobot.mTfPrefix + mNthRobot.mLinkParentNames[i],
+                                                   mNthRobot.mTfPrefix + mNthRobot.mLinkNames[i]);
+      mNthRobot.mLookupNodes.push_back(lookup);
+      this->SetNthNodeReferenceID("lookup", i, lookup->GetID());
+    }
   }
+  vtkDebugMacro(<< "InitializeLookups complete");
 }
 
 
@@ -324,6 +342,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     }
     modelNode->ApplyTransform(transform); // instead of set and observe
   }
+  vtkDebugMacro(<< "InitializeOffsetsAndLinkModels complete");
 }
 
 void vtkMRMLROS2RobotNode::SetupTransformTree(void)
@@ -354,7 +373,7 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
     vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
     linkModel->SetAndObserveTransformNodeID(lookup->GetID());
   }
-
+  vtkDebugMacro(<< "SetupTransformTree complete");
 }
 
 

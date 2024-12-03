@@ -3,6 +3,7 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2SubscriberInternals.h>
 
+VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::Empty, std::string, Empty);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::String, std::string, String);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::Bool, bool, Bool);
 VTK_MRML_ROS_SUBSCRIBER_NATIVE_CXX(std_msgs::msg::Int64, int, Int);

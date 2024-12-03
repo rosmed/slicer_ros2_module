@@ -135,6 +135,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     def spin_some(self):
         ros2Logic = slicer.util.getModuleLogic('ROS2')
         for i in range(3):
+            time.sleep(0.01)
             ros2Logic.Spin()
 
     @classmethod
@@ -278,6 +279,22 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(self.topic), "Subscriber not deleted")
             return
 
+        def test_create_and_add_pub_sub_empty(self):
+            print("\nTesting creation and working of publisher and subscriber for empty- Starting..")
+            self.create_pub_sub("Empty")
+
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
+            sentString = ""
+            self.testPub.Publish(sentString)
+
+            self.generic_assertions(initSubMessageCount)
+
+            receivedString = self.testSub.GetLastMessage()
+            self.assertTrue(sentString == receivedString, "Message not received correctly")
+
+            self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
+
         def test_create_and_add_pub_sub_string(self):
             print("\nTesting creation and working of publisher and subscriber for string- Starting..")
             self.create_pub_sub("String")
@@ -400,6 +417,76 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.delete_pub_sub()
             print("Testing creation and working of publisher and subscriber - Done")
 
+        def test_create_and_add_pub_sub_pose_array(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkPoseArray - Starting..")
+            self.create_pub_sub("PoseArray")
+
+            initSubMessageCount = self.testSub.GetNumberOfMessages()
+            samplePubMessage = self.testPub.GetBlankMessage()
+
+            # Set header
+            header = samplePubMessage.GetHeader()
+            header.SetFrameId("test_frame")
+            timestamp = header.GetStamp()
+            timestamp.SetSec(123)
+            timestamp.SetNanosec(456)
+            # create 3 poses with both translation and rotation
+            pose1 = vtk.vtkMatrix4x4()
+            pose1.SetElement(0, 3, 1.0)
+            pose1.SetElement(1, 3, 2.0)
+            pose1.SetElement(2, 3, 3.0)
+            pose1.SetElement(0, 0, 0)
+            pose1.SetElement(0, 1, -1)
+            pose1.SetElement(1, 0, 1)
+            pose1.SetElement(1, 1, 0)
+
+            pose2 = vtk.vtkMatrix4x4()
+            pose2.SetElement(0, 3, 4.0)
+            pose2.SetElement(1, 3, 5.0)
+            pose2.SetElement(2, 3, 6.0)
+            pose2.SetElement(0, 0, 0.707)
+            pose2.SetElement(0, 1, -0.707)
+            pose2.SetElement(1, 0, 0.707)
+            pose2.SetElement(1, 1, 0.707)
+
+            pose3 = vtk.vtkMatrix4x4()
+            pose3.SetElement(0, 3, 7.0)
+            pose3.SetElement(1, 3, 8.0)
+            pose3.SetElement(2, 3, 9.0)
+            pose3.SetElement(0, 0, 0.866)
+            pose3.SetElement(0, 1, -0.5)
+            pose3.SetElement(1, 0, 0.5)
+            pose3.SetElement(1, 1, 0.866)
+
+            # create a tuple of three poses
+            poses = (pose1, pose2, pose3)
+            # Set the poses in the sample message
+            samplePubMessage.SetPoses(poses)
+            self.testPub.Publish(samplePubMessage)
+
+            self.generic_assertions(initSubMessageCount)
+
+            # Get the received message
+            receivedPoseArray = self.testSub.GetLastMessage()
+            # Check header
+            receivedHeader = receivedPoseArray.GetHeader()
+            self.assertEqual(receivedHeader.GetFrameId(), "test_frame", "Incorrect frame_id in header")
+            self.assertAlmostEqual(receivedHeader.GetStamp().GetSec(), 123, places=3, msg="Incorrect timestamp in header")
+            self.assertAlmostEqual(receivedHeader.GetStamp().GetNanosec(), 456, places=3, msg="Incorrect timestamp in header")
+            # Check that the number of poses is correct
+            self.assertEqual(len(receivedPoseArray.GetPoses()), 3, "Incorrect number of poses received")
+            # Check that each pose is correct
+            for i, sentPose in enumerate(poses):
+                receivedPose = receivedPoseArray.GetPoses()[i]
+                for row in range(4):
+                    for col in range(4):
+                        self.assertAlmostEqual(sentPose.GetElement(row, col),
+                                               receivedPose.GetElement(row, col),
+                                               places=3,
+                                               msg=f"Mismatch in pose {i}, element ({row}, {col})")
+
+            self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber for vtkPoseArray - Done")
 
         def test_create_and_add_pub_sub_int_n_array(self):
             print("\nTesting creation and working of publisher and subscriber for vtkTable (int) - Starting..")
@@ -637,8 +724,6 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     #         ROS2TestsLogic.kill_subprocess(self.create_service_process)
     #         self.ros2Node.Destroy()
     #         ROS2TestsLogic.spin_some()
-
-
 
 
     def run(self):

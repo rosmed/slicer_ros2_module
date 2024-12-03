@@ -3,6 +3,7 @@
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 #include <vtkMRMLROS2PublisherInternals.h>
 
+VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(std::string, std_msgs::msg::Empty, Empty);
 VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(std::string, std_msgs::msg::String, String);
 VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(bool, std_msgs::msg::Bool, Bool);
 VTK_MRML_ROS_PUBLISHER_NATIVE_CXX(int, std_msgs::msg::Int64, Int);
@@ -15,7 +16,6 @@ VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTable, std_msgs::msg::Float64MultiArray, Doubl
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkMatrix4x4, geometry_msgs::msg::Pose, Pose);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, geometry_msgs::msg::Wrench, Wrench);
-VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTransformCollection, geometry_msgs::msg::PoseArray, PoseArray);
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTypeUInt8Array, sensor_msgs::msg::Image, UInt8Image);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkPoints, sensor_msgs::msg::PointCloud, PointCloud);

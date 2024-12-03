@@ -4,6 +4,7 @@
 #include <vtkMRMLROS2PublisherNode.h>
 #include <vtkMRMLROS2PublisherMacros.h>
 
+VTK_MRML_ROS_PUBLISHER_NATIVE_H(std::string, Empty);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(std::string, String);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(bool, Bool);
 VTK_MRML_ROS_PUBLISHER_NATIVE_H(int, Int);
@@ -23,7 +24,6 @@ VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTable, DoubleTable);
 
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkMatrix4x4, Pose);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkDoubleArray, Wrench);
-VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTransformCollection, PoseArray);
 
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkTypeUInt8Array, UInt8Image);
 VTK_MRML_ROS_PUBLISHER_VTK_H(vtkPoints, PointCloud);

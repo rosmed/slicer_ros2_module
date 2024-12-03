@@ -22,7 +22,7 @@ copyright = '2022-2024, Queen’s University (Kingston, Canada), Johns Hopkins U
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9'
+release = '1.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -56,3 +56,11 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 html_logo = '../Resources/Icons/SlicerROS2.png'
 html_title = project + ' ' + release
+
+# For the edit in github link
+html_context = {
+  'display_github': True,
+  'github_user': 'rosmed',
+  'github_repo': 'slicer_ros2_module',
+  'github_version': 'devel/docs/',
+}

@@ -7,7 +7,7 @@ Robot Visualization
 Overview
 ========
 
-For the robot visualization in Slicer 3D, one first need to properly
+For the robot visualization in 3D Slicer, one first need to properly
 configure a robot in ROS 2.  The default ROS approach requires:
 
 * an XML robot definition file (``UFA``) and usually CAD files for
@@ -78,7 +78,7 @@ dVRK PSM
 ========
 
 The dVRK PSM (`da Vinci Research
-Kit <https://github.com/jhu-dvrk/sawIntuitiveResearchKit/wiki/>`_
+Kit <https://dvrk.readthedocs.io/>`_
 Patient Side Manipulator) is based on the first generation da Vinci
 RAMIS system (Robotically Assisted Minimally Invasive Surgery) sold by
 ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
@@ -89,24 +89,25 @@ ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
   :alt: dVRK PSM in Slicer
 
 Installing the dVRK code base is not too difficult but it will take a
-few minutes to compiled.  You can find the build instructions for ROS
-2 on the `dVRK Wiki
-<https://github.com/jhu-dvrk/sawIntuitiveResearchKit/wiki/BuildROS2>`_.
+few minutes to compile.  You can find the build instructions for ROS 2
+ins the `dVRK manual
+<https://dvrk.readthedocs.io/en/latest/pages/software/compilation/ros2.html>`_.
 
-Once you've compiled all the dVRK related packages, you will need 3 terminals to launch the following nodes:
+Once you've compiled all the dVRK related packages, you can use the arm launch file:
 
 .. code-block:: bash
 
-  # simulated PSM
-  ros2 run dvrk_robot dvrk_console_json -j ~/ros2_ws/src/cisst-saw/sawIntuitiveResearchKit/share/console/console-PSM1_KIN_SIMULATED.json
+   source ~/ros2_ws/install/setup.bash
+   ros2 launch dvrk_model arm.launch arm:=PSM1 generation:=Classic
 
-  # robot state publisher
-  ros2 launch dvrk_model dvrk_state_publisher.launch.py arm:=PSM1
+.. note::
 
-  # test script, make the PSM1 move around
-  ros2 run dvrk_python dvrk_arm_test.py -a PSM1
-
-
+   You don't need to compile the full dVRK stack if you just want to
+   display a dVRK arm.  You can build the package
+   https://github.com/jhu-dvrk/dvrk_model in your ROS workspace and
+   then use the command line: ``ros2 launch dvrk_model arm.launch
+   arm:=PSM1 generation:=Classic simulated:=False``.
+   
 Cobot
 =====
 
@@ -173,10 +174,10 @@ widget will update with additional line edits for the second robot.
   :align: center
   :alt: Defining a robot with a namespace in Slicer
 
-For robots with non-holonomic constraints, we have also added a field
-to specify the fixed frame of the robot. The default behaviour is to use
+We have also added a field to specify the fixed frame of the robot. The default behaviour is to use
 the first link of the robot as the fixed frame if this field is left empty.
-Below shows a rendering of the TurtleBot in 3D Slicer using this feature.
+For non-holonomic robots, this feature may be necessary for visualization. The example below shows a rendering
+of the TurtleBot in 3D Slicer using this feature.
 
 .. image:: ../images/turtlebot.gif
   :width: 800

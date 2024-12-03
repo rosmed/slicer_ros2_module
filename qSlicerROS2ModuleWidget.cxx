@@ -173,6 +173,7 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
                                      robotWidgetUi->parameterNodeNameLineEdit,
                                      robotWidgetUi->parameterLineEdit,
                                      robotWidgetUi->fixedFrameLineEdit,
+                                     robotWidgetUi->tfPrefixLineEdit,
                                      loadRobotButton, removeRobotButton);
                 });
   this->connect(removeRobotButton, &QPushButton::clicked, this,
@@ -181,6 +182,7 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
                                        robotWidgetUi->parameterNodeNameLineEdit,
                                        robotWidgetUi->parameterLineEdit,
                                        robotWidgetUi->fixedFrameLineEdit,
+                                       robotWidgetUi->tfPrefixLineEdit,
                                        loadRobotButton, removeRobotButton, robotWidget);
                 });
 
@@ -360,6 +362,7 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
                                                  QLineEdit * parameterNodeNameLineEdit,
                                                  QLineEdit * parameterNameLineEdit,
                                                  QLineEdit * fixedFrameLineEdit,
+                                                 QLineEdit * tfPrefixLineEdit,
                                                  QPushButton * loadRobotButton,
                                                  QPushButton * removeRobotButton)
 {
@@ -372,12 +375,14 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
   logic->AddRobot(robotNameLineEdit->text().toStdString(),
                   parameterNodeNameLineEdit->text().toStdString(),
                   parameterNameLineEdit->text().toStdString(),
-                  fixedFrameLineEdit->text().toStdString());
+                  fixedFrameLineEdit->text().toStdString(),
+                  tfPrefixLineEdit->text().toStdString());
   loadRobotButton->setEnabled(false);
   robotNameLineEdit->setEnabled(false);
   parameterNodeNameLineEdit->setEnabled(false);
   parameterNameLineEdit->setEnabled(false);
   fixedFrameLineEdit->setEnabled(false);
+  tfPrefixLineEdit->setEnabled(false);
   removeRobotButton->setEnabled(true);
 }
 
@@ -386,6 +391,7 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
                                                    QLineEdit * parameterNodeNameLineEdit,
                                                    QLineEdit * parameterNameLineEdit,
                                                    QLineEdit * fixedFrameLineEdit,
+                                                   QLineEdit * tfPrefixLineEdit,
                                                    QPushButton * loadRobotButton,
                                                    QPushButton * removeRobotButton,
                                                    QWidget * robotWidget)
@@ -403,6 +409,7 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
   parameterNodeNameLineEdit->setEnabled(true);
   parameterNameLineEdit->setEnabled(true);
   fixedFrameLineEdit->setEnabled(true);
+  tfPrefixLineEdit->setEnabled(true);
   removeRobotButton->setEnabled(false);
   d->robotTabLayout->removeWidget(robotWidget);
   delete robotWidget;
