@@ -164,7 +164,6 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
         elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
             imports += f"#include <vtk{field_type}.h>\n"
-
     return imports
 
 def generate_print_self_methods_for_class(class_name_formatted, class_type_identifier, fields):
