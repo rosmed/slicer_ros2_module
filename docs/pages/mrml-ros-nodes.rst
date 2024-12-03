@@ -238,9 +238,6 @@ subscribers to convert messages between ROS and Slicer.
    * - vtkDoubleArray
      - geometry_msgs::msg::WrenchStamped
      - WrenchStamped
-   * - vtkTransformCollection
-     - geometry_msgs::msg::PoseArray
-     - PoseArray
    * - vtkUInt8Array
      - sensor_msgs::msg::Image
      - UInt8Image
