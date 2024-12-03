@@ -16,11 +16,14 @@ Before you can start compiling the SlicerROS2 module, you will need:
   Galactic.  We are now using Ubuntu 22.04 with ROS Humble or Ubuntu
   24.04 with ROS Jazzy.
 
-* Slicer 5.6.2 source if you're using Ubuntu 22.04 and 24.04. When compiling
-  on Ubuntu 20.04, Slicer 5.2.2 is known to compile without any
-  issues.  If you need to use a more recent version of Slicer, you
+* Slicer 5.6.2 source if you're using Ubuntu 22.04 and 24.04. When
+  compiling on Ubuntu 20.04, Slicer 5.2.2 is known to compile without
+  any issues.  If you need to use a more recent version of Slicer, you
   might have to edit the Slicer code to replace a few
-  ``QLatin1String`` to ``QString``.
+  ``QLatin1String`` to ``QString``.  You can replace all occurences in
+  the Slicer source directory using ``find . -not -path '*/\.git/*'
+  \( -name '*.cxx*' -o -name '*.h*' \) -exec sed -i
+  's/QLatin1String/QString/g' '{}' \;``
 
 * Qt installed using Ubuntu.  The build instructions for Slicer
   sometimes recommend installing Qt from the Qt site, but that leads
