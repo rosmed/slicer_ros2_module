@@ -16,7 +16,6 @@
 // ROS2
 #include <rclcpp/rclcpp.hpp>
 
-#include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/int64.hpp>
@@ -39,8 +38,6 @@
 #include <vtkCustomTypes.h>
 
 // std_msgs
-void vtkSlicerToROS2(const std::string & input, std_msgs::msg::Empty & result,
-                     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(const std::string & input, std_msgs::msg::String & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(const bool & input, std_msgs::msg::Bool & result,

@@ -101,11 +101,10 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 {
   vtkSmartPointer<vtkMRMLScene> scene = this->GetMRMLScene();
   assert(scene != 0);
-
+ 
   // ROS2 node
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
   // Subscribers
-  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberEmptyNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberBoolNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberIntNode>::New());
@@ -119,9 +118,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberUInt8ImageNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloud2Node>::New());
 
   // Publishers
-  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherEmptyNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherStringNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherBoolNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntNode>::New());
@@ -133,6 +132,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());
+
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherUInt8ImageNode>::New());
 
 #if USE_CISST_MSGS

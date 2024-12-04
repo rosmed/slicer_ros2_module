@@ -12,7 +12,6 @@
 #include <vtkPoints.h>
 
 // ROS2
-#include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/int64.hpp>
@@ -22,6 +21,7 @@
 
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
 #include "geometry_msgs/msg/transform.hpp"
@@ -34,7 +34,6 @@
 #include <vtkCustomTypes.h>
 
 // std_msgs
-void vtkROS2ToSlicer(const std_msgs::msg::Empty & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::String & input, std::string & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Bool & input, bool & result);
 void vtkROS2ToSlicer(const std_msgs::msg::Int64 & input, int & result);
@@ -56,6 +55,7 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<v
 // sensor_msgs
 void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkTypeUInt8Array> result);
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result);
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result);
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result);
