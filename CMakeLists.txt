@@ -29,22 +29,35 @@ configure_file (
   "${slicer_ros2_module_BINARY_DIR}/include/SlicerROS2Config.h")
 include_directories ("${slicer_ros2_module_BINARY_DIR}/include")
 
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(kdl_parser REQUIRED)
-find_package(urdf REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(rqt_gui_cpp REQUIRED)
-find_package(turtlesim REQUIRED)
-find_package(std_srvs REQUIRED)
-if (USE_CISST_MSGS)
-  find_package(cisst_msgs REQUIRED)
-endif ()
+# set list of required packages
+set (
+  SlicerROS2_ROS_DEPENDENCIES
+  # core
+  ament_cmake
+  rclcpp
+  kdl_parser
+  urdf
+  tf2
+  tf2_ros
+  turtlesim
+  # messages and services
+  std_msgs
+  std_srvs
+  geometry_msgs
+  sensor_msgs
+  object_recognition_msgs
+  trajectory_msgs
+  moveit_msgs
+  rosbag2_interfaces
+)
 
-include_directories (${urdf_INCLUDE_DIRS} ${tf2_ros_INCLUDE_DIRS} ${sensor_msgs_INCLUDE_DIRS} ${turtlesim_INCLUDE_DIRS} ${std_srvs_INCLUDE_DIRS})
+set (SlicerROS2_ROS_LIBRARIES "")
+
+foreach (dep ${SlicerROS2_ROS_DEPENDENCIES})
+  find_package(${dep} REQUIRED)
+  include_directories (${${dep}_INCLUDE_DIRS})
+  set (SlicerROS2_ROS_LIBRARIES ${SlicerROS2_ROS_LIBRARIES} ${${dep}_LIBRARIES})
+endforeach ()
 
 #-----------------------------------------------------------------------------
 
