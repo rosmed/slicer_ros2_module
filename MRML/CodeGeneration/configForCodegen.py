@@ -2,8 +2,14 @@
 # generated
 static_type_mapping = {
     'bool': 'bool',
-    'uint32': 'int',
-    'int32': 'int',
+    'byte': 'uint8_t',
+    'octet': 'uint8_t',
+    'uint8': 'uint8_t',
+    'int8': 'int8_t',
+    'uint32': 'uint32_t',
+    'int32': 'int32_t',
+    'uint64': 'uint64_t',
+    'int64': 'int64_t',
     'int' : 'int',
     'float': 'double',
     'double': 'double',
@@ -14,19 +20,16 @@ static_type_mapping = {
 
 static_type_default_value = {
     'bool': 'false',
-    'uint32': '0',
-    'int32': '0',
-    'int': '0',
     'float': '0.0',
     'double': '0.0',
     'string': '""',
     'str': '""',
-    'default': '0',
     'boolean': 'false'
 }
 
 vtk_equivalent_types = {
     'Pose' : 'Matrix4x4',
+    'Twist': 'DoubleArray',
     'Wrench': 'DoubleArray',
     'Transform': 'Matrix4x4'
 }

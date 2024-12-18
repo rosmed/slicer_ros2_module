@@ -30,6 +30,10 @@ def get_class_name_formatted(class_name):
     return class_name_formatted, class_type_identifier
 
 
+def get_type_from_sequence(sequence_type):
+    return sequence_type.split('<')[1].split('>')[0].split(',')[0]
+
+
 def generate_vtk_getset(method_code_hpp, field_name, field_type):
     method_code_hpp += f"{__} // generate_vtk_getset\n"
     method_code_hpp += f"{__} vtk{field_type} * Get{snake_to_camel(field_name)}(void) {{\n"
@@ -55,7 +59,6 @@ def generate_static_getset(method_code_hpp, field_name, field_type, static_type_
 
 
 def generate_static_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-
     method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{snake_to_camel(field_name)}(void) const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
@@ -100,9 +103,8 @@ def generate_class(class_name, fields):
 
     for field_name, field_type in fields.items():
         # Check if the field is a VTK object or not
-
         if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+            element_type = get_type_from_sequence(field_type)
             # check if element_type is a vtk object or static type
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -121,7 +123,7 @@ def generate_class(class_name, fields):
         else:
             method_code_hpp = generate_static_getset(method_code_hpp, field_name, field_type, static_type_mapping)
             attribute_code_hpp += f"{__} {static_type_mapping[field_type]} {field_name}_;\n"
-            attribute_code_cpp += f"{__} {field_name}_ = {static_type_default_value.get(field_type, 'default')};\n"
+            attribute_code_cpp += f"{__} {field_name}_ = {static_type_default_value.get(field_type, '0')};\n"
 
     class_code_hpp += method_code_hpp
     class_code_hpp += "protected:\n"
@@ -157,7 +159,7 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
 
     for field_type in attribute_list:
         if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+            element_type = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
                 imports += f"#include <vtk{element_type}.h>\n"
@@ -177,7 +179,7 @@ def generate_print_self_methods_for_class(class_name_formatted, class_type_ident
     for field_name, field_type in fields.items():
 
         if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+            element_type = get_type_from_sequence(field_type)
             # based on whether the element type is a vtk object or not, print the sequence. For vtk objects, print using calls to PrintSelf of the individual elements
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -239,7 +241,7 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
 
     for field_name, field_type in fields.items():
         if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+            element_type = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, vtk_element_type = get_vtk_type(element_type, vtk_equivalent_types)
                 code_string_cpp += f"{__} std::vector<vtkSmartPointer<vtk{vtk_element_type}>> temp_{field_name};\n"
@@ -330,7 +332,7 @@ def generate_class_and_conversion_methods(class_name_formatted, class_type_ident
 
 def ROS2_service_to_vtkObject(full_type_name, output_directory):
     [package, namespace, msg_name] = full_type_name.split('/')
-    print(f"Generating code for message: {full_type_name}")
+    print(f"Generating code for service: {full_type_name}")
 
     vtk_class_name, vtk_type_identifier = get_class_name_formatted(full_type_name)
     if vtk_class_name in vtk_equivalent_types.keys():
