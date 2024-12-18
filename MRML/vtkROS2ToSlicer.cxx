@@ -167,6 +167,18 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Transform & input, vtkSmartPointe
 }
 
 
+void vtkROS2ToSlicer(const geometry_msgs::msg::Twist & input, vtkSmartPointer<vtkDoubleArray> result)
+{
+  result->SetNumberOfValues(6);
+  result->SetValue(0, input.linear.x);
+  result->SetValue(1, input.linear.y);
+  result->SetValue(2, input.linear.z);
+  result->SetValue(3, input.angular.x);
+  result->SetValue(4, input.angular.y);
+  result->SetValue(5, input.angular.z);
+}
+
+
 void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<vtkDoubleArray> result)
 {
   result->SetNumberOfValues(6);

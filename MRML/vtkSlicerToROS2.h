@@ -26,6 +26,7 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/transform.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 
@@ -64,6 +65,8 @@ void vtkSlicerToROS2(vtkTable * input, std_msgs::msg::Float64MultiArray & result
 void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::Pose & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::Transform & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::Twist & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::Wrench & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
