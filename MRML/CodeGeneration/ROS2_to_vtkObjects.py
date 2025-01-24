@@ -17,6 +17,15 @@ ____ = "   "
 
 ################################################################33
 
+def is_vector_needed(field_type):
+    if "sequence" in field_type:
+        return True
+    # if something like [3] is present, it is a sequence
+    if '[' in field_type and ']' in field_type:
+        # print(f"field_type: {field_type}")
+        return True
+    return False
+
 def get_class_name_formatted(class_name):
     """
     As an example, the class name 'geometry_msgs/msg/PoseStamped',
@@ -31,7 +40,15 @@ def get_class_name_formatted(class_name):
 
 
 def get_type_from_sequence(sequence_type):
-    return sequence_type.split('<')[1].split('>')[0].split(',')[0]
+    if "sequence" in sequence_type:
+        # print(f"sequence_type: {sequence_type}")
+        extracted = sequence_type.split('<')[1].split('>')[0].split(',')[0]
+        # print(f"extracted: {extracted}")
+        return extracted
+    if '[' in sequence_type and ']' in sequence_type:
+        extracted = sequence_type.split('[')[0]
+        return extracted
+    return sequence_type
 
 
 def generate_vtk_getset(method_code_hpp, field_name, field_type):
@@ -103,7 +120,8 @@ def generate_class(class_name, fields):
 
     for field_name, field_type in fields.items():
         # Check if the field is a VTK object or not
-        if "sequence" in field_type:
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
             element_type = get_type_from_sequence(field_type)
             # check if element_type is a vtk object or static type
             if is_vtk_object(element_type):
@@ -158,7 +176,8 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
     imports += f"#include <vtkSlicerToROS2.h>\n"
 
     for field_type in attribute_list:
-        if "sequence" in field_type:
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
             element_type = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -178,7 +197,8 @@ def generate_print_self_methods_for_class(class_name_formatted, class_type_ident
 
     for field_name, field_type in fields.items():
 
-        if "sequence" in field_type:
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
             element_type = get_type_from_sequence(field_type)
             # based on whether the element type is a vtk object or not, print the sequence. For vtk objects, print using calls to PrintSelf of the individual elements
             if is_vtk_object(element_type):
@@ -212,7 +232,8 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
     code_string_hpp += f"void vtkSlicerToROS2( vtk{class_name_formatted} * input, {msg_ros2_type} & result, const std::shared_ptr<rclcpp::Node> & rosNode);\n"
 
     for field_name, field_type in fields.items():
-        if "sequence" in field_type:
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
             if is_vtk_object(field_type):
                 is_equivalent_type_available, vtk_field_type = get_vtk_type(field_type, vtk_equivalent_types)
                 code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
@@ -240,7 +261,8 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
     code_string_cpp += f"void vtkROS2ToSlicer(const {msg_ros2_type} & input, vtkSmartPointer<vtk{class_name_formatted}> result) {{\n"
 
     for field_name, field_type in fields.items():
-        if "sequence" in field_type:
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
             element_type = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, vtk_element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -381,6 +403,12 @@ def ROS2_message_to_vtkObject(full_type_name, output_directory):
     cpp_code += f"#include <vtkSlicerToROS2.h>\n\n"
 
     message_attribute_map, unique_attributes = generate_attribute_dict_message(full_type_name)
+
+    print(f"Type: {full_type_name}")
+
+    print(f"unique_attributes : {unique_attributes}")
+
+    print(f"message_attribute_map: {message_attribute_map}")
 
     imports = identify_imports(msg_name, namespace, package, unique_attributes)
     hpp_code += imports
