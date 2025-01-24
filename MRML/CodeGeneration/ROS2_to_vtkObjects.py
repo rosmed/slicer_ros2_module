@@ -40,15 +40,17 @@ def get_class_name_formatted(class_name):
 
 
 def get_type_from_sequence(sequence_type):
+    #  FIXME: This is a hacky way to extract the type from the sequence type and also whether the size is fixed or not
+    # fixed size sequences do not support resize, so we need to know if the size is fixed or not
     if "sequence" in sequence_type:
         # print(f"sequence_type: {sequence_type}")
         extracted = sequence_type.split('<')[1].split('>')[0].split(',')[0]
         # print(f"extracted: {extracted}")
-        return extracted
+        return extracted, False
     if '[' in sequence_type and ']' in sequence_type:
         extracted = sequence_type.split('[')[0]
-        return extracted
-    return sequence_type
+        return extracted, True
+    return _, _
 
 
 def generate_vtk_getset(method_code_hpp, field_name, field_type):
@@ -122,7 +124,7 @@ def generate_class(class_name, fields):
         # Check if the field is a VTK object or not
         # if "sequence" in field_type:
         if is_vector_needed(field_type):
-            element_type = get_type_from_sequence(field_type)
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             # check if element_type is a vtk object or static type
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -178,7 +180,7 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
     for field_type in attribute_list:
         # if "sequence" in field_type:
         if is_vector_needed(field_type):
-            element_type = get_type_from_sequence(field_type)
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
                 imports += f"#include <vtk{element_type}.h>\n"
@@ -199,7 +201,7 @@ def generate_print_self_methods_for_class(class_name_formatted, class_type_ident
 
         # if "sequence" in field_type:
         if is_vector_needed(field_type):
-            element_type = get_type_from_sequence(field_type)
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             # based on whether the element type is a vtk object or not, print the sequence. For vtk objects, print using calls to PrintSelf of the individual elements
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -234,14 +236,17 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
     for field_name, field_type in fields.items():
         # if "sequence" in field_type:
         if is_vector_needed(field_type):
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             if is_vtk_object(field_type):
                 is_equivalent_type_available, vtk_field_type = get_vtk_type(field_type, vtk_equivalent_types)
-                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
+                if not is_fixed_size:
+                    code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
                 code_string_cpp += f"{__} for (size_t i = 0; i < input->Get{snake_to_camel(field_name)}().size(); ++i) {{\n"
                 code_string_cpp += f"{____} vtkSlicerToROS2(input->Get{snake_to_camel(field_name)}()[i], result.{field_name}[i], rosNode);\n"
                 code_string_cpp += f"{__} }}\n"
             else:
-                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
+                if not is_fixed_size:
+                    code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
                 code_string_cpp += f"{__} std::copy(input->Get{snake_to_camel(field_name)}().begin(), input->Get{snake_to_camel(field_name)}().end(), result.{field_name}.begin());\n"
         elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
@@ -263,7 +268,7 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
     for field_name, field_type in fields.items():
         # if "sequence" in field_type:
         if is_vector_needed(field_type):
-            element_type = get_type_from_sequence(field_type)
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, vtk_element_type = get_vtk_type(element_type, vtk_equivalent_types)
                 code_string_cpp += f"{__} std::vector<vtkSmartPointer<vtk{vtk_element_type}>> temp_{field_name};\n"
