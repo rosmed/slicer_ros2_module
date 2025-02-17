@@ -6,7 +6,7 @@
 void vtkMRMLROS2ServiceClientNode::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
-  os << indent << "Topic: " << mTopic << "\n";
+  os << indent << "Service: " << mService << "\n";
   os << indent << "ROS type: " << mInternals->GetROSType() << "\n";
   os << indent << "Slicer type Input: " << mInternals->GetSlicerTypeIn() << "\n"; // This is scrambled
   os << indent << "Slicer type Output: " << mInternals->GetSlicerTypeOut() << "\n"; // This is scrambled
@@ -16,13 +16,13 @@ void vtkMRMLROS2ServiceClientNode::PrintSelf(std::ostream& os, vtkIndent indent)
 
 
 bool vtkMRMLROS2ServiceClientNode::AddToROS2Node(const char * nodeId,
-					     const std::string & topic)
+					         const std::string & service)
 {
-  mTopic = topic;
-  mMRMLNodeName = "ros2:srv:client:" + topic;
+  mService = service;
+  mMRMLNodeName = "ros2:srv:client:" + service;
   this->SetName(mMRMLNodeName.c_str());
   std::string errorMessage;
-  if (!mInternals->AddToROS2Node(this, nodeId, topic, errorMessage)) {
+  if (!mInternals->AddToROS2Node(this, nodeId, service, errorMessage)) {
     vtkErrorMacro(<< "AddToROS2Node: " << errorMessage);
     return false;
   }
@@ -31,14 +31,14 @@ bool vtkMRMLROS2ServiceClientNode::AddToROS2Node(const char * nodeId,
 
 
 bool vtkMRMLROS2ServiceClientNode::RemoveFromROS2Node(const char * nodeId,
-						  const std::string & topic)
+						      const std::string & service)
 {
   if (!mInternals->IsAddedToROS2Node()) {
-    vtkErrorMacro(<< "RemoveFromROS2Node: publisher MRML node for topic \"" << mTopic << "\" is not added to the ROS node");
+    vtkErrorMacro(<< "RemoveFromROS2Node: publisher MRML node for service \"" << mService << "\" is not added to the ROS node");
     return false;
   }
   std::string errorMessage;
-  if (!mInternals->RemoveFromROS2Node(this, nodeId, topic, errorMessage)) {
+  if (!mInternals->RemoveFromROS2Node(this, nodeId, service, errorMessage)) {
     vtkErrorMacro(<< "RemoveFromROS2Node: " << errorMessage);
     return false;
   }
@@ -73,7 +73,7 @@ void vtkMRMLROS2ServiceClientNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
-  vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
+  vtkMRMLWriteXMLStdStringMacro(serviceName, Service);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -83,7 +83,7 @@ void vtkMRMLROS2ServiceClientNode::ReadXMLAttributes(const char** atts)
   int wasModifying = this->StartModify();
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
-  vtkMRMLReadXMLStdStringMacro(topicName, Topic);
+  vtkMRMLReadXMLStdStringMacro(serviceName, Service);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }
@@ -101,9 +101,9 @@ void vtkMRMLROS2ServiceClientNode::UpdateScene(vtkMRMLScene *scene)
         vtkErrorMacro(<< "UpdateScene: default ros2 node unavailable. Unable to set reference for publisher \"" << GetName() << "\"");
         return;
       }
-      this->AddToROS2Node(defaultNode->GetID(), mTopic);
+      this->AddToROS2Node(defaultNode->GetID(), mService);
     } else if (nbNodeRefs == 1) {
-      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(), mTopic);
+      this->AddToROS2Node(this->GetNthNodeReference("node", 0)->GetID(), mService);
     } else {
       vtkErrorMacro(<< "UpdateScene: more than one ROS2 node reference defined for publisher \"" << GetName() << "\"");
     }

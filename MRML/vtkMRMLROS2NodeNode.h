@@ -17,7 +17,6 @@ class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2Tf2LookupNode;
 class vtkMRMLROS2RobotNode;
-class vtkMRMLROS2ServiceNode;
 class vtkMRMLROS2ServiceClientNode;
 
 class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
@@ -30,8 +29,6 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   friend class vtkMRMLROS2Tf2BroadcasterNode;
   friend class vtkMRMLROS2Tf2LookupNode;
   friend class vtkMRMLROS2RobotNode;
-  friend class vtkMRMLROS2ServiceInternals;
-  friend class vtkMRMLROS2ServiceNode;
   template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type> friend class vtkMRMLROS2ServiceClientTemplatedInternals;
 
  public:
@@ -59,6 +56,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   /*! List all existing publishers classes registered
     in the scene. */
   std::string RegisteredROS2PublisherNodes(void);
+
+  /*! List all existing service client classes registered in the
+    scene. */
+  std::string RegisteredROS2ServiceClientNodes(void);
 
   /*! Helper method to create a subscriber given a subscriber type and
     a topic. This method will create the corresponding MRML node if
@@ -91,9 +92,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
                                                const std::string & fixedFrame,
                                                const std::string & tfPrefix);
 
-  // new
-  vtkMRMLROS2ServiceNode * CreateAndAddServiceNode(const std::string & monitoredNodeName);
-  vtkMRMLROS2ServiceClientNode * CreateAndAddServiceClientNode(const char * className, const std::string & topic);
+  vtkMRMLROS2ServiceClientNode * CreateAndAddServiceClientNode(const char * className, const std::string & service);
 
   vtkMRMLROS2SubscriberNode * GetSubscriberNodeByTopic(const std::string & topic);
   vtkMRMLROS2PublisherNode * GetPublisherNodeByTopic(const std::string & topic);
@@ -104,9 +103,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByID(const std::string & nodeID);
   vtkMRMLROS2Tf2LookupNode * GetTf2LookupNodeByParentChild(const std::string & parent_id, const std::string & child_id);
   vtkMRMLROS2RobotNode * GetRobotNodeByName(const std::string & robotName);
-  // new
-  // vtkMRMLROS2ServiceNode * GetServiceNodeByNode(const std::string & node);
-  vtkMRMLROS2ServiceClientNode * GetServiceClientNodeByTopic(const std::string & topic);
+  vtkMRMLROS2ServiceClientNode * GetServiceClientNodeByService(const std::string & service);
 
   bool RemoveAndDeleteSubscriberNode(const std::string & topic);
   bool RemoveAndDeletePublisherNode(const std::string & topic);
@@ -117,8 +114,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   bool RemoveAndDeleteTf2BroadcasterNode(const std::string & nodeID);
   bool RemoveAndDeleteTf2BroadcasterNode(const std::string & parent_id, const std::string & child_id);
   bool RemoveAndDeleteRobotNode(const std::string & robotName);
-  // new
-  bool RemoveAndDeleteServiceClientNode(const std::string & topic);
+  bool RemoveAndDeleteServiceClientNode(const std::string & service);
 
   void Spin(void);
   inline bool GetSpinning(void) const {

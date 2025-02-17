@@ -17,6 +17,15 @@ ____ = "   "
 
 ################################################################33
 
+def is_vector_needed(field_type):
+    if "sequence" in field_type:
+        return True
+    # if something like [3] is present, it is a sequence
+    if '[' in field_type and ']' in field_type:
+        # print(f"field_type: {field_type}")
+        return True
+    return False
+
 def get_class_name_formatted(class_name):
     """
     As an example, the class name 'geometry_msgs/msg/PoseStamped',
@@ -28,6 +37,20 @@ def get_class_name_formatted(class_name):
     class_type_identifier = message
     class_name_formatted = snake_to_camel(package) + message
     return class_name_formatted, class_type_identifier
+
+
+def get_type_from_sequence(sequence_type):
+    #  FIXME: This is a hacky way to extract the type from the sequence type and also whether the size is fixed or not
+    # fixed size sequences do not support resize, so we need to know if the size is fixed or not
+    if "sequence" in sequence_type:
+        # print(f"sequence_type: {sequence_type}")
+        extracted = sequence_type.split('<')[1].split('>')[0].split(',')[0]
+        # print(f"extracted: {extracted}")
+        return extracted, False
+    if '[' in sequence_type and ']' in sequence_type:
+        extracted = sequence_type.split('[')[0]
+        return extracted, True
+    return _, _
 
 
 def generate_vtk_getset(method_code_hpp, field_name, field_type):
@@ -55,7 +78,6 @@ def generate_static_getset(method_code_hpp, field_name, field_type, static_type_
 
 
 def generate_static_sequence_getset(method_code_hpp, field_name, field_type, static_type_mapping):
-
     method_code_hpp += f"    const std::vector<{static_type_mapping[field_type]}>& Get{snake_to_camel(field_name)}(void) const {{\n"
     method_code_hpp += f"        return {field_name}_;\n"
     method_code_hpp += f"    }}\n\n"
@@ -100,9 +122,9 @@ def generate_class(class_name, fields):
 
     for field_name, field_type in fields.items():
         # Check if the field is a VTK object or not
-
-        if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             # check if element_type is a vtk object or static type
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -121,7 +143,7 @@ def generate_class(class_name, fields):
         else:
             method_code_hpp = generate_static_getset(method_code_hpp, field_name, field_type, static_type_mapping)
             attribute_code_hpp += f"{__} {static_type_mapping[field_type]} {field_name}_;\n"
-            attribute_code_cpp += f"{__} {field_name}_ = {static_type_default_value.get(field_type, 'default')};\n"
+            attribute_code_cpp += f"{__} {field_name}_ = {static_type_default_value.get(field_type, '0')};\n"
 
     class_code_hpp += method_code_hpp
     class_code_hpp += "protected:\n"
@@ -156,8 +178,9 @@ def identify_imports(class_name, namespace, package_name, attribute_list):
     imports += f"#include <vtkSlicerToROS2.h>\n"
 
     for field_type in attribute_list:
-        if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
                 imports += f"#include <vtk{element_type}.h>\n"
@@ -176,8 +199,9 @@ def generate_print_self_methods_for_class(class_name_formatted, class_type_ident
 
     for field_name, field_type in fields.items():
 
-        if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             # based on whether the element type is a vtk object or not, print the sequence. For vtk objects, print using calls to PrintSelf of the individual elements
             if is_vtk_object(element_type):
                 is_equivalent_type_available, element_type = get_vtk_type(element_type, vtk_equivalent_types)
@@ -210,15 +234,19 @@ def generate_slicer_to_ros2_methods_for_class(class_name_formatted, class_type_i
     code_string_hpp += f"void vtkSlicerToROS2( vtk{class_name_formatted} * input, {msg_ros2_type} & result, const std::shared_ptr<rclcpp::Node> & rosNode);\n"
 
     for field_name, field_type in fields.items():
-        if "sequence" in field_type:
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             if is_vtk_object(field_type):
                 is_equivalent_type_available, vtk_field_type = get_vtk_type(field_type, vtk_equivalent_types)
-                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
+                if not is_fixed_size:
+                    code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
                 code_string_cpp += f"{__} for (size_t i = 0; i < input->Get{snake_to_camel(field_name)}().size(); ++i) {{\n"
                 code_string_cpp += f"{____} vtkSlicerToROS2(input->Get{snake_to_camel(field_name)}()[i], result.{field_name}[i], rosNode);\n"
                 code_string_cpp += f"{__} }}\n"
             else:
-                code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
+                if not is_fixed_size:
+                    code_string_cpp += f"{__} result.{field_name}.resize(input->Get{snake_to_camel(field_name)}().size());\n"
                 code_string_cpp += f"{__} std::copy(input->Get{snake_to_camel(field_name)}().begin(), input->Get{snake_to_camel(field_name)}().end(), result.{field_name}.begin());\n"
         elif is_vtk_object(field_type):
             is_equivalent_type_available, field_type = get_vtk_type(field_type, vtk_equivalent_types)
@@ -238,8 +266,9 @@ def generate_ros2_to_slicer_methods_for_class(class_name_formatted, class_type_i
     code_string_cpp += f"void vtkROS2ToSlicer(const {msg_ros2_type} & input, vtkSmartPointer<vtk{class_name_formatted}> result) {{\n"
 
     for field_name, field_type in fields.items():
-        if "sequence" in field_type:
-            element_type = field_type.split('<')[1].split('>')[0]
+        # if "sequence" in field_type:
+        if is_vector_needed(field_type):
+            element_type, is_fixed_size = get_type_from_sequence(field_type)
             if is_vtk_object(element_type):
                 is_equivalent_type_available, vtk_element_type = get_vtk_type(element_type, vtk_equivalent_types)
                 code_string_cpp += f"{__} std::vector<vtkSmartPointer<vtk{vtk_element_type}>> temp_{field_name};\n"
@@ -330,7 +359,7 @@ def generate_class_and_conversion_methods(class_name_formatted, class_type_ident
 
 def ROS2_service_to_vtkObject(full_type_name, output_directory):
     [package, namespace, msg_name] = full_type_name.split('/')
-    print(f"Generating code for message: {full_type_name}")
+    print(f"Generating code for service: {full_type_name}")
 
     vtk_class_name, vtk_type_identifier = get_class_name_formatted(full_type_name)
     if vtk_class_name in vtk_equivalent_types.keys():
@@ -379,6 +408,12 @@ def ROS2_message_to_vtkObject(full_type_name, output_directory):
     cpp_code += f"#include <vtkSlicerToROS2.h>\n\n"
 
     message_attribute_map, unique_attributes = generate_attribute_dict_message(full_type_name)
+
+    print(f"Type: {full_type_name}")
+
+    print(f"unique_attributes : {unique_attributes}")
+
+    print(f"message_attribute_map: {message_attribute_map}")
 
     imports = identify_imports(msg_name, namespace, package, unique_attributes)
     hpp_code += imports

@@ -7,7 +7,7 @@ message (defined in `.msg` files).  These `.msg` files are then parsed
 by a code generator that creates the C++ code needed to support said
 message.  All the classes and functions needed for ROS topics can then
 be templated and uses the "type traits pattern" since all the messages
-have a similar API.  On the other hand, Slicer tends to avoid template
+have a similar API.  On the other hand, Slicer tends to avoid templates
 for end-user classes.  So we created a set of basic publishers and
 subscribers to convert messages between ROS and Slicer.
 

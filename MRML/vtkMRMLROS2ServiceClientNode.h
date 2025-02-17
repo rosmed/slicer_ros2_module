@@ -22,13 +22,13 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
   vtkTypeMacro(vtkMRMLROS2ServiceClientNode, vtkMRMLNode);
 
   bool AddToROS2Node(const char * nodeId,
-		     const std::string & topic);
+		     const std::string & service);
   bool RemoveFromROS2Node(const char * nodeId,
-					     const std::string & topic);
+                          const std::string & service);
   bool IsAddedToROS2Node(void) const;
 
-  const std::string & GetTopic(void) const {
-    return mTopic;
+  const std::string & GetService(void) const {
+    return mService;
   }
 
   const char * GetROSType(void) const;
@@ -57,15 +57,15 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
   ~vtkMRMLROS2ServiceClientNode() = default;
 
   vtkMRMLROS2ServiceClientInternals * mInternals;
-  std::string mTopic = "undefined";
+  std::string mService = "undefined";
   std::string mMRMLNodeName = "ros2:srv:client:undefined";
 
   size_t mNumberOfCalls = 0;
   size_t mNumberOfRequestsSent = 0;
 
   // For ReadXMLAttributes
-  inline void SetTopic(const std::string & topic) {
-    mTopic = topic;
+  inline void SetService(const std::string & service) {
+    mService = service;
   }
 };
 

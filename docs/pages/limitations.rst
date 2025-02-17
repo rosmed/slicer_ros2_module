@@ -1,6 +1,15 @@
 """""""
 Caveats
 """""""
+
+.. warning::
+
+   The current code to load a robot description assumes that ROS uses
+   SI units while Slicer uses millimeters so it will perform a
+   conversion.  Unfortunately, the conversion methods in SlicerROS2
+   are not very consistent.  For example, point clouds, velocities,
+   efforts are not scaled while tf2 and Transform/Poses are scaled.
+
 ================
 Missing features
 ================
@@ -15,10 +24,12 @@ Missing features
 
 * The following ROS functionalities are missing:
 
-+ Services (coming soon)
+  + Service server
 
   + Parameter server (``vtkMRMLROS2ParameterNode`` only works as a
     client)
+
+  + Actions
 
 * The current implementation assumes that all ROS2 nodes
   (``vtkMRMLROS2NodeNode``) added to the scene should be spun by the

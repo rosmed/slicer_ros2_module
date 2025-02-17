@@ -25,6 +25,7 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 #include "geometry_msgs/msg/transform.hpp"
+#include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/wrench.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
@@ -51,6 +52,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 // geometry_msgs
 void vtkROS2ToSlicer(const geometry_msgs::msg::Pose & input, vtkSmartPointer<vtkMatrix4x4> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::Transform & input, vtkSmartPointer<vtkMatrix4x4> result);
+void vtkROS2ToSlicer(const geometry_msgs::msg::Twist & input, vtkSmartPointer<vtkDoubleArray> result);
 void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<vtkDoubleArray> result);
 
 // sensor_msgs

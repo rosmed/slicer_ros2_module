@@ -17,6 +17,7 @@ include(SlicerROS2.cmake)
 generate_ros2_nodes(
   GENERATED_FILES_PREFIX
   "SLICER_ROS2_GENERATED"
+
   PUBLISHERS
   "geometry_msgs/msg/PoseStamped"
   "geometry_msgs/msg/TransformStamped"
@@ -24,6 +25,7 @@ generate_ros2_nodes(
   "sensor_msgs/msg/Joy"
   "sensor_msgs/msg/JointState"
   "geometry_msgs/msg/PoseArray"
+
   SUBSCRIBERS
   "geometry_msgs/msg/PoseStamped"
   "geometry_msgs/msg/TransformStamped"
@@ -31,16 +33,65 @@ generate_ros2_nodes(
   "sensor_msgs/msg/Joy"
   "sensor_msgs/msg/JointState"
   "geometry_msgs/msg/PoseArray"
+
+  SERVICE_CLIENTS
+  "rosbag2_interfaces/srv/Burst"
+  "rosbag2_interfaces/srv/GetRate"
+  "rosbag2_interfaces/srv/IsPaused"
+  "rosbag2_interfaces/srv/Pause"
+  "rosbag2_interfaces/srv/Play"
+  "rosbag2_interfaces/srv/PlayNext"
+  "rosbag2_interfaces/srv/Resume"
+  "rosbag2_interfaces/srv/Seek"
+  "rosbag2_interfaces/srv/SetRate"
+  "rosbag2_interfaces/srv/Snapshot"
+  "rosbag2_interfaces/srv/SplitBagfile"
+  "rosbag2_interfaces/srv/Stop"
+  "rosbag2_interfaces/srv/TogglePaused"
+
+  "moveit_msgs/srv/GetPositionFK"
+  "moveit_msgs/srv/GetPositionIK"
+  "moveit_msgs/srv/GetCartesianPath"
+  "turtlesim/srv/Spawn"
+
   DEPENDENCIES
+  # messages used by other messages for which we need to
+  # create a VTK object
   "std_msgs/msg/Header"
   "builtin_interfaces/msg/Time"
-  SERVICE_CLIENTS
-  "turtlesim/srv/Spawn"
+  "builtin_interfaces/msg/Duration"
+  "sensor_msgs/msg/MultiDOFJointState"
+  "geometry_msgs/msg/Polygon"
+  "geometry_msgs/msg/Point32"
+  "geometry_msgs/msg/Point"
+  "geometry_msgs/msg/Vector3"
+  "geometry_msgs/msg/Quaternion"
+  "shape_msgs/msg/SolidPrimitive"
+  "shape_msgs/msg/Mesh"
+  "shape_msgs/msg/MeshTriangle"
+  "shape_msgs/msg/Plane"
+  "object_recognition_msgs/msg/ObjectType"
+  "trajectory_msgs/msg/JointTrajectoryPoint"
+  "trajectory_msgs/msg/JointTrajectory"
+  "trajectory_msgs/msg/MultiDOFJointTrajectory"
+  "trajectory_msgs/msg/MultiDOFJointTrajectoryPoint"
+  "moveit_msgs/msg/RobotTrajectory"
+  "moveit_msgs/msg/RobotState"
+  "moveit_msgs/msg/MoveItErrorCodes"
+  "moveit_msgs/msg/CollisionObject"
+  "moveit_msgs/msg/AttachedCollisionObject"
+  "moveit_msgs/msg/Constraints"
+  "moveit_msgs/msg/JointConstraint"
+  "moveit_msgs/msg/PositionConstraint"
+  "moveit_msgs/msg/PositionIKRequest"
+  "moveit_msgs/msg/BoundingVolume"
+  "moveit_msgs/msg/OrientationConstraint"
+  "moveit_msgs/msg/VisibilityConstraint"
   )
 
 get_directory_property(_current_prop ADDITIONAL_CLEAN_FILES)
 set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${SLICER_ROS2_GENERATED_H};${SLICER_ROS2_GENERATED_CXX};${_current_prop}")
-  
+
 set(_SRCS_INTERNAL
   # conversion methods
   # vtkROS2ToSlicer.h
@@ -76,8 +127,6 @@ set(${KIT}_SRCS
   vtkMRMLROS2Tf2LookupNode.cxx
   vtkMRMLROS2RobotNode.h
   vtkMRMLROS2RobotNode.cxx
-  vtkMRMLROS2ServiceNode.h
-  vtkMRMLROS2ServiceNode.cxx
   vtkMRMLROS2ServiceClientNode.h
   vtkMRMLROS2ServiceClientNode.cxx
   vtkMRMLROS2ServiceClientDefaultNodes.h
@@ -94,14 +143,7 @@ set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
-  ${rclcpp_LIBRARIES}
-  ${sensor_msgs_LIBRARIES}
-  ${tf2_ros_LIBRARIES}
-  ${tf2_msgs_LIBRARIES}
-  ${tf2_LIBRARIES}
-  ${urdf_LIBRARIES}
-  ${turtlesim_LIBRARIES}
-  ${std_srvs_LIBRARIES}
+  ${SlicerROS2_ROS_LIBRARIES}
   )
 
 SlicerMacroBuildModuleMRML(

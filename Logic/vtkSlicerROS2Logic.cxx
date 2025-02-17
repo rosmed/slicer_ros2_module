@@ -40,7 +40,6 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 #include <vtkMRMLROS2ParameterNode.h>
-#include <vtkMRMLROS2ServiceNode.h>
 #include <vtkMRMLROS2ServiceClientDefaultNodes.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
@@ -149,7 +148,6 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
 
   // Services
-  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolStringNode>::New());
 
   // Register automatically generated nodes

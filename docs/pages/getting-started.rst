@@ -60,6 +60,12 @@ now, we will assume the ROS workspace directory is ``~/ros2_ws`` and
 the source code for this module has been cloned under
 ``~/ros2_ws/src/slicer_ros2_module``.
 
+Other ROS packages that might not be installed by default.  Replace
+``<distro>`` by the ROS distribution's name (e.g. ``humble``,
+``jazzy``...).
+
+* ``ros-<distro>-moveit-msgs``
+
 You will first need to "source" the ROS setup script for ROS 2 (Galactic
 in this example):
 

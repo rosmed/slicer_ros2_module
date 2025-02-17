@@ -146,6 +146,27 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::Transform & resul
 }
 
 
+void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::Twist & result,
+		     const std::shared_ptr<rclcpp::Node> &)
+{
+  if (input->GetNumberOfValues() == 6) {
+    result.linear.x = input->GetValue(0);
+    result.linear.y = input->GetValue(1);
+    result.linear.z = input->GetValue(2);
+    result.angular.x = input->GetValue(3);
+    result.angular.y = input->GetValue(4);
+    result.angular.z = input->GetValue(5);
+  } else {
+    result.linear.x = 0.0;
+    result.linear.y = 0.0;
+    result.linear.z = 0.0;
+    result.angular.x = 0.0;
+    result.angular.y = 0.0;
+    result.angular.z = 0.0;
+  }
+}
+
+
 void vtkSlicerToROS2(vtkDoubleArray * input, geometry_msgs::msg::Wrench & result,
 		     const std::shared_ptr<rclcpp::Node> &)
 {
