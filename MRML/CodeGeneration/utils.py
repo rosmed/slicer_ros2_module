@@ -21,3 +21,8 @@ def get_vtk_type(field_type, vtk_equivalent_types):
     field_type = parts[0] + parts[-1]
 
     return False, field_type
+
+
+
+
+
