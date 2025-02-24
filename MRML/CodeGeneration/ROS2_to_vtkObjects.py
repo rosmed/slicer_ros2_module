@@ -351,7 +351,7 @@ def generate_attribute_dict_message(ros_message_full_type):
     constants = {name: value for name, value in vars(msg_class).items() 
                  if name.isupper() and not name.startswith('_')}
     constants.pop('SLOT_TYPES', None)
-    print(f"constants: {constants}")
+    # print(f"constants: {constants}")
     processed_attributes = process_attributes(attributes, ros_namespace)
     return {ros_message_full_type: processed_attributes}, list(processed_attributes.values()), constants
 
@@ -388,8 +388,8 @@ def ROS2_message_to_vtkObject(ros_message_full_type, output_directory):
     hpp_code = f"#ifndef {filename}_h\n#define {filename}_h\n\n"
     cpp_code = f'#include "{filename}.h"\n\n#include <vtkROS2ToSlicer.h>\n#include <vtkSlicerToROS2.h>\n\n'
     message_attribute_map, unique_attribute_types, constants = generate_attribute_dict_message(ros_message_full_type)
-    print(f"unique_attributes: {unique_attribute_types}")
-    print(f"message_attribute_map: {message_attribute_map}")
+    # print(f"unique_attributes: {unique_attribute_types}")
+    # print(f"message_attribute_map: {message_attribute_map}")
     imports = identify_imports(ros_message_name, ros_namespace, ros_pkg, unique_attribute_types)
     hpp_code += imports
     hpp_conv, cpp_conv = generate_class_and_conversion_methods(generated_vtk_class_name, generated_vtk_class_identifier,
