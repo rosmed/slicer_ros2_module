@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Slicer ROS2'
-copyright = '2022-2024, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
+copyright = '2022-2025, Queen’s University (Kingston, Canada), Johns Hopkins University (Baltimore, USA)'
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
@@ -31,7 +31,9 @@ release = '1.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx_tabs.tabs', 'sphinx_rtd_theme'
+    'sphinx_tabs.tabs',
+    'sphinx_rtd_theme',
+    'sphinx_copybutton',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
