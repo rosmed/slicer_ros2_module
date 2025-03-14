@@ -11,19 +11,7 @@ Before you can start compiling the SlicerROS2 module, you will need:
 
 * Some knowledge of Linux, CMake and ROS 2.
 
-* Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.  This module has
-  been intially developed and tested using Ubuntu 20.04 with ROS
-  Galactic.  We are now using Ubuntu 22.04 with ROS Humble or Ubuntu
-  24.04 with ROS Jazzy.
-
-* Slicer 5.6.2 source if you're using Ubuntu 22.04 and 24.04. When
-  compiling on Ubuntu 20.04, Slicer 5.2.2 is known to compile without
-  any issues.  If you need to use a more recent version of Slicer, you
-  might have to edit the Slicer code to replace a few
-  ``QLatin1String`` to ``QString``.  You can replace all occurences in
-  the Slicer source directory using ``find . -not -path '*/\.git/*'
-  \( -name '*.cxx*' -o -name '*.h*' \) -exec sed -i
-  's/QLatin1String/QString/g' '{}' \;``
+* Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.
 
 * Qt installed using Ubuntu.  The build instructions for Slicer
   sometimes recommend installing Qt from the Qt site, but that leads
@@ -48,6 +36,32 @@ Before you can start compiling the SlicerROS2 module, you will need:
 
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
+
+========
+Versions
+========
+
+* *Recommended*: SlicerROS2 v1.0: requires Ubuntu 24.04/ROS 2 Jazzy
+  with Slicer 5.8 (should also work with Slicer 5.6)
+  
+* SlicerROS2 v0.9: requires Ubuntu 20.04/ROS Galactic, Ubuntu
+  22.04/ROS2 Humble or Ubuntu 24.04/ROS2 Jazzy with Slicer 5.6
+
+Older versions and compilation fixes:
+
+* If you need to use Ubuntu 22.04/ROS 2 Humble, SlicerROS2 v1.0+ will
+  fail to compile unless you comment out the the rosbag2 service
+  clients `Play`, `Stop` and `SplitBagFile` in the macro call
+  `generate_ros2_nodes`, file `MRML/CMakeLists.txt`.
+
+* When compiling on Ubuntu 20.04, Slicer 5.2.2 is known to compile
+  without any issues.  If you need to use a more recent version of
+  Slicer, you might have to edit the Slicer code to replace a few
+  ``QLatin1String`` to ``QString``.  You can replace all occurences in
+  the Slicer source directory using ``find . -not -path '*/\.git/*'
+  \( -name '*.cxx*' -o -name '*.h*' \) -exec sed -i
+  's/QLatin1String/QString/g' '{}' \;``
+
 
 ===========
 Compilation
