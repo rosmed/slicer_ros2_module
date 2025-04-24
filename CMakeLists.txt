@@ -14,7 +14,9 @@ if (Python3_Interpreter_FOUND)
   endif ()
 endif ()
 
+# unset settings so we can go back and forth between Slicer vs ROS2 preferences
 undefine_python ()
+unset (CMAKE_INSTALL_PREFIX)
 
 # SlicerConfig.cmake does god knows what to the build tree but it
 # needs to be the first thing we do
@@ -58,6 +60,14 @@ foreach (dep ${SlicerROS2_ROS_DEPENDENCIES})
   include_directories (${${dep}_INCLUDE_DIRS})
   set (SlicerROS2_ROS_LIBRARIES ${SlicerROS2_ROS_LIBRARIES} ${${dep}_LIBRARIES})
 endforeach ()
+
+# preserve ament install prefix to create a dummy setup.bash
+if (NOT DEFINED SlicerROS2_AMENT_INSTALL_PREFIX)
+  set (SlicerROS2_AMENT_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE FILEPATH "ament install prefix")
+  install(
+    FILES local_setup.bash
+    DESTINATION /${SlicerROS2_AMENT_INSTALL_PREFIX}/share/slicer_ros2_module)
+endif ()
 
 #-----------------------------------------------------------------------------
 
