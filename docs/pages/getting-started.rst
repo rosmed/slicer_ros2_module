@@ -57,7 +57,7 @@ Versions
 * SlicerROS2 v0.9: requires Ubuntu 20.04/ROS Galactic, Ubuntu
   22.04/ROS2 Humble or Ubuntu 24.04/ROS2 Jazzy with Slicer 5.6
 
-Older versions and compilation fixes:
+Older versions and compilation tricks:
 
 * If you need to use Ubuntu 22.04/ROS 2 Humble, SlicerROS2 v1.0+ will
   fail to compile unless you comment out the the rosbag2 service
