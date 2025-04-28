@@ -134,7 +134,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     @classmethod
     def spin_some(self):
         ros2Logic = slicer.util.getModuleLogic('ROS2')
-        for i in range(3):
+        for i in range(10):
             time.sleep(0.01)
             ros2Logic.Spin()
 
@@ -144,8 +144,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.ros2_exec + command,
             shell=True,
             preexec_fn=os.setsid,
-            stdout=subprocess.DEVNULL, # Suppress stdout to prevent cluttering the 3D Slicer console
-            stderr=subprocess.DEVNULL, # Suppress stderr to prevent cluttering the 3D Slicer console
+            # Suppress stdout/stderr to prevent cluttering the 3D Slicer console
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         ros2_process.wait()
         return ros2_process
@@ -156,8 +157,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.ros2_exec + command,
             shell=True,
             preexec_fn=os.setsid,
-            stdout=subprocess.DEVNULL, # Supress stdout to prevent cluttering the 3D Slicer console
-            stderr=subprocess.DEVNULL, # Supress stderr to prevent cluttering the 3D Slicer console
+            # Suppress stdout/stderr to prevent cluttering the 3D Slicer console
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         return ros2_process
 
@@ -173,7 +175,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def kill_subprocess(self, proc):
-        os.killpg(os.getpgid(proc.pid), subprocess.signal.SIGINT)
+        os.killpg(os.getpgid(proc.pid), subprocess.signal.SIGTERM) # SIGTERM is CTRL-C
+        time.sleep(1)
 
     @classmethod
     def check_ros2_node_running(self, nodeName):
@@ -209,7 +212,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     # It creates a turtlesim node, checks if it's running, and then kills it
     class TestTurtlesimNode(unittest.TestCase):
         def setUp(self):
+            print("\nTesting run turtlesim node..")
             self.create_turtlesim_node_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
+            ROS2TestsLogic.spin_some()
 
         def test_turtlesim_node_create_and_destroy(self):
             print("\nTesting creation and destruction of turtlesim node - Starting..")
@@ -221,31 +226,6 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             # Kill the turtlesim node
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
             self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node still running")
-
-    class TestMyServer(unittest.TestCase):
-        def setUp(self):
-            """
-            Start the server process.
-            """
-            self.server_process = ROS2TestsLogic.run_ros2_cli_command_after_sourcing("run trigger_server start_server")
-            # wait for server to start
-            time.sleep(1)
-
-        def test_server_create_and_destroy(self):
-            """
-            Test the creation and destruction of the server.
-            """
-            print("\nTesting creation and destruction of my server - Starting..")
-            self.assertTrue(ROS2TestsLogic.check_server_running("/toggle_state"), "Server is not running")
-            print("Testing creation and destruction of my server - Done")
-
-        def tearDown(self):
-            """
-            Stop the server process.
-            """
-            ROS2TestsLogic.kill_subprocess(self.server_process)
-            self.assertFalse(ROS2TestsLogic.check_server_running("/toggle_state"), "Server is still running")
-
 
     # It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
     class TestCreateAndAddPubSub(unittest.TestCase):
@@ -591,10 +571,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeParameter")
             ROS2TestsLogic.spin_some()
+            print("Start turtlesim node to test parameters")
             self.create_turtlesim_node_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
             self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
-            ROS2TestsLogic.spin_some()
 
         def test_parameter_monitoring(self):
             print("\nTesting creation and working of parameter node - Starting..")
@@ -640,7 +620,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"))
             print("Testing creation and working of parameter node - Done")
 
-# temporaty hack to avoid creating two testing nodes with same name.  ros2Node.Destroy in tearDown doesn't work
+# temporary hack to avoid creating two testing nodes with same name.  ros2Node.Destroy in tearDown doesn't work
 #        def test_parameter_deletion(self):
             print("\nTesting deletion of parameter node - Starting..")
             testParam = self.ros2Node.CreateAndAddParameterNode("/turtlesim")
@@ -667,12 +647,13 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         def setUp(self):
-            print("\nCreating ROS2 node to test Broadcaster Nodes..")
+            print("\nCreating ROS2 node to test broadcaster nodes..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeBroadcaster")
             ROS2TestsLogic.spin_some()
 
         def test_broadcaster_functioning(self):
+            print("\nTesting tf2 broadcaster - Starting..")
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
             observer = TestObserverTf2Lookup()
@@ -692,42 +673,44 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
             self.assertTrue(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
-
+            print("\nTesting tf2 broadcaster - Done")
 
         def tearDown(self):
-            # pass
             self.ros2Node.Destroy()
 
-    # class TestServiceClient(unittest.TestCase):
-    #     def setUp(self):
-    #         self.create_service_process = ROS2TestsLogic.run_ros2_cli_command_after_sourcing("run trigger_server start_server") # TODO: Rewrite the server with a spin_some instead of a spin in a while loop. You can type print statements to check if it is running properly
-    #         self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-    #         self.ros2Node.Create("testNode")
-    #         ROS2TestsLogic.spin_some()
 
-    #     def test_service_client(self):
-    #         print("\nTesting service client - Starting..")
-    #         serviceClient = self.ros2Node.CreateAndAddServiceNode("toggle_state")
-    #         serviceClient.SendAsyncRequest()
-    #         for _ in range(6):
-    #             ROS2TestsLogic.spin_some()
-    #             time.sleep(1)
-    #         outputVtkTable = serviceClient.GetLastResponseAsTable()
-    #         ExpectedState, ExpectedCounter = True, 1
-    #         ExpectedString = f'State toggled to: {ExpectedState}, Message Counter : {ExpectedCounter}'
-    #         ObtainedOutput = outputVtkTable.GetValue(0,0).ToString()
-    #         print("ObtainedOutput", ObtainedOutput)
-    #         self.assertEqual(ObtainedOutput, ExpectedString)
-    #         print("Testing service client - Done")
+    class TestServiceClient(unittest.TestCase):
+        def setUp(self):
+            print("\nCreating ROS2 node to test service clients ..")
+            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+            self.ros2Node.Create("testNodeServiceClient")
+            print("Start turtlesim node to test services")
+            self.service_server_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
+            ROS2TestsLogic.spin_some()
+            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
 
-    #     def tearDown(self):
-    #         ROS2TestsLogic.kill_subprocess(self.create_service_process)
-    #         self.ros2Node.Destroy()
-    #         ROS2TestsLogic.spin_some()
+        def test_service_client(self):
+            print("\nTesting service client - Starting..")
+            spawn1 = self.ros2Node.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSpawnNode', '/spawn')
+            req = spawn1.CreateBlankRequest()
+            req.SetX(4.0)
+            req.SetY(4.0)
+            spawn1.SendAsyncRequest(req)
+            # wait get the response
+            ROS2TestsLogic.spin_some()
+            res = spawn1.GetLastResponse()
+            self.assertEqual(res.GetName(), "turtle2")
+            print("\nTesting service client - Done")
+
+        def tearDown(self):
+            ROS2TestsLogic.kill_subprocess(self.service_server_process)
+            ROS2TestsLogic.spin_some()
+            self.ros2Node.Destroy()
 
 
     def run(self):
         print('Running all tests...')
+
         # Switch off VTK warnings
         vtk.vtkObject.GlobalWarningDisplayOff()
 
@@ -736,18 +719,14 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestCreateAndAddPubSub))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestParameterNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
-        # suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestMyServer))
-        # suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
 
         runner = unittest.TextTestRunner()
         runner.run(suite)
+
         # Restore VTK warnings
         vtk.vtkObject.GlobalWarningDisplayOn()
 
 
 # tests = slicer.util.getModuleLogic('ROS2Tests')
 # tests.run()
-
-# ros2 = slicer.mrmlScene.GetFirstNodeByName('ros2:node:slicer')
-# pub = ros2.CreateAndAddPublisherNode('vtkMRMLROS2PublisherIntTableNode','testpub2')
-# srv = ros2.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSetBoolStringNode','set_bool')
