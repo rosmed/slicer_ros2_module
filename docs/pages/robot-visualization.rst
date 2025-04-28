@@ -8,7 +8,7 @@ Overview
 ========
 
 For the robot visualization in 3D Slicer, one first need to properly
-configure a robot in ROS 2.  The default ROS approach requires:
+configure a robot in ROS 2. The default ROS approach requires:
 
 * an XML robot definition file (``UFA``) and usually CAD files for
   the links.
@@ -21,17 +21,29 @@ configure a robot in ROS 2.  The default ROS approach requires:
 * a source (publisher) for the current joint positions.  This can be
   an actual robot driver or a script emulating the robot.
 
+Before testing SlicerROS2, you should always check that your setup is
+correct and works with RViz.
+
 Once the ROS robot is setup properly, the SlicerROS2 robot node can be
 used to visualize the robot in Slicer.  Internally, the robot node
 will use a parameter node to retrieve the URDF description and tf2
 lookups to refresh the position of each link.
+
+.. note::
+
+   VTK can import ``.stl`` and ``.obj`` meshes.  If your model uses
+   other CAD formats, the robot will be created in Slicer but it will
+   not show-up.
 
 =========
 ROS Robot
 =========
 
 The following are examples of robots we've used to test the SlicerROS2
-module.  They cover a serial robot (Phantom Omni) as well as a robot
+module. They can be used without the actual hardware if you just want
+to try SlicerROS2.
+
+They cover serial robots (Phantom Omni and Cobot) as well as a robot
 with parallel linkages (dVRK PSM).  The SlicerROS2 module should work
 with any other robots as long as the links CAD files are either
 ``.stl`` or ``.obj``.
@@ -107,7 +119,8 @@ Once you've compiled all the dVRK related packages, you can use the arm launch f
    https://github.com/jhu-dvrk/dvrk_model in your ROS workspace and
    then use the command line: ``ros2 launch dvrk_model arm.launch
    arm:=PSM1 generation:=Classic simulated:=False``.
-   
+
+
 Cobot
 =====
 
@@ -136,10 +149,13 @@ instructions for basic operation of the myCobot can be found in the
 `Gitbook
 <https://docs.elephantrobotics.com/docs/gitbook-en/2-serialproduct/2.1-280/2.1-280.html>`_
 
+
 ============
 Slicer Robot
 ============
 
+Adding and removing robots
+==========================
 
 We've simplified loading the robot by adding some shortcuts on the
 widget UI. The default parameter node name: ``/robot_state_publisher``
@@ -159,7 +175,8 @@ uses a namespace, you will likely need to prefix this on the parameter
 node name. The PSM for example requires
 ``PSM1/robot_state_publisher``.
 
-To remove the robot from the scene you can press the "Remove Robot" button.
+To remove the robot from the scene you can press the "Remove Robot"
+button.
 
 .. image:: ../images/RemoveRobot.png
   :width: 300
@@ -174,12 +191,56 @@ widget will update with additional line edits for the second robot.
   :align: center
   :alt: Defining a robot with a namespace in Slicer
 
-We have also added a field to specify the fixed frame of the robot. The default behaviour is to use
-the first link of the robot as the fixed frame if this field is left empty.
-For non-holonomic robots, this feature may be necessary for visualization. The example below shows a rendering
-of the TurtleBot in 3D Slicer using this feature.
+Tips and tricks
+===============
+
+Fixed frame
+-----------
+
+All cartesian poses used to display the robot's links are defined with
+respect to a base frame, also know as "Fixed Frame" in RViz. The
+default in RViz is "map". This default is often ignored in URDFs. When
+the "fixed frame" is not correctly defined, you will get some warnings
+regarding lookups in Tf2 not found. For example, the Phantom Omni URDF
+uses the reference frame ``base``.
+
+The UI for SlicerROS2 robot also has a field to specify the fixed
+frame of the robot. The default behaviour is to use the first link of
+the robot as the fixed frame if this field is left empty. For
+non-holonomic robots, this feature may be necessary for
+visualization. The example below shows a rendering of the TurtleBot in
+3D Slicer using this feature.
 
 .. image:: ../images/turtlebot.gif
   :width: 800
   :align: center
   :alt: Defining a robot with a namespace in Slicer
+
+.. hint::
+
+   To help figuring out the frames currently declared, you can also
+   use ``ros2 run tf2_tools view_frames`` once the robot is launched
+   (see `ROS documentation
+   <https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Debugging-Tf2-Problems.html>`_).
+
+ROS namespaces
+--------------
+
+Namespaces are frequently used for ROS applications. They allow users
+to declare multiple robots with the same topic, service, tf... names
+without conflicts. For example, the joint state publisher use the
+topic ``/joint_states`` by convention. If you have multiple robots,
+you can use a namespace to isolate the topic.  For example, the
+Phantom Omni package uses the the namespace ``/arm`` and the joint
+state topics becomes ``/arm/joint_states``. If you are unsure which
+namespaces are used, you can list all the current ROS topics using
+``ros2 topic list``.
+
+To set a namespace on an existing node (for example ``/arm``), you can
+use the option ``--ros-args --remap __ns:=/arm``.
+
+.. warning::
+
+   When you specify a namespace using the command line, make sure to
+   remove any trailing slash.  The following won't work:
+   ``--ros-args --remap __ns:=/arm/``

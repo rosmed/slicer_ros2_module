@@ -7,7 +7,7 @@
     public vtkMRMLROS2ServiceClientNode					\
   {									\
   public:								\
-    typedef vtkMRMLROS2ServiceClient##name##Node SelfType;			\
+    typedef vtkMRMLROS2ServiceClient##name##Node SelfType;		\
     vtkTypeMacro(vtkMRMLROS2ServiceClient##name##Node, vtkMRMLROS2ServiceClientNode);	\
     									\
     static SelfType * New(void);                                        \
@@ -15,12 +15,12 @@
     const char * GetNodeTagName(void) override;				\
     slicer_type_in * CreateBlankRequest(void);				\
     bool PreRequestCheck(void);                      \
-    size_t SendAsyncRequest(vtkSmartPointer<slicer_type_in> message);	      \
+    size_t SendAsyncRequest(vtkSmartPointer<slicer_type_in> message);	\
     slicer_type_out * GetLastResponse(void);				\
     bool GetLastResponseStatus(void);					\
     									\
   protected:								\
-    vtkMRMLROS2ServiceClient##name##Node();                                \
+    vtkMRMLROS2ServiceClient##name##Node();				\
     ~vtkMRMLROS2ServiceClient##name##Node();				\
   }
 
@@ -55,31 +55,43 @@
   {									\
     vtkSmartPointer<slicer_type_in> result = slicer_type_in::New();	\
     return result.GetPointer();						\
-  }     \
-            \
-  bool vtkMRMLROS2ServiceClient##name##Node::PreRequestCheck(void) \
+  }									\
+  									\
+  bool vtkMRMLROS2ServiceClient##name##Node::PreRequestCheck(void)	\
   {									\
-    return (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->PreRequestCheck(); \
-  }     \
+    std::string errorMessage;						\
+    bool good = (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->PreRequestCheck(errorMessage); \
+    if (!good) {							\
+      vtkWarningMacro(<< "PreRequestCheck: " << errorMessage);		\
+    }									\
+  }									\
  									\
   size_t vtkMRMLROS2ServiceClient##name##Node::SendAsyncRequest(vtkSmartPointer<slicer_type_in> message) \
   {									\
     mNumberOfCalls++;							\
-    const auto justSent = (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->SendAsyncRequest(message); \
+    std::string errorMessage;						\
+    const auto justSent = (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->SendAsyncRequest(message, errorMessage); \
+    if (justSent == 0) {						\
+      vtkWarningMacro(<< "SendAsyncRequest: " << errorMessage);		\
+    }									\
     mNumberOfRequestsSent += justSent;					\
     return justSent;							\
-  }                                                          \
-                  \
+  }									\
+  									\
   slicer_type_out * vtkMRMLROS2ServiceClient##name##Node::GetLastResponse(void) \
   {									\
-    slicer_type_out * result; \
-    result = (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->GetLastResponse(); \
+    std::string errorMessage;						\
+    slicer_type_out * result;						\
+    result = (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->GetLastResponse(errorMessage); \
+    if (result == nullptr) {						\
+      vtkWarningMacro(<< "GetLastResponse: " << errorMessage);		\
+    }									\
     return result;							\
-  }						\
+  }									\
    									\
   bool vtkMRMLROS2ServiceClient##name##Node::GetLastResponseStatus(void) \
   {									\
     return (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->GetLastResponseStatus(); \
-  }						
-    	
+  }
+
 #endif // __vtkMRMLROS2ServiceClientMacros_h

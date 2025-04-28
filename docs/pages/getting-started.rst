@@ -16,10 +16,12 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Qt installed using Ubuntu.  The build instructions for Slicer
   sometimes recommend installing Qt from the Qt site, but that leads
   to major issues when compiling against ROS2.  So don't re-install
-  Qt!
+  Qt from the Qt site.  Use ``apt install``!
 
 * Slicer 3D built from source, this is required to build any C++
   extension, including SlicerROS2.
+
+  See also `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
 
   .. warning::
 
@@ -32,7 +34,15 @@ Before you can start compiling the SlicerROS2 module, you will need:
      . -DSlicer_USE_SYSTEM_OpenSSL=ON -DCMAKE_BUILD_TYPE=Release`` or
      ``ccmake``.
 
-  See also `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
+  .. note::
+
+     Compiling Slicer from source takes time, plan a few hours
+     ahead. Also, avoid using ``make -j`` without any limit. The
+     compilation process requires a fair amount of memory and is
+     likely to crash your computer. Using about half the number of
+     cores available seems to help. For example, use ``make -j4`` for
+     a Intel i9 processor. Compiling the SlicerROS2 module itself can
+     take up to 10 minutes.
 
 * Remember the build directory for Slicer, it will be needed to
   compile the Slicer ROS 2 module.
@@ -43,16 +53,16 @@ Versions
 
 * *Recommended*: SlicerROS2 v1.0: requires Ubuntu 24.04/ROS 2 Jazzy
   with Slicer 5.8 (should also work with Slicer 5.6)
-  
+
 * SlicerROS2 v0.9: requires Ubuntu 20.04/ROS Galactic, Ubuntu
   22.04/ROS2 Humble or Ubuntu 24.04/ROS2 Jazzy with Slicer 5.6
 
-Older versions and compilation fixes:
+Older versions and compilation tricks:
 
 * If you need to use Ubuntu 22.04/ROS 2 Humble, SlicerROS2 v1.0+ will
   fail to compile unless you comment out the the rosbag2 service
-  clients `Play`, `Stop` and `SplitBagFile` in the macro call
-  `generate_ros2_nodes`, file `MRML/CMakeLists.txt`.
+  clients ``Play``, ``Stop`` and ``SplitBagFile`` in the macro call
+  ``generate_ros2_nodes``, file ``MRML/CMakeLists.txt``.
 
 * When compiling on Ubuntu 20.04, Slicer 5.2.2 is known to compile
   without any issues.  If you need to use a more recent version of
@@ -90,7 +100,7 @@ in this example):
     cd ~/ros2_ws/src
     git clone https://github.com/rosmed/slicer_ros2_module
 
-Then build the module using `colcon` while providing the path to your
+Then build the module using ``colcon`` while providing the path to your
 Slicer build directory ``Slicer_DIR``:
 
 .. code-block:: bash

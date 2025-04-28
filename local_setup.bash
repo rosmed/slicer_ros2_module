@@ -1,1 +1,1 @@
-echo "Information: Files for the slicer_ros2_module are installed in your Slicer build tree"
+echo "Information: Files for the slicer_ros2_module are installed in your Slicer build tree. If your ROS workspace only contains slicer_ros2, you don't need to source <your_workspace>/install/setup.bash"
