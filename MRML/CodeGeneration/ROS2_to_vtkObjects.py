@@ -48,22 +48,22 @@ def get_category_mapping(is_sequence, is_vtk_object):
 GETSET_GENERATORS = {
     FieldCategory.STATIC: lambda attribute_name, underlying_type: (
         f"{__}// static get/set\n"
-        f"{__}const {ros2_to_cpp_type_static_mapping[underlying_type]}& Get{snake_to_camel(attribute_name)}() const {{ return {attribute_name}_; }}\n\n"
+        f"{__}const {ros2_to_cpp_type_static_mapping[underlying_type]}& Get{snake_to_camel(attribute_name)}(void) const {{ return {attribute_name}_; }}\n\n"
         f"{__}void Set{snake_to_camel(attribute_name)}(const {ros2_to_cpp_type_static_mapping[underlying_type]}& value) {{ {attribute_name}_ = value; }}\n\n"
     ),
     FieldCategory.VTK_OBJECT: lambda attribute_name, underlying_type: (
         f"{__}// vtk get/set\n"
-        f"{__}vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}* Get{snake_to_camel(attribute_name)}() {{ return {attribute_name}_; }}\n\n"
+        f"{__}vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}* Get{snake_to_camel(attribute_name)}(void) {{ return {attribute_name}_; }}\n\n"
         f"{__}void Set{snake_to_camel(attribute_name)}(vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}* value) {{ {attribute_name}_ = value; }}\n\n"
     ),
     FieldCategory.STATIC_SEQUENCE: lambda attribute_name, underlying_type: (
         f"{__}// static sequence get/set\n"
-        f"{__}const std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}>& Get{snake_to_camel(attribute_name)}() const {{ return {attribute_name}_; }}\n\n"
+        f"{__}const std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}>& Get{snake_to_camel(attribute_name)}(void) const {{ return {attribute_name}_; }}\n\n"
         f"{__}void Set{snake_to_camel(attribute_name)}(const std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}>& value) {{ {attribute_name}_ = value; }}\n\n"
     ),
     FieldCategory.VTK_SEQUENCE: lambda attribute_name, underlying_type: (
         f"{__}// vtk sequence get/set\n"
-        f"{__}const std::vector<vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}>>& Get{snake_to_camel(attribute_name)}() const {{ return {attribute_name}_; }}\n\n"
+        f"{__}const std::vector<vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}>>& Get{snake_to_camel(attribute_name)}(void) const {{ return {attribute_name}_; }}\n\n"
         f"{__}void Set{snake_to_camel(attribute_name)}(const std::vector<vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}>>& value) {{ {attribute_name}_ = value; }}\n\n"
     )
 }

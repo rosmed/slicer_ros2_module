@@ -53,7 +53,7 @@ We ultimately decided to implement the SlicerROS2 module in C++ and
 rely on the VTK/Slicer build to provide the Python bindings.  The
 SlicerROS2 module is compiled against the Slicer and ROS2 libraries
 which is a bit challenging since both packages have their own CMake
-macros and have some Python version requirements.  The
+macros and have different Python version requirements.  The
 ``CMakeLists.txt`` provided along SlicerROS2 works but you'll have to
 ignore some error and warning messages.
 
@@ -87,7 +87,7 @@ major issue.
 
 The main difficulty lies in supporting many ROS topics and services
 For our code, we ended up using templates for our internal data
-structures and add some macros to generate the vtk user classes.  These
+structures and add some macros to generate the VTK user classes.  These
 macros use template specialization and add some methods to create a
 C++ class that can be used within Slicer (including the Python
 bindings generation).
@@ -101,7 +101,7 @@ contained in the ROS message (or service).  On option is to manually
 create new VTK objects (derived from ``vtkObject``).
 
 This can be extremely tedious, so we added a code generator that can
-create a VTK object mimicking a ROS message.  The code generator will
+create a VTK object matching a ROS message.  The code generator will
 also create the overloaded conversion methods (``vtkSlicerToROS2`` and
 ``vtkROS2ToSlicer``) as well as code to call all the macros required
 to create the publisher or subscriber node.  The macro
@@ -139,8 +139,9 @@ new publishers and subscribers.
 .. warning::
 
    If you are adding messages from a ROS package not already used by
-   SlicerROS2, you might have to edit the main CMakeLists.txt and
-   ``find_package`` for the new ROS package.
+   SlicerROS2, you will have to edit the main ``CMakeLists.txt``.
+   See variable ``SlicerROS2_ROS_DEPENDENCIES``.
+
 
 Coordinate Systems and Units
 ============================

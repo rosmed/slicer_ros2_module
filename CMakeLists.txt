@@ -64,10 +64,11 @@ endforeach ()
 # preserve ament install prefix to create a dummy setup.bash
 if (NOT DEFINED SlicerROS2_AMENT_INSTALL_PREFIX)
   set (SlicerROS2_AMENT_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE FILEPATH "ament install prefix")
-  install(
-    FILES local_setup.bash
-    DESTINATION /${SlicerROS2_AMENT_INSTALL_PREFIX}/share/slicer_ros2_module)
 endif ()
+
+install(
+  FILES local_setup.bash
+  DESTINATION /${SlicerROS2_AMENT_INSTALL_PREFIX}/share/slicer_ros2_module)
 
 #-----------------------------------------------------------------------------
 
