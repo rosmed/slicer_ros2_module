@@ -45,7 +45,7 @@ public:
 protected:
   std::shared_ptr<rclcpp::Client<_ros_type>> mServiceClient = nullptr;
   std::shared_future<std::shared_ptr<typename _ros_type::Response>> mServiceResponseFuture;
-  bool isRequestInProgress = false;
+  bool mRequestInProgress = false;
 
   /**
    * Add the ServiceClient to the ROS2 node.  This methods searched the
@@ -134,31 +134,29 @@ public:
 
 protected:
   vtkSmartPointer<_slicer_type_out> mLastMessageSlicer;
-  bool lastResponseSuccess = false;
-  bool isRequestInProgress = false;
+  bool mLastResponseSuccess = false;
+  bool mRequestInProgress = false;
   std::chrono::steady_clock::time_point lastRequestTime;
   std::chrono::duration<double> mConnectionTimeout;
   std::chrono::duration<double> mRequestTimeout;
 
 
 public:
-  bool PreRequestCheck(void) const
+  bool PreRequestCheck(std::string & errorMessage) const
   {
     // return (this->mServiceClient != nullptr);
-    if(!this->mServiceClient)
-      {
-        std::cerr << "ServiceNode::PreRequestCheck: ServiceClient is not initialized" << std::endl;
-        return false;
-      }
-    if(!this->IsServerConnected()){
-      std::cerr << "ServiceNode::PreRequestCheck: Server is not connected" << std::endl;
+    if (!this->mServiceClient) {
+      errorMessage = "ServiceClient is not initialized";
       return false;
     }
-    if (this->isRequestInProgress)
-      {
-        std::cerr << "ServiceNode::PreRequestCheck: Request is already in progress" << std::endl;
-        return false;
-      }
+    if (!this->IsServerConnected()) {
+      errorMessage = "Server is not connected";
+      return false;
+    }
+    if (this->mRequestInProgress) {
+      errorMessage = "Request is already in progress";
+      return false;
+    }
     return true;
   }
 
@@ -171,13 +169,13 @@ public:
   bool GetLastResponseStatus(void) const
   {
     // if no request is pending and the last response was successful
-    return !this->isRequestInProgress && this->lastResponseSuccess;
+    return !this->mRequestInProgress && this->mLastResponseSuccess;
   }
 
-  _slicer_type_out* GetLastResponse(void)
+  _slicer_type_out* GetLastResponse(std::string & errorMessage)
   {
-    if (!this->lastResponseSuccess) {
-      std::cerr<< "GetLastResponse: No valid response available" << std::endl;
+    if (!this->mLastResponseSuccess) {
+      errorMessage = "GetLastResponse: No valid response available";
       return nullptr;
     }
     return mLastMessageSlicer.GetPointer();
@@ -187,21 +185,20 @@ public:
   {
     try {
       std::shared_ptr<typename _ros_type::Response> service_response_ = future.get();
-      this->isRequestInProgress = false;
+      this->mRequestInProgress = false;
       vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
-      std::cerr << "ServiceNode ServiceCallback has received response"<< std::endl;
-      this->lastResponseSuccess = true;
+      this->mLastResponseSuccess = true;
     }
     catch (const std::exception& e) {
       std::cerr << "ServiceNode::ServiceCallback: Exception: " << e.what() << std::endl;
-      this->lastResponseSuccess = false;
+      this->mLastResponseSuccess = false;
     }
-    this->isRequestInProgress = false;
+    this->mRequestInProgress = false;
   }
 
-  size_t SendAsyncRequest(_slicer_type_in* message)
+  size_t SendAsyncRequest(_slicer_type_in* message, std::string & errorMessage)
   {
-    if (!this->PreRequestCheck()) {
+    if (!this->PreRequestCheck(errorMessage)) {
       return 0;
     }
 
@@ -209,7 +206,7 @@ public:
     vtkSlicerToROS2(message, *request, this->mROSNode);
     // vtkDebugMacro("ServiceNode::SendAsyncRequest sending request");
 
-    this->isRequestInProgress = true;
+    this->mRequestInProgress = true;
     this->lastRequestTime = std::chrono::steady_clock::now();
 
     try {
@@ -222,14 +219,13 @@ public:
       return 1;
     }
     catch (const std::exception& e) {
-      std::cerr << "Error sending async request: " << e.what() << std::endl;
-      this->isRequestInProgress = false;
+      errorMessage = std::string("SendAsyncRequest: sending async triggered exception: ") + e.what();
+      this->mRequestInProgress = false;
       return 0;
     }
   }
 
   // Not using these functions yet
-
   bool WaitForServer(const std::chrono::duration<double>& timeout = std::chrono::seconds(5))
   {
     if (!this->mServiceClient) {
@@ -251,7 +247,7 @@ public:
 
   bool IsRequestTimedOut(void) const
   {
-    if (!this->isRequestInProgress) {
+    if (!this->mRequestInProgress) {
       return false;
     }
     auto elapsed = std::chrono::steady_clock::now() - this->lastRequestTime;
@@ -260,10 +256,9 @@ public:
 
   void CancelCurrentRequest(void)
   {
-    if (this->isRequestInProgress && this->mServiceResponseFuture.valid()) {
+    if (this->mRequestInProgress && this->mServiceResponseFuture.valid()) {
       this->mServiceResponseFuture.cancel();
-      this->isRequestInProgress = false;
-      std::cerr << "ServiceNode::CancelCurrentRequest: Request has been cancelled" << std::endl;
+      this->mRequestInProgress = false;
     }
   }
 
