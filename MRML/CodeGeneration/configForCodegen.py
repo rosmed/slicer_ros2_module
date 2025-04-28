@@ -4,27 +4,27 @@ ros2_to_cpp_type_static_mapping = {
     # Boolean types
     'bool': 'bool',
     'boolean': 'bool',
-    
+
     # Fixed-width integer types
-    'int8': 'int8_t',
-    'uint8': 'uint8_t',
-    'byte': 'uint8_t',    # ROS2 byte is unsigned
-    'octet': 'uint8_t',   # ROS2 octet is unsigned
+    'int8': 'char',
+    'uint8': 'unsigned char',
+    'byte': 'unsigned char',    # ROS2 byte is unsigned
+    'octet': 'unsigned char',   # ROS2 octet is unsigned
     'char': 'char',       # Changed from int to char
-    'int16': 'int16_t',
-    'uint16': 'uint16_t',
-    'int32': 'int32_t',
-    'uint32': 'uint32_t',
-    'int64': 'int64_t',
-    'uint64': 'uint64_t',
-    'int': 'int32_t',     # ROS2 int defaults to 32-bit
-    
+    'int16': 'int',
+    'uint16': 'unsigned int',
+    'int32': 'int',
+    'uint32': 'unsigned int',
+    'int64': 'long int',
+    'uint64': 'unsigned long int',
+    'int': 'int',     # ROS2 int defaults to 32-bit
+
     # Floating point types
     'float32': 'float',   # Changed from double to float for precision match
     'float64': 'double',
     'float': 'float',     # Changed from double to float
     'double': 'double',
-    
+
     # String types
     'string': 'std::string',
     'str': 'std::string',
@@ -40,28 +40,28 @@ static_cpp_type_default_value = {
     # Fixed-width integer types
     'int8': '0',
     'uint8': '0',
-    'byte': '0',    
-    'octet': '0',   
-    'char': '0',   
+    'byte': '0',
+    'octet': '0',
+    'char': '0',
     'int16': '0',
     'uint16': '0',
     'int32': '0',
     'uint32': '0',
     'int64': '0',
     'uint64': '0',
-    'int': '0',    
+    'int': '0',
 
     # Floating point types
-    'float32': '0.0',   
+    'float32': '0.0',
     'float64': '0.0',
-    'float': '0.0',     
+    'float': '0.0',
     'double': '0.0',
 
     # String types
     'string': '""',
     'str': '""',
-    'wstring': '""',  
-    'string<22>': '""', 
+    'wstring': '""',
+    'string<22>': '""',
 
     # Default value
     'default': '0'
