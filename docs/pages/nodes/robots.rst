@@ -2,9 +2,9 @@
 Robots
 ======
 
-To create a new Robot node, one can either use the UI (instructions in
-Section 3.3) or create the robot programmatically with the following
-commands. The convenience function
+To create a new Robot node, one can either use the UI
+(:ref:`instructions <load_robot>`) or create the robot
+programmatically with the following commands. The convenience function
 ``vtkMRMLROS2NodeNode::CreateAndAddRobotNode`` was added to the module
 logic that accepts three arguments (``std::string robotName``,
 ``std::string parameterNodeName``, ``std::string parameterName``).
@@ -38,6 +38,10 @@ the joint state publisher.
 
 To remove the robot, use the "Remove robot" button on the UI or the
 method ``vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode``. This method
-takes one parameter:
+takes up to 5 parameters:
 
 * the robot name (``std::string``)
+* the parameter node name (``std::string``)
+* parameter name (``std::string``, default is "robot_description")
+* fixed frame, aka reference frame used in RViz (``std::string``, default is ""),
+* tf prefix (``std::string``, default is "");

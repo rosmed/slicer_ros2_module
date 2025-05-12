@@ -77,3 +77,11 @@ Publications
   <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9324680/>`_.
   :download:`BibTeX </images/connolly2022.bib>`
 
+
+=============
+Documentation
+=============
+
+Besides this document, you can also check DeepWiki:
+https://deepwiki.com/rosmed/slicer_ros2_module. DeepWiki might be able
+to answer your questions.

@@ -56,7 +56,7 @@ Sensable.  Later on, it has been renamed Geomagic Touch or 3DS Touch.
 The initial version used a FireWire connection.  Later models used
 Ethernet and more recently USB.
 
-.. image:: ../images/sensable-omni.png
+.. image:: /images/sensable-omni.png
   :width: 400
   :align: center
   :alt: Sensable Omni in Slicer
@@ -95,7 +95,7 @@ Patient Side Manipulator) is based on the first generation da Vinci
 RAMIS system (Robotically Assisted Minimally Invasive Surgery) sold by
 ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
 
-.. image:: ../images/dVRK-PSM.png
+.. image:: /images/dVRK-PSM.png
   :width: 400
   :align: center
   :alt: dVRK PSM in Slicer
@@ -154,6 +154,8 @@ instructions for basic operation of the myCobot can be found in the
 Slicer Robot
 ============
 
+.. _load_robot:
+
 Adding and removing robots
 ==========================
 
@@ -163,7 +165,7 @@ and parameter name: ``robot_description`` should work for most
 cases. These are set as the default in the UI. To load a robot with
 these parameters, press the "Load Robot" button:
 
-.. image:: ../images/LoadRobot.png
+.. image:: /images/LoadRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot in Slicer
@@ -186,7 +188,7 @@ button.
 To add more than one robot, you can press the "+" button and the
 widget will update with additional line edits for the second robot.
 
-.. image:: ../images/AddRobot.png
+.. image:: /images/AddRobot.png
   :width: 300
   :align: center
   :alt: Defining a robot with a namespace in Slicer
@@ -211,7 +213,7 @@ non-holonomic robots, this feature may be necessary for
 visualization. The example below shows a rendering of the TurtleBot in
 3D Slicer using this feature.
 
-.. image:: ../images/turtlebot.gif
+.. image:: /images/turtlebot.gif
   :width: 800
   :align: center
   :alt: Defining a robot with a namespace in Slicer
