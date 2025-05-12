@@ -2,7 +2,7 @@
 
 This module is designed to enable direct communication between ROS 2 and 3D Slicer.
 
-The documentation is available on readthedocs: https://slicer-ros2.readthedocs.io.  You can also check [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rosmed/slicer_ros2_module).
+The documentation is available on readthedocs: https://slicer-ros2.readthedocs.io.  If you have any question, you can try to [![ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rosmed/slicer_ros2_module).
 
 Please check out this video below for an overview of some of the features and use-cases.
 
