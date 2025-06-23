@@ -177,6 +177,16 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         return ros2_process
 
     @classmethod
+    def run_ros2_cli_command_after_sourcing(self, command):
+        ros2_process = subprocess.Popen(
+            ROS2TestsLogic.ros2_exec + command,
+            shell=True,
+            executable='/bin/bash',
+            preexec_fn=os.setsid,
+        )
+        return ros2_process
+
+    @classmethod
     def kill_subprocess(self, proc):
         os.killpg(os.getpgid(proc.pid), subprocess.signal.SIGTERM) # SIGTERM is CTRL-C
         time.sleep(1)
@@ -204,6 +214,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 ROS2TestsLogic.ros2_exec + "service list",
                 shell=True,
             ).decode("utf-8").split("\n")
+
+            print(output)
 
             return serverName in output
 
@@ -234,28 +246,14 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNode")
             self.testObs = TestObserverSubscriber()
-            self.testPub = None
-            self.testSub = None
-            test_cases = [
-                {"type": "Empty"},
-                {"type": "String"},
-                {"type": "Pose"},
-                {"type": "Double"},
-                {"type": "IntArray"},
-                {"type": "DoubleArray"},
-                {"type": "WrenchStamped"},
-                {"type": "PoseArray"},
-                {"type": "IntTable"},
-                {"type": "DoubleTable"},
-            ]
-            for case in test_cases:
-                with self.subTest(msg_type=case["type"]):
-                    topic = f'slicer_test_{case["type"].lower()}'
+            ROS2TestsLogic.spin_some()
 
-                    self.testPub = self.ros2Node.CreateAndAddPublisherNode(case["type"], topic)
-                    self.testSub = self.ros2Node.CreateAndAddSubscriberNode(case["type"], topic)
-                    self.observerId = self.testSub.AddObserver("ModifiedEvent", self.testObs.Callback)
-                    ROS2TestsLogic.spin_some()
+        def create_pub_sub(self, type):
+            self.topic = "slicer_test_" + type.lower()
+            self.testPub = self.ros2Node.CreateAndAddPublisherNode(type, self.topic)
+            self.testSub = self.ros2Node.CreateAndAddSubscriberNode(type, self.topic)
+            self.observerId = self.testSub.AddObserver("ModifiedEvent", self.testObs.Callback)
+            ROS2TestsLogic.spin_some()
 
         def generic_assertions(self, initSubMessageCount):
             ROS2TestsLogic.spin_some()
@@ -270,11 +268,14 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def delete_pub_sub(self):
             self.testSub.RemoveObserver(self.observerId)
-            self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode(self.testPub.GetTopic()), "Publisher not deleted")
-            self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(self.testSub.GetTopic()), "Subscriber not deleted")
+            self.assertTrue(self.ros2Node.RemoveAndDeletePublisherNode(self.topic), "Publisher not deleted")
+            self.assertTrue(self.ros2Node.RemoveAndDeleteSubscriberNode(self.topic), "Subscriber not deleted")
             return
 
         def test_create_and_add_pub_sub_empty(self):
+            print("\nTesting creation and working of publisher and subscriber for empty- Starting..")
+            self.create_pub_sub("Empty")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentString = ""
             self.testPub.Publish(sentString)
@@ -285,8 +286,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(sentString == receivedString, "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_string(self):
+            print("\nTesting creation and working of publisher and subscriber for string- Starting..")
+            self.create_pub_sub("String")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentString = "xkcd"
             self.testPub.Publish(sentString)
@@ -297,8 +302,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(sentString == receivedString, "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_matrix(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkMatrix4x4- Starting..")
+            self.create_pub_sub("Pose")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentMatrix = vtk.vtkMatrix4x4()
             sentMatrix.SetElement(2, 3, 3.1415)
@@ -311,8 +320,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                             "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_double(self):
+            print("\nTesting creation and working of publisher and subscriber for double - Starting..")
+            self.create_pub_sub("Double")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentDouble = 3.1415
             self.testPub.Publish(sentDouble)
@@ -324,8 +337,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(sentDouble == receivedDouble, "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_int_array(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkIntArray - Starting..")
+            self.create_pub_sub("IntArray")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentIntArray = [1, 2, 3, 4, 5]
             sentIntVtkArray = vtk.vtkIntArray()
@@ -343,8 +360,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 self.assertTrue(sentIntVtkArray.GetValue(i) == receivedIntArray.GetValue(i), "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_double_array(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkDoubleArray - Starting..")
+            self.create_pub_sub("DoubleArray")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentDoubleArray = [1.1, 2.2, 3.3, 4.4, 5.5]
             sentDoubleVtkArray = vtk.vtkDoubleArray()
@@ -362,8 +383,13 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 self.assertTrue(sentDoubleVtkArray.GetValue(i) == receivedDoubleArray.GetValue(i), "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
+
 
         def test_create_and_add_pub_sub_wrench_stamped(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkWrenchStamped- Starting..")
+            self.create_pub_sub("WrenchStamped")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             sentDoubleArray = [1.1, 2.2, 3.3, 4.4, 5.5, 6.6]
             sentWrenchStamped = self.testPub.GetBlankMessage()
@@ -382,8 +408,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 self.assertTrue(sentWrenchStamped.GetWrench().GetValue(i) == receivedWrenchStamped.GetWrench().GetValue(i), "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_pose_array(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkPoseArray - Starting..")
+            self.create_pub_sub("PoseArray")
+
             initSubMessageCount = self.testSub.GetNumberOfMessages()
             samplePubMessage = self.testPub.GetBlankMessage()
 
@@ -449,8 +479,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                                                msg=f"Mismatch in pose {i}, element ({row}, {col})")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber for vtkPoseArray - Done")
 
         def test_create_and_add_pub_sub_int_n_array(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkTable (int) - Starting..")
+            self.create_pub_sub("IntTable")
             initSubMessageCount = self.testSub.GetNumberOfMessages()
 
             arr1 = vtk.vtkIntArray()
@@ -475,8 +508,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                     self.assertTrue(vtktable.GetValue(j, i) == receivedVtkTable.GetValue(j, i), "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_create_and_add_pub_sub_double_n_array(self):
+            print("\nTesting creation and working of publisher and subscriber for vtkTable (double) - Starting..")
+            self.create_pub_sub("DoubleTable")
             initSubMessageCount = self.testSub.GetNumberOfMessages()
 
             arr1 = vtk.vtkDoubleArray()
@@ -502,8 +538,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                     self.assertTrue(vtktable.GetValue(j, i) == receivedVtkTable.GetValue(j, i), "Message not received correctly")
 
             self.delete_pub_sub()
+            print("Testing creation and working of publisher and subscriber - Done")
 
         def test_pub_sub_deletion(self):
+            print("\nTesting deletion of publisher and subscriber - Starting..")
             testPub = self.ros2Node.CreateAndAddPublisherNode(
                 "vtkMRMLROS2PublisherStringNode", "test_string_xkcd"
             )
@@ -534,20 +572,25 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 # delete subscriber which never existed
                 self.assertFalse(self.ros2Node.RemoveAndDeleteSubscriberNode("random_name"), "Subscriber which never existed removed")
                 ROS2TestsLogic.spin_some()
+                print("Testing deletion of publisher and subscriber - Done")
 
         def tearDown(self):
             self.ros2Node.Destroy()
-
+            ROS2TestsLogic.spin_some()
 
     class TestParameterNode(unittest.TestCase):
         def setUp(self):
+            print("\nCreating ROS2 node for parameter tests..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeParameter")
+            ROS2TestsLogic.spin_some()
+            print("Start turtlesim node to test parameters")
             self.create_turtlesim_node_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
             self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
 
         def test_parameter_monitoring(self):
+            print("\nTesting creation and working of parameter node - Starting..")
             testParam = self.ros2Node.CreateAndAddParameterNode("/turtlesim")
             ROS2TestsLogic.spin_some()
 
@@ -588,23 +631,42 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
             # delete parameter node
             self.assertTrue(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"))
+            print("Testing creation and working of parameter node - Done")
+
+# temporary hack to avoid creating two testing nodes with same name.  ros2Node.Destroy in tearDown doesn't work
+#        def test_parameter_deletion(self):
+            print("\nTesting deletion of parameter node - Starting..")
+            testParam = self.ros2Node.CreateAndAddParameterNode("/turtlesim")
+            ROS2TestsLogic.spin_some()
+
+            # delete parameter node which exists
+            self.assertTrue(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"), "Failed to delete parameter node which exists")
+            ROS2TestsLogic.spin_some()
+            # delete parameter node which used to exist
+            self.assertFalse(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"), "Deleted parameter node which used to exist")
+            ROS2TestsLogic.spin_some()
+            # delete parameter node which never existed
+            self.assertFalse(self.ros2Node.RemoveAndDeleteParameterNode("/random_name"), "Deleted parameter node which never existed")
+            ROS2TestsLogic.spin_some()
+            print("Testing deletion of parameter node - Done")
 
         def tearDown(self):
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
             ROS2TestsLogic.spin_some()
-            node_stopped = ROS2TestsLogic.wait_for(lambda: not ROS2TestsLogic.check_ros2_node_running("/turtlesim"))
-            self.assertTrue(node_stopped, "Turtlesim node did not stop after being killed.")
+            self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node running")
             self.ros2Node.Destroy()
             ROS2TestsLogic.spin_some()
 
 
     class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         def setUp(self):
+            print("\nCreating ROS2 node to test broadcaster nodes..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeBroadcaster")
             ROS2TestsLogic.spin_some()
 
         def test_broadcaster_functioning(self):
+            print("\nTesting tf2 broadcaster - Starting..")
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
             observer = TestObserverTf2Lookup()
@@ -624,6 +686,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
             self.assertTrue(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
+            print("\nTesting tf2 broadcaster - Done")
 
         def tearDown(self):
             self.ros2Node.Destroy()
@@ -631,13 +694,16 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestServiceClient(unittest.TestCase):
         def setUp(self):
+            print("\nCreating ROS2 node to test service clients ..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeServiceClient")
+            print("Start turtlesim node to test services")
             self.service_server_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
             self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
 
         def test_service_client(self):
+            print("\nTesting service client - Starting..")
             spawn1 = self.ros2Node.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSpawnNode', '/spawn')
             # Attach observer to ensure Modified event is emitted when response arrives
             self.obs = TestObserverServiceClient()
@@ -654,30 +720,34 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertEqual(self.obs.counter, 1, "Observer did not receive Modified event exactly once")
             if self.obs.lastResponse:
                 self.assertEqual(self.obs.lastResponse.GetName(), "turtle2")
-
-        def tearDown(self):
+            print("\nTesting service client - Done")
             # Remove observer before cleanup
             try:
                 spawn1.RemoveObserver(self.obsId)
             except Exception:
                 pass
+
+        def tearDown(self):
             ROS2TestsLogic.kill_subprocess(self.service_server_process)
             ROS2TestsLogic.spin_some()
             self.ros2Node.Destroy()
 
 
     def run(self):
-        """
-        Run all the tests in this module.
-        """
-        testSuite = unittest.TestSuite([
-            unittest.makeSuite(ROS2TestsLogic.TestTurtlesimNode),
-            unittest.makeSuite(ROS2TestsLogic.TestCreateAndAddPubSub),
-            unittest.makeSuite(ROS2TestsLogic.TestParameterNode),
-            unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode),
-            unittest.makeSuite(ROS2TestsLogic.TestServiceClient),
-        ])
-        unittest.TextTestRunner().run(testSuite)
+        print('Running all tests...')
+
+        # Switch off VTK warnings
+        vtk.vtkObject.GlobalWarningDisplayOff()
+
+        suite = unittest.TestSuite()
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTurtlesimNode))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestCreateAndAddPubSub))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestParameterNode))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
+
+        runner = unittest.TextTestRunner()
+        runner.run(suite)
 
         # Restore VTK warnings
         vtk.vtkObject.GlobalWarningDisplayOn()
