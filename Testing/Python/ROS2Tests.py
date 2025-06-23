@@ -99,6 +99,19 @@ class TestObserverSubscriber:
         self.lastMessageYAML = caller.GetLastMessageYAML()
         self.counter += 1
 
+class TestObserverServiceClient:
+    def __init__(self):
+        self.counter = 0
+        self.lastResponse = None
+
+    def Callback(self, caller, event):
+        try:
+            self.lastResponse = caller.GetLastResponse()
+        except Exception:
+            # Response may not be ready or failed; ignore for counting purposes
+            self.lastResponse = None
+        self.counter += 1
+
 class TestObserverTf2Lookup:
     def __init__(self):
         self.counter = 0
@@ -692,6 +705,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_service_client(self):
             print("\nTesting service client - Starting..")
             spawn1 = self.ros2Node.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSpawnNode', '/spawn')
+            # Attach observer to ensure Modified event is emitted when response arrives
+            self.obs = TestObserverServiceClient()
+            self.obsId = spawn1.AddObserver("ModifiedEvent", self.obs.Callback)
             req = spawn1.CreateBlankRequest()
             req.SetX(4.0)
             req.SetY(4.0)
@@ -700,7 +716,16 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.spin_some()
             res = spawn1.GetLastResponse()
             self.assertEqual(res.GetName(), "turtle2")
+            # Verify observer received exactly one notification
+            self.assertEqual(self.obs.counter, 1, "Observer did not receive Modified event exactly once")
+            if self.obs.lastResponse:
+                self.assertEqual(self.obs.lastResponse.GetName(), "turtle2")
             print("\nTesting service client - Done")
+            # Remove observer before cleanup
+            try:
+                spawn1.RemoveObserver(self.obsId)
+            except Exception:
+                pass
 
         def tearDown(self):
             ROS2TestsLogic.kill_subprocess(self.service_server_process)
