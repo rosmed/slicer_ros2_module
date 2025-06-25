@@ -188,10 +188,20 @@ public:
       this->mRequestInProgress = false;
       vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
       this->mLastResponseSuccess = true;
+      // Notify observers that a new response has been received
+      if (this->mMRMLNode)
+      {
+        this->mMRMLNode->Modified();
+      }
     }
     catch (const std::exception& e) {
       std::cerr << "ServiceNode::ServiceCallback: Exception: " << e.what() << std::endl;
       this->mLastResponseSuccess = false;
+      // Still notify observers so that they can react to failure states
+      if (this->mMRMLNode)
+      {
+        this->mMRMLNode->Modified();
+      }
     }
     this->mRequestInProgress = false;
   }
