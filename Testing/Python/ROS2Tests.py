@@ -107,10 +107,11 @@ class TestObserverServiceClient:
     def Callback(self, caller, event):
         try:
             self.lastResponse = caller.GetLastResponse()
+            self.counter += 1
         except Exception:
             # Response may not be ready or failed; ignore for counting purposes
             self.lastResponse = None
-        self.counter += 1
+        
 
 class TestObserverTf2Lookup:
     def __init__(self):
