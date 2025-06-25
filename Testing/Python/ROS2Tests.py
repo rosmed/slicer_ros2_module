@@ -716,6 +716,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             # wait get the response
             ROS2TestsLogic.spin_some()
             res = spawn1.GetLastResponse()
+            # The /spawn service allows you to spawn additional turtles.
+            # When you send a spawn request, the service responds with the name of the new turtle.
+            # The names are automatically assigned in the sequence: "turtle2", "turtle3", etc.
             self.assertEqual(res.GetName(), "turtle2")
             # Verify observer received exactly one notification
             self.assertEqual(self.obs.counter, 1, "Observer did not receive Modified event exactly once")
