@@ -17,6 +17,7 @@
   <depend>cisst_msgs</depend>
   <depend>turtlesim</depend>
   <depend>std_srvs</depend>
+  <depend>mri_targeter_msgs</depend> # added
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

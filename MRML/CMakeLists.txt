@@ -9,10 +9,13 @@ set(${KIT}_INCLUDE_DIRECTORIES
   ${cisst_msgs_INCLUDE_DIRS}
   ${turtlesim_INCLUDE_DIRS}
   ${std_srvs_INCLUDE_DIRS}
+  ${mri_targeter_msgs_INCLUDE_DIRS}
   )
 
 # include SlicerROS2 for code generation functions
 include(SlicerROS2.cmake)
+
+find_package(mri_targeter_msgs REQUIRED)
 
 generate_ros2_nodes(
   GENERATED_FILES_PREFIX
@@ -24,6 +27,7 @@ generate_ros2_nodes(
   "sensor_msgs/msg/Joy"
   "sensor_msgs/msg/JointState"
   "geometry_msgs/msg/PoseArray"
+  "mri_targeter_msgs/msg/TargetCommand" # added
   SUBSCRIBERS
   "geometry_msgs/msg/PoseStamped"
   "geometry_msgs/msg/TransformStamped"
@@ -34,7 +38,19 @@ generate_ros2_nodes(
   DEPENDENCIES
   "std_msgs/msg/Header"
   "builtin_interfaces/msg/Time"
+  "mri_targeter_msgs/msg/TargetCommand" # added
+  "geometry_msgs/msg/PoseStamped"
+  "geometry_msgs/msg/Pose"
+  "geometry_msgs/msg/Point"
+  "geometry_msgs/msg/Quaternion"
   )
+
+# This tells CMake that these files will be created during build time
+set_source_files_properties(
+  ${SLICER_ROS2_GENERATED_CXX}
+  ${SLICER_ROS2_GENERATED_H}
+  PROPERTIES GENERATED TRUE
+)
 
 get_directory_property(_current_prop ADDITIONAL_CLEAN_FILES)
 set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${SLICER_ROS2_GENERATED_H};${SLICER_ROS2_GENERATED_CXX};${_current_prop}")
@@ -100,6 +116,7 @@ set(${KIT}_TARGET_LIBRARIES
   ${urdf_LIBRARIES}
   ${turtlesim_LIBRARIES}
   ${std_srvs_LIBRARIES}
+  ${mri_targeter_msgs_LIBRARIES}
   )
 
 SlicerMacroBuildModuleMRML(
