@@ -282,7 +282,7 @@ def generate_slicer_to_ros2_methods_for_class(generated_class_name, ros2_message
     hpp += f"void vtkSlicerToROS2(vtk{generated_class_name}* input, {ros2_message_type} & result, const std::shared_ptr<rclcpp::Node>& rosNode);\n"
     cpp = "\n// generate_slicer_to_ros2_methods_for_class\n"
     cpp += f"void vtkSlicerToROS2(vtk{generated_class_name}* input, {ros2_message_type} & result, const std::shared_ptr<rclcpp::Node>& rosNode) {{\n"
-    cpp += f"{__}(void)rosNode; // Suppress unused parameter warning\n"
+    cpp += f"{__}(void)input; (void)result; (void)rosNode; // Suppress unused parameter warning\n"
 
     for attribute_name, attr_type in attributes.items():
         field_category, _, _, _, is_fixed_size = process_attribute(attr_type)
@@ -296,6 +296,7 @@ def generate_ros2_to_slicer_methods_for_class(generated_class_name, ros2_message
     hpp += f"void vtkROS2ToSlicer(const {ros2_message_type}& input, vtkSmartPointer<vtk{generated_class_name}> result);\n"
     cpp = "\n// generate_ros2_to_slicer_methods_for_class\n"
     cpp += f"void vtkROS2ToSlicer(const {ros2_message_type}& input, vtkSmartPointer<vtk{generated_class_name}> result) {{\n"
+    cpp += f"{__}(void)input; (void)result; // Suppress unused parameter warning\n"
 
     for attribute_name, attr_type in attributes.items():
         field_category, underlying_type, _, _, _ = process_attribute(attr_type)

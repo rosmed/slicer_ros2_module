@@ -127,7 +127,7 @@ protected:
   std::string GetLastMessageYAML(void) const override
   {
     std::stringstream out;
-    rosidl_generator_traits::to_yaml(mLastMessageROS, out);
+    to_block_style_yaml(mLastMessageROS, out);
     return out.str();
   }
 };

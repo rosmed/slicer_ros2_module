@@ -64,6 +64,7 @@
     if (!good) {							\
       vtkWarningMacro(<< "PreRequestCheck: " << errorMessage);		\
     }									\
+    return good;							\
   }									\
  									\
   size_t vtkMRMLROS2ServiceClient##name##Node::SendAsyncRequest(vtkSmartPointer<slicer_type_in> message) \
