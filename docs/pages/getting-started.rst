@@ -26,13 +26,14 @@ Before you can start compiling the SlicerROS2 module, you will need:
   .. warning::
 
      Before you start compiling Slicer, make sure you use the
-     system/native OpenSSL libraries otherwise you'll get some errors
-     when compiling the Slicer ROS 2 module (as opposed to the Slicer
-     super build ones).  You will need to do the following after you
-     ran CMake for the first time.  In the Slicer build directory, set
-     ``Slicer_USE_SYSTEM_OpenSLL`` to ``ON`` using ``cmake
-     . -DSlicer_USE_SYSTEM_OpenSSL=ON -DCMAKE_BUILD_TYPE=Release`` or
-     ``ccmake``.
+     system/native OpenSSL and bzip2 libraries otherwise you'll get some
+     errors when compiling the Slicer ROS 2 module (as opposed to the
+     Slicer super build ones).  You will need to do the following
+     after you ran CMake for the first time.  In the Slicer build
+     directory, set ``Slicer_USE_SYSTEM_OpenSSL`` and
+     ``Slicer_USE_SYSTEM_bzip2`` to ``ON`` using ``cmake
+     . -DSlicer_USE_SYSTEM_OpenSSL=ON -DSlicer_USE_SYSTEM_bzip2=ON -DCMAKE_BUILD_TYPE=Release``
+     or ``ccmake``.
 
   .. note::
 

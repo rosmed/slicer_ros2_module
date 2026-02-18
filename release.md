@@ -1,6 +1,6 @@
 Steps to create a full release.  We should be able to write a script to do this.
 
-* Build Slicer with system SSL libraries and BUILD_TYPE set to Release.  Make sure you checkout the version you plan to release
+* Build Slicer with system SSL and bzip2 libraries and BUILD_TYPE set to Release.  Make sure you checkout the version you plan to release
 * Build SlicerROS2 in ros2 workspace.  Make sure BUILD_TYPE is also Release
 
 Create the initial `.tgz` for Slicer using `make package` in the directory `Slicer-build`.
