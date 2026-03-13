@@ -32,6 +32,8 @@
 #include <QLineEdit>
 #include <QUiLoader>
 #include <QLineEdit>
+#include <QCheckBox> 
+#include <QTimer>
 
 // Slicer includes
 #include "qSlicerROS2ModuleWidget.h"
@@ -45,6 +47,10 @@
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLModelNode.h>
+#include <vtkMRMLModelDisplayNode.h>
+#include <vtkMRMLLinearTransformNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
 
 // Native includes
 #include <iostream>
@@ -174,7 +180,8 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
                                      robotWidgetUi->parameterLineEdit,
                                      robotWidgetUi->fixedFrameLineEdit,
                                      robotWidgetUi->tfPrefixLineEdit,
-                                     loadRobotButton, removeRobotButton);
+                                     loadRobotButton, removeRobotButton,
+                                     robotWidgetUi->ghostcheckBox);
                 });
   this->connect(removeRobotButton, &QPushButton::clicked, this,
                 [=]() {
@@ -364,13 +371,15 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
                                                  QLineEdit * fixedFrameLineEdit,
                                                  QLineEdit * tfPrefixLineEdit,
                                                  QPushButton * loadRobotButton,
-                                                 QPushButton * removeRobotButton)
+                                                 QPushButton * removeRobotButton,
+                                                 QCheckBox * ghostcheckBox)
 {
   vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
+
   robotsAddedToTheWidget.push_back(robotNameLineEdit->text().toStdString());
   logic->AddRobot(robotNameLineEdit->text().toStdString(),
                   parameterNodeNameLineEdit->text().toStdString(),
@@ -384,6 +393,19 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
   fixedFrameLineEdit->setEnabled(false);
   tfPrefixLineEdit->setEnabled(false);
   removeRobotButton->setEnabled(true);
+
+  // If ghost is requested at load time, schedule creation after robot loads
+  if (ghostcheckBox && ghostcheckBox->isChecked()) {
+    std::cout << "============================================" << std::endl;
+    std::cout << "GHOST CHECKBOX IS CHECKED!" << std::endl;
+    std::cout << "Scheduling ghost creation for: " << robotNameLineEdit->text().toStdString() << std::endl;
+    std::cout << "============================================" << std::endl;
+    QTimer::singleShot(750, this, [=]() {
+      onGhostToggled(robotNameLineEdit, true);
+    });
+  } else {
+    std::cout << "Ghost checkbox is NOT checked or is null" << std::endl;
+  }
 }
 
 
@@ -419,4 +441,169 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
       robotsAddedToTheWidget.erase(robotsAddedToTheWidget.begin() + robotName);
     }
   }
+}
+
+
+void qSlicerROS2ModuleWidget::onGhostToggled(QLineEdit* robotNameLineEdit, bool enabled)
+{
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic) {
+    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+    return;
+  }
+
+  auto nodeNode = logic->GetDefaultROS2Node();
+  if (!nodeNode) {
+    qWarning() << Q_FUNC_INFO << " failed: Default ROS2 node missing";
+    return;
+  }
+
+  const std::string robotName = robotNameLineEdit->text().toStdString();
+  vtkMRMLROS2RobotNode* robot = nodeNode->GetRobotNodeByName(robotName);
+  if (!robot) {
+    qWarning() << Q_FUNC_INFO << " failed: Robot not found in scene: " << robotName.c_str();
+    return;
+  }
+
+  vtkMRMLScene* scene = logic->GetMRMLScene();
+  if (!scene) {
+    qWarning() << Q_FUNC_INFO << " failed: MRML scene missing";
+    return;
+  }
+
+  // Helper to remove all existing ghost models and transforms
+  auto removeGhosts = [&]() {
+    // Remove ghost models
+    int ghostCount = robot->GetNumberOfNodeReferences("ghost_model");
+    for (int i = ghostCount - 1; i >= 0; --i) {
+      vtkMRMLModelNode* ghost = vtkMRMLModelNode::SafeDownCast(robot->GetNthNodeReference("ghost_model", i));
+      if (ghost) {
+        scene->RemoveNode(ghost);
+      }
+    }
+    // Remove ghost transforms
+    int transformCount = robot->GetNumberOfNodeReferences("ghost_transform");
+    for (int i = transformCount - 1; i >= 0; --i) {
+      vtkMRMLLinearTransformNode* transform = vtkMRMLLinearTransformNode::SafeDownCast(robot->GetNthNodeReference("ghost_transform", i));
+      if (transform) {
+        scene->RemoveNode(transform);
+      }
+    }
+  };
+
+  if (!enabled) {
+    std::cout << "Removing ghost models and transforms for: " << robotName << std::endl;
+    removeGhosts();
+    return;
+  }
+
+  // Re-create ghosts from current models
+  std::cout << "Creating ghost models for: " << robotName << std::endl;
+  removeGhosts();
+
+  int modelCount = robot->GetNumberOfNodeReferences("model");
+  std::cout << "Found " << modelCount << " model nodes to duplicate" << std::endl;
+  // Keep track of ghost transforms by link index to build hierarchy later
+  std::vector<vtkSmartPointer<vtkMRMLLinearTransformNode>> ghostTransforms;
+  ghostTransforms.reserve(modelCount);
+
+  for (int i = 0; i < modelCount; ++i) {
+    vtkMRMLModelNode* original = vtkMRMLModelNode::SafeDownCast(robot->GetNthNodeReference("model", i));
+    if (!original) { continue; }
+
+    // Create a separate transform node for this ghost link
+    vtkSmartPointer<vtkMRMLLinearTransformNode> ghostTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+    scene->AddNode(ghostTransform);
+    std::string transformName = std::string(original->GetName() ? original->GetName() : "model") + "_ghost_transform";
+    ghostTransform->SetName(transformName.c_str());
+    
+    // Initialize ghost transform to match original transform's current state
+    vtkMRMLLinearTransformNode* origTransform = vtkMRMLLinearTransformNode::SafeDownCast(
+      scene->GetNodeByID(original->GetTransformNodeID()));
+    if (origTransform) {
+      vtkNew<vtkMatrix4x4> matrix;
+      origTransform->GetMatrixTransformToParent(matrix);
+      ghostTransform->SetMatrixTransformToParent(matrix);
+    }
+    // Save transform for hierarchy wiring
+    ghostTransforms.push_back(ghostTransform);
+
+    // Create the ghost model
+    vtkSmartPointer<vtkMRMLModelNode> ghost = vtkSmartPointer<vtkMRMLModelNode>::New();
+    scene->AddNode(ghost);
+
+    // Name: add _ghost suffix
+    std::string ghostName = std::string(original->GetName() ? original->GetName() : "model") + "_ghost";
+    ghost->SetName(ghostName.c_str());
+    std::cout << "  Creating ghost: " << ghostName << " with transform: " << transformName << std::endl;
+
+    // Share mesh data (identical geometry)
+    if (original->GetMesh()) {
+      ghost->SetAndObserveMesh(original->GetMesh());
+    }
+
+    // Display node copy with distinct visual appearance
+    vtkMRMLModelDisplayNode* origDisp = vtkMRMLModelDisplayNode::SafeDownCast(original->GetDisplayNode());
+    vtkNew<vtkMRMLModelDisplayNode> ghostDisp;
+    scene->AddNode(ghostDisp.GetPointer());
+    if (origDisp) {
+      ghostDisp->Copy(origDisp);
+    }
+    // Set ghost to cyan color with high opacity for clear visibility
+    ghostDisp->SetColor(0.0, 1.0, 1.0);  // Cyan
+    ghostDisp->SetOpacity(0.30);  // High opacity for visibility
+    ghost->SetAndObserveDisplayNodeID(ghostDisp->GetID());
+
+    // Attach ghost to its own independent transform
+    ghost->SetAndObserveTransformNodeID(ghostTransform->GetID());
+
+    // Track as ghost on the robot for cleanup
+    robot->AddNodeReferenceID("ghost_model", ghost->GetID());
+    robot->AddNodeReferenceID("ghost_transform", ghostTransform->GetID());
+  }
+  
+  // Replicate original transform hierarchy onto ghost transforms
+  int lookupCount = robot->GetNumberOfNodeReferences("lookup");
+  for (int i = 0; i < lookupCount; ++i) {
+    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", i));
+    if (!lookup) { continue; }
+    std::string parentFrame = lookup->GetParentID();
+    // Find the ghost transform whose original child matches this parent
+    for (int j = 0; j < lookupCount; ++j) {
+      vtkMRMLROS2Tf2LookupNode* potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", j));
+      if (!potentialParent) { continue; }
+      std::string childFrame = potentialParent->GetChildID();
+      if (childFrame == parentFrame) {
+        if (i < static_cast<int>(ghostTransforms.size()) && j < static_cast<int>(ghostTransforms.size())) {
+          ghostTransforms[i]->SetAndObserveTransformNodeID(ghostTransforms[j]->GetID());
+        }
+        break;
+      }
+    }
+  }
+
+  // Sync ghost transforms to current TF2 lookup poses to avoid stacking at origin
+  for (int i = 0; i < lookupCount && i < static_cast<int>(ghostTransforms.size()); ++i) {
+    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", i));
+    if (!lookup) { continue; }
+    vtkNew<vtkMatrix4x4> m;
+    lookup->GetMatrixTransformToParent(m);
+    ghostTransforms[i]->SetMatrixTransformToParent(m);
+    ghostTransforms[i]->Modified();
+  }
+
+  // Schedule a short delayed re-sync to let TF2 warm up
+  QTimer::singleShot(400, this, [=]() {
+    int lc = robot->GetNumberOfNodeReferences("lookup");
+    for (int i = 0; i < lc && i < static_cast<int>(ghostTransforms.size()); ++i) {
+      vtkMRMLROS2Tf2LookupNode* lu = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", i));
+      if (!lu) { continue; }
+      vtkNew<vtkMatrix4x4> mm;
+      lu->GetMatrixTransformToParent(mm);
+      ghostTransforms[i]->SetMatrixTransformToParent(mm);
+      ghostTransforms[i]->Modified();
+    }
+  });
+  
+  std::cout << "Ghost creation complete!" << std::endl;
 }

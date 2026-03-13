@@ -39,14 +39,14 @@ generate_ros2_nodes(
   "rosbag2_interfaces/srv/GetRate"
   "rosbag2_interfaces/srv/IsPaused"
   "rosbag2_interfaces/srv/Pause"
-  "rosbag2_interfaces/srv/Play"
+  # "rosbag2_interfaces/srv/Play"
   "rosbag2_interfaces/srv/PlayNext"
   "rosbag2_interfaces/srv/Resume"
   "rosbag2_interfaces/srv/Seek"
   "rosbag2_interfaces/srv/SetRate"
   "rosbag2_interfaces/srv/Snapshot"
-  "rosbag2_interfaces/srv/SplitBagfile"
-  "rosbag2_interfaces/srv/Stop"
+  # "rosbag2_interfaces/srv/SplitBagfile"
+  # "rosbag2_interfaces/srv/Stop"
   "rosbag2_interfaces/srv/TogglePaused"
 
   "moveit_msgs/srv/GetPositionFK"
@@ -144,6 +144,10 @@ set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
   ${SlicerROS2_ROS_LIBRARIES}
+  /opt/ros/humble/lib/libmoveit_move_group_interface.so.2.5.9
+  /opt/ros/humble/lib/libmoveit_robot_model_loader.so.2.5.9
+  ${kdl_parser_LIBRARIES}
+  kdl_parser::kdl_parser
   )
 
 SlicerMacroBuildModuleMRML(

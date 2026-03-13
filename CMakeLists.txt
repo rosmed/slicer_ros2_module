@@ -5,10 +5,16 @@ macro (undefine_python)
   unset(Python3_EXECUTABLE)
 endmacro ()
 
+# Set CMake policy to handle empty list elements (fixes Python FindPython error)
+if(POLICY CMP0007)
+  cmake_policy(SET CMP0007 NEW)
+endif()
+
 # Before Slicer does anything, let's find the default Python
 find_package (Python3 COMPONENTS Interpreter)
 if (Python3_Interpreter_FOUND)
-  if (DEFINED CACHE{ROS_Python3_EXECUTABLE}})
+  if (DEFINED ROS_Python3_EXECUTABLE)
+    # Use existing cached ROS_Python3_EXECUTABLE
   else ()
     set (ROS_Python3_EXECUTABLE ${Python3_EXECUTABLE} CACHE INTERNAL "Python interpreter for ROS 2")
   endif ()
@@ -51,6 +57,11 @@ set (
   trajectory_msgs
   moveit_msgs
   rosbag2_interfaces
+  moveit_ros_planning
+  moveit_core
+  moveit_ros_planning_interface
+  # KDL solver
+  orocos_kdl
 )
 
 set (SlicerROS2_ROS_LIBRARIES "")
@@ -60,6 +71,11 @@ foreach (dep ${SlicerROS2_ROS_DEPENDENCIES})
   include_directories (${${dep}_INCLUDE_DIRS})
   set (SlicerROS2_ROS_LIBRARIES ${SlicerROS2_ROS_LIBRARIES} ${${dep}_LIBRARIES})
 endforeach ()
+
+# Explicitly add kdl_parser libraries
+if (kdl_parser_FOUND)
+  set (SlicerROS2_ROS_LIBRARIES ${SlicerROS2_ROS_LIBRARIES} ${kdl_parser_LIBRARIES})
+endif ()
 
 # preserve ament install prefix to create a dummy setup.bash
 if (NOT DEFINED SlicerROS2_AMENT_INSTALL_PREFIX)
@@ -82,6 +98,12 @@ string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 # (note that most Ubuntu and ROS 2 python packages will not be usable in
 # Slicer)
 undefine_python ()
+
+# Unset CURL variables set by ROS2 packages that conflict with Slicer's bundled CURL
+unset(CURL_INCLUDE_DIR CACHE)
+unset(CURL_LIBRARY CACHE)
+unset(CURL_INCLUDE_DIR)
+unset(CURL_LIBRARY)
 
 find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
@@ -144,7 +166,7 @@ slicerMacroBuildLoadableModule(
   SRCS ${MODULE_SRCS}
   MOC_SRCS ${MODULE_MOC_SRCS}
   UI_SRCS ${MODULE_UI_SRCS}
-  TARGET_LIBRARIES ${MODULE_TARGET_LIBRARIES}  ${kdl_parser_LIBRARIES} ${urdf_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_LIBRARIES} ${rqt_gui_cpp_LIBRARIES}
+  TARGET_LIBRARIES ${MODULE_TARGET_LIBRARIES}  ${kdl_parser_LIBRARIES} ${orocos_kdl_LIBRARIES} ${urdf_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_LIBRARIES} ${rqt_gui_cpp_LIBRARIES}
   RESOURCES ${MODULE_RESOURCES}
   WITH_GENERIC_TESTS
   )
