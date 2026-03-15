@@ -85,18 +85,20 @@ now, we will assume the ROS workspace directory is ``~/ros2_ws`` and
 the source code for this module has been cloned under
 ``~/ros2_ws/src/slicer_ros2_module``.
 
-Other ROS packages that might not be installed by default.  Replace
-``<distro>`` by the ROS distribution's name (e.g. ``humble``,
-``jazzy``...).
+Other ROS packages that might not be installed by default. You can install all remaining core components and libraries by doing:
 
-* ``ros-<distro>-moveit-msgs``
+.. code-block:: bash
 
-You will first need to "source" the ROS setup script for ROS 2 (Galactic
+   sudo apt install ros-$ROS_DISTRO-rclcpp ros-$ROS_DISTRO-tf2 ros-$ROS_DISTRO-tf2-ros ros-$ROS_DISTRO-kdl-parser ros-$ROS_DISTRO-urdf ros-$ROS_DISTRO-std-msgs ros-$ROS_DISTRO-std-srvs ros-$ROS_DISTRO-geometry-msgs ros-$ROS_DISTRO-sensor-msgs ros-$ROS_DISTRO-trajectory-msgs ros-$ROS_DISTRO-object-recognition-msgs ros-$ROS_DISTRO-rosbag2-interfaces ros-$ROS_DISTRO-turtlesim ros-$ROS_DISTRO-moveit-msgs ros-$ROS_DISTRO-moveit-core ros-$ROS_DISTRO-moveit-ros-planning ros-$ROS_DISTRO-moveit-ros-planning-interface liborocos-kdl-dev
+
+*(Note: Replace ``$ROS_DISTRO`` with your ROS distribution's name, e.g., ``humble``, ``jazzy``, if it is not exported in your environment).*
+
+You will first need to "source" the ROS setup script for ROS 2 (Jazzy
 in this example):
 
 .. code-block:: bash
 
-    source /opt/ros/galactic/setup.bash
+    source /opt/ros/jazzy/setup.bash
     mkdir -p ~/ros2_ws/src
     cd ~/ros2_ws/src
     git clone https://github.com/rosmed/slicer_ros2_module

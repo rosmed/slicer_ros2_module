@@ -37,7 +37,7 @@ observer on the MRML ROS parameter node.
 
 ROS supports a limited number of types to encode parameters (`ROS2
 parameters
-<https://docs.ros.org/en/galactic/Concepts/About-ROS-2-Parameters.html>`_).
+<https://docs.ros.org/en/jazzy/Concepts/About-ROS-2-Parameters.html>`_).
 Most types are supported in SlicerROS2 and we provide methods to
 determine the type at runtime.  The recommended steps are:
 
