@@ -111,13 +111,13 @@
      </property>
     </spacer>
    </item>
-   <item row="5" column="0" colspan="2">
-    <widget class="QCheckBox" name="ghostcheckBox">
-     <property name="text">
-      <string>Use Ghost Robot</string>
-     </property>
-    </widget>
-   </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QCheckBox" name="previewCheckBox">
+      <property name="text">
+        <string>Use Preview Robot</string>
+      </property>
+     </widget>
+    </item>
   </layout>
  </widget>
  <resources/>
