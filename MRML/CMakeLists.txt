@@ -144,8 +144,8 @@ set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
   ${SlicerROS2_ROS_LIBRARIES}
-  /opt/ros/humble/lib/libmoveit_move_group_interface.so.2.5.9
-  /opt/ros/humble/lib/libmoveit_robot_model_loader.so.2.5.9
+  moveit_ros_planning_interface::moveit_move_group_interface
+  moveit_ros_planning::moveit_robot_model_loader
   ${kdl_parser_LIBRARIES}
   kdl_parser::kdl_parser
   )
