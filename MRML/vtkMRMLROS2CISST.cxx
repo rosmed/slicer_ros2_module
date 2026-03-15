@@ -2,7 +2,7 @@
 
 #include <vtkSlicerToROS2.h>
 
-const double M_TO_MM = 0.001;
+#include <vtkMRMLROS2Utils.h>
 
 #include <cisst_msgs/msg/cartesian_impedance_gains.hpp>
 
@@ -40,9 +40,9 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, cisst_msgs::msg::CartesianImpedanceGa
   result.ori_damping_neg.z = 0.0;
   result.ori_damping_pos.z = 0.0;
 
-  result.force_position.x = input->GetElement(0, 3) * M_TO_MM;
-  result.force_position.y = input->GetElement(1, 3) * M_TO_MM;
-  result.force_position.z = input->GetElement(2, 3) * M_TO_MM;
+  result.force_position.x = vtkMRMLROS2::ToSI(input->GetElement(0, 3));
+  result.force_position.y = vtkMRMLROS2::ToSI(input->GetElement(1, 3));
+  result.force_position.z = vtkMRMLROS2::ToSI(input->GetElement(2, 3));
 
   double q[4] = {0.0, 0.0, 0.0, 0.0};
   vtkMatrix4x4ToQuaternion(input, q);

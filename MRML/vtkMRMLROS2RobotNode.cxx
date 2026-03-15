@@ -54,8 +54,6 @@ namespace {
 
 } // namespace
 
-auto const MM_TO_M_CONVERSION = 1000.00;
-
 vtkStandardNewMacro(vtkMRMLROS2RobotNode);
 
 vtkMRMLNode * vtkMRMLROS2RobotNode::CreateNodeInstance(void)
@@ -309,7 +307,7 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     // put this and rpy in the ROS2ToSlicer
     auto origin = mInternals->mLinkOrigins[i];
     vtkSmartPointer<vtkTransform> transform = vtkTransform::New();
-    transform->Translate(origin.position.x * MM_TO_M_CONVERSION, origin.position.y * MM_TO_M_CONVERSION, origin.position.z * MM_TO_M_CONVERSION);
+    transform->Translate(vtkMRMLROS2::FromSI(origin.position.x), vtkMRMLROS2::FromSI(origin.position.y), vtkMRMLROS2::FromSI(origin.position.z));
     transformNode->SetAndObserveTransformToParent(transform);
 
     // Rotate
@@ -326,9 +324,9 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     vtkNew<vtkMatrix4x4> offsetMatrix;
     transformNode->GetMatrixTransformToParent(offsetMatrix);
     vtkNew<vtkMatrix4x4> MmToM_Transform;
-    MmToM_Transform->SetElement(0, 0, MM_TO_M_CONVERSION);
-    MmToM_Transform->SetElement(1, 1, MM_TO_M_CONVERSION);
-    MmToM_Transform->SetElement(2, 2, MM_TO_M_CONVERSION);
+    MmToM_Transform->SetElement(0, 0, vtkMRMLROS2::FromSI(1.0));
+    MmToM_Transform->SetElement(1, 1, vtkMRMLROS2::FromSI(1.0));
+    MmToM_Transform->SetElement(2, 2, vtkMRMLROS2::FromSI(1.0));
     MmToM_Transform->Multiply4x4(offsetMatrix, MmToM_Transform, offsetMatrix);
 
     transformNode->SetAndObserveTransformToParent(transform);
@@ -545,17 +543,21 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
       robot_state.setToDefaultValues();
     }
 
+    vtkNew<vtkMatrix4x4> targetPoseSI;
+    targetPoseSI->DeepCopy(targetPose);
+    vtkMRMLROS2::ToSI(targetPoseSI);
+
     // Convert vtkMatrix4x4 to geometry_msgs Pose
     geometry_msgs::msg::Pose pose_msg;
-    pose_msg.position.x = targetPose->GetElement(0, 3) / 1000.0;  // mm to m
-    pose_msg.position.y = targetPose->GetElement(1, 3) / 1000.0;
-    pose_msg.position.z = targetPose->GetElement(2, 3) / 1000.0;
+    pose_msg.position.x = targetPoseSI->GetElement(0, 3);  // mm to m
+    pose_msg.position.y = targetPoseSI->GetElement(1, 3);
+    pose_msg.position.z = targetPoseSI->GetElement(2, 3);
 
     // Extract rotation matrix and convert to quaternion
     Eigen::Matrix3d rot_matrix;
     for (int i = 0; i < 3; ++i) {
       for (int j = 0; j < 3; ++j) {
-        rot_matrix(i, j) = targetPose->GetElement(i, j);
+        rot_matrix(i, j) = targetPoseSI->GetElement(i, j);
       }
     }
     
@@ -704,17 +706,21 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
 
   try {
     // Convert vtkMatrix4x4 to KDL Frame
+    vtkNew<vtkMatrix4x4> targetPoseSI;
+    targetPoseSI->DeepCopy(targetPose);
+    vtkMRMLROS2::ToSI(targetPoseSI);
+
     KDL::Frame targetFrame;
     
     // Set position (convert mm to m)
-    targetFrame.p.x(targetPose->GetElement(0, 3) / 1000.0);
-    targetFrame.p.y(targetPose->GetElement(1, 3) / 1000.0);
-    targetFrame.p.z(targetPose->GetElement(2, 3) / 1000.0);
+    targetFrame.p.x(targetPoseSI->GetElement(0, 3));
+    targetFrame.p.y(targetPoseSI->GetElement(1, 3));
+    targetFrame.p.z(targetPoseSI->GetElement(2, 3));
     
     // Set rotation
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        targetFrame.M(i, j) = targetPose->GetElement(i, j);
+        targetFrame.M(i, j) = targetPoseSI->GetElement(i, j);
       }
     }
 
@@ -849,9 +855,11 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeLocalTransform(const std::vector<doub
     for (int c = 0; c < 3; c++) {
       outTransform->SetElement(r, c, localFrame.M(r, c));
     }
-    // Scale Meters -> Millimeters
-    outTransform->SetElement(r, 3, localFrame.p(r) * 1000.0);
+    // Set translation (meters)
+    outTransform->SetElement(r, 3, localFrame.p(r));
   }
+  // Scale Meters -> Millimeters
+  vtkMRMLROS2::FromSI(outTransform);
 
   return outTransform;
 }
@@ -904,7 +912,7 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeKDLFK(const std::vector<double>& join
     return nullptr;
   }
 
-  const double METERS_TO_MM = 1000.0;
+  
 
   outTransform->Identity();
 
@@ -916,9 +924,10 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeKDLFK(const std::vector<double>& join
   }
 
   // Copy Translation (Applying scale)
-  outTransform->SetElement(0, 3, frame.p.x() * METERS_TO_MM);
-  outTransform->SetElement(1, 3, frame.p.y() * METERS_TO_MM);
-  outTransform->SetElement(2, 3, frame.p.z() * METERS_TO_MM);
+  outTransform->SetElement(0, 3, frame.p.x());
+  outTransform->SetElement(1, 3, frame.p.y());
+  outTransform->SetElement(2, 3, frame.p.z());
+  vtkMRMLROS2::FromSI(outTransform);
 
   return outTransform;
 }

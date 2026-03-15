@@ -3,8 +3,7 @@
 #include <vtkVariant.h>
 #include <vtkStringArray.h>
 #include <vtkIntArray.h>
-
-auto const MM_TO_M_CONVERSION = 1000.00;
+#include <vtkMRMLROS2Utils.h>
 
 void vtkROS2ToSlicer(const std_msgs::msg::Empty &, std::string &)
 {
@@ -106,10 +105,6 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 
 void vtkROS2ToSlicer(const geometry_msgs::msg::Pose & input, vtkSmartPointer<vtkMatrix4x4> result)
 {
-  // Get individual elements from the ros message
-  auto x = input.position.x * MM_TO_M_CONVERSION;
-  auto y = input.position.y * MM_TO_M_CONVERSION;
-  auto z = input.position.z * MM_TO_M_CONVERSION;
   auto q_w = input.orientation.w;
   auto q_x = input.orientation.x;
   auto q_y = input.orientation.y;
@@ -129,19 +124,16 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Pose & input, vtkSmartPointer<vtk
   }
 
   // Apply translation vector
-  result->SetElement(0, 3, x);
-  result->SetElement(1, 3, y);
-  result->SetElement(2, 3, z);
+  result->SetElement(0, 3, input.position.x);
+  result->SetElement(1, 3, input.position.y);
+  result->SetElement(2, 3, input.position.z);
+  vtkMRMLROS2::FromSI(result.GetPointer());
 }
 
 
 void vtkROS2ToSlicer(const geometry_msgs::msg::Transform & input, vtkSmartPointer<vtkMatrix4x4> result)
 {
   // Basically the same as the function above except the getting method is different
-  // Get individual elements from the ros message
-  auto x = input.translation.x * MM_TO_M_CONVERSION;
-  auto y = input.translation.y * MM_TO_M_CONVERSION;
-  auto z = input.translation.z * MM_TO_M_CONVERSION;
   auto q_w = input.rotation.w;
   auto q_x = input.rotation.x;
   auto q_y = input.rotation.y;
@@ -161,9 +153,10 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Transform & input, vtkSmartPointe
   }
 
   // Apply translation vector
-  result->SetElement(0, 3, x);
-  result->SetElement(1, 3, y);
-  result->SetElement(2, 3, z);
+  result->SetElement(0, 3, input.translation.x);
+  result->SetElement(1, 3, input.translation.y);
+  result->SetElement(2, 3, input.translation.z);
+  vtkMRMLROS2::FromSI(result.GetPointer());
 }
 
 

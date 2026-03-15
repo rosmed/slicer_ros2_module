@@ -1,7 +1,7 @@
 #include <vtkSlicerToROS2.h>
 #include <vtkMath.h>
 
-const double M_TO_MM = 0.001;
+#include <vtkMRMLROS2Utils.h>
 
 void vtkSlicerToROS2(const std::string &, std_msgs::msg::Empty &,
 		     const std::shared_ptr<rclcpp::Node> &)
@@ -121,9 +121,9 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::Pose & result,
 {
   double q[4] = {0.0, 0.0, 0.0, 0.0};
   vtkMatrix4x4ToQuaternion(input, q);
-  result.position.x = input->GetElement(0, 3) * M_TO_MM;
-  result.position.y = input->GetElement(1, 3) * M_TO_MM;
-  result.position.z = input->GetElement(2, 3) * M_TO_MM;
+  result.position.x = vtkMRMLROS2::ToSI(input->GetElement(0, 3));
+  result.position.y = vtkMRMLROS2::ToSI(input->GetElement(1, 3));
+  result.position.z = vtkMRMLROS2::ToSI(input->GetElement(2, 3));
   result.orientation.w = q[0];
   result.orientation.x = q[1];
   result.orientation.y = q[2];
@@ -136,9 +136,9 @@ void vtkSlicerToROS2(vtkMatrix4x4 * input, geometry_msgs::msg::Transform & resul
 {
   double q[4] = {0.0, 0.0, 0.0, 0.0};
   vtkMatrix4x4ToQuaternion(input, q);
-  result.translation.x = input->GetElement(0, 3) * M_TO_MM;
-  result.translation.y = input->GetElement(1, 3) * M_TO_MM;
-  result.translation.z = input->GetElement(2, 3) * M_TO_MM;
+  result.translation.x = vtkMRMLROS2::ToSI(input->GetElement(0, 3));
+  result.translation.y = vtkMRMLROS2::ToSI(input->GetElement(1, 3));
+  result.translation.z = vtkMRMLROS2::ToSI(input->GetElement(2, 3));
   result.rotation.w = q[0];
   result.rotation.x = q[1];
   result.rotation.y = q[2];
@@ -204,9 +204,9 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
 
       double q[4] = {0.0, 0.0, 0.0, 0.0};
       vtkMatrix4x4ToQuaternion(matrix, q);
-      pose.position.x = matrix->GetElement(0, 3) * M_TO_MM;
-      pose.position.y = matrix->GetElement(1, 3) * M_TO_MM;
-      pose.position.z = matrix->GetElement(2, 3) * M_TO_MM;
+      pose.position.x = vtkMRMLROS2::ToSI(matrix->GetElement(0, 3));
+      pose.position.y = vtkMRMLROS2::ToSI(matrix->GetElement(1, 3));
+      pose.position.z = vtkMRMLROS2::ToSI(matrix->GetElement(2, 3));
       pose.orientation.w = q[0];
       pose.orientation.x = q[1];
       pose.orientation.y = q[2];
