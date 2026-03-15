@@ -1,3 +1,6 @@
+#include "vtkMoveitMsgsRobotTrajectory.h"
+#include "vtkROS2ToSlicer.h"
+#include "vtkSlicerToROS2.h"
 #include <vtkMRMLROS2RobotNode.h>
 
 #include <vtkEventBroker.h>
@@ -486,31 +489,31 @@ bool vtkMRMLROS2RobotNode::setupIKmoveit(const std::string & groupName)
     ensureParam(prefix + ".kinematics_solver_timeout", 0.05);
 
     // Load and cache RobotModel
-    RobotModelLoaderPtr = std::make_unique<robot_model_loader::RobotModelLoader>(node, "robot_description");
-    RobotModelPtr = RobotModelLoaderPtr->getModel();
+    mInternals->RobotModelLoaderPtr = std::make_unique<robot_model_loader::RobotModelLoader>(node, "robot_description");
+    mInternals->RobotModelPtr = mInternals->RobotModelLoaderPtr->getModel();
 
-    if (!RobotModelPtr) {
+    if (!mInternals->RobotModelPtr) {
       vtkErrorMacro(<< "setupIK: Failed to load RobotModel");
       return false;
     }
 
     // Cache JointModelGroup
-    JointModelGroupPtr = RobotModelPtr->getJointModelGroup(groupName);
+    mInternals->JointModelGroupPtr = mInternals->RobotModelPtr->getJointModelGroup(groupName);
 
-    if (!JointModelGroupPtr) {
+    if (!mInternals->JointModelGroupPtr) {
       vtkErrorMacro(<< "setupIK: joint model group '" << groupName << "' not found");
       return false;
     }
 
     // Verify solver is available
-    const auto& solver = JointModelGroupPtr->getSolverInstance();
+    const auto& solver = mInternals->JointModelGroupPtr->getSolverInstance();
 
     if (!solver) {
       vtkErrorMacro(<< "setupIK: no kinematics solver for group '" << groupName << "'");
       return false;
     }
 
-    IKGroupName = groupName;
+    mInternals->IKGroupName = groupName;
     return true;
   }
   catch (const std::exception& e) {
@@ -527,17 +530,17 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
   }
 
   // Setup IK if needed (only once, since we auto-discover the group)
-  if (!RobotModelPtr || !JointModelGroupPtr) {
+  if (!mInternals->RobotModelPtr || !mInternals->JointModelGroupPtr) {
       vtkErrorMacro(<< "FindIK: setupIKmoveit failed");
       return "";
   }
 
   try {
     // Create robot state for solving
-    moveit::core::RobotState robot_state(RobotModelPtr);
+    moveit::core::RobotState robot_state(mInternals->RobotModelPtr);
 
     if (!seedJointValues.empty()) {
-      robot_state.setJointGroupPositions(JointModelGroupPtr, seedJointValues);
+      robot_state.setJointGroupPositions(mInternals->JointModelGroupPtr, seedJointValues);
     } else {
       robot_state.setToDefaultValues();
     }
@@ -563,14 +566,14 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
     pose_msg.orientation.w = quat.w();
 
     // Call IK using setFromIK
-    bool found_ik = robot_state.setFromIK(JointModelGroupPtr, pose_msg, tipLink, timeout);
+    bool found_ik = robot_state.setFromIK(mInternals->JointModelGroupPtr, pose_msg, tipLink, timeout);
     if (!found_ik) {
-      vtkWarningMacro(<< "FindIK: IK solution not found for group '" << IKGroupName << "'");
+      vtkWarningMacro(<< "FindIK: IK solution not found for group '" << mInternals->IKGroupName << "'");
     }
 
     // Extract joint values (or create NaN values if no solution found)
     std::vector<double> solution;
-    robot_state.copyJointGroupPositions(JointModelGroupPtr, solution);
+    robot_state.copyJointGroupPositions(mInternals->JointModelGroupPtr, solution);
 
     // Convert to comma-separated string
     std::ostringstream oss;
@@ -605,8 +608,8 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
     }
 
     // Extract chain from tree
-    KDLChain = std::make_unique<KDL::Chain>();
-    if (!kdlTree.getChain(defaultRoot, defaultTip, *KDLChain)) {
+    mInternals->KDLChain = std::make_unique<KDL::Chain>();
+    if (!kdlTree.getChain(defaultRoot, defaultTip, *mInternals->KDLChain)) {
       vtkErrorMacro(<< "setupKDLIKWithLimits: Failed to extract chain from " << defaultRoot << " to " << defaultTip);
       return false;
     }else{
@@ -614,16 +617,16 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
     }
 
     // Get number of joints in KDL chain
-    unsigned int nj = KDLChain->getNrOfJoints();
+    unsigned int nj = mInternals->KDLChain->getNrOfJoints();
 
     // Initialize joint limits arrays
-    KDLJointMin = KDL::JntArray(nj);
-    KDLJointMax = KDL::JntArray(nj);
+    mInternals->KDLJointMin = KDL::JntArray(nj);
+    mInternals->KDLJointMax = KDL::JntArray(nj);
 
     // Extract joint limits from mURDFModel
     unsigned int joint_idx = 0;
-    for (unsigned int i = 0; i < KDLChain->getNrOfSegments(); i++) {
-      const KDL::Segment& segment = KDLChain->getSegment(i);
+    for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
+      const KDL::Segment& segment = mInternals->KDLChain->getSegment(i);
       const KDL::Joint& joint = segment.getJoint();
       
       if (joint.getType() != KDL::Joint::None) {
@@ -634,43 +637,43 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
           
           // Check if joint is continuous
           if (urdf_joint && urdf_joint->type == urdf::Joint::CONTINUOUS) {
-              KDLJointMin(joint_idx) = -2 * M_PI; 
-              KDLJointMax(joint_idx) = 2 * M_PI;
+              mInternals->KDLJointMin(joint_idx) = -2 * M_PI; 
+              mInternals->KDLJointMax(joint_idx) = 2 * M_PI;
               vtkInfoMacro(<< "  Joint " << joint_name << " is CONTINUOUS. Setting wide limits [-2pi, 2pi].");
           } 
           else if (urdf_joint && urdf_joint->limits) {
             // Otherwise, get limits if available
-            KDLJointMin(joint_idx) = urdf_joint->limits->lower;
-            KDLJointMax(joint_idx) = urdf_joint->limits->upper;
+            mInternals->KDLJointMin(joint_idx) = urdf_joint->limits->lower;
+            mInternals->KDLJointMax(joint_idx) = urdf_joint->limits->upper;
           } 
           else {
             // Default limits if not specified
-            KDLJointMin(joint_idx) = -M_PI;
-            KDLJointMax(joint_idx) = M_PI;
+            mInternals->KDLJointMin(joint_idx) = -M_PI;
+            mInternals->KDLJointMax(joint_idx) = M_PI;
           }
           joint_idx++;
         }
       }
 
     // Create solvers (NR_JL with joint limits)
-    KDLFkSolver = std::make_unique<KDL::ChainFkSolverPos_recursive>(*KDLChain);
-    KDLIkSolverVel = std::make_unique<KDL::ChainIkSolverVel_pinv>(*KDLChain);
-    KDLIkSolverJL = std::make_unique<KDL::ChainIkSolverPos_NR_JL>(
-        *KDLChain, KDLJointMin, KDLJointMax, *KDLFkSolver, *KDLIkSolverVel, 100, 1e-6);
+    mInternals->KDLFkSolver = std::make_unique<KDL::ChainFkSolverPos_recursive>(*mInternals->KDLChain);
+    mInternals->KDLIkSolverVel = std::make_unique<KDL::ChainIkSolverVel_pinv>(*mInternals->KDLChain);
+    mInternals->KDLIkSolverJL = std::make_unique<KDL::ChainIkSolverPos_NR_JL>(
+        *mInternals->KDLChain, mInternals->KDLJointMin, mInternals->KDLJointMax, *mInternals->KDLFkSolver, *mInternals->KDLIkSolverVel, 100, 1e-6);
 
-    KDLRootLink = defaultRoot;
-    KDLTipLink = defaultTip;
-    KDLUseJointLimits = true;
+    mInternals->KDLRootLink = defaultRoot;
+    mInternals->KDLTipLink = defaultTip;
+    mInternals->KDLUseJointLimits = true;
 
     // Print joint limits for verification
     vtkInfoMacro(<< "Joint limits for KDL IK solver:");
     for (unsigned int j = 0; j < nj; j++) {
-      vtkInfoMacro(<< "  Joint " << j << ": [" << KDLJointMin(j) << ", " << KDLJointMax(j) << "]");
+      vtkInfoMacro(<< "  Joint " << j << ": [" << mInternals->KDLJointMin(j) << ", " << mInternals->KDLJointMax(j) << "]");
     }
 
     vtkInfoMacro(<< "setupKDLIKWithLimits: Successfully initialized KDL IK solver (NR_JL) for chain " 
                  << defaultRoot << " -> " << defaultTip 
-                 << " with " << KDLChain->getNrOfJoints() << " joints and joint limits");
+                 << " with " << mInternals->KDLChain->getNrOfJoints() << " joints and joint limits");
  
     return true;
   }
@@ -689,12 +692,12 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
     return "";
   }
 
-  if (!KDLUseJointLimits && !KDLIkSolver) {
+  if (!mInternals->KDLUseJointLimits && !mInternals->KDLIkSolver) {
     vtkErrorMacro(<< "FindKDLIK: KDL IK solver not initialized. Call setupKDLIK or setupKDLIKWithLimits first");
     return "";
   }
 
-  if (KDLUseJointLimits && !KDLIkSolverJL) {
+  if (mInternals->KDLUseJointLimits && !mInternals->KDLIkSolverJL) {
     vtkErrorMacro(<< "FindKDLIK: KDL IK solver with joint limits not initialized. Call setupKDLIKWithLimits first");
     return "";
   }
@@ -716,8 +719,8 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
     }
 
     // Setup seed configuration
-    KDL::JntArray qSeed(KDLChain->getNrOfJoints());
-    if (!seedJointValues.empty() && seedJointValues.size() == KDLChain->getNrOfJoints()) {
+    KDL::JntArray qSeed(mInternals->KDLChain->getNrOfJoints());
+    if (!seedJointValues.empty() && seedJointValues.size() == mInternals->KDLChain->getNrOfJoints()) {
       for (size_t i = 0; i < seedJointValues.size(); i++) {
         qSeed(i) = seedJointValues[i];
         vtkInfoMacro(<< "Seed joint " << i << ": " << qSeed(i));
@@ -729,13 +732,13 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
     }
 
     // Solve IK
-    KDL::JntArray qSolution(KDLChain->getNrOfJoints());
+    KDL::JntArray qSolution(mInternals->KDLChain->getNrOfJoints());
     int result;
     
-    if (KDLUseJointLimits) {
-      result = KDLIkSolverJL->CartToJnt(qSeed, targetFrame, qSolution);
+    if (mInternals->KDLUseJointLimits) {
+      result = mInternals->KDLIkSolverJL->CartToJnt(qSeed, targetFrame, qSolution);
     } else {
-      result = KDLIkSolver->CartToJnt(qSeed, targetFrame, qSolution);
+      result = mInternals->KDLIkSolver->CartToJnt(qSeed, targetFrame, qSolution);
     }
 
     if (result < 0) {
@@ -762,12 +765,12 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
 std::vector<std::string> vtkMRMLROS2RobotNode::GetSegments()
 {
   std::vector<std::string> segmentNames;
-  if (!KDLChain) {
+  if (!mInternals->KDLChain) {
     vtkWarningMacro(<< "GetSegments: KDL chain not initialized");
     return segmentNames;
   }
-  for (unsigned int i = 0; i < KDLChain->getNrOfSegments(); i++) {
-    const KDL::Segment& segment = KDLChain->getSegment(i);
+  for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
+    const KDL::Segment& segment = mInternals->KDLChain->getSegment(i);
     segmentNames.push_back(segment.getName());
   }
   return segmentNames;
@@ -776,12 +779,12 @@ std::vector<std::string> vtkMRMLROS2RobotNode::GetSegments()
 std::vector<std::string> vtkMRMLROS2RobotNode::GetJoints()
 {
   std::vector<std::string> jointNames;
-  if (!KDLChain) {
+  if (!mInternals->KDLChain) {
     vtkWarningMacro(<< "GetJoints: KDL chain not initialized");
     return jointNames;
   }
-  for (unsigned int i = 0; i < KDLChain->getNrOfSegments(); i++) {
-    const KDL::Segment& segment = KDLChain->getSegment(i);
+  for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
+    const KDL::Segment& segment = mInternals->KDLChain->getSegment(i);
     const KDL::Joint& joint = segment.getJoint();
     if (joint.getType() != KDL::Joint::None) {
       jointNames.push_back(joint.getName());
@@ -792,15 +795,15 @@ std::vector<std::string> vtkMRMLROS2RobotNode::GetJoints()
 
 vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeLocalTransform(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName)
 {
-  if (!outTransform || !KDLChain) return nullptr;
+  if (!outTransform || !mInternals->KDLChain) return nullptr;
 
   // 1. Find the Segment and its Joint Index
   unsigned int segmentIndex = 0;
   bool found = false;
   int kdlJointIndex = 0; // Tracks which "q" index corresponds to this segment
 
-  for (unsigned int i = 0; i < KDLChain->getNrOfSegments(); i++) {
-    const KDL::Segment& seg = KDLChain->getSegment(i);
+  for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
+    const KDL::Segment& seg = mInternals->KDLChain->getSegment(i);
     
     // Count moving joints up to this point to find the correct 'q' index
     if (seg.getJoint().getType() != KDL::Joint::None) {
@@ -825,7 +828,7 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeLocalTransform(const std::vector<doub
 
   // 2. Get the specific joint angle for this segment
   double q_val = 0.0;
-  const KDL::Segment& targetSeg = KDLChain->getSegment(segmentIndex);
+  const KDL::Segment& targetSeg = mInternals->KDLChain->getSegment(segmentIndex);
   
   if (targetSeg.getJoint().getType() != KDL::Joint::None) {
       if (kdlJointIndex < jointValues.size()) {
@@ -859,22 +862,22 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeKDLFK(const std::vector<double>& join
     vtkErrorMacro(<< "ComputeKDLFK: output transform is null");
     return nullptr;
   }
-  if (!KDLChain || !KDLFkSolver) {
+  if (!mInternals->KDLChain || !mInternals->KDLFkSolver) {
     vtkWarningMacro(<< "ComputeKDLFK: KDL chain or FK solver not initialized");
     return nullptr;
   }
-  if (jointValues.size() != KDLChain->getNrOfJoints()) {
-    vtkErrorMacro(<< "ComputeKDLFK: expected " << KDLChain->getNrOfJoints()
+  if (jointValues.size() != mInternals->KDLChain->getNrOfJoints()) {
+    vtkErrorMacro(<< "ComputeKDLFK: expected " << mInternals->KDLChain->getNrOfJoints()
                   << " joint values but got " << jointValues.size());
     return nullptr;
   }
 
-  unsigned int segmentIndex = KDLChain->getNrOfSegments() - 1; 
+  unsigned int segmentIndex = mInternals->KDLChain->getNrOfSegments() - 1; 
 
   if (!linkName.empty()) {
     bool found = false;
-    for (unsigned int i = 0; i < KDLChain->getNrOfSegments(); i++) {
-      if (KDLChain->getSegment(i).getName() == linkName) {
+    for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
+      if (mInternals->KDLChain->getSegment(i).getName() == linkName) {
         segmentIndex = i;
         found = true;
         break;
@@ -886,7 +889,7 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeKDLFK(const std::vector<double>& join
     }
   }
 
-  KDL::JntArray q(KDLChain->getNrOfJoints());
+  KDL::JntArray q(mInternals->KDLChain->getNrOfJoints());
   for (unsigned int i = 0; i < q.rows(); i++) {
     q(i) = jointValues[i];
   }
@@ -894,7 +897,7 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeKDLFK(const std::vector<double>& join
 
   KDL::Frame frame;
   // KDL uses 1-based indexing for 'segmentNr', so we add 1 to our 0-based index.
-  int result = KDLFkSolver->JntToCart(q, frame, segmentIndex + 1);
+  int result = mInternals->KDLFkSolver->JntToCart(q, frame, segmentIndex + 1);
   
   if (result < 0) {
     vtkErrorMacro(<< "ComputeKDLFK: KDL FK failed with error code " << result);
@@ -920,13 +923,13 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeKDLFK(const std::vector<double>& join
   return outTransform;
 }
 
-moveit_msgs::msg::RobotTrajectory vtkMRMLROS2RobotNode::PlanMoveItTrajectory(const std::string& groupName,
+vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2RobotNode::PlanMoveItTrajectory(const std::string& groupName,
                                                          const std::vector<double>& goalJointValues,
                                                          double velocityScaling,
                                                          double accelerationScaling,
                                                          double planningTimeSec)
 {
-  moveit_msgs::msg::RobotTrajectory traj;
+  vtkMoveitMsgsRobotTrajectory* traj = vtkMoveitMsgsRobotTrajectory::New();
 
   if (!mMRMLROS2Node || !mMRMLROS2Node->mInternals || !mMRMLROS2Node->mInternals->mNodePointer) {
     vtkErrorMacro(<< "PlanMoveItTrajectory: ROS2 node is not initialized");
@@ -966,7 +969,7 @@ moveit_msgs::msg::RobotTrajectory vtkMRMLROS2RobotNode::PlanMoveItTrajectory(con
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   auto result = moveGroup.plan(plan);
   if (result == moveit::core::MoveItErrorCode::SUCCESS) {
-    traj = plan.trajectory_;
+    vtkROS2ToSlicer(plan.trajectory, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
   } else {
     vtkErrorMacro(<< "PlanMoveItTrajectory: planning failed for group '" << groupName
                   << "' with MoveItErrorCode=" << result.val);
@@ -983,10 +986,14 @@ std::string vtkMRMLROS2RobotNode::PlanMoveItTrajectoryJSON(const std::string& gr
 {
   auto traj = PlanMoveItTrajectory(groupName, goalJointValues, velocityScaling, accelerationScaling, planningTimeSec);
   
+  moveit_msgs::msg::RobotTrajectory ros_traj;
+  vtkSlicerToROS2(traj, ros_traj, mMRMLROS2Node->mInternals->mNodePointer);
+
   // Cache the trajectory for later execution
-  CachedTrajectory = traj;
+  mInternals->CachedTrajectory = ros_traj;
   
-  if (traj.joint_trajectory.points.empty()) {
+  if (ros_traj.joint_trajectory.points.empty()) {
+    traj->Delete();
     return "{}";  // Empty JSON on failure
   }
 
@@ -994,15 +1001,15 @@ std::string vtkMRMLROS2RobotNode::PlanMoveItTrajectoryJSON(const std::string& gr
   std::ostringstream json;
   json << "{\"joint_names\":[";
   
-  for (size_t i = 0; i < traj.joint_trajectory.joint_names.size(); ++i) {
+  for (size_t i = 0; i < ros_traj.joint_trajectory.joint_names.size(); ++i) {
     if (i > 0) json << ",";
-    json << "\"" << traj.joint_trajectory.joint_names[i] << "\"";
+    json << "\"" << ros_traj.joint_trajectory.joint_names[i] << "\"";
   }
   
   json << "],\"points\":[";
   
-  for (size_t i = 0; i < traj.joint_trajectory.points.size(); ++i) {
-    const auto& pt = traj.joint_trajectory.points[i];
+  for (size_t i = 0; i < ros_traj.joint_trajectory.points.size(); ++i) {
+    const auto& pt = ros_traj.joint_trajectory.points[i];
     if (i > 0) json << ",";
     
     json << "{\"positions\":[";
@@ -1030,8 +1037,7 @@ std::string vtkMRMLROS2RobotNode::PlanMoveItTrajectoryJSON(const std::string& gr
   return json.str();
 }
 
-bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectory(const std::string& groupName,
-                                                    const moveit_msgs::msg::RobotTrajectory& trajectory)
+bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectory(const std::string& groupName, vtkMoveitMsgsRobotTrajectory* trajectory)
 {
   if (!mMRMLROS2Node || !mMRMLROS2Node->mInternals || !mMRMLROS2Node->mInternals->mNodePointer) {
     vtkErrorMacro(<< "ExecuteMoveItTrajectory: ROS2 node is not initialized");
@@ -1041,18 +1047,27 @@ bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectory(const std::string& groupName,
     vtkErrorMacro(<< "ExecuteMoveItTrajectory: groupName is empty");
     return false;
   }
-  if (trajectory.joint_trajectory.points.empty()) {
-    vtkErrorMacro(<< "ExecuteMoveItTrajectory: trajectory is empty");
+  if (!trajectory) {
+    vtkErrorMacro(<< "ExecuteMoveItTrajectory: trajectory is null");
     return false;
   }
-
+  
   try {
     auto node = mMRMLROS2Node->mInternals->mNodePointer;
+    
+    moveit_msgs::msg::RobotTrajectory ros_traj;
+    vtkSlicerToROS2(trajectory, ros_traj, node);
+
+    if (ros_traj.joint_trajectory.points.empty()) {
+      vtkErrorMacro(<< "ExecuteMoveItTrajectory: trajectory is empty");
+      return false;
+    }
+
     moveit::planning_interface::MoveGroupInterface moveGroup(node, groupName);
 
     // Create a plan with the trajectory
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    plan.trajectory_ = trajectory;
+    plan.trajectory = ros_traj;
 
     // Execute the trajectory
     auto result = moveGroup.execute(plan);
@@ -1073,12 +1088,14 @@ bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectory(const std::string& groupName,
 
 bool vtkMRMLROS2RobotNode::ExecuteCachedMoveItTrajectory(const std::string& groupName)
 {
-  if (CachedTrajectory.joint_trajectory.points.empty()) {
+  if (mInternals->CachedTrajectory.joint_trajectory.points.empty()) {
     vtkErrorMacro(<< "ExecuteCachedMoveItTrajectory: No cached trajectory available. Call PlanMoveItTrajectoryJSON first.");
     return false;
   }
 
-  return ExecuteMoveItTrajectoryAsync(groupName, CachedTrajectory);
+  vtkSmartPointer<vtkMoveitMsgsRobotTrajectory> vtk_traj = vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>::New();
+  vtkROS2ToSlicer(mInternals->CachedTrajectory, vtk_traj);
+  return ExecuteMoveItTrajectoryAsync(groupName, vtk_traj.Get());
 }
 
 bool vtkMRMLROS2RobotNode::PlanAndExecuteMoveItTrajectory(const std::string& groupName,
@@ -1090,30 +1107,51 @@ bool vtkMRMLROS2RobotNode::PlanAndExecuteMoveItTrajectory(const std::string& gro
   // First plan the trajectory
   auto trajectory = PlanMoveItTrajectory(groupName, goalJointValues, velocityScaling, accelerationScaling, planningTimeSec);
   
-  if (trajectory.joint_trajectory.points.empty()) {
+  moveit_msgs::msg::RobotTrajectory ros_traj;
+  vtkSlicerToROS2(trajectory, ros_traj, mMRMLROS2Node->mInternals->mNodePointer);
+
+  if (ros_traj.joint_trajectory.points.empty()) {
     vtkErrorMacro(<< "PlanAndExecuteMoveItTrajectory: Planning failed, cannot execute");
+    trajectory->Delete();
     return false;
   }
 
   // Then execute it
-  return ExecuteMoveItTrajectory(groupName, trajectory);
+  bool result = ExecuteMoveItTrajectory(groupName, trajectory);
+  trajectory->Delete();
+  return result;
 }
 
 bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectoryAsync(const std::string& groupName,
-                                                        const moveit_msgs::msg::RobotTrajectory& trajectory)
+                                                        vtkMoveitMsgsRobotTrajectory* trajectory)
 {
-  if (trajectory.joint_trajectory.points.empty()) {
+  if (!trajectory) {
+    vtkErrorMacro(<< "ExecuteMoveItTrajectoryAsync: trajectory is null");
+    return false;
+  }
+  
+  moveit_msgs::msg::RobotTrajectory ros_traj;
+  vtkSlicerToROS2(trajectory, ros_traj, mMRMLROS2Node->mInternals->mNodePointer);
+
+  if (ros_traj.joint_trajectory.points.empty()) {
     vtkErrorMacro(<< "ExecuteMoveItTrajectoryAsync: trajectory is empty");
     return false;
   }
 
   // Launch execution in a background thread to avoid blocking UI
-  std::thread executionThread([this, groupName, trajectory]() {
-    try {
-      // Call the blocking execute function in background
-      this->ExecuteMoveItTrajectory(groupName, trajectory);
-      vtkDebugMacro(<< "ExecuteMoveItTrajectoryAsync: Background execution completed");
-    }
+      auto nodePtr = mMRMLROS2Node;
+    std::thread executionThread([this, nodePtr, groupName, ros_traj]() {
+      try {
+        auto node = nodePtr->mInternals->mNodePointer;
+        moveit::planning_interface::MoveGroupInterface moveGroup(node, groupName);
+
+        // Create a plan with the trajectory
+        moveit::planning_interface::MoveGroupInterface::Plan plan;
+        plan.trajectory = ros_traj;
+
+        // Execute the trajectory
+        moveGroup.execute(plan);
+      }
     catch (const std::exception& e) {
       vtkErrorMacro(<< "ExecuteMoveItTrajectoryAsync: exception in background thread - " << e.what());
     }
