@@ -175,6 +175,8 @@ if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
 
+add_subdirectory(ROS2RobotControl)
+
 # Not sure how stable this code is.  Basically the CMake code for
 # Slicer sets a default Python interpreter so we need to revert to the
 # "default" one
