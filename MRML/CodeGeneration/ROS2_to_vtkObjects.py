@@ -196,17 +196,22 @@ def get_class_name_formatted(ros_type_str):
 # CODE GENERATION FUNCTIONS
 
 def identify_imports(ros_message_name, ros_namespace, ros_pkg, attribute_types_list):
-    imports = "// identify_imports\n"
-    imports += "#include <vtkObject.h>\n#include <vtkNew.h>\n#include <string>\n#include <vtkSmartPointer.h>\n#include <vtkMRMLNode.h>\n\n"
-    imports += f"#include <rclcpp/rclcpp.hpp>\n#include <{ros_pkg}/{ros_namespace}/{camel_to_snake(ros_message_name)}.hpp>\n"
-    imports += "#include <vtkROS2ToSlicer.h>\n#include <vtkSlicerToROS2.h>\n"
+    """Returns (vtk_imports, ros_imports) so that ROS-specific includes
+    can be placed behind an #ifndef __VTK_WRAP__ guard."""
+    vtk_imports = "// VTK imports (visible to VTK wrapper)\n"
+    vtk_imports += "#include <vtkObject.h>\n#include <vtkNew.h>\n#include <string>\n#include <vector>\n#include <vtkSmartPointer.h>\n#include <vtkMRMLNode.h>\n\n"
 
     for attr_type in attribute_types_list:
         _, underlying_type, is_vtk_flag, _, _ = process_attribute(attr_type)
         if is_vtk_flag:
             _, vtk_underlying = get_vtk_type(underlying_type, vtk_equivalent_types)
-            imports += f"#include <vtk{vtk_underlying}.h>\n"
-    return imports
+            vtk_imports += f"#include <vtk{vtk_underlying}.h>\n"
+
+    ros_imports = "// ROS imports (hidden from VTK wrapper)\n"
+    ros_imports += f"#include <rclcpp/rclcpp.hpp>\n#include <{ros_pkg}/{ros_namespace}/{camel_to_snake(ros_message_name)}.hpp>\n"
+    ros_imports += "#include <vtkROS2ToSlicer.h>\n#include <vtkSlicerToROS2.h>\n"
+
+    return vtk_imports, ros_imports
 
 def format_constant(value):
     if isinstance(value, bool):
@@ -307,22 +312,29 @@ def generate_ros2_to_slicer_methods_for_class(generated_class_name, ros2_message
 
 
 def generate_class_and_conversion_methods(generated_class_name, generated_class_identifier, attributes, ros2_message_type, constants = {}):
-    hpp, cpp = "\n", "\n"
-    hpp_class, cpp_class = generate_class(generated_class_name, attributes, constants)
-    hpp += hpp_class
+    """Returns (hpp_class, hpp_conv, cpp) where:
+      - hpp_class: VTK class declaration (should be visible to VTK wrapper)
+      - hpp_conv:  conversion function declarations (should be hidden from VTK wrapper)
+      - cpp:       all implementation code
+    """
+    hpp_class, cpp = "\n", "\n"
+    hpp_class_code, cpp_class = generate_class(generated_class_name, attributes, constants)
+    hpp_class += hpp_class_code
     cpp += cpp_class
 
     vtk_equivalent_types[generated_class_identifier] = generated_class_name
 
     cpp += generate_print_self_methods_for_class(generated_class_name, generated_class_identifier, attributes)
-    hpp_conv, cpp_conv = generate_slicer_to_ros2_methods_for_class(generated_class_name, ros2_message_type, attributes)
-    hpp += hpp_conv
-    cpp += cpp_conv
-    hpp_ros, cpp_ros = generate_ros2_to_slicer_methods_for_class(generated_class_name, ros2_message_type, attributes)
-    hpp += hpp_ros
-    cpp += cpp_ros
 
-    return hpp, cpp
+    hpp_conv = ""
+    hpp_conv_s2r, cpp_conv_s2r = generate_slicer_to_ros2_methods_for_class(generated_class_name, ros2_message_type, attributes)
+    hpp_conv += hpp_conv_s2r
+    cpp += cpp_conv_s2r
+    hpp_conv_r2s, cpp_conv_r2s = generate_ros2_to_slicer_methods_for_class(generated_class_name, ros2_message_type, attributes)
+    hpp_conv += hpp_conv_r2s
+    cpp += cpp_conv_r2s
+
+    return hpp_class, hpp_conv, cpp
 
 #############################################################################
 
@@ -389,14 +401,18 @@ def ROS2_message_to_vtkObject(ros_message_full_type, output_directory):
     hpp_code = f"#ifndef {filename}_h\n#define {filename}_h\n\n"
     cpp_code = f'#include "{filename}.h"\n\n#include <vtkROS2ToSlicer.h>\n#include <vtkSlicerToROS2.h>\n\n'
     message_attribute_map, unique_attribute_types, constants = generate_attribute_dict_message(ros_message_full_type)
-    # print(f"unique_attributes: {unique_attribute_types}")
-    # print(f"message_attribute_map: {message_attribute_map}")
-    imports = identify_imports(ros_message_name, ros_namespace, ros_pkg, unique_attribute_types)
-    hpp_code += imports
-    hpp_conv, cpp_conv = generate_class_and_conversion_methods(generated_vtk_class_name, generated_vtk_class_identifier,
+    vtk_imports, ros_imports = identify_imports(ros_message_name, ros_namespace, ros_pkg, unique_attribute_types)
+    hpp_code += vtk_imports
+    hpp_class, hpp_conv, cpp_conv = generate_class_and_conversion_methods(generated_vtk_class_name, generated_vtk_class_identifier,
                                                                message_attribute_map[ros_message_full_type],
                                                                f"{ros_pkg}::{ros_namespace}::{ros_message_name}", constants)
+    # VTK class declaration — visible to VTK wrapper for Python bindings
+    hpp_code += hpp_class
+    # ROS-specific includes and conversion functions — hidden from VTK wrapper
+    hpp_code += "\n#ifndef __VTK_WRAP__\n"
+    hpp_code += ros_imports
     hpp_code += hpp_conv
+    hpp_code += "#endif // __VTK_WRAP__\n"
     cpp_code += cpp_conv
     hpp_code += f"\n#endif // {filename}_h\n"
     write_files(output_directory, filename, hpp_code, cpp_code)
@@ -411,17 +427,25 @@ def ROS2_service_to_vtkObject(ros_service_full_type, output_directory): # TODO: 
     filename = f"vtk{generated_vtk_class_name}"
     hpp_code = f"""#ifndef {filename}_h\n#define {filename}_h\n\n"""
     cpp_code = f'#include "{filename}.h"\n\n#include <vtkROS2ToSlicer.h>\n#include <vtkSlicerToROS2.h>\n\n'
-    imports = identify_imports(ros_service_name, ros_namespace, ros_pkg, unique_attribute_types)
-    hpp_code += imports
+    vtk_imports, ros_imports = identify_imports(ros_service_name, ros_namespace, ros_pkg, unique_attribute_types)
+    hpp_code += vtk_imports
+    # VTK class declarations — visible to VTK wrapper for Python bindings
+    all_hpp_conv = ""
     for io in ['request', 'response']:
         vtk_class_name_formatted = generated_vtk_class_name + io.capitalize()
         vtk_class_type_identifier = generated_vtk_class_identifier + io.capitalize()
         attributes = message_map[ros_service_full_type][io]
         ros2_message_type = f"{ros_pkg}::{ros_namespace}::{ros_service_name}::{io.capitalize()}"
-        hpp_conv, cpp_conv = generate_class_and_conversion_methods(vtk_class_name_formatted, vtk_class_type_identifier,
+        hpp_class, hpp_conv, cpp_conv = generate_class_and_conversion_methods(vtk_class_name_formatted, vtk_class_type_identifier,
                                                                    attributes, ros2_message_type)
-        hpp_code += hpp_conv
+        hpp_code += hpp_class
+        all_hpp_conv += hpp_conv
         cpp_code += cpp_conv
+    # ROS-specific includes and conversion functions — hidden from VTK wrapper
+    hpp_code += "\n#ifndef __VTK_WRAP__\n"
+    hpp_code += ros_imports
+    hpp_code += all_hpp_conv
+    hpp_code += "#endif // __VTK_WRAP__\n"
     hpp_code += f"\n#endif // {filename}_h\n"
     write_files(output_directory, filename, hpp_code, cpp_code)
 

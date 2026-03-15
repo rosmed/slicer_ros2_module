@@ -1,7 +1,5 @@
-#include "vtkMoveitMsgsRobotTrajectory.h"
-#include "vtkROS2ToSlicer.h"
-#include "vtkSlicerToROS2.h"
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLROS2RobotNodeInternals.h>
 
 #include <vtkEventBroker.h>
 #include <vtkTransform.h>
@@ -17,7 +15,6 @@
 
 #include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
-#include "vtkMRMLROS2NodeInternals.h"
 #include <vtkMRMLROS2ParameterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 
@@ -30,11 +27,14 @@
 #include <algorithm>
 #include <map>
 #include <thread>
-#include <moveit_msgs/msg/robot_trajectory.hpp>
+
+#include <vtkMoveitMsgsRobotTrajectory.h>
+#include <vtkROS2ToSlicer.h>
+#include <vtkSlicerToROS2.h>
 
 // MoveIt kinematics and planning includes
-#include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/robot_model_loader/robot_model_loader.hpp>
+#include <moveit/move_group_interface/move_group_interface.hpp>
 // ROS2 parameter client for reading remote node parameters
 #include <rclcpp/parameter_client.hpp>
 #include <chrono>
@@ -47,12 +47,6 @@
 #include <kdl/chainiksolvervel_pinv.hpp>
 #include <kdl/tree.hpp>
 #include <kdl_parser/kdl_parser.hpp>
-
-namespace {
-
-// Removed SerializeJointTrajectoryToJson - JSON serialization not needed
-
-} // namespace
 
 vtkStandardNewMacro(vtkMRMLROS2RobotNode);
 
@@ -804,9 +798,9 @@ vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeLocalTransform(const std::vector<doub
   if (!outTransform || !mInternals->KDLChain) return nullptr;
 
   // 1. Find the Segment and its Joint Index
-  unsigned int segmentIndex = 0;
+  size_t segmentIndex = 0;
   bool found = false;
-  int kdlJointIndex = 0; // Tracks which "q" index corresponds to this segment
+  size_t kdlJointIndex = 0; // Tracks which "q" index corresponds to this segment
 
   for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
     const KDL::Segment& seg = mInternals->KDLChain->getSegment(i);
