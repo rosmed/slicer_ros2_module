@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------
-set(MODULE_NAME ROS2RobotControl)
+set(MODULE_NAME ROS2MotionControl)
 
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS

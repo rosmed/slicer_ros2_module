@@ -45,18 +45,18 @@ def _check_ros2_node_running(node_name: str) -> bool:
 
 
 #
-# ROS2RobotControl
+# ROS2MotionControl
 #
 
 
-class ROS2RobotControl(ScriptedLoadableModule):
+class ROS2MotionControl(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("ROS2 Robot Control")
+        self.parent.title = _("ROS2 Motion Control")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "IGT")]
         self.parent.dependencies = ["ROS2"]
         self.parent.contributors = ["Kaito Hara-Lee", "Anton Deguet"]
@@ -88,46 +88,46 @@ def registerSampleData():
     # To ensure that the source code repository remains small (can be downloaded and installed quickly)
     # it is recommended to store data sets that are larger than a few MB in a Github release.
 
-    # ROS2RobotControl1
+    # ROS2MotionControl1
     SampleData.SampleDataLogic.registerCustomSampleDataSource(
         # Category and sample name displayed in Sample Data module
-        category="ROS2RobotControl",
-        sampleName="ROS2RobotControl1",
+        category="ROS2MotionControl",
+        sampleName="ROS2MotionControl1",
         # Thumbnail should have size of approximately 260x280 pixels and stored in Resources/Icons folder.
         # It can be created by Screen Capture module, "Capture all views" option enabled, "Number of images" set to "Single".
-        thumbnailFileName=os.path.join(iconsPath, "ROS2RobotControl1.png"),
+        thumbnailFileName=os.path.join(iconsPath, "ROS2MotionControl1.png"),
         # Download URL and target file name
         uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        fileNames="ROS2RobotControl1.nrrd",
+        fileNames="ROS2MotionControl1.nrrd",
         # Checksum to ensure file integrity. Can be computed by this command:
         #  import hashlib; print(hashlib.sha256(open(filename, "rb").read()).hexdigest())
         checksums="SHA256:998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
         # This node name will be used when the data set is loaded
-        nodeNames="ROS2RobotControl1",
+        nodeNames="ROS2MotionControl1",
     )
 
-    # ROS2RobotControl2
+    # ROS2MotionControl2
     SampleData.SampleDataLogic.registerCustomSampleDataSource(
         # Category and sample name displayed in Sample Data module
-        category="ROS2RobotControl",
-        sampleName="ROS2RobotControl2",
-        thumbnailFileName=os.path.join(iconsPath, "ROS2RobotControl2.png"),
+        category="ROS2MotionControl",
+        sampleName="ROS2MotionControl2",
+        thumbnailFileName=os.path.join(iconsPath, "ROS2MotionControl2.png"),
         # Download URL and target file name
         uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        fileNames="ROS2RobotControl2.nrrd",
+        fileNames="ROS2MotionControl2.nrrd",
         checksums="SHA256:1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
         # This node name will be used when the data set is loaded
-        nodeNames="ROS2RobotControl2",
+        nodeNames="ROS2MotionControl2",
     )
 
 
 #
-# ROS2RobotControlParameterNode
+# ROS2MotionControlParameterNode
 #
 
 
 @parameterNodeWrapper
-class ROS2RobotControlParameterNode:
+class ROS2MotionControlParameterNode:
     """
     The parameters needed by module.
 
@@ -146,11 +146,11 @@ class ROS2RobotControlParameterNode:
 
 
 #
-# ROS2RobotControlWidget
+# ROS2MotionControlWidget
 #
 
 
-class ROS2RobotControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
@@ -181,7 +181,7 @@ class ROS2RobotControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
-        uiWidget = slicer.util.loadUI(self.resourcePath("UI/ROS2RobotControl.ui"))
+        uiWidget = slicer.util.loadUI(self.resourcePath("UI/ROS2MotionControl.ui"))
         self.layout.addWidget(uiWidget)
         self.ui = slicer.util.childWidgetVariables(uiWidget)
 
@@ -192,7 +192,7 @@ class ROS2RobotControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
-        self.logic = ROS2RobotControlLogic()
+        self.logic = ROS2MotionControlLogic()
 
         # Connections
 
@@ -290,7 +290,7 @@ class ROS2RobotControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._parameterNode.inputVolume = firstVolumeNode
 
-    def setParameterNode(self, inputParameterNode: Optional[ROS2RobotControlParameterNode]) -> None:
+    def setParameterNode(self, inputParameterNode: Optional[ROS2MotionControlParameterNode]) -> None:
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
@@ -840,11 +840,11 @@ class ROS2RobotControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     
 
 #
-# ROS2RobotControlLogic
+# ROS2MotionControlLogic
 #
 
 
-class ROS2RobotControlLogic(ScriptedLoadableModuleLogic):
+class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
     """This class should implement all the actual
     computation done by your module.  The interface
     should be such that other python code can import
@@ -869,7 +869,7 @@ class ROS2RobotControlLogic(ScriptedLoadableModuleLogic):
         self.useMoveItIK = False  # Flag to toggle between KDL and MoveIt IK
         
     def getParameterNode(self):
-        return ROS2RobotControlParameterNode(super().getParameterNode())
+        return ROS2MotionControlParameterNode(super().getParameterNode())
 
     def process(self,
                 inputVolume: vtkMRMLScalarVolumeNode,
@@ -1041,12 +1041,12 @@ class ROS2RobotControlLogic(ScriptedLoadableModuleLogic):
         if self.obsNode and self.obsTag is not None:
             try:
                 self.obsNode.RemoveObserver(self.obsTag)
-                print(f"[ROS2RobotControlLogic] Removed observer (tag={self.obsTag}) from {self.obsNode.GetName()}")
+                print(f"[ROS2MotionControlLogic] Removed observer (tag={self.obsTag}) from {self.obsNode.GetName()}")
             except Exception as e:
-                print(f"[ROS2RobotControlLogic] Error removing observer: {e}")
+                print(f"[ROS2MotionControlLogic] Error removing observer: {e}")
         else:
             if self.obsTag is not None:
-                print(f"[ROS2RobotControlLogic] No obsNode to remove observer from (tag={self.obsTag})")
+                print(f"[ROS2MotionControlLogic] No obsNode to remove observer from (tag={self.obsTag})")
         self.obsNode = None
         self.obsTag = None
         self.callback = None
@@ -1336,7 +1336,7 @@ class ROS2RobotControlLogic(ScriptedLoadableModuleLogic):
 
         if len(sliders) != len(limits_rad):
             print(
-                f"[ROS2RobotControl] Slider count ({len(sliders)}) "
+                f"[ROS2MotionControl] Slider count ({len(sliders)}) "
                 f"!= joint count ({len(limits_rad)})"
             )
 
@@ -1350,7 +1350,7 @@ class ROS2RobotControlLogic(ScriptedLoadableModuleLogic):
             slider.setRange(lo_deg, hi_deg)
             slider.setValue(0)
 
-            print(f"[ROS2RobotControl] {jointName}: {lo_deg}..{hi_deg} deg")
+            print(f"[ROS2MotionControl] {jointName}: {lo_deg}..{hi_deg} deg")
             
     def setIKSourceTransforms(self, fromtransformname, totransformname):
             """
@@ -1615,11 +1615,11 @@ class ROS2RobotControlLogic(ScriptedLoadableModuleLogic):
 
 
 #
-# ROS2RobotControlTest
+# ROS2MotionControlTest
 #
 
 
-class ROS2RobotControlTest(ScriptedLoadableModuleTest):
+class ROS2MotionControlTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:
@@ -1633,9 +1633,9 @@ class ROS2RobotControlTest(ScriptedLoadableModuleTest):
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
-        self.test_ROS2RobotControl1()
+        self.test_ROS2MotionControl1()
 
-    def test_ROS2RobotControl1(self):
+    def test_ROS2MotionControl1(self):
         """Ideally you should have several levels of tests.  At the lowest level
         tests should exercise the functionality of the logic with different inputs
         (both valid and invalid).  At higher levels your tests should emulate the
@@ -1654,7 +1654,7 @@ class ROS2RobotControlTest(ScriptedLoadableModuleTest):
         import SampleData
 
         registerSampleData()
-        inputVolume = SampleData.downloadSample("ROS2RobotControl1")
+        inputVolume = SampleData.downloadSample("ROS2MotionControl1")
         self.delayDisplay("Loaded test data set")
 
         inputScalarRange = inputVolume.GetImageData().GetScalarRange()
@@ -1666,7 +1666,7 @@ class ROS2RobotControlTest(ScriptedLoadableModuleTest):
 
         # Test the module logic
 
-        logic = ROS2RobotControlLogic()
+        logic = ROS2MotionControlLogic()
 
         # Test algorithm with non-inverted threshold
         logic.process(inputVolume, outputVolume, threshold, True)
