@@ -33,8 +33,8 @@
 #include <vtkSlicerToROS2.h>
 
 // MoveIt kinematics and planning includes
-#include <moveit/robot_model_loader/robot_model_loader.hpp>
-#include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/move_group_interface/move_group_interface.h>
 // ROS2 parameter client for reading remote node parameters
 #include <rclcpp/parameter_client.hpp>
 #include <chrono>
@@ -972,7 +972,7 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2RobotNode::PlanMoveItTrajectory(const s
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   auto result = moveGroup.plan(plan);
   if (result == moveit::core::MoveItErrorCode::SUCCESS) {
-    vtkROS2ToSlicer(plan.trajectory, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
+    vtkROS2ToSlicer(plan.trajectory_, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
   } else {
     vtkErrorMacro(<< "PlanMoveItTrajectory: planning failed for group '" << groupName
                   << "' with MoveItErrorCode=" << result.val);
@@ -1070,7 +1070,7 @@ bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectory(const std::string& groupName,
 
     // Create a plan with the trajectory
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    plan.trajectory = ros_traj;
+    plan.trajectory_ = ros_traj;
 
     // Execute the trajectory
     auto result = moveGroup.execute(plan);
@@ -1150,7 +1150,7 @@ bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectoryAsync(const std::string& group
 
         // Create a plan with the trajectory
         moveit::planning_interface::MoveGroupInterface::Plan plan;
-        plan.trajectory = ros_traj;
+        plan.trajectory_ = ros_traj;
 
         // Execute the trajectory
         moveGroup.execute(plan);
