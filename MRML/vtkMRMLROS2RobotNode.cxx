@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <map>
 #include <thread>
+#include <queue>
 
 #include <vtkMoveitMsgsRobotTrajectory.h>
 #include <vtkROS2ToSlicer.h>
@@ -631,9 +632,13 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
 bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
 {
   try {
-    // Use mURDFModel to get the root and tip link names
-    std::string defaultRoot = mInternals->mURDFModel.getRoot()->name;
-    std::string defaultTip = (mNumberOfLinks > 0) ? mNthRobot.mLinkNames.back() : defaultRoot;
+    auto rootAndTip = FindRootAndTipLinks();
+    const std::string& defaultRoot = rootAndTip.value().first;
+    const std::string& defaultTip = rootAndTip.value().second;
+    if (defaultRoot.empty() || defaultTip.empty()) {
+      vtkErrorMacro(<< "setupKDLIKWithLimits: Failed to determine root/tip links from URDF");
+      return false;
+    }
     vtkInfoMacro(<< "Auto KDL setup with limits. Root: '" << defaultRoot
                  << "' Tip: '" << defaultTip << "'");
 
@@ -718,6 +723,41 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
     vtkErrorMacro(<< "setupKDLIKWithLimits: exception - " << e.what());
     return false;
   }
+}
+
+std::optional<std::pair<std::string, std::string>> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
+{
+  auto rootLink = mInternals->mURDFModel.getRoot();
+  if (!rootLink) {
+    vtkErrorMacro(<< "FindRootAndTipLinks: URDF root link is null");
+    return std::nullopt;
+  }
+
+  std::string rootLinkName = rootLink->name;
+  std::string tipLinkName = rootLinkName;
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(rootLink);
+
+  while (!bfsQueue.empty()) {
+    auto currentLink = bfsQueue.front();
+    bfsQueue.pop();
+
+    if (!currentLink) {
+      continue;
+    }
+
+    if (currentLink->child_links.empty()) {
+      tipLinkName = currentLink->name;
+      break;
+    }
+
+    for (const auto& childLink : currentLink->child_links) {
+      bfsQueue.push(childLink);
+    }
+  }
+
+  return std::make_pair(rootLinkName, tipLinkName);
 }
 
 

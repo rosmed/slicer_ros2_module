@@ -2,6 +2,8 @@
 #define __vtkMRMLROS2RobotNode_h
 
 #include <memory>
+#include <optional>
+#include <utility>
 
 // MRML includes
 #include <vtkMRMLNode.h>
@@ -60,10 +62,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 
   // MoveIt IK methods (commented out for faster build)
   bool setupIKmoveit(const std::string & groupName);
-  std::string FindIKmoveit(vtkMatrix4x4* targetPose, 
-                     const std::string& tipLink,
-                     const std::vector<double>& seedJointValues,
-                     double timeout = 1.0);
+  std::string FindIKmoveit(vtkMatrix4x4* targetPose, const std::string& tipLink,const std::vector<double>& seedJointValues,double timeout = 1.0);
 
   // KDL Setup and IK methods
   bool SetupKDLIKWithLimits(void);
@@ -72,9 +71,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   // KDL Chain information methods
   std::vector<std::string> GetSegments();
   std::vector<std::string> GetJoints();
-  
+  std::optional<std::pair<std::string, std::string>> FindRootAndTipLinks() const;
+
   vtkMatrix4x4* ComputeKDLFK(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName = "");
-  
   vtkMatrix4x4* ComputeLocalTransform(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName);
 
   // Plan a joint-space trajectory using MoveIt for the given group.
@@ -113,8 +112,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   // Execute trajectory asynchronously (non-blocking) in a background thread
   // Updates the main robot model in real-time during execution
   // Returns immediately, does not block UI
-  bool ExecuteMoveItTrajectoryAsync(const std::string& groupName,
-                                     vtkMoveitMsgsRobotTrajectory* trajectory);
+  bool ExecuteMoveItTrajectoryAsync(const std::string& groupName, vtkMoveitMsgsRobotTrajectory* trajectory);
 
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
