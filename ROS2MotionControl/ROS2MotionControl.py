@@ -168,7 +168,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.jointPositionsRad = []
         self.rootlink = None
         self.tiplink = None
-        self.ghosttiplink = None
+        self.goaltiplink = None
         self.isRobotLoaded = False
         self.trajectoryTimer = None
         self.trajectoryData = None
@@ -234,21 +234,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic:
             self.logic.removeObserver()
         self.removeObservers()
-        
-        # Remove probe sphere and transform
-        try:
-            probe_transform = slicer.util.getNode("ProbeSphere_Transform")
-            if probe_transform:
-                slicer.mrmlScene.RemoveNode(probe_transform)
-        except:
-            pass
-        
-        try:
-            probe_model = slicer.util.getNode("ProbeSphere")
-            if probe_model:
-                slicer.mrmlScene.RemoveNode(probe_model)
-        except:
-            pass
 
     def enter(self) -> None:
         """Called each time the user opens this module."""
@@ -332,15 +317,12 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             
             # Stop any prior streaming callbacks
             self.logic.removeObserver()
-                
+            
             # Get robot node
             robotNode = self.ui.ikrobotcombobox.currentNode()
             if not robotNode:
                 print("Error: No robot selected.")
                 return
-            
-            # Print selected robot name
-            print("Selected Robot:", robotNode.GetName())
 
             # Extract URDF XML
             pnode = robotNode.GetNthNodeReference("parameter", 0)
@@ -350,24 +332,31 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             urdf_xml = pnode.GetParameterAsString("robot_description")
 
             # Auto-detect Root and Tip Links
+            rootandtip = robotNode.FindRootAndTipLinks()
+            if rootandtip and len(rootandtip) >= 2:
+                self.rootlink, self.tiplink = rootandtip[0], rootandtip[1]
+            else:
+                print("Error: Could not auto-detect root and tip links from URDF.")
+                return
+            
             alllink = self.logic.parse_all_link_names_from_urdf(urdf_xml)
             if not alllink: 
                 print("Error: No links found in URDF.")
                 return
             
-            # Check if ghost model exists, if so store ghost tip
-            ghost_name = alllink[-1] + "_model_ghost"
+            # Check if goal model exists, if so store goal tip
+            goal_name = self.tiplink + "_model_goal"
             try:
-                ghost_model = slicer.util.getNode(ghost_name)
-                ghost_loaded = ghost_model is not None and ghost_model.GetParentTransformNode() is not None
-                if ghost_loaded:
-                    self.ghosttiplink = ghost_name
-                    print(f"Ghost robot loaded: True")
+                goal_model = slicer.util.getNode(goal_name)
+                goal_loaded = goal_model is not None and goal_model.GetParentTransformNode() is not None
+                if goal_loaded:
+                    self.goaltiplink = goal_name
+                    print(f"Goal robot loaded: True")
                 else:
-                    print(f"Ghost robot NOT loaded or Transform missing")
+                    print(f"Goal robot NOT loaded or Transform missing")
                     return
             except slicer.util.MRMLNodeNotFoundException:
-                print(f"Ghost robot NOT loaded")
+                print(f"Goal robot NOT loaded")
                 return
         
             # Print current postiion
@@ -379,18 +368,16 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.last_ik_solution = currentjointpos
             self.jointPositionsRad = [0.0] * len(joint_names)
             self.robot = robotNode
-            self.rootlink = alllink[0] 
-            self.tiplink = alllink[-1]
             
             # Print results
-            print(f"CURRENT: rootlink={self.rootlink}, tiplink={self.tiplink}, ghosttiplink={self.ghosttiplink}")
+            print(f"CURRENT: Root link={self.rootlink}, Tip link={self.tiplink}, Goal Tip Link={self.goaltiplink}")
             print(f"Current Joint Positions (rad): {[f'{j:.4f}' for j in currentjointpos]}")
             
             # Enable buttons
             self.ui.appCollapsibleButton.collapsed = False
             self.ui.appCollapsibleButton.enabled = True
             
-            # Check if /move_group node exists and ghost robot in ROS
+            # Check if /move_group node exists and goal robot in ROS
             # if so enable MoveIt buttons
             is_running = _check_ros2_node_running("/move_group")
             if is_running:
@@ -405,7 +392,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 if not is_running:
                     print(f"/move_group node is NOT running")
             
-            # Create Joint Sliders Dynamically (only if ghost model exists)
+            # Create Joint Sliders Dynamically (only if goal model exists)
             self.ui.zeropushButton.enabled = True
             limits = self.logic.parse_joint_limits_from_urdf(urdf_xml)
             container = self.ui.Jointtab.layout()
@@ -515,9 +502,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # store as radians
         self.jointPositionsRad[idx] = math.radians(valueDeg)
 
-        # Update ghost robot transforms with new joint positions
+        # Update goal robot transforms with new joint positions
         if self.logic is not None and self.robot is not None:
-            self.logic.updateGhostTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
         
         print(f"All joint values (rad): {[f'{j:.4f}' for j in self.jointPositionsRad]}")
     
@@ -570,9 +557,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Reset stored joint positions to match slider count
         self.jointPositionsRad = [0.0] * len(sliders_found)
 
-        # Update ghost robot with zero positions
+        # Update goal robot with zero positions
         if self.logic is not None and self.robot is not None:
-            self.logic.updateGhostTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
             self.logic.last_ik_solution = self.jointPositionsRad.copy()
 
     def onMoveGroupToggled(self, toggled: bool) -> None:
@@ -590,7 +577,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             
     def onTabChanged(self, index):
             if not self.isRobotLoaded:
-                print("Robot not loaded yet; ignoring tab change.")
                 return
             
             # 1. Get the widget that is currently visible
@@ -637,13 +623,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 # This aligns the probe (Pos + Rot) with the robot immediately, 
                 # solving the "Impossible Orientation" issue at startup.
                 try:
-                    # A. Decide which tip to follow: Ghost (Preferred) -> Real (Fallback)
-                    target_tip_link = self.ghosttiplink if self.ghosttiplink else self.tiplink
-                    use_ghost = (target_tip_link == self.ghosttiplink)
+                    # A. Decide which tip to follow: goal (Preferred) -> Real (Fallback)
+                    target_tip_link = self.goaltiplink if self.goaltiplink else self.tiplink
+                    use_goal = (target_tip_link == self.goaltiplink)
 
                     if target_tip_link:
                         # B. Find the Transform Node
-                        tip_transform_node = self.logic.findRobotTransforms(target_tip_link, ghost=use_ghost)
+                        tip_transform_node = self.logic.findRobotTransforms(target_tip_link, goal=use_goal)
                         
                         if tip_transform_node:
                             # C. Get the Full 4x4 Matrix (Pos + Rot) in World Coordinates
@@ -673,7 +659,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 print(f"\n=== TIP LINK CONFIGURATION ===")
                 print(f"rootlink (base): {self.rootlink}")
                 print(f"tiplink (target): {self.tiplink}")
-                print(f"ghosttiplink: {self.ghosttiplink}")
+                print(f"goaltiplink: {self.goaltiplink}")
                 print(f"================================\n")
                 self.logic.tipLink = self.tiplink
                 
@@ -763,14 +749,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     # Show first point of trajectory
                     if self.robot and num_points > 0:
                         positions = trajectory['points'][0]['positions']
-                        self.logic.updateGhostTransformsFromJointsKDL(self.robot, positions)
+                        self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
                 else:
                     print("Error: No points found in trajectory")
             except json.JSONDecodeError as e:
                 print(f"Error parsing trajectory JSON: {e}")
         
     def onpreviewButton(self) -> None:
-        """Preview the planned trajectory on the ghost robot"""
+        """Preview the planned trajectory on the goal robot"""
         if not self.trajectoryData:
             print("No trajectory to preview. Run Plan first.")
             return
@@ -799,9 +785,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         point = self.trajectoryData['points'][self.trajectoryIndex]
         positions = point['positions']
         
-        # Apply to ghost robot
+        # Apply to goal robot
         if self.robot:
-            self.logic.updateGhostTransformsFromJointsKDL(self.robot, positions)
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
             print(f"Point {self.trajectoryIndex}/{len(self.trajectoryData['points'])-1}: {[f'{p:.3f}' for p in positions]}")
         
         self.trajectoryIndex += 1
@@ -820,8 +806,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             point = self.trajectoryData['points'][value]
             positions = point['positions']
             
-            # Apply to ghost robot
-            self.logic.updateGhostTransformsFromJointsKDL(self.robot, positions)
+            # Apply to goal robot
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
             
             # Update spinbox if it's not the source of the change
             if self.trajectorySpinBox.value != value:
@@ -976,7 +962,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         print(f"Attached '{probeTransformName}' under leaf transform '{leaf.GetName()}'")
         return dict(leafTransform=leaf, probeTransform=probeT)
     
-    def findRobotTransforms(self, link_name, ghost=False):
+    def findRobotTransforms(self, link_name, goal=False):
         """
         Locates the Slicer Transform node for a given link by looking for 
         the visual model and getting its parent.
@@ -984,7 +970,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         # Construct expected model name
         model_name = f"{link_name}_model"
         
-        if ghost:
+        if goal:
             model_name = link_name
 
         
@@ -994,7 +980,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             raise RuntimeError(f"Model for link '{link_name}' not found as '{model_name}'")
         parent = model_node.GetParentTransformNode()
         if parent:
-            print(f"Found transform for '{link_name}' via model '{model_name}': {parent.GetName()}")
+            # print(f"Found transform for '{link_name}' via model '{model_name}': {parent.GetName()}")
             return parent
         else:
             raise RuntimeError(f"Could not find Transform for link '{link_name}'")
@@ -1080,7 +1066,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 print(f"[IK] Joint Solution: {data}")
                 self.last_ik_solution = data
                 # Publish the joint state solution
-                self.updateGhostTransformsFromJointsKDL(robotmodel, data)
+                self.updategoalTransformsFromJointsKDL(robotmodel, data)
                 return data
 
             except ValueError as e:
@@ -1120,7 +1106,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     data = [float(x) for x in result_str.split(",")]
                     print(f"[IK] Solution found: {data}")
                     self.last_ik_solution = data
-                    self.updateGhostTransformsFromJointsKDL(robotmodel, data)
+                    self.updategoalTransformsFromJointsKDL(robotmodel, data)
                     return data
                 except ValueError as e:
                     print(f"[IK] Failed to parse solution: {e}")
@@ -1415,8 +1401,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     real_child_model = f"{child_link}"
                     
                     try:
-                        parent_transform = self.findRobotTransforms(real_parent_model, ghost=False)
-                        child_transform = self.findRobotTransforms(real_child_model, ghost=False)
+                        parent_transform = self.findRobotTransforms(real_parent_model, goal=False)
+                        child_transform = self.findRobotTransforms(real_child_model, goal=False)
                     except Exception:
                         # If transforms aren't in the scene, assume 0.0
                         joint_positions.append(0.0)
@@ -1478,9 +1464,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             
             return joint_positions
     
-    def getcurrentghostjointpositions(self, robotmodel):
+    def getcurrentgoaljointpositions(self, robotmodel):
         """
-        Calculate current joint values from the ghost robot's link transforms.
+        Calculate current joint values from the goal robot's link transforms.
         Returns a list of joint angles in radians.
         """
         if not robotmodel:
@@ -1506,7 +1492,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         joint_positions = []
         
         # For each joint, compute the relative rotation between parent and child links
-        # Ghost links have "_ghost" suffix in their model names
+        # goal links have "_goal" suffix in their model names
         for joint_name in joint_names:
             try:
                 if joint_name not in joint_info:
@@ -1519,17 +1505,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 child_link = info['child']
                 axis = info['axis']
                 
-                # Ghost links have model names with "_ghost" suffix
-                # When ghost=True, findRobotTransforms expects the full model node name
-                ghost_parent_model = f"{parent_link}_model_ghost"
-                ghost_child_model = f"{child_link}_model_ghost"
+                # goal links have model names with "_goal" suffix
+                # When goal=True, findRobotTransforms expects the full model node name
+                goal_parent_model = f"{parent_link}_model_goal"
+                goal_child_model = f"{child_link}_model_goal"
                 
-                # Get transform nodes for ghost parent and child links
+                # Get transform nodes for goal parent and child links
                 try:
-                    parent_transform = self.findRobotTransforms(ghost_parent_model, ghost=True)
-                    child_transform = self.findRobotTransforms(ghost_child_model, ghost=True)
+                    parent_transform = self.findRobotTransforms(goal_parent_model, goal=True)
+                    child_transform = self.findRobotTransforms(goal_child_model, goal=True)
                 except RuntimeError as e:
-                    print(f"Warning: Could not find ghost transforms for joint '{joint_name}': {e}")
+                    print(f"Warning: Could not find goal transforms for joint '{joint_name}': {e}")
                     joint_positions.append(0.0)
                     continue
                 
@@ -1555,31 +1541,31 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     angle_deg = -angle_deg
                     
                 angle_rad = math.radians(angle_deg)
-                print(f"[Ghost] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_deg={angle_deg:.1f}, rad={angle_rad:.4f}")
+                print(f"[goal] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_deg={angle_deg:.1f}, rad={angle_rad:.4f}")
                 joint_positions.append(angle_rad)
                     
             except Exception as e:
-                print(f"Error reading ghost joint '{joint_name}': {e}")
+                print(f"Error reading goal joint '{joint_name}': {e}")
                 joint_positions.append(0.0)
         
         return joint_positions
     
-    def updateGhostTransformsFromJointsKDL(self, robotmodel, joint_values):
+    def updategoalTransformsFromJointsKDL(self, robotmodel, joint_values):
         """
-        Update all ghost robot link transforms using KDL FK computation.
-        For each link, calls ComputeKDLFK to get the transform and applies it to the ghost link.
+        Update all goal robot link transforms using KDL FK computation.
+        For each link, calls ComputeKDLFK to get the transform and applies it to the goal link.
         
         Args:
             robotmodel: The robot model node with ComputeLocalTransform method
             joint_values: List of joint angles in radians
         """
         if not robotmodel or not joint_values:
-            print("[updateGhostTransformsFromJointsKDL] No robot model or joint values")
+            print("[updategoalTransformsFromJointsKDL] No robot model or joint values")
             return False
         
         seg = robotmodel.GetSegments()
         
-        # For each link, compute FK and update ghost transform
+        # For each link, compute FK and update goal transform
         for link_name in seg:
             try:
                 # Create a matrix to hold the FK result
@@ -1593,19 +1579,19 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     print(f"[FK] Failed to compute FK for link '{link_name}'")
                     continue
                 
-                # Find the ghost link's transform node
-                ghost_link_name = link_name + "_model_ghost"
+                # Find the goal link's transform node
+                goal_link_name = link_name + "_model_goal"
                 try:
-                    ghost_model = slicer.util.getNode(ghost_link_name)
-                    if ghost_model:
-                        ghost_transform = ghost_model.GetParentTransformNode()
-                        if ghost_transform:
-                            # Apply the FK matrix to the ghost transform
-                            ghost_transform.SetMatrixTransformToParent(fk_matrix)
+                    goal_model = slicer.util.getNode(goal_link_name)
+                    if goal_model:
+                        goal_transform = goal_model.GetParentTransformNode()
+                        if goal_transform:
+                            # Apply the FK matrix to the goal transform
+                            goal_transform.SetMatrixTransformToParent(fk_matrix)
                             print(fk_matrix)
-                            print(f"[FK] Updated ghost transform for '{link_name}'")
+                            print(f"[FK] Updated goal transform for '{link_name}'")
                 except:
-                    print(f"[FK] Could not find or update ghost model for '{link_name}'")
+                    print(f"[FK] Could not find or update goal model for '{link_name}'")
                     
             except Exception as e:
                 print(f"[FK] Error computing FK for link '{link_name}': {e}")
