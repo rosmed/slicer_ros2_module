@@ -655,7 +655,8 @@ void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
     // iterate through lookup nodes - make sure they have parent and children set and call lookup try catch
     int nbLookupRefs = this->GetNumberOfNodeReferences("lookup");
     for (int i = 0; i < nbLookupRefs; i ++) {
-      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookup", i));
+      vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(this->GetNthNodeReference("lookup", i));        
+      lookupNode->IncrementLookupAttempts();
       const std::string & parent_id = lookupNode->GetParentID();
       const std::string & child_id = lookupNode->GetChildID();
       try {
@@ -674,7 +675,9 @@ void vtkMRMLROS2NodeNode::SpinTf2Buffer(void)
         }
       }
       catch (tf2::TransformException & ex) {
-        vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
+        if (lookupNode->GetLookupAttempts() >= 10) {
+          vtkErrorMacro(<< "SpinTf2Buffer on \"" << lookupNode->GetLookupAttempts() << mMRMLNodeName << ": could not find the transform between " << parent_id << " and " << child_id << ", " << ex.what());
+        }
       }
       catch (...) {
         vtkErrorMacro(<< "SpinTf2Buffer on \"" << mMRMLNodeName << ": undefined exception while looking up transform between " << parent_id << " and " << child_id);

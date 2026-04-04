@@ -31,9 +31,8 @@ lookups to refresh the position of each link.
 
 .. note::
 
-   VTK can import ``.stl`` and ``.obj`` meshes.  If your model uses
-   other CAD formats, the robot will be created in Slicer but it will
-   not show-up.
+   VTK natively imports ``.stl`` and ``.obj`` meshes. We use the Assimp library
+   to support other CAD formats like ``.dae``.
 
 =========
 ROS Robot
@@ -45,8 +44,8 @@ to try SlicerROS2.
 
 They cover serial robots (Phantom Omni and Cobot) as well as a robot
 with parallel linkages (dVRK PSM).  The SlicerROS2 module should work
-with any other robots as long as the links CAD files are either
-``.stl`` or ``.obj``.
+with any other robots as long as the links CAD files are supported
+by VTK or Assimp (e.g. ``.stl``, ``.obj``, ``.dae``).
 
 Phantom Omni
 ============

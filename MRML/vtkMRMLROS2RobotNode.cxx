@@ -5,7 +5,11 @@
 #include <vtkTransform.h>
 #include <vtkPointSet.h>
 #include <vtkSTLReader.h>
+#include <vtkOBJReader.h>
+#include <vtkAlgorithmOutput.h>
 #include <vtkTransformFilter.h>
+#include <vtksys/SystemTools.hxx>
+#include "vtkAssImpConversion.h"
 
 #include <vtkMRMLScene.h>
 #include <vtkMRMLTransformNode.h>
@@ -237,7 +241,6 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
       // Get stl file name and add it to a list of vectors for python parsing later
       std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry); // How do I put this in the internals??
       if (mesh != nullptr) {
-	mNthRobot.mRobotScale = {mesh->scale.x, mesh->scale.y, mesh->scale.z};
 	// See if the file name uses a package url
         std::string filename = mesh->filename;
         std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
@@ -314,36 +317,64 @@ void vtkMRMLROS2RobotNode::InitializeOffsetsAndLinkModels(void)
     transform->RotateX(r * (180.0/M_PI));
     transform->Modified();
 
-    // Scale
-    vtkNew<vtkMatrix4x4> offsetMatrix;
-    transformNode->GetMatrixTransformToParent(offsetMatrix);
-    vtkNew<vtkMatrix4x4> MmToM_Transform;
-    MmToM_Transform->SetElement(0, 0, vtkMRMLROS2::FromSI(1.0));
-    MmToM_Transform->SetElement(1, 1, vtkMRMLROS2::FromSI(1.0));
-    MmToM_Transform->SetElement(2, 2, vtkMRMLROS2::FromSI(1.0));
-    MmToM_Transform->Multiply4x4(offsetMatrix, MmToM_Transform, offsetMatrix);
+      transformNode->SetAndObserveTransformToParent(transform);
 
-    transformNode->SetAndObserveTransformToParent(transform);
-    transformNode->SetMatrixTransformToParent(offsetMatrix);
-    transform->Modified();
+      // Load the model and apply the offset
+      std::string filename = mNthRobot.mLinkModelFiles[i];
+      std::string ext = vtksys::SystemTools::LowerCase(vtksys::SystemTools::GetFilenameLastExtension(filename));
+      
+      vtkSmartPointer<vtkAlgorithmOutput> port;
+      vtkSmartPointer<vtkPointSet> meshFromFile;
 
-    // Load the model and apply the offset
-    std::string filename = mNthRobot.mLinkModelFiles[i];
-    vtkNew<vtkSTLReader> reader; // default is STL
-    reader->SetFileName(mNthRobot.mLinkModelFiles[i].c_str());
-    reader->Update();
+      if (ext == ".stl") {
+          vtkNew<vtkSTLReader> reader;
+          reader->SetFileName(filename.c_str());
+          reader->Update();
+        port = reader->GetOutputPort();
+    } else if (ext == ".obj") {
+        vtkNew<vtkOBJReader> reader;
+        reader->SetFileName(filename.c_str());
+        reader->Update();
+        port = reader->GetOutputPort();
+    } else {
+        // Use Assimp for other formats (like .dae)
+        vtkSmartPointer<vtkPolyData> polyData = vtkAssImpConversion::vtkAssImpToPolyData(filename);
+        if (polyData) {
+            meshFromFile = polyData;
+        } else {
+            vtkErrorMacro(<< "Failed to load model file: " << filename);
+            continue;
+        }
+    }
 
     // Apply the scaling factor
     vtkSmartPointer<vtkTransform> scaleRobotTransform = vtkSmartPointer<vtkTransform>::New();
-    scaleRobotTransform->Scale(mNthRobot.mRobotScale[0], mNthRobot.mRobotScale[1], mNthRobot.mRobotScale[2]);
-    vtkSmartPointer<vtkTransformFilter> transformFilter = vtkSmartPointer<vtkTransformFilter>::New();
-    transformFilter->SetInputConnection(reader->GetOutputPort());
-    transformFilter->SetTransform(scaleRobotTransform);
-    transformFilter->Update();
+    
+    double sx = 1.0, sy = 1.0, sz = 1.0;
+    if (mInternals->mVisualVector[i] != nullptr) {
+        std::shared_ptr<urdf::Mesh> mesh = std::dynamic_pointer_cast<urdf::Mesh>(mInternals->mVisualVector[i]->geometry);
+        if (mesh != nullptr) {
+            sx = mesh->scale.x;
+            sy = mesh->scale.y;
+            sz = mesh->scale.z;
+        }
+    }
+    scaleRobotTransform->Scale(vtkMRMLROS2::FromSI(sx),
+                               vtkMRMLROS2::FromSI(sy),
+                               vtkMRMLROS2::FromSI(sz));
 
-    vtkSmartPointer<vtkPointSet> meshFromFile;
-    // meshFromFile = reader->GetOutput();
+    vtkSmartPointer<vtkTransformFilter> transformFilter = vtkSmartPointer<vtkTransformFilter>::New();
+    transformFilter->SetTransform(scaleRobotTransform);
+
+    if (port) {
+        transformFilter->SetInputConnection(port);
+    } else if (meshFromFile) {
+        transformFilter->SetInputData(meshFromFile);
+    }
+    
+    transformFilter->Update();
     meshFromFile = transformFilter->GetOutput();
+
     vtkSmartPointer<vtkPointSet> meshToSetInNode;
 
     vtkSmartPointer<vtkMRMLModelNode> modelNode = vtkMRMLModelNode::New();
@@ -389,7 +420,11 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
       vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = mNthRobot.mLookupNodes[j];
       std::string child = potentialParent->GetChildID();
       if (child == parent) {
-        lookup->SetAndObserveTransformNodeID(potentialParent->GetID());
+        if (!lookup->SetAndObserveTransformNodeID(potentialParent->GetID())) {
+          vtkErrorMacro(<< "Failed to set parent transform. Lookup ID: " << lookup->GetID() 
+                        << " (Parent connection: " << parent << "), Potential Parent ID: " << potentialParent->GetID() 
+                        << " (Child connection: " << child << ")");
+        }
       }
     }
   }
@@ -398,7 +433,13 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     vtkSmartPointer<vtkMRMLModelNode> linkModel = mNthRobot.mLinkModels[i];
     vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
-    linkModel->SetAndObserveTransformNodeID(lookup->GetID());
+    if (!linkModel->SetAndObserveTransformNodeID(lookup->GetID())) {
+      vtkErrorMacro(<< "Failed to set transform node ID for model link to lookup " << lookup->GetID() 
+                    << " (child: " << lookup->GetChildID() << "). Mesh ignored and removed.");
+      if (this->GetScene()) {
+        this->GetScene()->RemoveNode(linkModel);
+      }
+    }
   }
   vtkDebugMacro(<< "SetupTransformTree complete");
 }
@@ -972,7 +1013,7 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2RobotNode::PlanMoveItTrajectory(const s
   moveit::planning_interface::MoveGroupInterface::Plan plan;
   auto result = moveGroup.plan(plan);
   if (result == moveit::core::MoveItErrorCode::SUCCESS) {
-    vtkROS2ToSlicer(plan.trajectory_, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
+    vtkROS2ToSlicer(plan.trajectory, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
   } else {
     vtkErrorMacro(<< "PlanMoveItTrajectory: planning failed for group '" << groupName
                   << "' with MoveItErrorCode=" << result.val);
@@ -1070,7 +1111,7 @@ bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectory(const std::string& groupName,
 
     // Create a plan with the trajectory
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    plan.trajectory_ = ros_traj;
+    plan.trajectory = ros_traj;
 
     // Execute the trajectory
     auto result = moveGroup.execute(plan);
@@ -1150,7 +1191,7 @@ bool vtkMRMLROS2RobotNode::ExecuteMoveItTrajectoryAsync(const std::string& group
 
         // Create a plan with the trajectory
         moveit::planning_interface::MoveGroupInterface::Plan plan;
-        plan.trajectory_ = ros_traj;
+        plan.trajectory = ros_traj;
 
         // Execute the trajectory
         moveGroup.execute(plan);

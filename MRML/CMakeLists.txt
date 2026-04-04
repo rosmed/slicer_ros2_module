@@ -1,5 +1,7 @@
 project(vtkSlicer${MODULE_NAME}ModuleMRML)
 
+find_package(assimp REQUIRED)
+
 set(KIT ${PROJECT_NAME})
 
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT")
@@ -100,6 +102,8 @@ set(_SRCS_INTERNAL
   vtkSlicerToROS2.cxx
   # vtkMRMLROS2Utils.h
   vtkMRMLROS2Utils.cxx
+  # vtkAssImpConversion.h
+  vtkAssImpConversion.cxx
   )
 
 set(${KIT}_SRCS
@@ -137,13 +141,13 @@ set(${KIT}_SRCS
 
 set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 
-# --------------------------------------------------------------------------
 # Build the library
 
 set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
   ${SlicerROS2_ROS_LIBRARIES}
+  assimp::assimp
   moveit_ros_planning_interface::moveit_move_group_interface
   moveit_ros_planning::moveit_robot_model_loader
   ${kdl_parser_LIBRARIES}
