@@ -420,11 +420,16 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
     for (size_t j = 0; j < mNumberOfLinks; j++) {
       vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> potentialParent = mNthRobot.mLookupNodes[j];
       std::string child = potentialParent->GetChildID();
-      if (child == parent) {
+      if (child == parent && i != j) {
         if (!lookup->SetAndObserveTransformNodeID(potentialParent->GetID())) {
           vtkErrorMacro(<< "Failed to set parent transform. Lookup ID: " << lookup->GetID() 
                         << " (Parent connection: " << parent << "), Potential Parent ID: " << potentialParent->GetID() 
-                        << " (Child connection: " << child << ")");
+                        << " (Child connection: " << child << "). Mesh will not be displayed.");
+          // Remove the corresponding model node from the scene as we don't know where to display it
+          if (mNthRobot.mLinkModels[i] != nullptr && this->GetScene()) {
+            this->GetScene()->RemoveNode(mNthRobot.mLinkModels[i]);
+            mNthRobot.mLinkModels[i] = nullptr;
+          }
         }
       }
     }
@@ -433,12 +438,16 @@ void vtkMRMLROS2RobotNode::SetupTransformTree(void)
   // Setup models on their corresponding offsets
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     vtkSmartPointer<vtkMRMLModelNode> linkModel = mNthRobot.mLinkModels[i];
+    if (linkModel == nullptr) {
+      continue; // Was removed previously due to transform tree failure
+    }
     vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup = mNthRobot.mLookupNodes[i];
     if (!linkModel->SetAndObserveTransformNodeID(lookup->GetID())) {
       vtkErrorMacro(<< "Failed to set transform node ID for model link to lookup " << lookup->GetID() 
                     << " (child: " << lookup->GetChildID() << "). Mesh ignored and removed.");
       if (this->GetScene()) {
         this->GetScene()->RemoveNode(linkModel);
+        mNthRobot.mLinkModels[i] = nullptr;
       }
     }
   }
