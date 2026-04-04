@@ -24,7 +24,7 @@ configure a robot in ROS 2. The default ROS approach requires:
 Before testing SlicerROS2, you should always check that your setup is
 correct and works with RViz.
 
-Once the ROS robot is setup properly, the SlicerROS2 robot node can be
+Once the ROS robot is set up properly, the SlicerROS2 robot node can be
 used to visualize the robot in Slicer.  Internally, the robot node
 will use a parameter node to retrieve the URDF description and tf2
 lookups to refresh the position of each link.
@@ -51,8 +51,8 @@ Phantom Omni
 ============
 
 The Phantom Omni is an entry level haptic device initially sold by
-Sensable.  Later on, it has been renamed Geomagic Touch or 3DS Touch.
-The initial version used a FireWire connection.  Later models used
+Sensable. Later on, it has been renamed Geomagic Touch or 3DS Touch.
+The initial version used a FireWire connection. Later models used
 Ethernet and more recently USB.
 
 .. image:: /images/sensable-omni.png
@@ -60,29 +60,38 @@ Ethernet and more recently USB.
   :align: center
   :alt: Sensable Omni in Slicer
 
-We created and used a ROS package for the Phantom Omni: `Omni Github
-Link <https://github.com/jhu-saw/ros2_sensable_omni_model>`_.  This
-package has no external dependencies and is very light so it's a good
-way to test the SlicerROS2 module.  You can download this repository
-in your ROS 2 workspace's source directory and then build.  Always
-remember to use ``colcon build`` followed by ``source
-install/setup.bash`` when you downloaded a new package to ``src``.
+Full dVRK stack
+---------------
 
-This package contains the URDF, STL meshes, a launch file for the
-``robot_state_publisher`` as well as a dummy script that publishes a
-joint trajectory so one can see the arm moving around.
+Installing the cisst/SAW Omni code base is not too difficult, but it will take a`few minutes to compile. It is useful if and only if you happen to have an actual device.  You can find the build instructions for ROS 2 in the README for https://github.com/jhu-saw/vcs.
+
+Models only
+-----------
+
+If you prefer to not compile the full dVRK cisst/SAW, you can just clone the package using:
+
+.. code-block:: bash
+
+    git clone --filter=blob:none --sparse https://github.com/jhu-saw/sawSensablePhantom
+    cd sawSensablePhantom
+    git sparse-checkout set models
+
+Testing
+-------
+
+Don't forget to build and source the ROS workspace after cloning.  The package ``sensable_phantom_model`` contains the URDF, STL meshes, a launch file for the ``robot_state_publisher`` as well as a dummy script that publishes a joint trajectory, so one can see the arm moving around.
 
 To start the ``robot_state_publisher``, use:
 
 .. code-block:: bash
 
-  ros2 launch sensable_omni_model omni.launch.py
+  ros2 launch sensable_phantom_model omni_rviz.launch.py
 
-Then, to start the robot's dance, use an other terminal:
+Then, to start the robot's dance, use another terminal:
 
 .. code-block:: bash
 
-  ros2 run sensable_omni_model pretend_omni_joint_state_publisher
+  ros2 run sensable_phantom_model pretend_omni_joint_state_publisher
 
 
 dVRK PSM
@@ -99,45 +108,27 @@ ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
   :align: center
   :alt: dVRK PSM in Slicer
 
-Installing the dVRK code base is not too difficult but it will take a
-few minutes to compile.  You can find the build instructions for ROS 2
-ins the `dVRK manual
-<https://dvrk.readthedocs.io/en/latest/pages/software/compilation/ros2.html>`_.
-
-Once you've compiled all the dVRK related packages, you can use the arm launch file:
-
-.. code-block:: bash
-
-   source ~/ros2_ws/install/setup.bash
-   ros2 launch dvrk_model arm.launch arm:=PSM1 generation:=Classic
-
-.. note::
-
-   You don't need to compile the full dVRK stack if you just want to
-   display a dVRK arm.  You can build the package
-   https://github.com/jhu-dvrk/dvrk_model in your ROS workspace and
-   then use the command line: ``ros2 launch dvrk_model arm.launch
-   arm:=PSM1 generation:=Classic simulated:=False``.
-
 
 Cobot
 =====
 
-We also tested SlicerROS2 on `myCobot by Elephant Robotics
-<https://www.elephantrobotics.com/en/mycobot-en/>`_, specifically the
-myCobot 280 M5 Stack.  The ROS 2 interface for the device can be found
-`here <https://github.com/elephantrobotics/mycobot_ros2>`_ and drivers
-can be installed from the Elephant Robotics website.
+We also tested SlicerROS2 on `myCobot by Elephant Robotics <https://www.elephantrobotics.com/en/mycobot-en/>`_, specifically the myCobot 280 M5 Stack.  The ROS 2 interface for the device can be found `here <https://github.com/elephantrobotics/mycobot_ros2>`_ and drivers can be installed from the Elephant Robotics website.
 
-Assuming the interface (mycobot_ros2) is cloned under the same
-``ros2_ws``, the state publisher can be started using the following steps:
+Assuming the interface (mycobot_ros2) is cloned under the same ``ros2_ws``, you can start the robot state publisher with RViz using the following command:
+
+.. code-block:: bash
+
+  source ~/ros2_ws/install/setup.bash
+  ros2 launch mycobot_280 test.launch.py
+
+The state publisher can also be started manually using the following steps:
 
 .. code-block:: bash
 
   cd ~/ros2_ws/src/mycobot_ros2/src/mycobot_ros2/mycobot_280/mycobot_280/config
   python3 listen_real.py
 
-It's possible that you will need to change the port specified on line
+It is possible that you will need to change the port specified on line
 14 of ``listen_real.py`` depending on your device.  The ``.dae`` files
 in the robot description also need to be converted to STLs (an online
 converter will work) and the paths in the URDF file should be updated
