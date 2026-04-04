@@ -633,12 +633,12 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
 {
   try {
     auto rootAndTip = FindRootAndTipLinks();
-    const std::string& defaultRoot = rootAndTip.value().first;
-    const std::string& defaultTip = rootAndTip.value().second;
-    if (defaultRoot.empty() || defaultTip.empty()) {
+    if (rootAndTip.size() < 2 || rootAndTip[0].empty() || rootAndTip[1].empty()) {
       vtkErrorMacro(<< "setupKDLIKWithLimits: Failed to determine root/tip links from URDF");
       return false;
     }
+    const std::string& defaultRoot = rootAndTip[0];
+    const std::string& defaultTip = rootAndTip[1];
     vtkInfoMacro(<< "Auto KDL setup with limits. Root: '" << defaultRoot
                  << "' Tip: '" << defaultTip << "'");
 
@@ -725,12 +725,12 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
   }
 }
 
-std::optional<std::pair<std::string, std::string>> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
+std::vector<std::string> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
 {
   auto rootLink = mInternals->mURDFModel.getRoot();
   if (!rootLink) {
     vtkErrorMacro(<< "FindRootAndTipLinks: URDF root link is null");
-    return std::nullopt;
+    return {};
   }
 
   std::string rootLinkName = rootLink->name;
@@ -757,7 +757,7 @@ std::optional<std::pair<std::string, std::string>> vtkMRMLROS2RobotNode::FindRoo
     }
   }
 
-  return std::make_pair(rootLinkName, tipLinkName);
+  return {rootLinkName, tipLinkName};
 }
 
 

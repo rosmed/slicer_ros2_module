@@ -71,7 +71,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   // KDL Chain information methods
   std::vector<std::string> GetSegments();
   std::vector<std::string> GetJoints();
-  std::optional<std::pair<std::string, std::string>> FindRootAndTipLinks() const;
+  std::vector<std::string> FindRootAndTipLinks() const;
 
   vtkMatrix4x4* ComputeKDLFK(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName = "");
   vtkMatrix4x4* ComputeLocalTransform(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName);
