@@ -112,9 +112,9 @@
     </spacer>
    </item>
     <item row="5" column="0" colspan="2">
-     <widget class="QCheckBox" name="previewCheckBox">
+     <widget class="QCheckBox" name="goalCheckBox">
       <property name="text">
-        <string>Use Preview Robot</string>
+        <string>Use Goal Robot</string>
       </property>
      </widget>
     </item>
