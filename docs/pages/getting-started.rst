@@ -91,9 +91,9 @@ Other ROS packages that might not be installed by default. You can install all r
 
    sudo apt install ros-$ROS_DISTRO-rclcpp ros-$ROS_DISTRO-tf2 ros-$ROS_DISTRO-tf2-ros ros-$ROS_DISTRO-kdl-parser ros-$ROS_DISTRO-urdf ros-$ROS_DISTRO-std-msgs ros-$ROS_DISTRO-std-srvs ros-$ROS_DISTRO-geometry-msgs ros-$ROS_DISTRO-sensor-msgs ros-$ROS_DISTRO-trajectory-msgs ros-$ROS_DISTRO-object-recognition-msgs ros-$ROS_DISTRO-rosbag2-interfaces ros-$ROS_DISTRO-turtlesim ros-$ROS_DISTRO-moveit-msgs ros-$ROS_DISTRO-moveit-core ros-$ROS_DISTRO-moveit-ros-planning ros-$ROS_DISTRO-moveit-ros-planning-interface liborocos-kdl-dev libassimp-dev
 
-*(Note: Replace ``$ROS_DISTRO`` with your ROS distribution's name, e.g., ``humble``, ``jazzy``, if it is not exported in your environment).*
+* Note: Replace ``$ROS_DISTRO`` with your ROS distribution's name, e.g., ``jazzy``, ``rolling``, if it is not exported in your environment.
 
-You will first need to "source" the ROS setup script for ROS 2 (Jazzy
+* You will first need to "source" the ROS setup script for ROS 2 (Jazzy
 in this example):
 
 .. code-block:: bash
@@ -113,8 +113,7 @@ Slicer build directory ``Slicer_DIR``:
 
 
 The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
-first ``colcon`` call.  For future builds, you can revert back to just
-using ``colcon build``.
+first ``colcon`` call.  For future builds, you can just use ``colcon build``.
 
 If the ``Slicer_DIR`` is not set properly (or you simply forgot), you
 should see the following error messages"
@@ -136,6 +135,9 @@ you prefer a graphical interface, you can use ``cmake-gui`` instead of
 ``ccmake``.  Once ``Slicer_DIR`` is set, try ``colcon build`` again
 (after ``cd ~/ros2_ws``).
 
+.. note::
+
+    Linking is very slow when using the default linker ``ld``.  You can speed up the process by using ``mold`` instead.  To do so, install ``mold`` with ``sudo apt install mold`` and set your linker to ``mold`` by adding ``-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold"`` to the CMake arguments when building with ``colcon``.
 
 ==================
 Loading the module
