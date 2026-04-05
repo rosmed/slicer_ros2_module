@@ -38,8 +38,8 @@
 #include <vtkSlicerToROS2.h>
 
 // MoveIt kinematics and planning includes
-#include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/robot_model_loader/robot_model_loader.hpp>
+#include <moveit/move_group_interface/move_group_interface.hpp>
 // ROS2 parameter client for reading remote node parameters
 #include <rclcpp/parameter_client.hpp>
 #include <chrono>
