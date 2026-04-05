@@ -339,11 +339,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 print("Error: Could not auto-detect root and tip links from URDF.")
                 return
             
-            alllink = self.logic.parse_all_link_names_from_urdf(urdf_xml)
-            if not alllink: 
-                print("Error: No links found in URDF.")
-                return
-            
             # Check if goal model exists, if so store goal tip
             goal_name = self.tiplink + "_model_goal"
             try:
@@ -1218,48 +1213,6 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         return limits
     
-    # Parse urdf to get joint names. parses only non-fixed joints
-    def parse_joint_names_from_urdf(self, urdf_xml: str):
-        root = ET.fromstring(urdf_xml)
-        names = []
-
-        for joint in root.findall("joint"):
-            jtype = joint.get("type", "")
-            name = joint.get("name", "")
-            if not name:
-                continue
-            if jtype == "fixed":
-                continue
-            names.append(name)
-
-        return names
-    
-    # Parse urdf to get all joint names and types
-    def parse_all_joint_types_from_urdf(self, urdf_xml: str):
-        root = ET.fromstring(urdf_xml)
-        name_to_type = {}
-
-        for joint in root.findall("joint"):
-            name = joint.get("name", "")
-            if not name:
-                continue
-            jtype = joint.get("type", "")
-            name_to_type[name] = jtype
-
-        return name_to_type
-    
-    # Parse urdf to get all link names
-    def parse_all_link_names_from_urdf(self, urdf_xml: str):
-        root = ET.fromstring(urdf_xml)
-        names = []
-
-        for link in root.findall("link"):
-            name = link.get("name", "")
-            if not name:
-                continue
-            names.append(name)
-
-        return names
     
     def parse_joint_structure_from_urdf(self, urdf_xml: str):
             """
