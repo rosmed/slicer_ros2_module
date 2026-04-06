@@ -163,8 +163,11 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
 
   mNthRobot.mRobotDescription = mNthRobot.mRobotDescriptionParameterNode->GetParameterAsString("robot_description");
   if (mNumberOfLinks == 0) {
-    ParseRobotDescription();
-    SetupRobotVisualization();
+    if (ParseRobotDescription()) {
+      SetupRobotVisualization();
+    } else {
+      vtkErrorMacro(<< "ObserveParameterNodeCallback: Failed to parse robot description");
+    }
   }
 
 }
@@ -188,6 +191,10 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
 
   // Start with the root (base of the robot)
   auto root = mInternals->mURDFModel.getRoot();
+  if (!root) {
+    vtkErrorMacro(<< "InitializeLookupListFromURDF: root link not found in URDF model");
+    return;
+  }
   std::string root_name = root->name;
   mNthRobot.mLinkNames.push_back(root_name);
   mNthRobot.mLinkParentNames.push_back(root_name);
@@ -202,6 +209,11 @@ void vtkMRMLROS2RobotNode::InitializeLookupListFromURDF(void)
   size_t lastExplored = 0;
   while (lastExplored != mInternals->mVisualVector.size()) {
     mInternals->mParentLinkPointer = mInternals->mURDFModel.getLink(mNthRobot.mLinkNames[lastExplored]);
+    if (!mInternals->mParentLinkPointer) {
+      vtkWarningMacro(<< "InitializeLookupListFromURDF: Failed to find link " << mNthRobot.mLinkNames[lastExplored]);
+      lastExplored++;
+      continue;
+    }
     mInternals->mChildLinkPointer =  mInternals->mParentLinkPointer->child_links;
 
     for (auto i: mInternals->mChildLinkPointer) {
@@ -242,9 +254,9 @@ void vtkMRMLROS2RobotNode::InitializeOffsetListAndModelFilesFromURDF(void)
       // Get stl file name and add it to a list of vectors for python parsing later
       std::shared_ptr<urdf::Mesh> mesh =  std::dynamic_pointer_cast<urdf::Mesh>(i->geometry); // How do I put this in the internals??
       if (mesh != nullptr) {
-	// See if the file name uses a package url
+	      // See if the file name uses a package url
         std::string filename = mesh->filename;
-        std::regex param_regex("^package:\\/\\/(\\w+)\\/(.*)");
+        std::regex param_regex("^package:\\/\\/([a-zA-Z0-9_-]+)\\/(.*)");
         std::smatch match;
         if (std::regex_search(filename, match, param_regex)) {
           const std::string package = match[1];
