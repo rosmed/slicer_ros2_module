@@ -47,6 +47,18 @@ with parallel linkages (dVRK PSM).  The SlicerROS2 module should work
 with any other robots as long as the links CAD files are supported
 by VTK or Assimp (e.g. ``.stl``, ``.obj``, ``.dae``).
 
+Universal Robot
+===============
+
+For the UR, we recommend to use the default packages that come with
+ROS 2 Jazzy:
+
+.. code-block:: bash
+
+   sudo apt install ros-jazzy-ur
+
+
+
 Phantom Omni
 ============
 
@@ -63,15 +75,20 @@ Ethernet and more recently USB.
 Full dVRK stack
 ---------------
 
-Installing the cisst/SAW Omni code base is not too difficult, but it will take a`few minutes to compile. It is useful if and only if you happen to have an actual device.  You can find the build instructions for ROS 2 in the README for https://github.com/jhu-saw/vcs.
+Installing the cisst/SAW Omni code base is not too difficult, but it
+will take a`few minutes to compile. It is useful if and only if you
+happen to have an actual device. You can find the build instructions
+for ROS 2 in the README for https://github.com/jhu-saw/vcs.
 
 Models only
 -----------
 
-If you prefer to not compile the full dVRK cisst/SAW, you can just clone the package using:
+If you prefer to not compile the full dVRK cisst/SAW, you can get the
+URDF and models using clone:
 
 .. code-block:: bash
 
+    cd ~/ros2_ws/src
     git clone --filter=blob:none --sparse https://github.com/jhu-saw/sawSensablePhantom
     cd sawSensablePhantom
     git sparse-checkout set models

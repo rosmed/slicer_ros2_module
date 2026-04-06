@@ -13,87 +13,74 @@ Before you can start compiling the SlicerROS2 module, you will need:
 
 * Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.
 
-* Qt installed using Ubuntu.  The build instructions for Slicer
-  sometimes recommend installing Qt from the Qt site, but that leads
-  to major issues when compiling against ROS2.  So don't re-install
-  Qt from the Qt site.  Use ``apt install``!
-
 * Slicer 3D built from source, this is required to build any C++
   extension, including SlicerROS2.
-
-  See also `Slicer build instructions <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_.
-
-  .. warning::
-
-     Before you start compiling Slicer, make sure you use the
-     system/native OpenSSL and bzip2 libraries otherwise you'll get some
-     errors when compiling the Slicer ROS 2 module (as opposed to the
-     Slicer super build ones).  You will need to do the following
-     after you ran CMake for the first time.  In the Slicer build
-     directory, set ``Slicer_USE_SYSTEM_OpenSSL`` and
-     ``Slicer_USE_SYSTEM_bzip2`` to ``ON`` using ``cmake
-     . -DSlicer_USE_SYSTEM_OpenSSL=ON -DSlicer_USE_SYSTEM_bzip2=ON -DCMAKE_BUILD_TYPE=Release``
-     or ``ccmake``.
-
-  .. note::
-
-     Compiling Slicer from source takes time, plan a few hours
-     ahead. Also, avoid using ``make -j`` without any limit. The
-     compilation process requires a fair amount of memory and is
-     likely to crash your computer. Using about half the number of
-     cores available seems to help. For example, use ``make -j4`` for
-     a Intel i9 processor. Compiling the SlicerROS2 module itself can
-     take up to 10 minutes.
-
-* Remember the build directory for Slicer, it will be needed to
-  compile the Slicer ROS 2 module.
 
 ========
 Versions
 ========
 
-* *Recommended*: SlicerROS2 v1.0: requires Ubuntu 24.04/ROS 2 Jazzy
-  with Slicer 5.8 (should also work with Slicer 5.6)
+SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with Slicer 3D 5.10
 
-* SlicerROS2 v0.9: requires Ubuntu 20.04/ROS Galactic, Ubuntu
-  22.04/ROS2 Humble or Ubuntu 24.04/ROS2 Jazzy with Slicer 5.6
+================
+Compiling Slicer
+================
 
-Older versions and compilation tricks:
+See `Slicer build instructions
+<https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_
+for generic instructions.
 
-* If you need to use Ubuntu 22.04/ROS 2 Humble, SlicerROS2 v1.0+ will
-  fail to compile unless you comment out the the rosbag2 service
-  clients ``Play``, ``Stop`` and ``SplitBagFile`` in the macro call
-  ``generate_ros2_nodes``, file ``MRML/CMakeLists.txt``.
+For the SlicerROS2 module, there are few things to keep in mind before
+you start compiling Slicer:
 
-* When compiling on Ubuntu 20.04, Slicer 5.2.2 is known to compile
-  without any issues.  If you need to use a more recent version of
-  Slicer, you might have to edit the Slicer code to replace a few
-  ``QLatin1String`` to ``QString``.  You can replace all occurences in
-  the Slicer source directory using ``find . -not -path '*/\.git/*'
-  \( -name '*.cxx*' -o -name '*.h*' \) -exec sed -i
-  's/QLatin1String/QString/g' '{}' \;``
+* Qt installed using Ubuntu. The build instructions for Slicer
+  sometimes recommend installing Qt from the Qt site, but that leads
+  to major issues when compiling against ROS2.  So don't re-install
+  Qt from the Qt site.  Use ``apt install``!
 
+* Make sure you use the system/native OpenSSL and bzip2 libraries
+  otherwise you'll get some errors when compiling the Slicer ROS2
+  module (as opposed to the Slicer super build ones).  You will need
+  to do the following after you ran CMake for the first time.  In the
+  Slicer build directory, set ``Slicer_USE_SYSTEM_OpenSSL`` and
+  ``Slicer_USE_SYSTEM_bzip2`` to ``ON`` using ``cmake
+  . -DSlicer_USE_SYSTEM_OpenSSL=ON -DSlicer_USE_SYSTEM_bzip2=ON
+  -DCMAKE_BUILD_TYPE=Release`` or ``ccmake``.
+
+* Compiling Slicer from source takes time, plan a few hours
+  ahead. Also, avoid using ``make -j`` without any limit. The
+  compilation process requires a fair amount of memory and is likely
+  to crash your computer. Using about half the number of cores
+  available seems to help. For example, use ``make -j4`` for a Intel
+  i9 processor.
+
+* To get a specific version of Slicer from GitHub, first clone: ``git
+  clone https://github.com/slicer/slicer`` and then checkout the
+  version using ``git checkout v5.10.0``.
+
+Remember the build directory for Slicer, it will be needed to compile
+the Slicer ROS 2 module.
 
 ===========
 Compilation
 ===========
 
-This code should be built with ``colcon`` as a ROS 2 package.
-``colcon`` is usually installed along ROS 2 but if it isn't, install
+This code should be built with ``colcon`` as a ROS package.
+``colcon`` is usually installed along ROS but if it isn't, install
 it with ``sudo apt install python3-colcon-common-extensions``.  For
 now, we will assume the ROS workspace directory is ``~/ros2_ws`` and
 the source code for this module has been cloned under
 ``~/ros2_ws/src/slicer_ros2_module``.
 
-Other ROS packages that might not be installed by default. You can install all remaining core components and libraries by doing:
+Other ROS packages that might not be installed by default. You can
+install all remaining core components and libraries by doing:
 
 .. code-block:: bash
 
+   source /opt/ros/jazzy/setup.bash
    sudo apt install ros-$ROS_DISTRO-rclcpp ros-$ROS_DISTRO-tf2 ros-$ROS_DISTRO-tf2-ros ros-$ROS_DISTRO-kdl-parser ros-$ROS_DISTRO-urdf ros-$ROS_DISTRO-std-msgs ros-$ROS_DISTRO-std-srvs ros-$ROS_DISTRO-geometry-msgs ros-$ROS_DISTRO-sensor-msgs ros-$ROS_DISTRO-trajectory-msgs ros-$ROS_DISTRO-object-recognition-msgs ros-$ROS_DISTRO-rosbag2-interfaces ros-$ROS_DISTRO-turtlesim ros-$ROS_DISTRO-moveit-msgs ros-$ROS_DISTRO-moveit-core ros-$ROS_DISTRO-moveit-ros-planning ros-$ROS_DISTRO-moveit-ros-planning-interface liborocos-kdl-dev libassimp-dev
 
-* Note: Replace ``$ROS_DISTRO`` with your ROS distribution's name, e.g., ``jazzy``, ``rolling``, if it is not exported in your environment.
-
-* You will first need to "source" the ROS setup script for ROS 2 (Jazzy
+* You will first need to "source" the ROS setup script for ROS (Jazzy
 in this example):
 
 .. code-block:: bash
@@ -137,7 +124,13 @@ you prefer a graphical interface, you can use ``cmake-gui`` instead of
 
 .. note::
 
-    Linking is very slow when using the default linker ``ld``.  You can speed up the process by using ``mold`` instead.  To do so, install ``mold`` with ``sudo apt install mold`` and set your linker to ``mold`` by adding ``-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold"`` to the CMake arguments when building with ``colcon``.
+    Linking is very slow when using the default linker ``ld``.  You
+    can speed up the process by using ``mold`` instead.  To do so,
+    install ``mold`` with ``sudo apt install mold`` and set your
+    linker to ``mold`` by adding
+    ``-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
+    -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold"`` to the CMake
+    arguments when building with ``colcon``.
 
 ==================
 Loading the module
@@ -145,14 +138,14 @@ Loading the module
 
 You will first need to make sure the environment variables are set
 properly so the Slicer ROS 2 module can locate all the ROS 2 resources
-(dynamic libraries and other ROS 2 packages you might need to access):
+(dynamic libraries and other ROS packages you might need to access):
 
 .. code-block:: bash
 
-  source ~/ros2_ws/install/setup.bash # or whatever your ROS 2 workspace is
+  source ~/ros2_ws/install/setup.bash # or whatever your ROS workspace is
 
 In the same terminal navigate (``cd``) to your Slicer inner build
-directory and start Slicer.  If you followed the Slicer build
+directory and start Slicer. If you followed the Slicer build
 instructions, this should look like:
 
 .. code-block:: bash
