@@ -180,8 +180,7 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
                                      robotWidgetUi->parameterLineEdit,
                                      robotWidgetUi->fixedFrameLineEdit,
                                      robotWidgetUi->tfPrefixLineEdit,
-                                     loadRobotButton, removeRobotButton,
-                                     robotWidgetUi->goalCheckBox);
+                                     loadRobotButton, removeRobotButton);
                 });
   this->connect(removeRobotButton, &QPushButton::clicked, this,
                 [=]() {
@@ -371,8 +370,7 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
                                                  QLineEdit * fixedFrameLineEdit,
                                                  QLineEdit * tfPrefixLineEdit,
                                                  QPushButton * loadRobotButton,
-                                                 QPushButton * removeRobotButton,
-                                                 QCheckBox * goalCheckBox)
+                                                 QPushButton * removeRobotButton)
 {
   vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
@@ -393,19 +391,6 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
   fixedFrameLineEdit->setEnabled(false);
   tfPrefixLineEdit->setEnabled(false);
   removeRobotButton->setEnabled(true);
-
-  // If goal is requested at load time, schedule creation after robot loads
-  if (goalCheckBox && goalCheckBox->isChecked()) {
-    std::cout << "============================================" << std::endl;
-    std::cout << "goal CHECKBOX IS CHECKED!" << std::endl;
-    std::cout << "Scheduling goal creation for: " << robotNameLineEdit->text().toStdString() << std::endl;
-    std::cout << "============================================" << std::endl;
-    QTimer::singleShot(750, this, [=]() {
-      ongoalToggled(robotNameLineEdit, true);
-    });
-  } else {
-    std::cout << "goal checkbox is NOT checked or is null" << std::endl;
-  }
 }
 
 
@@ -441,169 +426,4 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
       robotsAddedToTheWidget.erase(robotsAddedToTheWidget.begin() + robotName);
     }
   }
-}
-
-
-void qSlicerROS2ModuleWidget::ongoalToggled(QLineEdit* robotNameLineEdit, bool enabled)
-{
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-
-  auto nodeNode = logic->GetDefaultROS2Node();
-  if (!nodeNode) {
-    qWarning() << Q_FUNC_INFO << " failed: Default ROS2 node missing";
-    return;
-  }
-
-  const std::string robotName = robotNameLineEdit->text().toStdString();
-  vtkMRMLROS2RobotNode* robot = nodeNode->GetRobotNodeByName(robotName);
-  if (!robot) {
-    qWarning() << Q_FUNC_INFO << " failed: Robot not found in scene: " << robotName.c_str();
-    return;
-  }
-
-  vtkMRMLScene* scene = logic->GetMRMLScene();
-  if (!scene) {
-    qWarning() << Q_FUNC_INFO << " failed: MRML scene missing";
-    return;
-  }
-
-  // Helper to remove all existing goal models and transforms
-  auto removegoals = [&]() {
-    // Remove goal models
-    int goalCount = robot->GetNumberOfNodeReferences("goal_model");
-    for (int i = goalCount - 1; i >= 0; --i) {
-      vtkMRMLModelNode* goal = vtkMRMLModelNode::SafeDownCast(robot->GetNthNodeReference("goal_model", i));
-      if (goal) {
-        scene->RemoveNode(goal);
-      }
-    }
-    // Remove goal transforms
-    int transformCount = robot->GetNumberOfNodeReferences("goal_transform");
-    for (int i = transformCount - 1; i >= 0; --i) {
-      vtkMRMLLinearTransformNode* transform = vtkMRMLLinearTransformNode::SafeDownCast(robot->GetNthNodeReference("goal_transform", i));
-      if (transform) {
-        scene->RemoveNode(transform);
-      }
-    }
-  };
-
-  if (!enabled) {
-    std::cout << "Removing goal models and transforms for: " << robotName << std::endl;
-    removegoals();
-    return;
-  }
-
-  // Re-create goals from current models
-  std::cout << "Creating goal models for: " << robotName << std::endl;
-  removegoals();
-
-  int modelCount = robot->GetNumberOfNodeReferences("model");
-  std::cout << "Found " << modelCount << " model nodes to duplicate" << std::endl;
-  // Keep track of goal transforms by link index to build hierarchy later
-  std::vector<vtkSmartPointer<vtkMRMLLinearTransformNode>> goalTransforms;
-  goalTransforms.reserve(modelCount);
-
-  for (int i = 0; i < modelCount; ++i) {
-    vtkMRMLModelNode* original = vtkMRMLModelNode::SafeDownCast(robot->GetNthNodeReference("model", i));
-    if (!original) { continue; }
-
-    // Create a separate transform node for this goal link
-    vtkSmartPointer<vtkMRMLLinearTransformNode> goalTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
-    scene->AddNode(goalTransform);
-    std::string transformName = std::string(original->GetName() ? original->GetName() : "model") + "_goal_transform";
-    goalTransform->SetName(transformName.c_str());
-    
-    // Initialize goal transform to match original transform's current state
-    vtkMRMLLinearTransformNode* origTransform = vtkMRMLLinearTransformNode::SafeDownCast(
-      scene->GetNodeByID(original->GetTransformNodeID()));
-    if (origTransform) {
-      vtkNew<vtkMatrix4x4> matrix;
-      origTransform->GetMatrixTransformToParent(matrix);
-      goalTransform->SetMatrixTransformToParent(matrix);
-    }
-    // Save transform for hierarchy wiring
-    goalTransforms.push_back(goalTransform);
-
-    // Create the goal model
-    vtkSmartPointer<vtkMRMLModelNode> goal = vtkSmartPointer<vtkMRMLModelNode>::New();
-    scene->AddNode(goal);
-
-    // Name: add _goal suffix
-    std::string goalName = std::string(original->GetName() ? original->GetName() : "model") + "_goal";
-    goal->SetName(goalName.c_str());
-    std::cout << "  Creating goal: " << goalName << " with transform: " << transformName << std::endl;
-
-    // Share mesh data (identical geometry)
-    if (original->GetMesh()) {
-      goal->SetAndObserveMesh(original->GetMesh());
-    }
-
-    // Display node copy with distinct visual appearance
-    vtkMRMLModelDisplayNode* origDisp = vtkMRMLModelDisplayNode::SafeDownCast(original->GetDisplayNode());
-    vtkNew<vtkMRMLModelDisplayNode> goalDisp;
-    scene->AddNode(goalDisp.GetPointer());
-    if (origDisp) {
-      goalDisp->Copy(origDisp);
-    }
-    // Set goal to cyan color with high opacity for clear visibility
-    goalDisp->SetColor(0.0, 1.0, 1.0);  // Cyan
-    goalDisp->SetOpacity(0.30);  // High opacity for visibility
-    goal->SetAndObserveDisplayNodeID(goalDisp->GetID());
-
-    // Attach goal to its own independent transform
-    goal->SetAndObserveTransformNodeID(goalTransform->GetID());
-
-    // Track as goal on the robot for cleanup
-    robot->AddNodeReferenceID("goal_model", goal->GetID());
-    robot->AddNodeReferenceID("goal_transform", goalTransform->GetID());
-  }
-  
-  // Replicate original transform hierarchy onto goal transforms
-  int lookupCount = robot->GetNumberOfNodeReferences("lookup");
-  for (int i = 0; i < lookupCount; ++i) {
-    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", i));
-    if (!lookup) { continue; }
-    std::string parentFrame = lookup->GetParentID();
-    // Find the goal transform whose original child matches this parent
-    for (int j = 0; j < lookupCount; ++j) {
-      vtkMRMLROS2Tf2LookupNode* potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", j));
-      if (!potentialParent) { continue; }
-      std::string childFrame = potentialParent->GetChildID();
-      if (childFrame == parentFrame) {
-        if (i < static_cast<int>(goalTransforms.size()) && j < static_cast<int>(goalTransforms.size())) {
-          goalTransforms[i]->SetAndObserveTransformNodeID(goalTransforms[j]->GetID());
-        }
-        break;
-      }
-    }
-  }
-
-  // Sync goal transforms to current TF2 lookup poses to avoid stacking at origin
-  for (int i = 0; i < lookupCount && i < static_cast<int>(goalTransforms.size()); ++i) {
-    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", i));
-    if (!lookup) { continue; }
-    vtkNew<vtkMatrix4x4> m;
-    lookup->GetMatrixTransformToParent(m);
-    goalTransforms[i]->SetMatrixTransformToParent(m);
-    goalTransforms[i]->Modified();
-  }
-
-  // Schedule a short delayed re-sync to let TF2 warm up
-  QTimer::singleShot(400, this, [=]() {
-    int lc = robot->GetNumberOfNodeReferences("lookup");
-    for (int i = 0; i < lc && i < static_cast<int>(goalTransforms.size()); ++i) {
-      vtkMRMLROS2Tf2LookupNode* lu = vtkMRMLROS2Tf2LookupNode::SafeDownCast(robot->GetNthNodeReference("lookup", i));
-      if (!lu) { continue; }
-      vtkNew<vtkMatrix4x4> mm;
-      lu->GetMatrixTransformToParent(mm);
-      goalTransforms[i]->SetMatrixTransformToParent(mm);
-      goalTransforms[i]->Modified();
-    }
-  });
-  
-  std::cout << "goal creation complete!" << std::endl;
 }

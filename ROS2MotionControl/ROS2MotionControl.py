@@ -339,20 +339,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 print("Error: Could not auto-detect root and tip links from URDF.")
                 return
             
-            # Check if goal model exists, if so store goal tip
-            goal_name = self.tiplink + "_model_goal"
-            try:
-                goal_model = slicer.util.getNode(goal_name)
-                goal_loaded = goal_model is not None and goal_model.GetParentTransformNode() is not None
-                if goal_loaded:
-                    self.goaltiplink = goal_name
-                    print(f"Goal robot loaded: True")
-                else:
-                    print(f"Goal robot NOT loaded or Transform missing")
-                    return
-            except slicer.util.MRMLNodeNotFoundException:
-                print(f"Goal robot NOT loaded")
+            # Load in goal robot and set parameters
+            status = robotNode.CreateGoalStateRobot(robotNode)
+            if not status:
+                print("Error: Failed to create goal state robot.")
                 return
+            print("Goal robot created successfully.")
+            self.goaltiplink = self.tiplink + "_model_goal"
         
             # Print current postiion
             currentjointpos =self.logic.getcurrentjointpositions(robotNode)
@@ -619,7 +612,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 # solving the "Impossible Orientation" issue at startup.
                 try:
                     # A. Decide which tip to follow: goal (Preferred) -> Real (Fallback)
-                    target_tip_link = self.goaltiplink if self.goaltiplink else self.tiplink
+                    target_tip_link = self.goaltiplink
                     use_goal = (target_tip_link == self.goaltiplink)
 
                     if target_tip_link:
@@ -635,8 +628,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                             self.fromtransform.SetMatrixTransformToParent(tipMatrix)
                             print(f"✅ Snapped Probe Pose to {target_tip_link} (Pos + Rot)")
                             
-                            # DEBUG check
-                            # print(f"   Initial Rot: {tipMatrix.GetElement(0,0):.2f}...")
                     else:
                         print("Warning: No tip link found to snap to.")
                         

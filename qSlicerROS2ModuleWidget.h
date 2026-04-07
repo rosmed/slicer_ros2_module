@@ -67,8 +67,8 @@ protected slots:
                           QLineEdit * fixedFrameLineEdit,
                           QLineEdit * tfPrefixLineEdit,
                           QPushButton * loadRobotButton,
-                          QPushButton * removeRobotButton,
-                          QCheckBox * goalCheckBox);
+                          QPushButton * removeRobotButton);
+
   void onRemoveRobotClicked(QLineEdit * robotNameLineEdit,
                             QLineEdit * parameterNodeNameLineEdit,
                             QLineEdit * parameterNameLineEdit,
@@ -77,7 +77,6 @@ protected slots:
                             QPushButton * loadRobotButton,
                             QPushButton * removeRobotButton,
                             QWidget * robotWidget);
-  void ongoalToggled(QLineEdit * robotNameLineEdit, bool enabled);
 
 private:
   std::vector<std::string> robotsAddedToTheWidget;

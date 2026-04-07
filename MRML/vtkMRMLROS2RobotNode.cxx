@@ -37,6 +37,8 @@
 #include <vtkROS2ToSlicer.h>
 #include <vtkSlicerToROS2.h>
 
+#include <QTimer>
+
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
@@ -170,6 +172,155 @@ void vtkMRMLROS2RobotNode::ObserveParameterNodeCallback( vtkObject* caller, unsi
     }
   }
 
+}
+
+
+bool vtkMRMLROS2RobotNode::RemoveGoalStateRobot()
+{
+  vtkMRMLScene* scene = this->GetScene();
+  if (!scene) {
+    vtkErrorMacro(<< "RemoveGoalStateRobot: robot node needs to be added to the scene first");
+    return false;
+  }
+
+  auto removeGoalReferences = [&](const char* role) {
+    int count = this->GetNumberOfNodeReferences(role);
+    for (int i = count - 1; i >= 0; --i) {
+      vtkMRMLNode* node = this->GetNthNodeReference(role, i);
+      if (node) {
+        scene->RemoveNode(node);
+      }
+    }
+  };
+
+  removeGoalReferences("goal_model");
+  removeGoalReferences("goal_transform");
+  return true;
+}
+
+
+bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRobot)
+{
+  vtkMRMLScene* scene = this->GetScene();
+  if (!scene) {
+    vtkErrorMacro(<< "CreateGoalStateRobot: robot node needs to be added to the scene first");
+    return false;
+  }
+
+  if (!sourceRobot) {
+    vtkErrorMacro(<< "CreateGoalStateRobot: source robot is null");
+    return false;
+  }
+
+  if (!sourceRobot->GetScene()) {
+    vtkErrorMacro(<< "CreateGoalStateRobot: source robot must be added to the scene first");
+    return false;
+  }
+
+  RemoveGoalStateRobot();
+
+  int modelCount = sourceRobot->GetNumberOfNodeReferences("model");
+  std::cout << "Found " << modelCount << " model nodes to duplicate" << std::endl;
+
+  std::vector<vtkSmartPointer<vtkMRMLLinearTransformNode>> goalTransforms;
+  goalTransforms.reserve(modelCount);
+
+  for (int i = 0; i < modelCount; ++i) {
+    vtkMRMLModelNode* original = vtkMRMLModelNode::SafeDownCast(sourceRobot->GetNthNodeReference("model", i));
+    if (!original) {
+      continue;
+    }
+
+    vtkSmartPointer<vtkMRMLLinearTransformNode> goalTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+    scene->AddNode(goalTransform);
+    std::string transformName = std::string(original->GetName() ? original->GetName() : "model") + "_goal_transform";
+    goalTransform->SetName(transformName.c_str());
+
+    vtkMRMLLinearTransformNode* origTransform = vtkMRMLLinearTransformNode::SafeDownCast(
+      scene->GetNodeByID(original->GetTransformNodeID()));
+    if (origTransform) {
+      vtkNew<vtkMatrix4x4> matrix;
+      origTransform->GetMatrixTransformToParent(matrix);
+      goalTransform->SetMatrixTransformToParent(matrix);
+    }
+    goalTransforms.push_back(goalTransform);
+
+    vtkSmartPointer<vtkMRMLModelNode> goal = vtkSmartPointer<vtkMRMLModelNode>::New();
+    scene->AddNode(goal);
+
+    std::string goalName = std::string(original->GetName() ? original->GetName() : "model") + "_goal";
+    goal->SetName(goalName.c_str());
+    std::cout << "  Creating goal: " << goalName << " with transform: " << transformName << std::endl;
+
+    if (original->GetMesh()) {
+      goal->SetAndObserveMesh(original->GetMesh());
+    }
+
+    vtkMRMLModelDisplayNode* origDisp = vtkMRMLModelDisplayNode::SafeDownCast(original->GetDisplayNode());
+    vtkNew<vtkMRMLModelDisplayNode> goalDisp;
+    scene->AddNode(goalDisp.GetPointer());
+    if (origDisp) {
+      goalDisp->Copy(origDisp);
+    }
+    goalDisp->SetColor(0.0, 1.0, 1.0);
+    goalDisp->SetOpacity(0.30);
+    goal->SetAndObserveDisplayNodeID(goalDisp->GetID());
+
+    goal->SetAndObserveTransformNodeID(goalTransform->GetID());
+    this->AddNodeReferenceID("goal_model", goal->GetID());
+    this->AddNodeReferenceID("goal_transform", goalTransform->GetID());
+  }
+
+  int lookupCount = sourceRobot->GetNumberOfNodeReferences("lookup");
+  for (int i = 0; i < lookupCount; ++i) {
+    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", i));
+    if (!lookup) {
+      continue;
+    }
+    std::string parentFrame = lookup->GetParentID();
+    for (int j = 0; j < lookupCount; ++j) {
+      vtkMRMLROS2Tf2LookupNode* potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", j));
+      if (!potentialParent) {
+        continue;
+      }
+      std::string childFrame = potentialParent->GetChildID();
+      if (childFrame == parentFrame && i != j) {
+        if (i < static_cast<int>(goalTransforms.size()) && j < static_cast<int>(goalTransforms.size())) {
+          goalTransforms[i]->SetAndObserveTransformNodeID(goalTransforms[j]->GetID());
+        }
+        break;
+      }
+    }
+  }
+
+  for (int i = 0; i < lookupCount && i < static_cast<int>(goalTransforms.size()); ++i) {
+    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", i));
+    if (!lookup) {
+      continue;
+    }
+    vtkNew<vtkMatrix4x4> matrix;
+    lookup->GetMatrixTransformToParent(matrix);
+    goalTransforms[i]->SetMatrixTransformToParent(matrix);
+    goalTransforms[i]->Modified();
+  }
+
+  vtkSmartPointer<vtkMRMLROS2RobotNode> sourceRobotSafe = sourceRobot;
+  QTimer::singleShot(400, [this, sourceRobotSafe, goalTransforms]() {
+    int lc = sourceRobotSafe->GetNumberOfNodeReferences("lookup");
+    for (int i = 0; i < lc && i < static_cast<int>(goalTransforms.size()); ++i) {
+      vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobotSafe->GetNthNodeReference("lookup", i));
+      if (!lookup) {
+        continue;
+      }
+      vtkNew<vtkMatrix4x4> matrix;
+      lookup->GetMatrixTransformToParent(matrix);
+      goalTransforms[i]->SetMatrixTransformToParent(matrix);
+      goalTransforms[i]->Modified();
+    }
+  });
+
+  std::cout << "goal creation complete!" << std::endl;
+  return true;
 }
 
 
