@@ -58,8 +58,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   bool ParseRobotDescription(void);
   void SetupRobotVisualization(void);
   
-  // Helper for loading model files with fallback
-  vtkSmartPointer<vtkPointSet> LoadModelFile(const std::string& filename);
+  // Helper for loading model files with fallback.
+  // Outputs one or more mesh parts and a color for each part.
+  void LoadModelFile(const std::string& filename,
+                     std::vector< vtkSmartPointer<vtkPointSet> >& meshParts,
+                     std::vector< std::vector<double> >& meshColors);
 
   // MoveIt IK methods (commented out for faster build)
   bool setupIKmoveit(const std::string & groupName);

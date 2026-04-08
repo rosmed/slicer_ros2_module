@@ -7,7 +7,6 @@
 #include <vtkSTLReader.h>
 #include <vtkOBJReader.h>
 #include <vtkSphereSource.h>
-#include <vtkAlgorithmOutput.h>
 #include <vtkTransformFilter.h>
 #include <vtksys/SystemTools.hxx>
 #include "vtkAssImpConversion.h"
@@ -397,16 +396,6 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   // to avoid duplication and leaks.
   this->RemoveRobotVisualization();
 
-  // Defensive clear in case this method is reached after partial setup.
-  mInternals->mVisualVector.clear();
-  mInternals->mLinkMaterials.clear();
-  mInternals->mLinkOrigins.clear();
-  mInternals->mLinkNames.clear();
-  mInternals->mLinkParentNames.clear();
-  mInternals->mLinkModelFiles.clear();
-  mInternals->mLinkModels.clear();
-  mInternals->mLookupNodes.clear();
-
   // 1. Initialize lookup list and visual vectors from URDF
   auto root = mInternals->mURDFModel.getRoot();
   if (!root) {
@@ -478,35 +467,42 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
     mInternals->mLookupNodes.push_back(lookup);
     this->SetNthNodeReferenceID("lookup", i, lookup ? lookup->GetID() : nullptr);
 
-    // Create Model Node and apply local offset
+    // Create Model Nodes (one or more parts) and apply local offset
     auto visual = mInternals->mVisualVector[i];
-    vtkSmartPointer<vtkPointSet> meshData;
+    std::vector< vtkSmartPointer<vtkPointSet> > meshParts;
+    std::vector< std::vector<double> > meshColors;
     if (visual) {
-      meshData = LoadModelFile(mInternals->mLinkModelFiles[i]);
+      LoadModelFile(mInternals->mLinkModelFiles[i], meshParts, meshColors);
       
       // Apply URDF scale and unit conversion
       double sx = 1.0, sy = 1.0, sz = 1.0;
       auto meshGeom = std::dynamic_pointer_cast<urdf::Mesh>(visual->geometry);
       if (meshGeom) { sx = meshGeom->scale.x; sy = meshGeom->scale.y; sz = meshGeom->scale.z; }
-
-      if (meshData) {
-        vtkNew<vtkTransform> scaleTransform;
-        scaleTransform->Scale(sx * 1000.0, sy * 1000.0, sz * 1000.0);
-
+      
+      vtkNew<vtkTransform> scaleTransform;
+      scaleTransform->Scale(sx * 1000.0, sy * 1000.0, sz * 1000.0);
+      for (size_t partIndex = 0; partIndex < meshParts.size(); ++partIndex) {
         vtkNew<vtkTransformFilter> tf;
-        tf->SetInputData(meshData);
+        tf->SetInputData(meshParts[partIndex]);
         tf->SetTransform(scaleTransform);
         tf->Update();
-        meshData = tf->GetOutput();
+        meshParts[partIndex] = tf->GetOutput();
       }
     }
 
-    vtkNew<vtkMRMLModelNode> modelNode;
-    this->GetScene()->AddNode(modelNode);
-    modelNode->SetName((mInternals->mLinkNames[i] + "_model").c_str());
-    modelNode->SetAndObserveMesh(meshData);
-    mInternals->mLinkModels.push_back(modelNode);
-    this->SetNthNodeReferenceID("model", i, modelNode->GetID());
+    std::vector< vtkSmartPointer<vtkMRMLModelNode> > linkModels;
+    linkModels.reserve(meshParts.size());
+
+    bool colorSetFromUrdf = false;
+    std::vector<double> urdfColor = {0.5, 0.5, 0.5};
+    if (!mInternals->mMaterialsMap.empty() && !mInternals->mLinkMaterials[i].empty()) {
+      auto materialIt = mInternals->mMaterialsMap.find(mInternals->mLinkMaterials[i]);
+      if (materialIt != mInternals->mMaterialsMap.end() && materialIt->second) {
+        auto mat = materialIt->second;
+        urdfColor = {mat->color.r, mat->color.g, mat->color.b};
+        colorSetFromUrdf = true;
+      }
+    }
 
     // Local offset transform
     vtkNew<vtkTransform> offsetTf;
@@ -517,18 +513,33 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
     offsetTf->RotateZ(y * (180.0/M_PI));
     offsetTf->RotateY(p * (180.0/M_PI));
     offsetTf->RotateX(r * (180.0/M_PI));
-    modelNode->ApplyTransform(offsetTf);
 
-    // Display Node
-    vtkNew<vtkMRMLModelDisplayNode> displayNode;
-    this->GetScene()->AddNode(displayNode);
-    modelNode->SetAndObserveDisplayNodeID(displayNode->GetID());
-    if (!mInternals->mMaterialsMap.empty() && !mInternals->mLinkMaterials[i].empty()) {
-      auto mat = mInternals->mMaterialsMap[mInternals->mLinkMaterials[i]];
-      if (mat) displayNode->SetColor(mat->color.r, mat->color.g, mat->color.b);
-    } else {
-      displayNode->SetColor(0.5, 0.5, 0.5);
+    for (size_t partIndex = 0; partIndex < meshParts.size(); ++partIndex) {
+      vtkNew<vtkMRMLModelNode> modelNode;
+      this->GetScene()->AddNode(modelNode);
+      modelNode->SetName((mInternals->mLinkNames[i] + "_model_" + std::to_string(partIndex)).c_str());
+      modelNode->SetAndObserveMesh(meshParts[partIndex]);
+      modelNode->ApplyTransform(offsetTf);
+
+      vtkNew<vtkMRMLModelDisplayNode> displayNode;
+      this->GetScene()->AddNode(displayNode);
+      modelNode->SetAndObserveDisplayNodeID(displayNode->GetID());
+      displayNode->SetAmbient(0.2);
+      displayNode->SetDiffuse(0.8);
+
+      if (colorSetFromUrdf) {
+        displayNode->SetColor(urdfColor[0], urdfColor[1], urdfColor[2]);
+      } else if (partIndex < meshColors.size() && meshColors[partIndex].size() >= 3) {
+        displayNode->SetColor(meshColors[partIndex][0], meshColors[partIndex][1], meshColors[partIndex][2]);
+      } else {
+        displayNode->SetColor(0.5, 0.5, 0.5);
+      }
+
+      this->AddNodeReferenceID("model", modelNode->GetID());
+      linkModels.push_back(modelNode);
     }
+
+    mInternals->mLinkModels.push_back(linkModels);
   }
 
   // 4. Finalize Transform Tree
@@ -543,8 +554,12 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
         lookup->SetAndObserveTransformNodeID(potentialParent->GetID());
       }
     }
-    if (mInternals->mLinkModels[i]) {
-      mInternals->mLinkModels[i]->SetAndObserveTransformNodeID(lookup->GetID());
+    if (i < mInternals->mLinkModels.size()) {
+      for (auto& model : mInternals->mLinkModels[i]) {
+        if (model) {
+          model->SetAndObserveTransformNodeID(lookup->GetID());
+        }
+      }
     }
   }
 
@@ -558,33 +573,53 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   mInternals->mLinkModelFiles.clear();
 }
 
-vtkSmartPointer<vtkPointSet> vtkMRMLROS2RobotNode::LoadModelFile(const std::string& filename)
+void vtkMRMLROS2RobotNode::LoadModelFile(const std::string& filename,
+                                         std::vector< vtkSmartPointer<vtkPointSet> >& meshParts,
+                                         std::vector< std::vector<double> >& meshColors)
 {
-  if (filename.empty()) return nullptr;
+  meshParts.clear();
+  meshColors.clear();
+
+  if (filename.empty()) {
+    return;
+  }
   
   std::string ext = vtksys::SystemTools::LowerCase(vtksys::SystemTools::GetFilenameLastExtension(filename));
-  vtkSmartPointer<vtkAlgorithmOutput> port;
 
   if (ext == ".stl") {
     vtkNew<vtkSTLReader> reader;
     reader->SetFileName(filename.c_str());
     reader->Update();
-    return reader->GetOutput();
+    meshParts.push_back(reader->GetOutput());
+    meshColors.push_back({0.5, 0.5, 0.5});
+    return;
   } else if (ext == ".obj") {
     vtkNew<vtkOBJReader> reader;
     reader->SetFileName(filename.c_str());
     reader->Update();
-    return reader->GetOutput();
+    meshParts.push_back(reader->GetOutput());
+    meshColors.push_back({0.5, 0.5, 0.5});
+    return;
   } else {
-    vtkSmartPointer<vtkPolyData> polyData = vtkAssImpConversion::vtkAssImpToPolyData(filename);
-    if (polyData) return polyData;
+    std::vector<vtkAssImpMeshPart> parts = vtkAssImpConversion::vtkAssImpToPolyDataParts(filename);
+    for (const auto& part : parts) {
+      if (!part.PolyData) {
+        continue;
+      }
+      meshParts.push_back(part.PolyData);
+      meshColors.push_back(part.Color.empty() ? std::vector<double>{0.5, 0.5, 0.5} : part.Color);
+    }
+    if (!meshParts.empty()) {
+      return;
+    }
   }
   
   vtkErrorMacro(<< "Failed to load model file: " << filename << ". Using fallback sphere.");
   vtkNew<vtkSphereSource> sphere;
   sphere->SetRadius(10.0);
   sphere->Update();
-  return sphere->GetOutput();
+  meshParts.push_back(sphere->GetOutput());
+  meshColors.push_back({0.5, 0.5, 0.5});
 }
 
 

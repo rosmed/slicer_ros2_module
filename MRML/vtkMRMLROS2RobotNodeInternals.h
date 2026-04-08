@@ -18,6 +18,9 @@
 #include <kdl_parser/kdl_parser.hpp>
 
 #include <moveit_msgs/msg/robot_trajectory.hpp>
+#include <vtkMRMLModelNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
+#include <vtkSmartPointer.h>
 
 class vtkMRMLROS2RobotNodeInternals
 {
@@ -38,8 +41,8 @@ class vtkMRMLROS2RobotNodeInternals
   std::vector<std::string> mLinkNames;
   std::vector<std::string> mLinkParentNames;
   std::vector<std::string> mLinkModelFiles;
-  std::vector<vtkSmartPointer<vtkMRMLModelNode>> mLinkModels;
-  std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>> mLookupNodes;
+  std::vector< std::vector< vtkSmartPointer< vtkMRMLModelNode > > > mLinkModels;
+  std::vector< vtkSmartPointer< vtkMRMLROS2Tf2LookupNode > > mLookupNodes;
 
   // Persistent robot state
   std::string mRobotDescription;
