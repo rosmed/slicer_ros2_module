@@ -99,7 +99,22 @@ bool vtkMRMLROS2ParameterNode::RemoveFromROS2Node(const char *nodeId)
 
   mInternals->mMRMLNode = nullptr;
   this->SetNodeReferenceID("node", nullptr);
-  rosNodePtr->RemoveNthNodeReferenceID("parameter", rosNodePtr->GetNumberOfNodeReferences("parameter"));
+
+  // Correctly find and remove the reference by index
+  int index = -1;
+  int numParams = rosNodePtr->GetNumberOfNodeReferences("parameter");
+  for (int i = 0; i < numParams; ++i)
+  {
+    if (std::string(rosNodePtr->GetNthNodeReferenceID("parameter", i)) == this->GetID())
+    {
+      index = i;
+      break;
+    }
+  }
+  if (index != -1)
+  {
+    rosNodePtr->RemoveNthNodeReferenceID("parameter", index);
+  }
 
   mInternals->mParameterClient.reset();
   return true;

@@ -116,6 +116,13 @@ void vtkMRMLROS2RobotNode::RemoveRobotVisualization()
   }
 
   // Clear transient vectors in internals
+  mInternals->mVisualVector.clear();
+  mInternals->mMaterialsMap.clear();
+  mInternals->mLinkMaterials.clear();
+  mInternals->mMaterialVector.clear();
+  mInternals->mParentLinkPointer.reset();
+  mInternals->mChildLinkPointer.clear();
+  mInternals->mLinkOrigins.clear();
   mInternals->mLinkNames.clear();
   mInternals->mLinkParentNames.clear();
   mInternals->mLinkModelFiles.clear();
@@ -390,6 +397,16 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   // to avoid duplication and leaks.
   this->RemoveRobotVisualization();
 
+  // Defensive clear in case this method is reached after partial setup.
+  mInternals->mVisualVector.clear();
+  mInternals->mLinkMaterials.clear();
+  mInternals->mLinkOrigins.clear();
+  mInternals->mLinkNames.clear();
+  mInternals->mLinkParentNames.clear();
+  mInternals->mLinkModelFiles.clear();
+  mInternals->mLinkModels.clear();
+  mInternals->mLookupNodes.clear();
+
   // 1. Initialize lookup list and visual vectors from URDF
   auto root = mInternals->mURDFModel.getRoot();
   if (!root) {
@@ -471,15 +488,17 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
       double sx = 1.0, sy = 1.0, sz = 1.0;
       auto meshGeom = std::dynamic_pointer_cast<urdf::Mesh>(visual->geometry);
       if (meshGeom) { sx = meshGeom->scale.x; sy = meshGeom->scale.y; sz = meshGeom->scale.z; }
-      
-      vtkNew<vtkTransform> scaleTransform;
-      scaleTransform->Scale(sx * 1000.0, sy * 1000.0, sz * 1000.0);
-      
-      vtkNew<vtkTransformFilter> tf;
-      tf->SetInputData(meshData);
-      tf->SetTransform(scaleTransform);
-      tf->Update();
-      meshData = tf->GetOutput();
+
+      if (meshData) {
+        vtkNew<vtkTransform> scaleTransform;
+        scaleTransform->Scale(sx * 1000.0, sy * 1000.0, sz * 1000.0);
+
+        vtkNew<vtkTransformFilter> tf;
+        tf->SetInputData(meshData);
+        tf->SetTransform(scaleTransform);
+        tf->Update();
+        meshData = tf->GetOutput();
+      }
     }
 
     vtkNew<vtkMRMLModelNode> modelNode;

@@ -136,7 +136,23 @@ bool vtkMRMLROS2Tf2LookupNode::RemoveFromROS2Node(const char * nodeId)
   // Remove the lookup from the node and remove references
   mAddedToROS2Node = false;
   this->SetNodeReferenceID("node", nullptr);
-  mrmlROSNodePtr->RemoveNthNodeReferenceID("lookup", mrmlROSNodePtr->GetNumberOfNodeReferences("lookup"));
+  
+  // Correctly find and remove the reference by index
+  int index = -1;
+  int numLookups = mrmlROSNodePtr->GetNumberOfNodeReferences("lookup");
+  for (int i = 0; i < numLookups; ++i)
+  {
+    if (std::string(mrmlROSNodePtr->GetNthNodeReferenceID("lookup", i)) == this->GetID())
+    {
+      index = i;
+      break;
+    }
+  }
+  if (index != -1)
+  {
+    mrmlROSNodePtr->RemoveNthNodeReferenceID("lookup", index);
+  }
+  
   return true;
 }
 

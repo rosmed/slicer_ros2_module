@@ -602,12 +602,15 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName
     auto lookupNodeID = node->GetNthNodeReferenceID("lookup", 0); // always grab the first one because the ref id changes
     auto modelNode = vtkMRMLModelNode::SafeDownCast(node->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
     this->RemoveAndDeleteTf2LookupNode(lookupNodeID);
-    this->GetScene()->RemoveNode(modelNode);
-    modelNode->Delete();
+    if (modelNode) {
+      this->GetScene()->RemoveNode(modelNode);
+    }
   }
 
   auto parameterNodeID = node->GetNthNodeReferenceID("parameter", 0);
-  this->RemoveAndDeleteParameterNodeByNodeID(parameterNodeID);
+  if (parameterNodeID) {
+    this->RemoveAndDeleteParameterNodeByNodeID(parameterNodeID);
+  }
 
   // Remove the robot itself
   this->GetScene()->RemoveNode(node);

@@ -92,7 +92,23 @@ bool vtkMRMLROS2Tf2BroadcasterNode::RemoveFromROS2Node(const char * nodeId){
 
   // Remove the broadcaster from the node and remove references
   this->SetNodeReferenceID("node", nullptr);
-  mrmlROSNodePtr->RemoveNthNodeReferenceID("broadcaster", mrmlROSNodePtr->GetNumberOfNodeReferences("broadcaster"));
+  
+  // Correctly find and remove the reference by index
+  int index = -1;
+  int numBroadcasters = mrmlROSNodePtr->GetNumberOfNodeReferences("broadcaster");
+  for (int i = 0; i < numBroadcasters; ++i)
+  {
+    if (std::string(mrmlROSNodePtr->GetNthNodeReferenceID("broadcaster", i)) == this->GetID())
+    {
+      index = i;
+      break;
+    }
+  }
+  if (index != -1)
+  {
+    mrmlROSNodePtr->RemoveNthNodeReferenceID("broadcaster", index);
+  }
+  
   mInternals->mTfBroadcaster.reset();
   mInternals->mROSNode.reset();
   return true;
