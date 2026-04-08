@@ -57,7 +57,9 @@ ROS 2 Jazzy:
 
    sudo apt install ros-jazzy-ur
 
-
+.. code-block:: bash
+		
+   ros2 launch ur_description view_ur.launch.py ur_type:=ur5e
 
 Phantom Omni
 ============
@@ -72,8 +74,8 @@ Ethernet and more recently USB.
   :align: center
   :alt: Sensable Omni in Slicer
 
-Full dVRK stack
----------------
+Full cisst/SAW stack
+--------------------
 
 Installing the cisst/SAW Omni code base is not too difficult, but it
 will take a`few minutes to compile. It is useful if and only if you
@@ -96,13 +98,17 @@ URDF and models using clone:
 Testing
 -------
 
-Don't forget to build and source the ROS workspace after cloning.  The package ``sensable_phantom_model`` contains the URDF, STL meshes, a launch file for the ``robot_state_publisher`` as well as a dummy script that publishes a joint trajectory, so one can see the arm moving around.
+Don't forget to build and source the ROS workspace after cloning. The
+package ``sensable_phantom_model`` contains the URDF, STL meshes, a
+launch file for the ``robot_state_publisher`` as well as a dummy
+script that publishes a joint trajectory, so one can see the arm
+moving around.
 
 To start the ``robot_state_publisher``, use:
 
 .. code-block:: bash
 
-  ros2 launch sensable_phantom_model omni_rviz.launch.py
+  ros2 launch sensable_phantom_model omni_rviz.launch.py fake_hardware:=true
 
 Then, to start the robot's dance, use another terminal:
 
@@ -129,9 +135,15 @@ ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
 Cobot
 =====
 
-We also tested SlicerROS2 on `myCobot by Elephant Robotics <https://www.elephantrobotics.com/en/mycobot-en/>`_, specifically the myCobot 280 M5 Stack.  The ROS 2 interface for the device can be found `here <https://github.com/elephantrobotics/mycobot_ros2>`_ and drivers can be installed from the Elephant Robotics website.
+We also tested SlicerROS2 on `myCobot by Elephant Robotics
+<https://www.elephantrobotics.com/en/mycobot-en/>`_, specifically the
+myCobot 280 M5 Stack.  The ROS 2 interface for the device can be found
+`here <https://github.com/elephantrobotics/mycobot_ros2>`_ and drivers
+can be installed from the Elephant Robotics website.
 
-Assuming the interface (mycobot_ros2) is cloned under the same ``ros2_ws``, you can start the robot state publisher with RViz using the following command:
+Assuming the interface (mycobot_ros2) is cloned under the same
+``ros2_ws``, you can start the robot state publisher with RViz using
+the following command:
 
 .. code-block:: bash
 

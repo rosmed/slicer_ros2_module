@@ -8,16 +8,22 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/config.h>
 
 #include <iostream>
 
 vtkSmartPointer<vtkPolyData> vtkAssImpConversion::vtkAssImpToPolyData(const std::string& filename)
 {
   Assimp::Importer importer;
+  // URDF meshes are expected in their native coordinate frame.
+  // Prevent Assimp from rotating Collada/DAE meshes to convert
+  // from Z_UP to Y_UP, which would introduce a 90-degree rotation.
+  importer.SetPropertyBool(AI_CONFIG_IMPORT_COLLADA_IGNORE_UP_DIRECTION, true);
   const aiScene* scene = importer.ReadFile(filename,
                                            aiProcess_Triangulate |
                                            aiProcess_GenNormals |
-                                           aiProcess_JoinIdenticalVertices);
+                                           aiProcess_JoinIdenticalVertices |
+                                           aiProcess_PreTransformVertices);
 
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
     std::cerr << "Assimp failed to read file: " << filename << " (" << importer.GetErrorString() << ")" << std::endl;
@@ -34,35 +40,36 @@ vtkSmartPointer<vtkPolyData> vtkAssImpConversion::vtkAssImpToPolyData(const std:
 
   vtkIdType vertexOffset = 0;
 
-  // Simple traversal of all meshes in the scene.
-  // Warning: This ignores local node transformations. 
-  // For standard DAE links in URDFs, usually the mesh root is centered, 
-  // but a recursive traversal with applying transforms might be more robust if needed.
-  for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
-    aiMesh* mesh = scene->mMeshes[i];
+  for (unsigned int meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex) {
+    aiMesh* mesh = scene->mMeshes[meshIndex];
+    if (!mesh) {
+      continue;
+    }
 
-    for (unsigned int j = 0; j < mesh->mNumVertices; ++j) {
-      aiVector3D pos = mesh->mVertices[j];
+    const vtkIdType meshVertexOffset = vertexOffset;
+
+    for (unsigned int vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex) {
+      const aiVector3D& pos = mesh->mVertices[vertexIndex];
       points->InsertNextPoint(pos.x, pos.y, pos.z);
 
       if (mesh->HasNormals()) {
-        aiVector3D n = mesh->mNormals[j];
+        const aiVector3D& n = mesh->mNormals[vertexIndex];
         normals->InsertNextTuple3(n.x, n.y, n.z);
       }
     }
 
-    for (unsigned int j = 0; j < mesh->mNumFaces; ++j) {
-      aiFace face = mesh->mFaces[j];
+    for (unsigned int faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
+      const aiFace& face = mesh->mFaces[faceIndex];
       if (face.mNumIndices == 3) {
         vtkIdType pts[3] = {
-          vertexOffset + face.mIndices[0],
-          vertexOffset + face.mIndices[1],
-          vertexOffset + face.mIndices[2]
+          meshVertexOffset + face.mIndices[0],
+          meshVertexOffset + face.mIndices[1],
+          meshVertexOffset + face.mIndices[2]
         };
         polys->InsertNextCell(3, pts);
       }
     }
-    
+
     vertexOffset += mesh->mNumVertices;
   }
 

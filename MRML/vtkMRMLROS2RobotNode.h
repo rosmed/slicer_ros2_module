@@ -9,6 +9,7 @@
 #include <vtkMRMLNode.h>
 #include <vtkMatrix4x4.h>
 #include <vtkDoubleArray.h>
+#include <vtkPointSet.h>
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
@@ -55,13 +56,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   void ObserveParameterNode(vtkMRMLROS2ParameterNode * node);
 
   bool ParseRobotDescription(void);
-  void InitializeLookupListFromURDF(void);
-  void InitializeOffsetListAndModelFilesFromURDF(void);
-
-  void InitializeLookups(void);
-  void InitializeOffsetsAndLinkModels(void);
-  void SetupTransformTree(void);
   void SetupRobotVisualization(void);
+  
+  // Helper for loading model files with fallback
+  vtkSmartPointer<vtkPointSet> LoadModelFile(const std::string& filename);
 
   // MoveIt IK methods (commented out for faster build)
   bool setupIKmoveit(const std::string & groupName);
@@ -117,6 +115,9 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   // Returns immediately, does not block UI
   bool ExecuteMoveItTrajectoryAsync(const std::string& groupName, vtkMoveitMsgsRobotTrajectory* trajectory);
 
+  // Remove all visual nodes (models, transforms, lookups) associated with the robot
+  void RemoveRobotVisualization();
+
   // Save and load
   void ReadXMLAttributes(const char** atts) override;
   void WriteXML(std::ostream& of, int indent) override;
@@ -128,19 +129,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 
   void ObserveParameterNodeCallback( vtkObject* caller, unsigned long, void* vtkNotUsed(callData));
 
-  struct {
-    std::vector<std::string> mLinkNames;
-    std::vector<std::string> mLinkParentNames;
-    std::vector<std::string> mLinkModelFiles;
-    std::vector<vtkSmartPointer<vtkMRMLModelNode>> mLinkModels;
-    std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>> mLookupNodes;
-    std::string mRobotDescription = "";
-    vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
-    std::string mParameterNodeName;
-    std::string mParameterName;
-    std::string mFixedFrame;
-    std::string mTfPrefix;
-  } mNthRobot;
+  vtkSmartPointer<vtkMRMLROS2ParameterNode> mRobotDescriptionParameterNode;
 
   std::string mRobotName = "undefined";
   std::string mMRMLNodeName = "ros2:robot";

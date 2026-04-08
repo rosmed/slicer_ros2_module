@@ -34,6 +34,20 @@ class vtkMRMLROS2RobotNodeInternals
   std::vector< std::shared_ptr< urdf::Link > > mChildLinkPointer;
   std::vector<urdf::Pose> mLinkOrigins;
 
+  // Transient setup data
+  std::vector<std::string> mLinkNames;
+  std::vector<std::string> mLinkParentNames;
+  std::vector<std::string> mLinkModelFiles;
+  std::vector<vtkSmartPointer<vtkMRMLModelNode>> mLinkModels;
+  std::vector<vtkSmartPointer<vtkMRMLROS2Tf2LookupNode>> mLookupNodes;
+
+  // Persistent robot state
+  std::string mRobotDescription;
+  std::string mFixedFrame;
+  std::string mTfPrefix;
+  std::string mParameterNodeName;
+  std::string mParameterName;
+
   // Cached MoveIt objects for IK
   std::unique_ptr<robot_model_loader::RobotModelLoader> RobotModelLoaderPtr;
   std::shared_ptr<moveit::core::RobotModel> RobotModelPtr;
