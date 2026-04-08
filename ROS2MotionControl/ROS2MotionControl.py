@@ -4,6 +4,7 @@ import subprocess
 from typing import Annotated, Optional
 import xml.etree.ElementTree as ET
 import math
+import re
 import qt
 import json
 try:
@@ -345,7 +346,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 print("Error: Failed to create goal state robot.")
                 return
             print("Goal robot created successfully.")
-            self.goaltiplink = self.tiplink + "_model_goal"
+            # Keep plain link name; resolver will map link -> model node for goal robot.
+            self.goaltiplink = self.tiplink
         
             # Print current postiion
             currentjointpos =self.logic.getcurrentjointpositions(robotNode)
@@ -950,26 +952,57 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
     
     def findRobotTransforms(self, link_name, goal=False):
         """
-        Locates the Slicer Transform node for a given link by looking for 
-        the visual model and getting its parent.
+        Locate the transform for a link/model name using multi-part model naming only:
+        - live: <link>_model_<index>
+        - goal: <link>_model_<index>_goal
         """
-        # Construct expected model name
-        model_name = f"{link_name}_model"
-        
-        if goal:
-            model_name = link_name
+        scene = slicer.mrmlScene
 
-        
-        # Find model node, if exsits, get its parent transform
-        model_node = slicer.util.getNode(model_name)
-        if model_node is None:
-            raise RuntimeError(f"Model for link '{link_name}' not found as '{model_name}'")
-        parent = model_node.GetParentTransformNode()
-        if parent:
-            # print(f"Found transform for '{link_name}' via model '{model_name}': {parent.GetName()}")
-            return parent
-        else:
-            raise RuntimeError(f"Could not find Transform for link '{link_name}'")
+        # If an explicit model node name is provided, honor it directly.
+        if re.fullmatch(r".+_model_\d+(_goal)?", link_name):
+            model_name = link_name if (not goal or link_name.endswith("_goal")) else f"{link_name}_goal"
+            try:
+                model_node = slicer.util.getNode(model_name)
+                parent = model_node.GetParentTransformNode()
+                if parent:
+                    return parent
+            except Exception:
+                pass
+
+        # Otherwise treat input as a link name and pick the lowest-index model part.
+        prefix = f"{link_name}_model_"
+        candidates = []
+        for i in range(scene.GetNumberOfNodesByClass("vtkMRMLModelNode")):
+            model = scene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+            if not model:
+                continue
+            model_name = model.GetName() or ""
+            if goal:
+                if model_name.startswith(prefix) and model_name.endswith("_goal"):
+                    index_text = model_name[len(prefix):-5]
+                    if re.fullmatch(r"\d+", index_text):
+                        candidates.append((int(index_text), model))
+            else:
+                if model_name.startswith(prefix):
+                    index_text = model_name[len(prefix):]
+                    if re.fullmatch(r"\d+", index_text):
+                        candidates.append((int(index_text), model))
+
+        if candidates:
+            candidates.sort(key=lambda x: x[0])
+            parent = candidates[0][1].GetParentTransformNode()
+            if parent:
+                return parent
+
+        if goal:
+            try:
+                goal_transform = slicer.util.getNode(f"{link_name}_goal_transform")
+                if goal_transform:
+                    return goal_transform
+            except Exception:
+                pass
+
+        raise RuntimeError(f"Could not find transform for link/model '{link_name}' (goal={goal})")
 
     def addObserver(self, fromTransformName, toTransformName):
         """
@@ -1451,13 +1484,10 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 
                 # goal links have model names with "_goal" suffix
                 # When goal=True, findRobotTransforms expects the full model node name
-                goal_parent_model = f"{parent_link}_model_goal"
-                goal_child_model = f"{child_link}_model_goal"
-                
                 # Get transform nodes for goal parent and child links
                 try:
-                    parent_transform = self.findRobotTransforms(goal_parent_model, goal=True)
-                    child_transform = self.findRobotTransforms(goal_child_model, goal=True)
+                    parent_transform = self.findRobotTransforms(parent_link, goal=True)
+                    child_transform = self.findRobotTransforms(child_link, goal=True)
                 except RuntimeError as e:
                     print(f"Warning: Could not find goal transforms for joint '{joint_name}': {e}")
                     joint_positions.append(0.0)
@@ -1524,18 +1554,14 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     continue
                 
                 # Find the goal link's transform node
-                goal_link_name = link_name + "_model_goal"
                 try:
-                    goal_model = slicer.util.getNode(goal_link_name)
-                    if goal_model:
-                        goal_transform = goal_model.GetParentTransformNode()
-                        if goal_transform:
-                            # Apply the FK matrix to the goal transform
-                            goal_transform.SetMatrixTransformToParent(fk_matrix)
-                            print(fk_matrix)
-                            print(f"[FK] Updated goal transform for '{link_name}'")
-                except:
-                    print(f"[FK] Could not find or update goal model for '{link_name}'")
+                    goal_transform = self.findRobotTransforms(link_name, goal=True)
+                    if goal_transform:
+                        # Apply the FK matrix to the goal transform
+                        goal_transform.SetMatrixTransformToParent(fk_matrix)
+                        print(f"[FK] Updated goal transform for '{link_name}'")
+                except Exception:
+                    print(f"[FK] Could not find or update goal transform for '{link_name}'")
                     
             except Exception as e:
                 print(f"[FK] Error computing FK for link '{link_name}': {e}")

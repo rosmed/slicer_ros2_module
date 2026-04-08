@@ -245,6 +245,7 @@ bool vtkMRMLROS2RobotNode::RemoveGoalStateRobot()
       if (node) {
         scene->RemoveNode(node);
       }
+      this->RemoveNthNodeReferenceID(role, i);
     }
   };
 
@@ -274,38 +275,79 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
 
   RemoveGoalStateRobot();
 
+  int lookupCount = sourceRobot->GetNumberOfNodeReferences("lookup");
+  std::vector<vtkSmartPointer<vtkMRMLLinearTransformNode>> goalTransforms;
+  goalTransforms.reserve(lookupCount);
+  std::unordered_map<std::string, vtkSmartPointer<vtkMRMLLinearTransformNode>> goalTransformsByLookupId;
+
+  for (int i = 0; i < lookupCount; ++i) {
+    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", i));
+    if (!lookup) {
+      goalTransforms.push_back(nullptr);
+      continue;
+    }
+
+    vtkSmartPointer<vtkMRMLLinearTransformNode> goalTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+    scene->AddNode(goalTransform);
+
+    std::string childName = lookup->GetChildID();
+    if (!mInternals->mTfPrefix.empty() && childName.rfind(mInternals->mTfPrefix, 0) == 0) {
+      childName = childName.substr(mInternals->mTfPrefix.size());
+    }
+    std::string transformName = childName + "_goal_transform";
+    goalTransform->SetName(transformName.c_str());
+
+    vtkNew<vtkMatrix4x4> matrix;
+    lookup->GetMatrixTransformToParent(matrix);
+    goalTransform->SetMatrixTransformToParent(matrix);
+
+    goalTransforms.push_back(goalTransform);
+    goalTransformsByLookupId[lookup->GetID()] = goalTransform;
+    this->AddNodeReferenceID("goal_transform", goalTransform->GetID());
+  }
+
+  for (int i = 0; i < lookupCount; ++i) {
+    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", i));
+    if (!lookup || i >= static_cast<int>(goalTransforms.size()) || !goalTransforms[i]) {
+      continue;
+    }
+
+    std::string parentFrame = lookup->GetParentID();
+    for (int j = 0; j < lookupCount; ++j) {
+      vtkMRMLROS2Tf2LookupNode* potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", j));
+      if (!potentialParent || i == j || j >= static_cast<int>(goalTransforms.size()) || !goalTransforms[j]) {
+        continue;
+      }
+      if (potentialParent->GetChildID() == parentFrame) {
+        goalTransforms[i]->SetAndObserveTransformNodeID(goalTransforms[j]->GetID());
+        break;
+      }
+    }
+  }
+
   int modelCount = sourceRobot->GetNumberOfNodeReferences("model");
   std::cout << "Found " << modelCount << " model nodes to duplicate" << std::endl;
-
-  std::vector<vtkSmartPointer<vtkMRMLLinearTransformNode>> goalTransforms;
-  goalTransforms.reserve(modelCount);
-
   for (int i = 0; i < modelCount; ++i) {
     vtkMRMLModelNode* original = vtkMRMLModelNode::SafeDownCast(sourceRobot->GetNthNodeReference("model", i));
     if (!original) {
       continue;
     }
 
-    vtkSmartPointer<vtkMRMLLinearTransformNode> goalTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
-    scene->AddNode(goalTransform);
-    std::string transformName = std::string(original->GetName() ? original->GetName() : "model") + "_goal_transform";
-    goalTransform->SetName(transformName.c_str());
-
-    vtkMRMLLinearTransformNode* origTransform = vtkMRMLLinearTransformNode::SafeDownCast(
-      scene->GetNodeByID(original->GetTransformNodeID()));
-    if (origTransform) {
-      vtkNew<vtkMatrix4x4> matrix;
-      origTransform->GetMatrixTransformToParent(matrix);
-      goalTransform->SetMatrixTransformToParent(matrix);
+    auto goalTransformIt = goalTransformsByLookupId.find(original->GetTransformNodeID() ? original->GetTransformNodeID() : "");
+    if (goalTransformIt == goalTransformsByLookupId.end() || !goalTransformIt->second) {
+      vtkWarningMacro(<< "CreateGoalStateRobot: could not map model '"
+                      << (original->GetName() ? original->GetName() : "model")
+                      << "' to a goal transform");
+      continue;
     }
-    goalTransforms.push_back(goalTransform);
+    vtkMRMLLinearTransformNode* goalTransform = goalTransformIt->second;
 
     vtkSmartPointer<vtkMRMLModelNode> goal = vtkSmartPointer<vtkMRMLModelNode>::New();
     scene->AddNode(goal);
 
     std::string goalName = std::string(original->GetName() ? original->GetName() : "model") + "_goal";
     goal->SetName(goalName.c_str());
-    std::cout << "  Creating goal: " << goalName << " with transform: " << transformName << std::endl;
+    std::cout << "  Creating goal: " << goalName << " with transform: " << goalTransform->GetName() << std::endl;
 
     if (original->GetMesh()) {
       goal->SetAndObserveMesh(original->GetMesh());
@@ -323,34 +365,11 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
 
     goal->SetAndObserveTransformNodeID(goalTransform->GetID());
     this->AddNodeReferenceID("goal_model", goal->GetID());
-    this->AddNodeReferenceID("goal_transform", goalTransform->GetID());
-  }
-
-  int lookupCount = sourceRobot->GetNumberOfNodeReferences("lookup");
-  for (int i = 0; i < lookupCount; ++i) {
-    vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", i));
-    if (!lookup) {
-      continue;
-    }
-    std::string parentFrame = lookup->GetParentID();
-    for (int j = 0; j < lookupCount; ++j) {
-      vtkMRMLROS2Tf2LookupNode* potentialParent = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", j));
-      if (!potentialParent) {
-        continue;
-      }
-      std::string childFrame = potentialParent->GetChildID();
-      if (childFrame == parentFrame && i != j) {
-        if (i < static_cast<int>(goalTransforms.size()) && j < static_cast<int>(goalTransforms.size())) {
-          goalTransforms[i]->SetAndObserveTransformNodeID(goalTransforms[j]->GetID());
-        }
-        break;
-      }
-    }
   }
 
   for (int i = 0; i < lookupCount && i < static_cast<int>(goalTransforms.size()); ++i) {
     vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobot->GetNthNodeReference("lookup", i));
-    if (!lookup) {
+    if (!lookup || !goalTransforms[i]) {
       continue;
     }
     vtkNew<vtkMatrix4x4> matrix;
@@ -364,7 +383,7 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
     int lc = sourceRobotSafe->GetNumberOfNodeReferences("lookup");
     for (int i = 0; i < lc && i < static_cast<int>(goalTransforms.size()); ++i) {
       vtkMRMLROS2Tf2LookupNode* lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(sourceRobotSafe->GetNthNodeReference("lookup", i));
-      if (!lookup) {
+      if (!lookup || !goalTransforms[i]) {
         continue;
       }
       vtkNew<vtkMatrix4x4> matrix;
@@ -563,7 +582,9 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
     }
   }
 
-  SetupKDLIKWithLimits();
+  if (!SetupKDLIKWithLimits()) {
+    vtkErrorMacro(<< "SetupRobotVisualization: failed to initialize KDL chain and joint limits");
+  }
 
   // Clear transient vectors
   mInternals->mLinkModels.clear();
@@ -894,24 +915,43 @@ std::vector<std::string> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
   std::string rootLinkName = rootLink->name;
   std::string tipLinkName = rootLinkName;
 
-  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
-  bfsQueue.push(rootLink);
+  struct TraversalState
+  {
+    std::shared_ptr<const urdf::Link> Link;
+    int MovableJointCount;
+    int Depth;
+  };
+
+  int bestMovableJointCount = -1;
+  int bestDepth = -1;
+
+  std::queue<TraversalState> bfsQueue;
+  bfsQueue.push({rootLink, 0, 0});
 
   while (!bfsQueue.empty()) {
-    auto currentLink = bfsQueue.front();
+    auto state = bfsQueue.front();
     bfsQueue.pop();
 
-    if (!currentLink) {
+    if (!state.Link) {
       continue;
     }
 
-    if (currentLink->child_links.empty()) {
-      tipLinkName = currentLink->name;
-      break;
+    if (state.Link->child_links.empty()) {
+      if (state.MovableJointCount > bestMovableJointCount ||
+          (state.MovableJointCount == bestMovableJointCount && state.Depth > bestDepth)) {
+        bestMovableJointCount = state.MovableJointCount;
+        bestDepth = state.Depth;
+        tipLinkName = state.Link->name;
+      }
+      continue;
     }
 
-    for (const auto& childLink : currentLink->child_links) {
-      bfsQueue.push(childLink);
+    for (const auto& childLink : state.Link->child_links) {
+      int movableJointCount = state.MovableJointCount;
+      if (childLink && childLink->parent_joint && childLink->parent_joint->type != urdf::Joint::FIXED) {
+        movableJointCount++;
+      }
+      bfsQueue.push({childLink, movableJointCount, state.Depth + 1});
     }
   }
 
