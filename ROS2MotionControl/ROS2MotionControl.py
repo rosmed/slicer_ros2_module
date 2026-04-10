@@ -30,6 +30,9 @@ from slicer.parameterNodeWrapper import (
 
 from slicer import vtkMRMLScalarVolumeNode
 
+# Set to True to enable verbose debug prints
+DEBUG = False
+
 
 def _check_ros2_node_running(node_name: str) -> bool:
     if ROS2TestsLogic is not None:
@@ -175,6 +178,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.trajectoryData = None
         self.trajectoryIndex = 0
         self.trajectorySlider = None
+        self.jointSliders = []
+        self.jointSpinboxes = []
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -203,25 +208,28 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.tabWidget.currentChanged.connect(self.onTabChanged)
         
         # Buttons
-        self.ui.applyButton.connect("clicked(bool)", self.onApplyButton)
-        self.ui.usebutton.connect("clicked(bool)", self.onusebutton)
-        self.ui.opacitypushButton.connect("clicked(bool)", self.onopacitybutton)
+        self.ui.useButton.connect("clicked(bool)", self.onUseButton)
+        self.ui.opacityPushButton.connect("clicked(bool)", self.onOpacityButton)
         self.ui.robotColorButton.connect("colorChanged(QColor)", self.onRobotColorChanged)
-        self.ui.zeropushButton.connect("clicked(bool)", self.onzerobutton)
+        self.ui.zeroPushButton.connect("clicked(bool)", self.onZeroButton)
+        self.ui.currentStatePushButton.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.checkBox.connect("toggled(bool)", self.onMoveGroupToggled)
-        self.ui.planbutton.connect("clicked(bool)", self.onPlanButton)
-        self.ui.previewbutton.connect("clicked(bool)", self.onpreviewButton)
-        self.ui.executebutton.connect("clicked(bool)", self.onExecuteButton)    
+        self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
+        self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
+        self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)    
                 
         # Set appearence collapsible button to be collapsed and disabled initially
         self.ui.appCollapsibleButton.collapsed = True
         self.ui.appCollapsibleButton.enabled = False
+        self.ui.jointStateCollapsibleButton.collapsed = True
+        self.ui.jointStateCollapsibleButton.enabled = False
+        if not self.ui.jointStateTopicLineEdit.text:
+            self.ui.jointStateTopicLineEdit.text = "joint_states"
         self.ui.checkBox.enabled = False
-        self.ui.planbutton.enabled = False
-        self.ui.previewbutton.enabled = False
-        self.ui.executebutton.enabled = False
-        self.ui.plangroup.enabled = False
-        self.ui.plangroupline.enabled = False
+        self.ui.planButton.enabled = False
+        self.ui.previewButton.enabled = False
+        self.ui.executeButton.enabled = False
+        self.ui.planGroupLineEdit.enabled = False
         
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -234,6 +242,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Stop streaming and remove observers before cleanup
         if self.logic:
             self.logic.removeObserver()
+            self.logic.ClearJointStateSubscriber()
         self.removeObservers()
 
     def enter(self) -> None:
@@ -294,30 +303,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self._checkCanApply()
 
     def _checkCanApply(self, caller=None, event=None) -> None:
-        if self._parameterNode and self._parameterNode.inputVolume and self._parameterNode.thresholdedVolume:
-            self.ui.applyButton.toolTip = _("Compute output volume")
-            self.ui.applyButton.enabled = True
-        else:
-            self.ui.applyButton.toolTip = _("Select input and output volume nodes")
-            self.ui.applyButton.enabled = False
+        pass
 
-    def onApplyButton(self) -> None:
-        """Run processing when user clicks "Apply" button."""
-        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            # Compute output
-            self.logic.process(self.ui.inputSelector.currentNode(), self.ui.outputSelector.currentNode(),
-                               self.ui.imageThresholdSliderWidget.value, self.ui.invertOutputCheckBox.checked)
-
-            # Compute inverted output (if needed)
-            if self.ui.invertedOutputSelector.currentNode():
-                # If additional output volume is selected then result with inverted threshold is written there
-                self.logic.process(self.ui.inputSelector.currentNode(), self.ui.invertedOutputSelector.currentNode(),
-                                   self.ui.imageThresholdSliderWidget.value, not self.ui.invertOutputCheckBox.checked, showResult=False)
-   
-    def onusebutton(self) -> None:
+    def onUseButton(self) -> None:
             
             # Stop any prior streaming callbacks
             self.logic.removeObserver()
+            self.logic.ClearJointStateSubscriber()
             
             # Get robot node
             robotNode = self.ui.ikrobotcombobox.currentNode()
@@ -358,6 +350,10 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.last_ik_solution = currentjointpos
             self.jointPositionsRad = [0.0] * len(joint_names)
             self.robot = robotNode
+
+            topic_name = self.ui.jointStateTopicLineEdit.text.strip()
+            if not self.logic.ConfigureJointStateSubscriber(robotNode, topic_name):
+                print("Warning: Failed to configure JointState subscriber.")
             
             # Print results
             print(f"CURRENT: Root link={self.rootlink}, Tip link={self.tiplink}, Goal Tip Link={self.goaltiplink}")
@@ -366,16 +362,18 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             # Enable buttons
             self.ui.appCollapsibleButton.collapsed = False
             self.ui.appCollapsibleButton.enabled = True
+            self.ui.jointStateCollapsibleButton.collapsed = False
+            self.ui.jointStateCollapsibleButton.enabled = True
             
             # Check if /move_group node exists and goal robot in ROS
             # if so enable MoveIt buttons
             is_running = _check_ros2_node_running("/move_group")
             if is_running:
-                self.ui.planbutton.enabled = True
-                self.ui.previewbutton.enabled = True
+                self.ui.planButton.enabled = True
+                self.ui.previewButton.enabled = True
                 self.ui.checkBox.enabled = True
-                self.ui.plangroup.enabled = True
-                self.ui.plangroupline.enabled = True
+                self.ui.planGroupLabel.enabled = True
+                self.ui.planGroupLineEdit.enabled = True
                 print(f"/move_group node is running")
                 print(f"User must enter planning group name before using MoveIt IK")
             else:
@@ -383,9 +381,10 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     print(f"/move_group node is NOT running")
             
             # Create Joint Sliders Dynamically (only if goal model exists)
-            self.ui.zeropushButton.enabled = True
+            self.ui.zeroPushButton.enabled = True
+            self.ui.currentStatePushButton.enabled = True
             limits = self.logic.parse_joint_limits_from_urdf(urdf_xml)
-            container = self.ui.Jointtab.layout()
+            container = self.ui.JointTab.layout()
             if container is not None:
                 # FIX: Iterate backwards to delete dynamic items but KEEP the zero button
                 for i in reversed(range(container.count())):
@@ -393,7 +392,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     widget = item.widget()
                     
                     # If this is your specific button, skip it!
-                    if widget == self.ui.zeropushButton:
+                    if widget == self.ui.zeroPushButton:
                         continue
                         
                     # Otherwise, remove from layout and destroy
@@ -402,6 +401,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                         widget.deleteLater()
 
                 # Create sliders dynamically
+                self.jointSliders = []
+                self.jointSpinboxes = []
                 for i, joint_name in enumerate(joint_names):
                     # --- 1. SETUP MAIN CONTAINER (Vertical: Label Top, Controls Bottom) ---
                     joint_block_widget = qt.QWidget()
@@ -467,12 +468,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     
                     # Add the whole block to your main container
                     container.addWidget(joint_block_widget)
+                    self.jointSliders.append(joint_slider)
+                    self.jointSpinboxes.append(joint_spinbox)
             
             # Set robot true
             self.isRobotLoaded = True
 
     # Opacity button handler        
-    def onopacitybutton(self) -> None:
+    def onOpacityButton(self) -> None:
         opacity = self.ui.spinBox.value / 100.0
         robot = self.ui.robotcomboBox.currentNode()
         self.logic.setopacity(robot, opacity)
@@ -495,15 +498,15 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Update goal robot transforms with new joint positions
         if self.logic is not None and self.robot is not None:
             self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
-        
-        print(f"All joint values (rad): {[f'{j:.4f}' for j in self.jointPositionsRad]}")
+        if DEBUG:
+            print(f"All joint values (rad): {[f'{j:.4f}' for j in self.jointPositionsRad]}")
     
     # Zero button handler
-    def onzerobutton(self) -> None:
+    def onZeroButton(self) -> None:
         
         print("Resetting joint sliders to zero.")
 
-        container = self.ui.Jointtab.layout()
+        container = self.ui.JointTab.layout()
         if container is None:
             return
 
@@ -515,7 +518,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             widget = item.widget()
             
             # Skip empty items or the zero button itself
-            if widget is None or widget == self.ui.zeropushButton:
+            if widget is None or widget == self.ui.zeroPushButton:
                 continue
             
             # 2. Look INSIDE the widget for the Slider and Spinbox
@@ -552,14 +555,56 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
             self.logic.last_ik_solution = self.jointPositionsRad.copy()
 
+    def onCurrentStateButton(self) -> None:
+        if self.logic is None or self.robot is None:
+            print("Current state: robot is not initialized")
+            return
+
+        joint_names = self.robot.GetJoints()
+        if not joint_names:
+            print("Current state: no joints found on robot")
+            return
+
+        joint_values = self.logic.CurrentJointState(joint_names)
+        if not joint_values:
+            print("Current state: failed to read positions from JointState subscriber")
+            return
+
+        if len(joint_values) != len(joint_names):
+            print(f"Current state: joint count mismatch ({len(joint_values)} vs {len(joint_names)})")
+            return
+
+        self.jointPositionsRad = joint_values.copy()
+        self.logic.last_ik_solution = joint_values.copy()
+        self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_values)
+        self._setJointUiFromRadians(joint_values)
+        print(f"Current state applied from subscriber: {[f'{j:.4f}' for j in joint_values]}")
+
+    def _setJointUiFromRadians(self, joint_values_rad) -> None:
+        for i, rad in enumerate(joint_values_rad):
+            if i >= len(self.jointSliders):
+                break
+            slider = self.jointSliders[i]
+            spinbox = self.jointSpinboxes[i]
+            deg = int(round(math.degrees(rad)))
+            lo = slider.minimum
+            hi = slider.maximum
+            clamped = max(lo, min(hi, deg))
+            slider.blockSignals(True)
+            spinbox.blockSignals(True)
+            slider.setValue(clamped)
+            spinbox.setValue(clamped)
+            slider.blockSignals(False)
+            spinbox.blockSignals(False)
+
     def onMoveGroupToggled(self, toggled: bool) -> None:
         if toggled:
             print("Enabling MoveIt IK")
             self.logic.useMoveItIK = True
             
-            if self.ui.plangroupline.text == "":
+            if self.ui.planGroupLineEdit.text == "":
                 print("Warning: No MoveIt planning group specified.")
-            self.robot.setupIKmoveit(self.ui.plangroupline.text)
+            self.robot.setupIKmoveit(self.ui.planGroupLineEdit.text)
         else:
             print("Disabling MoveIt IK")
             self.logic.useMoveItIK = False
@@ -573,7 +618,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             current_widget = self.ui.tabWidget.widget(index)
             
             # 2. Check: Is this widget MY control tab?
-            if current_widget == self.ui.controltab:
+            if current_widget == self.ui.controlTab:
                 print("Detected: controltab is now OPEN")
                 # Call your start function here
                 self.enterControlMode()
@@ -676,13 +721,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         except: pass
 
     def onPlanButton(self) -> None:
-        sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.plangroupline.text,self.logic.last_ik_solution)
+        sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.planGroupLineEdit.text(),self.logic.last_ik_solution)
         print(f"Plan button clicked - received solution: {sol}")
         
         # Parse and store the trajectory
         if sol:
-            self.ui.previewbutton.enabled = True
-            self.ui.executebutton.enabled = True
+            self.ui.previewButton.enabled = True
+            self.ui.executeButton.enabled = True
             try:
                 trajectory = json.loads(sol)
                 if "points" in trajectory:
@@ -743,7 +788,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             except json.JSONDecodeError as e:
                 print(f"Error parsing trajectory JSON: {e}")
         
-    def onpreviewButton(self) -> None:
+    def onPreviewButton(self) -> None:
         """Preview the planned trajectory on the goal robot"""
         if not self.trajectoryData:
             print("No trajectory to preview. Run Plan first.")
@@ -804,7 +849,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 self.trajectorySpinBox.blockSignals(False)
                 
     def onExecuteButton(self) -> None:
-        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.plangroupline.text)
+        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.planGroupLineEdit.text())
         
         if success:
             print("Execute command sent successfully.")
@@ -835,12 +880,174 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.obsNode = None
         self.callback = None  
         self.toNode = None
-        self.plangroup = None
+        self.planGroup = None
         self.tipLink = None  # Will be set from widget
         self.last_ik_solution = []  # Will be sized based on actual joint count
         self.joint_names = []  # Will be populated from URDF
-        self.joint_state_publisher = None
+        self.joint_state_subscriber = None
+        self.joint_state_subscriber_observer = None
+        self.joint_state_last_message = None
+        self.joint_state_topic = None
+        self.joint_state_ros2_node = None
+        self.joint_state_subscriber_owned = False
         self.useMoveItIK = False  # Flag to toggle between KDL and MoveIt IK
+
+    def _normalize_joint_state_topic(self, topic_name: str) -> str:
+        topic = (topic_name or "").strip()
+        if not topic:
+            topic = "joint_states"
+        if not topic.startswith("/"):
+            topic = f"/{topic}"
+        return topic
+
+    def _on_joint_state_modified(self, caller=None, event=None):
+        if self.joint_state_subscriber is None:
+            return
+        try:
+            self.joint_state_last_message = self.joint_state_subscriber.GetLastMessage()
+        except Exception as e:
+            print(f"Joint state: failed to cache last message: {e}")
+
+    def ConfigureJointStateSubscriber(self, robotNode, topic_name: str) -> bool:
+        self.ClearJointStateSubscriber()
+
+        if robotNode is None:
+            print("Joint state: robot node is invalid")
+            return False
+
+        ros2_node = robotNode.GetNodeReference("node")
+        if ros2_node is None:
+            print("Joint state: robot has no ROS2 node reference")
+            return False
+
+        topic = self._normalize_joint_state_topic(topic_name)
+        subscriber = ros2_node.GetSubscriberNodeByTopic(topic)
+        self.joint_state_subscriber_owned = False
+        if subscriber is None:
+            for class_name in ("JointState", "vtkMRMLROS2SubscriberJointStateNode"):
+                subscriber = ros2_node.CreateAndAddSubscriberNode(class_name, topic)
+                if subscriber:
+                    self.joint_state_subscriber_owned = True
+                    break
+
+        if subscriber is None:
+            print(f"Joint state: failed to create subscriber for topic '{topic}'")
+            print(f"Joint state: registered subscriber types: {ros2_node.RegisteredROS2SubscriberNodes()}")
+            return False
+
+        self.joint_state_subscriber = subscriber
+        self.joint_state_topic = topic
+        self.joint_state_ros2_node = ros2_node
+        self.joint_state_last_message = None
+        self.joint_state_subscriber_observer = self.joint_state_subscriber.AddObserver("ModifiedEvent", self._on_joint_state_modified)
+        self._on_joint_state_modified()
+
+        print(f"Joint state: subscribed to topic '{topic}'")
+        return True
+
+    def ClearJointStateSubscriber(self):
+        if self.joint_state_subscriber and self.joint_state_subscriber_observer is not None:
+            try:
+                self.joint_state_subscriber.RemoveObserver(self.joint_state_subscriber_observer)
+            except Exception:
+                pass
+
+        if self.joint_state_ros2_node and self.joint_state_topic and self.joint_state_subscriber_owned:
+            try:
+                self.joint_state_ros2_node.RemoveAndDeleteSubscriberNode(self.joint_state_topic)
+            except Exception:
+                pass
+
+        self.joint_state_subscriber = None
+        self.joint_state_subscriber_observer = None
+        self.joint_state_last_message = None
+        self.joint_state_topic = None
+        self.joint_state_ros2_node = None
+        self.joint_state_subscriber_owned = False
+
+    def _extract_sequence(self, message, field_name: str):
+        if message is None:
+            return []
+
+        accessors = [
+            f"Get{field_name}",
+            f"Get{field_name.capitalize()}",
+        ]
+        data = None
+        for accessor in accessors:
+            getter = getattr(message, accessor, None)
+            if getter is None:
+                continue
+            try:
+                data = getter()
+                break
+            except Exception:
+                continue
+
+        if data is None:
+            return []
+
+        if isinstance(data, (list, tuple)):
+            return list(data)
+
+        size_getter = getattr(data, "GetNumberOfValues", None)
+        value_getter = getattr(data, "GetValue", None)
+        if size_getter and value_getter:
+            try:
+                return [value_getter(i) for i in range(size_getter())]
+            except Exception:
+                return []
+
+        tuple_count_getter = getattr(data, "GetNumberOfTuples", None)
+        tuple_value_getter = getattr(data, "GetTuple1", None)
+        if tuple_count_getter and tuple_value_getter:
+            try:
+                return [tuple_value_getter(i) for i in range(tuple_count_getter())]
+            except Exception:
+                return []
+
+        try:
+            return list(data)
+        except Exception:
+            return []
+
+    def CurrentJointState(self, joint_names):
+        if self.joint_state_subscriber is None:
+            print("Current state: JointState subscriber is not configured")
+            return []
+
+        message = self.joint_state_last_message
+        if message is None:
+            try:
+                message = self.joint_state_subscriber.GetLastMessage()
+            except Exception as e:
+                print(f"Current state: unable to retrieve JointState message ({e})")
+                return []
+
+        names_raw = self._extract_sequence(message, "name")
+        positions_raw = self._extract_sequence(message, "position")
+        if not names_raw or not positions_raw:
+            print("Current state: JointState message missing name/position arrays")
+            return []
+
+        names = [str(n) for n in names_raw]
+        try:
+            positions = [float(p) for p in positions_raw]
+        except Exception:
+            print("Current state: JointState position array contains invalid values")
+            return []
+
+        if len(names) != len(positions):
+            print("Current state: JointState name/position length mismatch")
+            return []
+
+        by_name = {n: p for n, p in zip(names, positions)}
+        missing = [n for n in joint_names if n not in by_name]
+        if missing:
+            print(f"Current state: JointState missing joints: {missing}")
+            return []
+
+        return [by_name[n] for n in joint_names]
         
     def getParameterNode(self):
         return ROS2MotionControlParameterNode(super().getParameterNode())
@@ -1068,12 +1275,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if not slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, targetPose):
             raise RuntimeError("Could not compute transform between nodes.")
         
-        # DEBUG: Print full 4x4 matrix
-        print(f"\n[MoveIt IK] Target Pose Matrix (4x4):")
-        print(f"  [{targetPose.GetElement(0,0):.3f}, {targetPose.GetElement(0,1):.3f}, {targetPose.GetElement(0,2):.3f}, {targetPose.GetElement(0,3):.2f}]")
-        print(f"  [{targetPose.GetElement(1,0):.3f}, {targetPose.GetElement(1,1):.3f}, {targetPose.GetElement(1,2):.3f}, {targetPose.GetElement(1,3):.2f}]")
-        print(f"  [{targetPose.GetElement(2,0):.3f}, {targetPose.GetElement(2,1):.3f}, {targetPose.GetElement(2,2):.3f}, {targetPose.GetElement(2,3):.2f}]")
-        print(f"  [{targetPose.GetElement(3,0):.3f}, {targetPose.GetElement(3,1):.3f}, {targetPose.GetElement(3,2):.3f}, {targetPose.GetElement(3,3):.3f}]")
+        if DEBUG:
+            print(f"\n[MoveIt IK] Target Pose Matrix (4x4):")
+            print(f"  [{targetPose.GetElement(0,0):.3f}, {targetPose.GetElement(0,1):.3f}, {targetPose.GetElement(0,2):.3f}, {targetPose.GetElement(0,3):.2f}]")
+            print(f"  [{targetPose.GetElement(1,0):.3f}, {targetPose.GetElement(1,1):.3f}, {targetPose.GetElement(1,2):.3f}, {targetPose.GetElement(1,3):.2f}]")
+            print(f"  [{targetPose.GetElement(2,0):.3f}, {targetPose.GetElement(2,1):.3f}, {targetPose.GetElement(2,2):.3f}, {targetPose.GetElement(2,3):.2f}]")
+            print(f"  [{targetPose.GetElement(3,0):.3f}, {targetPose.GetElement(3,1):.3f}, {targetPose.GetElement(3,2):.3f}, {targetPose.GetElement(3,3):.3f}]")
         
         seed = self.last_ik_solution
         result_str = robotmodel.FindIKmoveit(targetPose, tipLink, seed, 0.05)
@@ -1082,7 +1289,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             # Parse comma-separated string into list of floats
             try:
                 data = [float(x) for x in result_str.split(",")]
-                print(f"[IK] Joint Solution: {data}")
+                if DEBUG:
+                    print(f"[IK] Joint Solution: {data}")
                 self.last_ik_solution = data
                 # Publish the joint state solution
                 self.updategoalTransformsFromJointsKDL(robotmodel, data)
@@ -1092,11 +1300,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 print(f"[IK] Failed to parse solution: {e}")
                 return None
         else:
-            print(f"[IK] Empty result from FindIK")
+            if DEBUG:
+                print(f"[IK] Empty result from FindIK")
             return None
     
     
-    def compute_ik_once(self, robotmodel):            
+    def computeIKOnce(self, robotmodel):            
             # --- Get Slicer transform nodes ---
             fromNode = self.obsNode
             toNode   = self.toNode
@@ -1104,8 +1313,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if fromNode is None or toNode is None:
                 return None
 
-            # DEBUG: Log which transforms we're computing between
-            print(f"\n[IK] Computing transform from '{fromNode.GetName()}' to '{toNode.GetName()}'")
+            if DEBUG:
+                print(f"\n[IK] Computing transform from '{fromNode.GetName()}' to '{toNode.GetName()}'")
 
             # --- Compute 4×4 transform between nodes ---
             targetPose = vtk.vtkMatrix4x4()
@@ -1123,7 +1332,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if result_str and result_str.strip():
                 try:
                     data = [float(x) for x in result_str.split(",")]
-                    print(f"[IK] Solution found: {data}")
+                    if DEBUG:
+                        print(f"[IK] Solution found: {data}")
                     self.last_ik_solution = data
                     self.updategoalTransformsFromJointsKDL(robotmodel, data)
                     return data
@@ -1142,7 +1352,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             
             Args:
                 robotmodel: The robot model for KDL IK
-                Planning group name is read from self.plangroup (updated by widget)
+                Planning group name is read from self.planGroup (updated by widget)
             """
             fromNode = self.obsNode
             toNode   = self.toNode
@@ -1172,11 +1382,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 if self.useMoveItIK:
                     # Use MoveIt IK via robotmodel integration
                     solution = self.computeIKWithMoveIt(robotmodel=robotmodel, tipLink=self.tipLink)
-                    if solution:
+                    if DEBUG and solution:
                         print(f"[MoveIt IK] Solution: {solution}")
                 else:
                     # Use KDL IK (original method)
-                    self.compute_ik_once(robotmodel=robotmodel)
+                    self.computeIKOnce(robotmodel=robotmodel)
 
             self.callback = onModified
             eventId = slicer.vtkMRMLTransformNode.TransformModifiedEvent
@@ -1534,7 +1744,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             joint_values: List of joint angles in radians
         """
         if not robotmodel or not joint_values:
-            print("[updategoalTransformsFromJointsKDL] No robot model or joint values")
+            if DEBUG:
+                print("[updategoalTransformsFromJointsKDL] No robot model or joint values")
             return False
         
         seg = robotmodel.GetSegments()
@@ -1559,7 +1770,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     if goal_transform:
                         # Apply the FK matrix to the goal transform
                         goal_transform.SetMatrixTransformToParent(fk_matrix)
-                        print(f"[FK] Updated goal transform for '{link_name}'")
+                        if DEBUG:
+                            print(f"[FK] Updated goal transform for '{link_name}'")
                 except Exception:
                     print(f"[FK] Could not find or update goal transform for '{link_name}'")
                     

@@ -31,7 +31,7 @@
       </attribute>
       <layout class="QFormLayout" name="formLayout_2">
        <item row="0" column="0">
-        <widget class="QLabel" name="robotnamelabel">
+        <widget class="QLabel" name="robotNameLabel">
          <property name="text">
           <string>Robot Name:</string>
          </property>
@@ -53,7 +53,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QPushButton" name="usebutton">
+        <widget class="QPushButton" name="useButton">
          <property name="text">
           <string>Use</string>
          </property>
@@ -79,7 +79,7 @@
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="qMRMLNodeComboBox" name="robotcomboBox" native="true">
+           <widget class="qMRMLNodeComboBox" name="robotComboBox" native="true">
             <property name="nodeTypes" stdset="0">
              <stringlist notr="true">
               <string>vtkMRMLROS2RobotNode</string>
@@ -117,7 +117,7 @@
            </widget>
           </item>
           <item row="4" column="1">
-           <widget class="QPushButton" name="opacitypushButton">
+           <widget class="QPushButton" name="opacityPushButton">
             <property name="text">
              <string>Set Opacity</string>
             </property>
@@ -136,23 +136,66 @@
          </layout>
         </widget>
        </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="ctkCollapsibleButton" name="jointStateCollapsibleButton" native="true">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="text" stdset="0">
+                 <string>Joint State</string>
+                </property>
+                <property name="collapsed" stdset="0">
+                 <bool>false</bool>
+                </property>
+                <layout class="QFormLayout" name="formLayout_jointState">
+                 <item row="0" column="0">
+                    <widget class="QLabel" name="jointStateTopicLabel">
+                     <property name="text">
+                        <string>Topic:</string>
+                     </property>
+                    </widget>
+                 </item>
+                 <item row="0" column="1">
+                    <widget class="QLineEdit" name="jointStateTopicLineEdit">
+                     <property name="text">
+                        <string>joint_states</string>
+                     </property>
+                    </widget>
+                 </item>
+                </layout>
+             </widget>
+            </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="Jointtab">
+     <widget class="QWidget" name="JointTab">
       <attribute name="title">
        <string>Joint Control</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayoutJointButtons">
        <item>
-        <widget class="QPushButton" name="zeropushButton">
+        <widget class="QPushButton" name="zeroPushButton">
          <property name="enabled">
-          <bool>false</bool>
+        <bool>false</bool>
          </property>
          <property name="text">
-          <string>Home</string>
+        <string>Home</string>
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="currentStatePushButton">
+         <property name="enabled">
+        <bool>false</bool>
+         </property>
+         <property name="text">
+        <string>Current state</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
        <item>
         <spacer name="verticalSpacer_4">
          <property name="orientation">
@@ -168,7 +211,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="controltab">
+     <widget class="QWidget" name="controlTab">
       <attribute name="title">
        <string>3D Control</string>
       </attribute>
@@ -197,10 +240,10 @@
         </spacer>
        </item>
        <item row="5" column="1">
-        <widget class="QLineEdit" name="plangroupline"/>
+        <widget class="QLineEdit" name="planGroupLineEdit"/>
        </item>
        <item row="5" column="0">
-        <widget class="QLabel" name="plangroup">
+        <widget class="QLabel" name="planGroupLabel">
          <property name="text">
           <string>Planning Group Name</string>
          </property>
@@ -208,20 +251,20 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="moveittab">
+     <widget class="QWidget" name="moveItTab">
       <attribute name="title">
        <string>Trajectory</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout_5">
        <item row="0" column="1">
-        <widget class="QPushButton" name="planbutton">
+        <widget class="QPushButton" name="planButton">
          <property name="text">
           <string>Plan</string>
          </property>
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QPushButton" name="previewbutton">
+        <widget class="QPushButton" name="previewButton">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -231,7 +274,7 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QPushButton" name="executebutton">
+        <widget class="QPushButton" name="executeButton">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -242,51 +285,6 @@
        </item>
       </layout>
      </widget>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="advancedCollapsibleButton" native="true">
-     <property name="text" stdset="0">
-      <string>Advanced</string>
-     </property>
-     <property name="collapsed" stdset="0">
-      <bool>true</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Invert threshold: </string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QCheckBox" name="invertOutputCheckBox">
-        <property name="toolTip">
-         <string>If checked, values above threshold are set to 0. If unchecked, values below are set to 0.</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="invertThreshold" stdset="0">
-         <string/>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="applyButton">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="toolTip">
-      <string>Run the algorithm.</string>
-     </property>
-     <property name="text">
-      <string>Apply</string>
-     </property>
     </widget>
    </item>
    <item>
