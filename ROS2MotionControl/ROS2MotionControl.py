@@ -209,7 +209,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         
         # Buttons
         self.ui.useButton.connect("clicked(bool)", self.onUseButton)
-        self.ui.opacityPushButton.connect("clicked(bool)", self.onOpacityButton)
+        self.ui.opacitySlider.connect("valueChanged(int)", self.onOpacitySliderChanged)
         self.ui.robotColorButton.connect("colorChanged(QColor)", self.onRobotColorChanged)
         self.ui.zeroPushButton.connect("clicked(bool)", self.onZeroButton)
         self.ui.currentStatePushButton.connect("clicked(bool)", self.onCurrentStateButton)
@@ -353,6 +353,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.jointPositionsRad = [0.0] * len(joint_names)
             self.robot = robotNode
 
+            goal_rgb = self.logic.getGoalRobotColor(self.robot)
+            if goal_rgb is not None:
+                color = qt.QColor()
+                color.setRgbF(goal_rgb[0], goal_rgb[1], goal_rgb[2])
+                self.ui.robotColorButton.blockSignals(True)
+                self.ui.robotColorButton.color = color
+                self.ui.robotColorButton.blockSignals(False)
+
             topic_name = self.ui.jointStateTopicLineEdit.text.strip()
             if not self.logic.ConfigureJointStateSubscriber(robotNode, topic_name):
                 print("Warning: Failed to configure JointState subscriber.")
@@ -478,17 +486,19 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             # Set robot true
             self.isRobotLoaded = True
 
-    # Opacity button handler        
-    def onOpacityButton(self) -> None:
-        opacity = self.ui.spinBox.value / 100.0
-        robot = self.ui.robotComboBox.currentNode()
-        self.logic.setopacity(robot, opacity)
+    # Opacity slider handler
+    def onOpacitySliderChanged(self, value: int) -> None:
+        if self.logic is None or self.robot is None:
+            return
+        opacity = value / 100.0
+        self.logic.setopacity(self.robot, opacity)
     
     # Robot color button handler    
     def onRobotColorChanged(self) -> None:
-        color = self.ui.robotColorButton.color    
-        robotNode = self.ui.robotComboBox.currentNode()
-        self.logic.setRobotColor(robotNode, color)
+        if self.logic is None or self.robot is None:
+            return
+        color = self.ui.robotColorButton.color
+        self.logic.setGoalRobotColor(self.robot, color)
         
     # Joint slider change handler
     def onJointSliderChanged(self, idx: int, valueDeg: int) -> None:
@@ -1438,20 +1448,81 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 displayNode.SetOpacity(opacity)
 
     # Set robot color
-    def setRobotColor(self, robotNode, color):
-        
-        # Get number of model nodes under robotmodel
-        numModels = robotNode.GetNumberOfNodeReferences("model")  
+    def setGoalRobotColor(self, robotNode, color):
+        if robotNode is None:
+            return
 
-        # Loop through each model node and set color
-        for i in range(numModels):  
-            modelNode = robotNode.GetNthNodeReference("model", i)  
-            displayNode = modelNode.GetDisplayNode()  
-            if displayNode:  
-                r = color.red() / 255.0
-                g = color.green() / 255.0
-                b = color.blue() / 255.0
+        r = color.red() / 255.0
+        g = color.green() / 255.0
+        b = color.blue() / 255.0
+
+        goal_models = self._collectGoalModelNodes(robotNode)
+        for modelNode in goal_models:
+            displayNode = modelNode.GetDisplayNode()
+            if displayNode:
                 displayNode.SetColor(r, g, b)
+
+    def getGoalRobotColor(self, robotNode):
+        if robotNode is None:
+            return None
+
+        goal_models = self._collectGoalModelNodes(robotNode)
+        for modelNode in goal_models:
+            displayNode = modelNode.GetDisplayNode()
+            if displayNode:
+                color = displayNode.GetColor()
+                if color and len(color) >= 3:
+                    return (float(color[0]), float(color[1]), float(color[2]))
+        return None
+
+    def _collectGoalModelNodes(self, robotNode):
+        goal_nodes = []
+        seen_names = set()
+
+        # First pass: gather all goal model nodes directly referenced by robot node.
+        numModels = robotNode.GetNumberOfNodeReferences("model")
+        for i in range(numModels):
+            modelNode = robotNode.GetNthNodeReference("model", i)
+            if modelNode is None:
+                continue
+            modelName = modelNode.GetName() or ""
+            if modelName.endswith("_goal") and modelName not in seen_names:
+                goal_nodes.append(modelNode)
+                seen_names.add(modelName)
+
+        # Second pass: map each live model reference to its goal counterpart name.
+        for i in range(numModels):
+            modelNode = robotNode.GetNthNodeReference("model", i)
+            if modelNode is None:
+                continue
+            modelName = modelNode.GetName() or ""
+            if modelName.endswith("_goal"):
+                continue
+            goalName = f"{modelName}_goal"
+            if goalName in seen_names:
+                continue
+            try:
+                goalModel = slicer.util.getNode(goalName)
+                if goalModel is not None:
+                    goal_nodes.append(goalModel)
+                    seen_names.add(goalName)
+            except Exception:
+                pass
+
+        # Fallback: if still empty, scan scene for all goal models.
+        if not goal_nodes:
+            scene = slicer.mrmlScene
+            count = scene.GetNumberOfNodesByClass("vtkMRMLModelNode")
+            for i in range(count):
+                modelNode = scene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+                if modelNode is None:
+                    continue
+                modelName = modelNode.GetName() or ""
+                if modelName.endswith("_goal") and modelName not in seen_names:
+                    goal_nodes.append(modelNode)
+                    seen_names.add(modelName)
+
+        return goal_nodes
     
     # Parse urdf to get joint limits. parses only non-fixed joints
     def parse_joint_limits_from_urdf(self, urdf_xml: str):        
