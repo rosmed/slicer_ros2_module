@@ -213,6 +213,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.robotColorButton.connect("colorChanged(QColor)", self.onRobotColorChanged)
         self.ui.zeroPushButton.connect("clicked(bool)", self.onZeroButton)
         self.ui.currentStatePushButton.connect("clicked(bool)", self.onCurrentStateButton)
+        self.ui.zeroPushButton3DControl.connect("clicked(bool)", self.onZeroButton)
+        self.ui.currentStatePushButton3DControl.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.checkBox.connect("toggled(bool)", self.onMoveGroupToggled)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
@@ -383,6 +385,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             # Create Joint Sliders Dynamically (only if goal model exists)
             self.ui.zeroPushButton.enabled = True
             self.ui.currentStatePushButton.enabled = True
+            self.ui.zeroPushButton3DControl.enabled = True
+            self.ui.currentStatePushButton3DControl.enabled = True
             limits = self.logic.parse_joint_limits_from_urdf(urdf_xml)
             container = self.ui.JointTab.layout()
             if container is not None:
@@ -477,13 +481,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
     # Opacity button handler        
     def onOpacityButton(self) -> None:
         opacity = self.ui.spinBox.value / 100.0
-        robot = self.ui.robotcomboBox.currentNode()
+        robot = self.ui.robotComboBox.currentNode()
         self.logic.setopacity(robot, opacity)
     
     # Robot color button handler    
     def onRobotColorChanged(self) -> None:
         color = self.ui.robotColorButton.color    
-        robotNode = self.ui.robotcomboBox.currentNode()
+        robotNode = self.ui.robotComboBox.currentNode()
         self.logic.setRobotColor(robotNode, color)
         
     # Joint slider change handler
@@ -554,6 +558,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic is not None and self.robot is not None:
             self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
             self.logic.last_ik_solution = self.jointPositionsRad.copy()
+            self._syncProbeToCurrentTipPose()
 
     def onCurrentStateButton(self) -> None:
         if self.logic is None or self.robot is None:
@@ -578,7 +583,32 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.logic.last_ik_solution = joint_values.copy()
         self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_values)
         self._setJointUiFromRadians(joint_values)
+        self._syncProbeToCurrentTipPose()
         print(f"Current state applied from subscriber: {[f'{j:.4f}' for j in joint_values]}")
+
+    def _syncProbeToCurrentTipPose(self) -> None:
+        if self.logic is None or self.fromtransform is None:
+            return
+
+        tip_transform_node = None
+        try:
+            if self.goaltiplink:
+                tip_transform_node = self.logic.findRobotTransforms(self.goaltiplink, goal=True)
+        except Exception:
+            tip_transform_node = None
+
+        if tip_transform_node is None and self.tiplink:
+            try:
+                tip_transform_node = self.logic.findRobotTransforms(self.tiplink, goal=False)
+            except Exception:
+                tip_transform_node = None
+
+        if tip_transform_node is None:
+            return
+
+        tip_matrix = vtk.vtkMatrix4x4()
+        tip_transform_node.GetMatrixTransformToWorld(tip_matrix)
+        self.fromtransform.SetMatrixTransformToParent(tip_matrix)
 
     def _setJointUiFromRadians(self, joint_values_rad) -> None:
         for i, rad in enumerate(joint_values_rad):
