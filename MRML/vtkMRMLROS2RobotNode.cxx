@@ -906,10 +906,20 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
 
 std::vector<std::string> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
 {
-  auto rootLink = mInternals->mURDFModel.getRoot();
-  if (!rootLink) {
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) {
     vtkErrorMacro(<< "FindRootAndTipLinks: URDF root link is null");
     return {};
+  }
+
+  // Auto-detect structural root: first child of URDF root with no inertia AND has children
+  // This finds the kinematic root (e.g., "base_link") rather than the physical tree root
+  auto rootLink = urdfRoot;
+  for (const auto& childLink : urdfRoot->child_links) {
+    if (childLink && !childLink->inertial && !childLink->child_links.empty()) {
+      rootLink = childLink;
+      break;
+    }
   }
 
   std::string rootLinkName = rootLink->name;

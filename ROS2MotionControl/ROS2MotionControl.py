@@ -600,18 +600,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic is None or self.fromtransform is None:
             return
 
+        # Work only with goal tree
         tip_transform_node = None
         try:
             if self.goaltiplink:
                 tip_transform_node = self.logic.findRobotTransforms(self.goaltiplink, goal=True)
-        except Exception:
-            tip_transform_node = None
-
-        if tip_transform_node is None and self.tiplink:
-            try:
-                tip_transform_node = self.logic.findRobotTransforms(self.tiplink, goal=False)
-            except Exception:
-                tip_transform_node = None
+        except Exception as e:
+            print(f"Could not find goal tip transform: {e}")
+            return
 
         if tip_transform_node is None:
             return
@@ -672,13 +668,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 if not self.isRobotLoaded: return
                 if not self.robot or not self.rootlink: return
 
-                print(">> Enter Control Mode: Creating Sphere & Starting IK...")
+                print(">> Enter Control Mode: Using Goal Robot Tree Only...")
 
-                # 2. Find Robot Root Transform (Target for IK calculation)
+                # 2. Find Goal Robot Root Transform
                 try:
-                    self.totransform = self.logic.findRobotTransforms(self.rootlink)
+                    self.totransform = self.logic.findRobotTransforms(self.rootlink, goal=True)
                 except RuntimeError:
-                    print("Error: Could not find robot root transform.")
+                    print("Error: Could not find goal robot root transform.")
                     return
 
                 # 3. Create Sphere (Probe) if missing
@@ -694,35 +690,23 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 else:
                     self.fromtransform = slicer.util.getNode("ProbeSphere_Transform")
 
-                # --- UPDATED: SNAP SPHERE TO TIP ON START ---
-                # This aligns the probe (Pos + Rot) with the robot immediately, 
-                # solving the "Impossible Orientation" issue at startup.
+                # 4. Snap probe to goal tip on start
                 try:
-                    # A. Decide which tip to follow: goal (Preferred) -> Real (Fallback)
-                    target_tip_link = self.goaltiplink
-                    use_goal = (target_tip_link == self.goaltiplink)
-
-                    if target_tip_link:
-                        # B. Find the Transform Node
-                        tip_transform_node = self.logic.findRobotTransforms(target_tip_link, goal=use_goal)
+                    if self.goaltiplink:
+                        # Find goal tip transform
+                        tip_transform_node = self.logic.findRobotTransforms(self.goaltiplink, goal=True)
                         
                         if tip_transform_node:
-                            # C. Get the Full 4x4 Matrix (Pos + Rot) in World Coordinates
+                            # Get full 4x4 matrix and apply to probe
                             tipMatrix = vtk.vtkMatrix4x4()
                             tip_transform_node.GetMatrixTransformToWorld(tipMatrix)
-                            
-                            # D. Apply to Probe
                             self.fromtransform.SetMatrixTransformToParent(tipMatrix)
-                            print(f"✅ Snapped Probe Pose to {target_tip_link} (Pos + Rot)")
+                            print(f"✅ Snapped Probe to Goal Tip: {self.goaltiplink}")
                             
-                    else:
-                        print("Warning: No tip link found to snap to.")
-                        
                 except Exception as e:
-                    print(f"Warning: Could not snap sphere to tip. Error: {e}")
-                # ----------------------------------------
+                    print(f"Warning: Could not snap sphere to goal tip. Error: {e}")
 
-                # 4. LINK VISUALS TO LOGIC
+                # 5. Link probe to goal root for IK
                 self.logic.setIKSourceTransforms(
                     self.fromtransform.GetName(), 
                     self.totransform.GetName()
@@ -761,7 +745,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         except: pass
 
     def onPlanButton(self) -> None:
-        sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.planGroupLineEdit.text(),self.logic.last_ik_solution)
+        sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.planGroupLineEdit.text, self.logic.last_ik_solution)
         print(f"Plan button clicked - received solution: {sol}")
         
         # Parse and store the trajectory
@@ -889,7 +873,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 self.trajectorySpinBox.blockSignals(False)
                 
     def onExecuteButton(self) -> None:
-        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.planGroupLineEdit.text())
+        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.planGroupLineEdit.text)
         
         if success:
             print("Execute command sent successfully.")
@@ -1248,6 +1232,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     return goal_transform
             except Exception:
                 pass
+
+        # Fallback: search for TF lookup nodes (for links without meshes like base_link)
+        if not goal:
+            scene = slicer.mrmlScene
+            for i in range(scene.GetNumberOfNodesByClass("vtkMRMLROS2Tf2LookupNode")):
+                lookup = scene.GetNthNodeByClass(i, "vtkMRMLROS2Tf2LookupNode")
+                if lookup:
+                    child_id = lookup.GetChildID() or ""
+                    # Match either exact link name or suffix after "/" (handles prefixed names)
+                    if child_id == link_name or child_id.endswith(f"/{link_name}"):
+                        return lookup
 
         raise RuntimeError(f"Could not find transform for link/model '{link_name}' (goal={goal})")
 
