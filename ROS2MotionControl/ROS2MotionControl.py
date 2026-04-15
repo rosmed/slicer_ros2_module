@@ -655,21 +655,16 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             
             # 2. Check: Is this widget MY control tab?
             if current_widget == self.ui.controlTab:
-                print("Detected: controltab is now OPEN")
                 # Call your start function here
                 self.enterControlMode()
                 
             else:
-                print("Detected: controltab is now HIDDEN (User went somewhere else)")
                 self.exitControlMode()
 
     def enterControlMode(self):
                 # 1. Check if Robot is Loaded
                 if not self.isRobotLoaded: return
                 if not self.robot or not self.rootlink: return
-
-                print(">> Enter Control Mode: Using Goal Robot Tree Only...")
-
                 # 2. Find Goal Robot Root Transform
                 try:
                     self.totransform = self.logic.findRobotTransforms(self.rootlink, goal=True)
@@ -725,9 +720,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             
     def exitControlMode(self):
         if not self.isRobotLoaded: return
-        
-        print(">> Exit Control Mode: Stopping IK & Cleaning up...")
-        
+                
         # 1. Stop Observer (Stop calculating IK)
         # This effectively replaces the "Stop" button
         if self.logic:

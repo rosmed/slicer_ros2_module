@@ -785,7 +785,7 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
     // Call IK using setFromIK
     bool found_ik = robot_state.setFromIK(mInternals->JointModelGroupPtr, pose_msg, tipLink, timeout);
     if (!found_ik) {
-      vtkWarningMacro(<< "FindIK: IK solution not found for group '" << mInternals->IKGroupName << "'");
+      // vtkWarningMacro(<< "FindIK: IK solution not found for group '" << mInternals->IKGroupName << "'");
     }
 
     // Extract joint values (or create NaN values if no solution found)
@@ -1031,7 +1031,7 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
     }
 
     if (result < 0) {
-      vtkWarningMacro(<< "FindKDLIK: IK solution not found (error code: " << result << ")");
+      // vtkWarningMacro(<< "FindKDLIK: IK solution not found (error code: " << result << ")");
       return "";
     }
 

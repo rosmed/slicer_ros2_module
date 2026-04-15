@@ -57,9 +57,71 @@ ROS 2 Jazzy:
 
    sudo apt install ros-jazzy-ur
 
+You then want to launch a simulation of the robot with the following command:
+
 .. code-block:: bash
 		
-   ros2 launch ur_description view_ur.launch.py ur_type:=ur5e
+   ros2 run ur_client_library start_ursim.sh -m <ur_type>
+
+Where ``<ur_type>`` can be ``ur3``, ``ur5``, ``ur10`` or ``ur16``. After the simulation is launched, you will need to navigate to
+the window running the URSim and select "Program Robot"
+
+.. image:: /images/programrobot.png
+  :width: 400
+  :align: center
+  :alt: URSIM program robot window
+
+Then select "Empty Program"
+
+.. image:: /images/emptyprogram.png
+  :width: 400
+  :align: center
+  :alt: URSIM empty program window
+
+Then select "Structure"
+
+.. image:: /images/structure.png
+  :width: 400
+  :align: center
+  :alt: URSIM structure window
+
+Then select "URCaps"
+
+.. image:: /images/urcaps.png
+  :width: 400
+  :align: center
+  :alt: URSIM urcaps window
+
+Then finally select "External Control"
+
+.. image:: /images/externalcontrol.png
+  :width: 400
+  :align: center
+  :alt: URSIM external control window
+
+After that, in a separate terminal you need to spin the simulated robot drivers with the following command:
+
+.. code-block:: bash
+		
+   ros2 launch ur_robot_driver ur_control.launch.py ur_type:=<ur_type> robot_ip:=192.168.56.101 launch_rviz:=true
+
+After launching the robot simulator and spinning the driver, click on the play button located in the URSim window.
+
+.. image:: /images/play.png
+  :width: 400
+  :align: center
+  :alt: URSIM play button
+
+Finally, in a separate terminal, you need to launch the move group interface with the following command:
+
+.. code-block:: bash
+    
+  ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=<ur_type> launch_rviz:=true
+
+After launching everything, you should be able to load the robot in SlicerROS2!
+
+
+
 
 Phantom Omni
 ============
