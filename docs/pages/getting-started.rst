@@ -76,7 +76,7 @@ install all remaining core components and libraries by doing:
 .. code-block:: bash
 
    source /opt/ros/jazzy/setup.bash
-   sudo apt install ros-$ROS_DISTRO-rclcpp ros-$ROS_DISTRO-tf2 ros-$ROS_DISTRO-tf2-ros ros-$ROS_DISTRO-kdl-parser ros-$ROS_DISTRO-urdf ros-$ROS_DISTRO-std-msgs ros-$ROS_DISTRO-std-srvs ros-$ROS_DISTRO-geometry-msgs ros-$ROS_DISTRO-sensor-msgs ros-$ROS_DISTRO-trajectory-msgs ros-$ROS_DISTRO-object-recognition-msgs ros-$ROS_DISTRO-rosbag2-interfaces ros-$ROS_DISTRO-turtlesim ros-$ROS_DISTRO-moveit-msgs ros-$ROS_DISTRO-moveit-core ros-$ROS_DISTRO-moveit-ros-planning ros-$ROS_DISTRO-moveit-ros-planning-interface liborocos-kdl-dev libassimp-dev
+   sudo apt install ros-$ROS_DISTRO-rclcpp ros-$ROS_DISTRO-tf2 ros-$ROS_DISTRO-tf2-ros ros-$ROS_DISTRO-kdl-parser ros-$ROS_DISTRO-urdf ros-$ROS_DISTRO-std-msgs ros-$ROS_DISTRO-std-srvs ros-$ROS_DISTRO-geometry-msgs ros-$ROS_DISTRO-sensor-msgs ros-$ROS_DISTRO-trajectory-msgs ros-$ROS_DISTRO-object-recognition-msgs ros-$ROS_DISTRO-rosbag2-interfaces ros-$ROS_DISTRO-turtlesim ros-$ROS_DISTRO-moveit-msgs ros-$ROS_DISTRO-moveit-core ros-$ROS_DISTRO-moveit-ros-planning ros-$ROS_DISTRO-moveit-ros-planning-interface liborocos-kdl-dev libassimp-dev mold
 
 * You will first need to "source" the ROS setup script for ROS (Jazzy
 in this example):
@@ -119,16 +119,6 @@ to configure until you can hit ``g`` to generate the makefiles.  If
 you prefer a graphical interface, you can use ``cmake-gui`` instead of
 ``ccmake``.  Once ``Slicer_DIR`` is set, try ``colcon build`` again
 (after ``cd ~/ros2_ws``).
-
-.. note::
-
-    Linking is very slow when using the default linker ``ld``.  You
-    can speed up the process by using ``mold`` instead.  To do so,
-    install ``mold`` with ``sudo apt install mold`` and set your
-    linker to ``mold`` by adding
-    ``-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
-    -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold"`` to the CMake
-    arguments when building with ``colcon``.
 
 ==================
 Loading the module

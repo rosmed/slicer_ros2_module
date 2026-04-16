@@ -30,6 +30,17 @@ find_package(Slicer REQUIRED COMPONENTS ConfigurePrerequisites)
 cmake_minimum_required(VERSION 3.5)
 project(slicer_ros2_module)
 
+# Use mold linker if available
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  find_program(MOLD_EXECUTABLE NAMES mold)
+  if(MOLD_EXECUTABLE)
+    message(STATUS "Found mold: ${MOLD_EXECUTABLE}, using as linker.")
+    add_link_options("-fuse-ld=mold")
+  else()
+    message(WARNING "mold linker not found. It is highly recommended to install mold for significantly faster linking (e.g., 'sudo apt install mold').")
+  endif()
+endif()
+
 option (USE_CISST_MSGS "Add topics for cisst messages (https://github.com/jhu-cisst/ros2_cisst_msgs)" OFF)
 
 configure_file (
