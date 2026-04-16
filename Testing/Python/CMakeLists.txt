@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
-project(ROS2Tests)
 
-# quick and dirty hack to copy the test file in the same directory as
-# the C++ runtime libraries
+set(MODULE_NAME ROS2Tests)
 
-set (PY_TEST_FILE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ROS2Tests.py)
+slicerMacroBuildScriptedModule(
+  NAME ${MODULE_NAME}
+  SCRIPTS ${MODULE_NAME}.py
+  WITH_GENERIC_TESTS
+)
 
-install (
-  FILES ${PY_TEST_FILE_SRC}
-  DESTINATION  ${Slicer_INSTALL_QTLOADABLEMODULES_BIN_DIR})
+# Also add the unittest so Slicer's CTest sees it
+slicer_add_python_unittest(SCRIPT ${MODULE_NAME}.py)
