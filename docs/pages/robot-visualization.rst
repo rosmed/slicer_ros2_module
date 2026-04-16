@@ -57,14 +57,22 @@ ROS 2 Jazzy:
 
    sudo apt install ros-jazzy-ur
 
-You then want to launch a simulation of the robot with the following command:
+To simplify the startup process, we provide a consolidated launch file
+that starts the UR simulation (URSim), the robot driver, and MoveIt
+configurations in one command:
 
 .. code-block:: bash
-		
-   ros2 run ur_client_library start_ursim.sh -m <ur_type>
 
-Where ``<ur_type>`` can be ``ur3``, ``ur5``, ``ur10`` or ``ur16``. After the simulation is launched, you will need to navigate to
-the window running the URSim and select "Program Robot"
+   ros2 launch slicer_ros2_module ur_sim_control.launch.py ur_type:=<ur_type> robot_ip:=192.168.56.101
+
+Where ``<ur_type>`` can be ``ur3``, ``ur5``, ``ur10`` or ``ur16``.
+
+.. note::
+
+   After the simulation is launched, you will still need to manually
+   configure the URSim GUI to allow external control.
+
+Navigate to the URSim window and select "Program Robot"
 
 .. image:: /images/programrobot.png
   :width: 400
@@ -99,26 +107,23 @@ Then finally select "External Control"
   :align: center
   :alt: URSIM external control window
 
-After that, in a separate terminal you need to spin the simulated robot drivers with the following command:
+Finally, in a separate terminal, you can start 3D Slicer. After sourcing
+your workspace, use the provided launcher to start Slicer with the
+correct module paths automatically configured:
 
 .. code-block:: bash
-		
-   ros2 launch ur_robot_driver ur_control.launch.py ur_type:=<ur_type> robot_ip:=192.168.56.101 launch_rviz:=true
 
-After launching the robot simulator and spinning the driver, click on the play button located in the URSim window.
+   cd ~/ros2_ws
+   source install/setup.bash
+   ros2 launch slicer_ros2_module slicer.launch.py
 
-.. image:: /images/play.png
-  :width: 400
-  :align: center
-  :alt: URSIM play button
-
-Finally, in a separate terminal, you need to launch the move group interface with the following command:
+You can also pass additional arguments to Slicer using the ``slicer_args`` parameter:
 
 .. code-block:: bash
-    
-  ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=<ur_type> launch_rviz:=true
 
-After launching everything, you should be able to load the robot in SlicerROS2!
+   ros2 launch slicer_ros2_module slicer.launch.py slicer_args:="--homedir /tmp/foo"
+
+After these steps, you should be able to load the robot in SlicerROS2!
 
 
 

@@ -77,15 +77,6 @@ if (kdl_parser_FOUND)
   set (SlicerROS2_ROS_LIBRARIES ${SlicerROS2_ROS_LIBRARIES} ${kdl_parser_LIBRARIES})
 endif ()
 
-# preserve ament install prefix to create a dummy setup.bash
-if (NOT DEFINED SlicerROS2_AMENT_INSTALL_PREFIX)
-  set (SlicerROS2_AMENT_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE FILEPATH "ament install prefix")
-endif ()
-
-install(
-  FILES local_setup.bash
-  DESTINATION /${SlicerROS2_AMENT_INSTALL_PREFIX}/share/slicer_ros2_module)
-
 #-----------------------------------------------------------------------------
 
 set(MODULE_NAME ROS2)
@@ -107,6 +98,20 @@ unset(CURL_LIBRARY)
 
 find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
+
+# Slicer sets default output directories to its own build tree.
+# We override them here to keep all build artifacts within our colcon build folder.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+
+set(Slicer_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(Slicer_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+set(Slicer_QTLOADABLEMODULES_BIN_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(Slicer_QTLOADABLEMODULES_LIB_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+set(Slicer_QTSCRIPTEDMODULES_BIN_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(Slicer_QTSCRIPTEDMODULES_LIB_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+set(Slicer_VTK_WRAP_HIERARCHY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # Set after including Slicer to avoid errors during CMake step.  This
 # is for ROS Galactic, Foxy uses CXX 14...
@@ -155,8 +160,6 @@ set(MODULE_RESOURCES
   Resources/qSlicer${MODULE_NAME}Module.qrc
   )
 
-set(CMAKE_INSTALL_PREFIX ${Slicer_DIR} CACHE PATH "Path used to install loadable modules" FORCE)
-
 #-----------------------------------------------------------------------------
 slicerMacroBuildLoadableModule(
   NAME ${MODULE_NAME}
@@ -186,4 +189,34 @@ set(PYTHON_EXECUTABLE ${ROS_Python3_EXECUTABLE} CACHE STRING "ROS Python" FORCE)
 # Slicer macro will change the project name to ROS2 and ament_package
 # will report this as an error
 project(slicer_ros2_module)
+
+# Register environment hooks to set Slicer module paths
+# We configure it first to perform CMake variable substitution
+configure_file(
+  slicer_ros2_module_env_hook.sh.in
+  slicer_ros2_module_env_hook.sh
+  @ONLY
+)
+ament_environment_hooks(
+  "${CMAKE_CURRENT_BINARY_DIR}/slicer_ros2_module_env_hook.sh"
+)
+
+# Configure the Slicer launcher with the Slicer build directory path
+configure_file(
+  launch/slicer.launch.py.in
+  launch/slicer.launch.py
+)
+
+# Install static launch files (ur_sim_control.launch.py)
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install generated launch file (slicer.launch.py)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/launch/slicer.launch.py
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
 ament_package()
