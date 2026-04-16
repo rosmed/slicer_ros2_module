@@ -58,8 +58,6 @@ you start compiling Slicer:
   clone https://github.com/slicer/slicer`` and then checkout the
   version using ``git checkout v5.10.0``.
 
-Remember the build directory for Slicer, it will be needed to compile
-the Slicer ROS 2 module.
 
 ===========
 Compilation
@@ -136,22 +134,13 @@ you prefer a graphical interface, you can use ``cmake-gui`` instead of
 Loading the module
 ==================
 
-You will first need to make sure the environment variables are set
-properly so the Slicer ROS 2 module can locate all the ROS 2 resources
-(dynamic libraries and other ROS packages you might need to access):
+After sourcing your workspace, use the provided launcher to start
+Slicer with the correct module paths automatically configured:
 
 .. code-block:: bash
 
-  source ~/ros2_ws/install/setup.bash # or whatever your ROS workspace is
-
-In the same terminal navigate (``cd``) to your Slicer inner build
-directory and start Slicer. If you followed the Slicer build
-instructions, this should look like:
-
-.. code-block:: bash
-
-  cd ~/something_something/Slicer-SuperBuild/Slicer-build
-  ./Slicer
+   source ~/ros2_ws/install/setup.bash # or whatever your ROS workspace is
+   ros2 launch slicer_ros2_module slicer.launch.py
 
 During the ``colcon`` build, the files required for the SlicerROS2 module are
 installed in the Slicer build directory so the user doesn't have to

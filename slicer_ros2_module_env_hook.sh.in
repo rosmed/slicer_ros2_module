@@ -1,0 +1,20 @@
+# Prepend the Slicer module paths to a custom environment variable.
+# These paths are substituted by CMake during the build process and are
+# relative to the colcon installation prefix.
+
+# Path for C++ Loadable Modules
+LOADABLE_PATH="@Slicer_INSTALL_QTLOADABLEMODULES_LIB_DIR@"
+LOADABLE_PATH="${LOADABLE_PATH#./}"
+if [ -d "$AMENT_CURRENT_PREFIX/$LOADABLE_PATH" ]; then
+    ament_prepend_unique_value SLICER_ROS2_MODULE_PATHS "$AMENT_CURRENT_PREFIX/$LOADABLE_PATH"
+fi
+
+# Path for Python Scripted Modules
+SCRIPTED_PATH="@Slicer_INSTALL_QTSCRIPTEDMODULES_LIB_DIR@"
+SCRIPTED_PATH="${SCRIPTED_PATH#./}"
+if [ -d "$AMENT_CURRENT_PREFIX/$SCRIPTED_PATH" ]; then
+    ament_prepend_unique_value SLICER_ROS2_MODULE_PATHS "$AMENT_CURRENT_PREFIX/$SCRIPTED_PATH"
+fi
+
+# Export the variable so it's available in the shell
+export SLICER_ROS2_MODULE_PATHS

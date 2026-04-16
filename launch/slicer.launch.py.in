@@ -1,0 +1,49 @@
+import os
+import shlex
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.substitutions import LaunchConfiguration
+
+def generate_launch_description():
+    slicer_args = LaunchConfiguration('slicer_args')
+
+    # The Slicer executable path is substituted by CMake during configuration.
+    slicer_executable = "@Slicer_DIR@/Slicer"
+
+    # Module paths are baked in at build time by CMake configure_file.
+    # This avoids relying on the ament environment hook setting
+    # SLICER_ROS2_MODULE_PATHS, which is not always sourced reliably.
+    _install_prefix = "@CMAKE_INSTALL_PREFIX@"
+    _loadable_rel  = "@Slicer_INSTALL_QTLOADABLEMODULES_LIB_DIR@"
+    _scripted_rel  = "@Slicer_INSTALL_QTSCRIPTEDMODULES_LIB_DIR@"
+
+    # Strip leading "./" so os.path.join works correctly
+    _loadable_rel = _loadable_rel.lstrip("./")
+    _scripted_rel = _scripted_rel.lstrip("./")
+
+    module_paths = []
+    for rel in (_loadable_rel, _scripted_rel):
+        p = os.path.join(_install_prefix, rel)
+        if os.path.isdir(p):
+            module_paths.append(p)
+
+    # Build the base command
+    cmd = [slicer_executable]
+    for path in module_paths:
+        cmd.extend(["--additional-module-path", path])
+
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'slicer_args',
+            default_value='',
+            description='Additional arguments to pass to Slicer'
+        ),
+
+        ExecuteProcess(
+            cmd=cmd,
+            additional_env={},
+            shell=False,
+            output='screen'
+        )
+    ])
+
