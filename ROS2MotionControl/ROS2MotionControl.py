@@ -350,7 +350,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             joint_names = robotNode.GetJoints()
             self.logic.joint_names = joint_names
             self.logic.last_ik_solution = currentjointpos
-            self.jointPositionsRad = [0.0] * len(joint_names)
+            self.jointPositionsRad = currentjointpos.copy() if currentjointpos else [0.0] * len(joint_names)
             self.robot = robotNode
 
             goal_rgb = self.logic.getGoalRobotColor(self.robot)
@@ -444,10 +444,15 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     else:
                         lo_deg, hi_deg = -180, 180
 
+                    # Determine initial value
+                    initial_val_rad = currentjointpos[i] if currentjointpos and i < len(currentjointpos) else 0.0
+                    initial_val_deg = int(round(math.degrees(initial_val_rad)))
+                    initial_val_deg = max(lo_deg, min(hi_deg, initial_val_deg))
+
                     # --- 4. CONFIGURE SLIDER ---
                     joint_slider.setMinimum(lo_deg)
                     joint_slider.setMaximum(hi_deg)
-                    joint_slider.setValue(0)
+                    joint_slider.setValue(initial_val_deg)
                     joint_slider.setTickInterval(10)
                     joint_slider.setTickPosition(qt.QSlider.TicksBelow)
 
@@ -455,7 +460,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     joint_spinbox.setMinimum(lo_deg)
                     joint_spinbox.setMaximum(hi_deg)
                     joint_spinbox.setSingleStep(1.0) 
-                    joint_spinbox.setValue(0)
+                    joint_spinbox.setValue(initial_val_deg)
                     joint_spinbox.setSuffix(" deg")
 
                     # --- 6. SYNC LOGIC ---
@@ -739,7 +744,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     def onPlanButton(self) -> None:
         sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.planGroupLineEdit.text, self.logic.last_ik_solution)
-        print(f"Plan button clicked - received solution: {sol}")
         
         # Parse and store the trajectory
         if sol:
@@ -750,7 +754,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 if "points" in trajectory:
                     self.trajectoryData = trajectory
                     num_points = len(trajectory['points'])
-                    print(f"Trajectory stored with {num_points} points")
                     
                     # Remove old slider if it exists
                     if self.trajectorySlider:
@@ -792,7 +795,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     layout.addLayout(sliderLayout)
                     
                     # Add to the moveittab layout
-                    moveitLayout = self.ui.moveittab.layout()
+                    moveitLayout = self.ui.moveItTab.layout()
                     if moveitLayout:
                         moveitLayout.addWidget(self.trajectorySliderWidget)
                     
