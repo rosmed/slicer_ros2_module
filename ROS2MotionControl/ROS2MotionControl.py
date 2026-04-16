@@ -739,7 +739,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     def onPlanButton(self) -> None:
         sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.planGroupLineEdit.text, self.logic.last_ik_solution)
-        print(f"Plan button clicked - received solution: {sol}")
         
         # Parse and store the trajectory
         if sol:
@@ -750,7 +749,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 if "points" in trajectory:
                     self.trajectoryData = trajectory
                     num_points = len(trajectory['points'])
-                    print(f"Trajectory stored with {num_points} points")
                     
                     # Remove old slider if it exists
                     if self.trajectorySlider:
@@ -792,7 +790,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     layout.addLayout(sliderLayout)
                     
                     # Add to the moveittab layout
-                    moveitLayout = self.ui.moveittab.layout()
+                    moveitLayout = self.ui.moveItTab.layout()
                     if moveitLayout:
                         moveitLayout.addWidget(self.trajectorySliderWidget)
                     
