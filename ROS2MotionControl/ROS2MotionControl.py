@@ -216,6 +216,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.zeroPushButton3DControl.connect("clicked(bool)", self.onZeroButton)
         self.ui.currentStatePushButton3DControl.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.checkBox.connect("toggled(bool)", self.onMoveGroupToggled)
+        self.ui.moveGroupExistsCheckBox.connect("toggled(bool)", self.onMoveGroupExistsToggled)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)    
@@ -377,18 +378,21 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             
             # Check if /move_group node exists and goal robot in ROS
             # if so enable MoveIt buttons
-            is_running = _check_ros2_node_running("/move_group")
-            if is_running:
-                self.ui.planButton.enabled = True
-                self.ui.previewButton.enabled = True
-                self.ui.checkBox.enabled = True
-                self.ui.planGroupLabel.enabled = True
-                self.ui.planGroupLineEdit.enabled = True
-                print(f"/move_group node is running")
-                print(f"User must enter planning group name before using MoveIt IK")
-            else:
-                if not is_running:
-                    print(f"/move_group node is NOT running")
+            # is_running = _check_ros2_node_running("/move_group")
+            # if is_running:
+            #     self.ui.planButton.enabled = True
+            #     self.ui.previewButton.enabled = True
+            #     self.ui.checkBox.enabled = True
+            #     self.ui.planGroupLabel.enabled = True
+            #     self.ui.planGroupLineEdit.enabled = True
+            #     print(f"/move_group node is running")
+            #     print(f"User must enter planning group name before using MoveIt IK")
+            # else:
+            #     if not is_running:
+            #         print(f"/move_group node is NOT running")
+            
+            # If the user previously checked the box, we can trigger the logic explicitly, 
+            # but since it's a checkbox, they can just check it manually now if they want.
             
             # Create Joint Sliders Dynamically (only if goal model exists)
             self.ui.zeroPushButton.enabled = True
@@ -649,6 +653,23 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         else:
             print("Disabling MoveIt IK")
             self.logic.useMoveItIK = False
+
+    def onMoveGroupExistsToggled(self, toggled: bool) -> None:
+        if toggled:
+            self.ui.planButton.enabled = True
+            self.ui.previewButton.enabled = True
+            self.ui.checkBox.enabled = True
+            self.ui.planGroupLabel.enabled = True
+            self.ui.planGroupLineEdit.enabled = True
+            print(f"Move Group Exists checked: MoveIt functionality enabled")
+            print(f"User must enter planning group name before using MoveIt IK")
+        else:
+            self.ui.planButton.enabled = False
+            self.ui.previewButton.enabled = False
+            self.ui.checkBox.enabled = False
+            self.ui.planGroupLabel.enabled = False
+            self.ui.planGroupLineEdit.enabled = False
+            print(f"Move Group Exists unchecked: MoveIt functionality disabled")
 
             
     def onTabChanged(self, index):
