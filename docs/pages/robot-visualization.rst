@@ -81,7 +81,7 @@ Navigate to the URSim window and select "Program Robot"
 
 Then select "Empty Program"
 
-.. image:: /images/emptyprogram.png
+.. image:: /images/empty.png
   :width: 400
   :align: center
   :alt: URSIM empty program window
@@ -100,9 +100,9 @@ Then select "URCaps"
   :align: center
   :alt: URSIM urcaps window
 
-Then finally select "External Control"
+Then finally select "External Control", and then the play button follwing that
 
-.. image:: /images/externalcontrol.png
+.. image:: /images/external.png
   :width: 400
   :align: center
   :alt: URSIM external control window
