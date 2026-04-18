@@ -42,4 +42,6 @@ docs/_build/
 
 # python
 __pycache__
+venv/
+docs/venv
 
