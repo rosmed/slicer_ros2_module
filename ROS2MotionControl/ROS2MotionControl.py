@@ -669,7 +669,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.checkBox.enabled = False
             self.ui.planGroupLabel.enabled = False
             self.ui.planGroupLineEdit.enabled = False
-            print(f"Move Group Exists unchecked: MoveIt functionality disabled")
 
             
     def onTabChanged(self, index):
@@ -722,7 +721,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                             tipMatrix = vtk.vtkMatrix4x4()
                             tip_transform_node.GetMatrixTransformToWorld(tipMatrix)
                             self.fromtransform.SetMatrixTransformToParent(tipMatrix)
-                            print(f"✅ Snapped Probe to Goal Tip: {self.goaltiplink}")
+                            # print(f"✅ Snapped Probe to Goal Tip: {self.goaltiplink}")
                             
                 except Exception as e:
                     print(f"Warning: Could not snap sphere to goal tip. Error: {e}")
@@ -733,12 +732,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     self.totransform.GetName()
                 )
                 
-                # 5. PASS TIP LINK TO LOGIC
-                print(f"\n=== TIP LINK CONFIGURATION ===")
-                print(f"rootlink (base): {self.rootlink}")
-                print(f"tiplink (target): {self.tiplink}")
-                print(f"goaltiplink: {self.goaltiplink}")
-                print(f"================================\n")
+                if DEBUG:
+                    print(f"\n=== TIP LINK CONFIGURATION ===")
+                    print(f"rootlink (base): {self.rootlink}")
+                    print(f"tiplink (target): {self.tiplink}")
+                    print(f"goaltiplink: {self.goaltiplink}")
+                    print(f"================================\n")
+                    
                 self.logic.tipLink = self.tiplink
                 
                 # 6. START OBSERVER
@@ -844,7 +844,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.trajectoryTimer = qt.QTimer()
         self.trajectoryTimer.timeout.connect(self.animateTrajectoryStep)
         self.trajectoryTimer.start(50)  # Update every 50ms
-        print(f"Starting trajectory preview with {len(self.trajectoryData['points'])} points")
     
     def animateTrajectoryStep(self):
         """Animate one step of the trajectory"""
@@ -862,7 +861,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Apply to goal robot
         if self.robot:
             self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
-            print(f"Point {self.trajectoryIndex}/{len(self.trajectoryData['points'])-1}: {[f'{p:.3f}' for p in positions]}")
         
         self.trajectoryIndex += 1
     
@@ -1305,7 +1303,6 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if self.obsNode and self.obsTag is not None:
             try:
                 self.obsNode.RemoveObserver(self.obsTag)
-                print(f"[ROS2MotionControlLogic] Removed observer (tag={self.obsTag}) from {self.obsNode.GetName()}")
             except Exception as e:
                 print(f"[ROS2MotionControlLogic] Error removing observer: {e}")
         else:
@@ -1393,7 +1390,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     print(f"[IK] Failed to parse solution: {e}")
                     return None
             else:
-                print(f"[IK] Empty result from FindKDLIK")
+                if DEBUG:
+                    print(f"[IK] Empty result from FindKDLIK")
                 return None
     
     def addObserverComputeIK(self, robotmodel=None):
@@ -1649,7 +1647,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if fromNode and toNode:
                 self.obsNode = fromNode
                 self.toNode = toNode
-                print(f"Logic Linked: '{fromtransformname}' -> '{totransformname}'")
+                if DEBUG:
+                    print(f"Logic Linked: '{fromtransformname}' -> '{totransformname}'")
             else:
                 print("Error: Could not link IK transforms (Nodes missing)")
                 

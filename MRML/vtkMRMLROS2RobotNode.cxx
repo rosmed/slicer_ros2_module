@@ -1012,7 +1012,7 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
     if (!seedJointValues.empty() && seedJointValues.size() == mInternals->KDLChain->getNrOfJoints()) {
       for (size_t i = 0; i < seedJointValues.size(); i++) {
         qSeed(i) = seedJointValues[i];
-        vtkInfoMacro(<< "Seed joint " << i << ": " << qSeed(i));
+        // vtkInfoMacro(<< "Seed joint " << i << ": " << qSeed(i));
       }
     } else {
       // Use zeros as default seed
