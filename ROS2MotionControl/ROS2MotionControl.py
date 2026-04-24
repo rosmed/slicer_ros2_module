@@ -214,6 +214,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.zeroPushButton.connect("clicked(bool)", self.onZeroButton)
         self.ui.currentStatePushButton.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.zeroPushButton3DControl.connect("clicked(bool)", self.onZeroButton)
+        self.ui.lastGoalPushButton3DControl.connect("clicked(bool)", self.onLastGoalButton)
         self.ui.currentStatePushButton3DControl.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.checkBox.connect("toggled(bool)", self.onMoveGroupToggled)
         self.ui.moveGroupExistsCheckBox.connect("toggled(bool)", self.onMoveGroupExistsToggled)
@@ -345,7 +346,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.goaltiplink = self.tiplink
         
             # Print current postiion
-            currentjointpos =self.logic.getcurrentjointpositions(robotNode)
+            currentjointpos =self.logic.getCurrentJointPositions(robotNode)
 
             # Get joint names & store initial joint positions
             joint_names = robotNode.GetJoints()
@@ -367,8 +368,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 print("Warning: Failed to configure JointState subscriber.")
             
             # Print results
-            print(f"CURRENT: Root link={self.rootlink}, Tip link={self.tiplink}, Goal Tip Link={self.goaltiplink}")
-            print(f"Current Joint Positions (rad): {[f'{j:.4f}' for j in currentjointpos]}")
+            if DEBUG:
+                print(f"CURRENT: Root link={self.rootlink}, Tip link={self.tiplink}, Goal Tip Link={self.goaltiplink}")
+                print(f"Current Joint Positions (rad): {[f'{j:.4f}' for j in currentjointpos]}")
             
             # Enable buttons
             self.ui.appCollapsibleButton.collapsed = False
@@ -398,8 +400,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.zeroPushButton.enabled = True
             self.ui.currentStatePushButton.enabled = True
             self.ui.zeroPushButton3DControl.enabled = True
+            self.ui.lastGoalPushButton3DControl.enabled = True
             self.ui.currentStatePushButton3DControl.enabled = True
-            limits = self.logic.parse_joint_limits_from_urdf(urdf_xml)
+            limits = self.logic.findJointLimitsFromURDF(urdf_xml)
             container = self.ui.JointTab.layout()
             if container is not None:
                 # FIX: Iterate backwards to delete dynamic items but KEEP the zero button
@@ -500,7 +503,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic is None or self.robot is None:
             return
         opacity = value / 100.0
-        self.logic.setopacity(self.robot, opacity)
+        self.logic.setOpacity(self.robot, opacity)
     
     # Robot color button handler    
     def onRobotColorChanged(self) -> None:
@@ -508,6 +511,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
         color = self.ui.robotColorButton.color
         self.logic.setGoalRobotColor(self.robot, color)
+        # Update logic's base color cache so it doesn't snap back to old color
+        self.logic.baseGoalColor = (color.redF(), color.greenF(), color.blueF())
         
     # Joint slider change handler
     def onJointSliderChanged(self, idx: int, valueDeg: int) -> None:
@@ -579,6 +584,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.last_ik_solution = self.jointPositionsRad.copy()
             self._syncProbeToCurrentTipPose()
 
+    def onLastGoalButton(self) -> None:
+        """Resets the tip transform node to match the current goal model position."""
+        if self.logic is None or self.fromtransform is None:
+            return
+        self._syncProbeToCurrentTipPose()
+        if DEBUG:
+            print("Probe (Last Goal) snapped to goal robot tip.")
+
     def onCurrentStateButton(self) -> None:
         if self.logic is None or self.robot is None:
             print("Current state: robot is not initialized")
@@ -603,7 +616,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_values)
         self._setJointUiFromRadians(joint_values)
         self._syncProbeToCurrentTipPose()
-        print(f"Current state applied from subscriber: {[f'{j:.4f}' for j in joint_values]}")
+        if DEBUG:
+            print(f"Current state applied from subscriber: {[f'{j:.4f}' for j in joint_values]}")
 
     def _syncProbeToCurrentTipPose(self) -> None:
         if self.logic is None or self.fromtransform is None:
@@ -685,6 +699,29 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 
             else:
                 self.exitControlMode()
+                # Restore goal robot color to normal when leaving control mode
+                if self.logic and self.robot and self.logic.baseGoalColor:
+                    self.logic.setGoalRobotColorRGB(self.robot, self.logic.baseGoalColor)
+
+                # Keep joint control synchronized with the latest IK pose from 3D control.
+                if current_widget == self.ui.JointTab:
+                    self._syncJointUiFromLatestSolution()
+
+    def _syncJointUiFromLatestSolution(self) -> None:
+        if self.logic is None or self.robot is None:
+            return
+
+        joint_names = self.robot.GetJoints()
+        expected_count = len(joint_names) if joint_names else 0
+        if expected_count == 0:
+            return
+
+        latest_solution = self.logic.last_ik_solution
+        if not latest_solution or len(latest_solution) != expected_count:
+            return
+
+        self.jointPositionsRad = list(latest_solution)
+        self._setJointUiFromRadians(self.jointPositionsRad)
 
     def enterControlMode(self):
                 # 1. Check if Robot is Loaded
@@ -706,9 +743,12 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 if model is None:
                     model = self.logic.createSphereModel()
                     self.fromtransform = self.logic.createLinearTransform()
+                    self.fromtransform.GetDisplayNode().SetEditorVisibility(True)
                     self.logic.applyTransformToModel(model, self.fromtransform)
                 else:
                     self.fromtransform = slicer.util.getNode("ProbeSphere_Transform")
+                    if self.fromtransform.GetDisplayNode():
+                        self.fromtransform.GetDisplayNode().SetEditorVisibility(True)
 
                 # 4. Snap probe to goal tip on start
                 try:
@@ -918,6 +958,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.obsTag = None
         self.obsNode = None
         self.callback = None  
+        self.viewObserverTags = []
+        self.isInteracting = False
         self.toNode = None
         self.planGroup = None
         self.tipLink = None  # Will be set from widget
@@ -930,8 +972,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.joint_state_ros2_node = None
         self.joint_state_subscriber_owned = False
         self.useMoveItIK = False  # Flag to toggle between KDL and MoveIt IK
+        self.baseGoalColor = None
 
-    def _normalize_joint_state_topic(self, topic_name: str) -> str:
+    def _NormalizeJointStateTopic(self, topic_name: str) -> str:
         topic = (topic_name or "").strip()
         if not topic:
             topic = "joint_states"
@@ -939,7 +982,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             topic = f"/{topic}"
         return topic
 
-    def _on_joint_state_modified(self, caller=None, event=None):
+    def _onJointStateModified(self, caller=None, event=None):
         if self.joint_state_subscriber is None:
             return
         try:
@@ -959,7 +1002,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             print("Joint state: robot has no ROS2 node reference")
             return False
 
-        topic = self._normalize_joint_state_topic(topic_name)
+        topic = self._NormalizeJointStateTopic(topic_name)
         subscriber = ros2_node.GetSubscriberNodeByTopic(topic)
         self.joint_state_subscriber_owned = False
         if subscriber is None:
@@ -978,8 +1021,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.joint_state_topic = topic
         self.joint_state_ros2_node = ros2_node
         self.joint_state_last_message = None
-        self.joint_state_subscriber_observer = self.joint_state_subscriber.AddObserver("ModifiedEvent", self._on_joint_state_modified)
-        self._on_joint_state_modified()
+        self.joint_state_subscriber_observer = self.joint_state_subscriber.AddObserver("ModifiedEvent", self._onJointStateModified)
+        self._onJointStateModified()
 
         print(f"Joint state: subscribed to topic '{topic}'")
         return True
@@ -1139,7 +1182,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         model.SetAndObservePolyData(src.GetOutput())
 
         disp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode", name+"_Display")
-        disp.SetOpacity(0.6); disp.SetBackfaceCulling(0); disp.SetVisibility3D(True)
+        disp.SetOpacity(0.6); disp.SetBackfaceCulling(0); disp.SetVisibility3D(True); disp.SetVisibility2D(True)
         disp.SetColor(0.9,0.3,0.3)
         model.SetAndObserveDisplayNodeID(disp.GetID())
         return model
@@ -1149,6 +1192,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if not t.GetDisplayNode():
             tdisp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformDisplayNode", name+"_Display")
             tdisp.SetVisibility(True)  # “eye” in Data
+            tdisp.SetVisibility2D(True)
             t.SetAndObserveDisplayNodeID(tdisp.GetID())
         if showAxes:
             t.GetDisplayNode().SetEditorVisibility(True)  # show 3D gizmo on selection
@@ -1261,7 +1305,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         raise RuntimeError(f"Could not find transform for link/model '{link_name}' (goal={goal})")
 
-    def addObserver(self, fromTransformName, toTransformName):
+    def addObserver(self, fromTransformName, toTransformName, robotmodel=None):
         """
         Observe 'fromTransformName' and print its XYZ (origin) w.r.t. 'toTransformName'
         whenever the FROM transform is modified.
@@ -1280,7 +1324,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         # Define the callback and keep a reference to it
         def onModified(caller, eventId):
+            if self.isInteracting:
+                return # Skip if interaction event already handling this
             self.printLocation(fromNode, toNode)
+            if self.obsRobotNode:
+                self.computeIK(self.obsRobotNode)
 
         self.callback = onModified
         # Prefer TransformModifiedEvent for transforms; ModifiedEvent also works
@@ -1288,6 +1336,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.obsTag  = fromNode.AddObserver(eventId, self.callback)
         self.obsNode = fromNode
         self.toNode = toNode
+        self.obsRobotNode = robotmodel
         return self.obsTag
         
     def printLocation(self, fromNode, toNode):
@@ -1297,9 +1346,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             print("Could not compute transform between nodes.")
             return
         x, y, z = m.GetElement(0, 3), m.GetElement(1, 3), m.GetElement(2, 3)
-        print(f"{fromNode.GetName()} wrt {toNode.GetName()}: x={x:.2f}, y={y:.2f}, z={z:.2f} mm")
+        if DEBUG:
+            print(f"{fromNode.GetName()} wrt {toNode.GetName()}: x={x:.2f}, y={y:.2f}, z={z:.2f} mm")
 
     def removeObserver(self):
+        if self.viewObserverTags:
+            for observed_object, observed_tag in self.viewObserverTags:
+                try:
+                    observed_object.RemoveObserver(observed_tag)
+                except Exception:
+                    pass
+            self.viewObserverTags = []
+
         if self.obsNode and self.obsTag is not None:
             try:
                 self.obsNode.RemoveObserver(self.obsTag)
@@ -1311,6 +1369,106 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.obsNode = None
         self.obsTag = None
         self.callback = None
+        self.isInteracting = False
+
+    def computeIK(self, robotmodel):
+        if robotmodel is None:
+            return
+        solution = None
+        if self.useMoveItIK:
+            solution = self.computeIKWithMoveIt(robotmodel=robotmodel, tipLink=self.tipLink)
+            if DEBUG and solution:
+                print(f"[MoveIt IK] Solution: {solution}")
+        else:
+            solution = self.computeIKWithKDL(robotmodel=robotmodel)
+
+        # Update robot color based on whether solution was found
+        # If isInteracting is False, we typically want to RESTORE the color.
+        # However, _runIk is also called at the end of interaction.
+        if self.isInteracting:
+            self._updateRobotColorForIKResult(robotmodel, solution is not None)
+        else:
+            # Restore base color when interaction ends or for non-interactive updates (like typing values)
+            # Actually, if we are NOT interacting, we still want to show if the typed value is valid.
+            # But the requirement was "toggle the goal state robot color... when IK is not working".
+            # Let's show the feedback regardless of interaction mode for consistency.
+            self._updateRobotColorForIKResult(robotmodel, solution is not None)
+
+    def _updateRobotColorForIKResult(self, robotNode, success):
+        """Changes goal robot color to complementary if IK fails during interaction."""
+        if self.baseGoalColor is None:
+            self.baseGoalColor = self.getGoalRobotColor(robotNode)
+        
+        if self.baseGoalColor is None:
+            return
+
+        if success:
+            self.setGoalRobotColorRGB(robotNode, self.baseGoalColor)
+        else:
+            # Complementary color in RGB: (1-r, 1-g, 1-b)
+            r, g, b = self.baseGoalColor
+            self.setGoalRobotColorRGB(robotNode, (1.0 - r, 1.0 - g, 1.0 - b))
+
+    def setGoalRobotColorRGB(self, robotNode, rgb):
+        if robotNode is None:
+            return
+        r, g, b = rgb
+        goal_models = self._collectGoalModelNodes(robotNode)
+        for modelNode in goal_models:
+            displayNode = modelNode.GetDisplayNode()
+            if displayNode:
+                displayNode.SetColor(r, g, b)
+
+    def _addViewInteractionObservers(self, robotmodel):
+        layout_manager = slicer.app.layoutManager()
+        if layout_manager is None:
+            return
+
+        def onInteractionEvent(caller, eventId):
+            if eventId == vtk.vtkCommand.InteractionEvent:
+                self.isInteracting = True
+                self.computeIK(robotmodel)
+            elif eventId == vtk.vtkCommand.EndInteractionEvent:
+                self.isInteracting = False
+                self.computeIK(robotmodel)
+
+        interaction_events = (vtk.vtkCommand.InteractionEvent, vtk.vtkCommand.EndInteractionEvent)
+
+        # Observe 3D view interactions.
+        try:
+            for view_index in range(layout_manager.threeDViewCount):
+                three_d_widget = layout_manager.threeDWidget(view_index)
+                if three_d_widget is None:
+                    continue
+                interactor = three_d_widget.threeDView().interactor()
+                if interactor is None:
+                    continue
+                style = interactor.GetInteractorStyle()
+                if style is None:
+                    continue
+                for interaction_event in interaction_events:
+                    tag = style.AddObserver(interaction_event, onInteractionEvent)
+                    self.viewObserverTags.append((style, tag))
+        except Exception:
+            pass
+
+        # Observe slice view interactions.
+        try:
+            for slice_name in layout_manager.sliceViewNames():
+                slice_widget = layout_manager.sliceWidget(slice_name)
+                if slice_widget is None:
+                    continue
+                interactor = slice_widget.sliceView().interactor()
+                if interactor is None:
+                    continue
+                style = interactor.GetInteractorStyle()
+                if style is None:
+                    continue
+                for interaction_event in interaction_events:
+                    tag = style.AddObserver(interaction_event, onInteractionEvent)
+                    self.viewObserverTags.append((style, tag))
+        except Exception:
+            pass
     
     
     def computeIKWithMoveIt(self, robotmodel, tipLink):
@@ -1354,7 +1512,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             return None
     
     
-    def computeIKOnce(self, robotmodel):            
+    def computeIKWithKDL(self, robotmodel):            
             # --- Get Slicer transform nodes ---
             fromNode = self.obsNode
             toNode   = self.toNode
@@ -1419,33 +1577,25 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             self.toNode = toNode
 
             def onModified(caller, eventId):
-                # Get the target pose
-                targetPose = vtk.vtkMatrix4x4()
-                success = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
-                    self.obsNode, self.toNode, targetPose
-                )
+                # Update XYZ label/print even during interaction
+                self.printLocation(fromNode, toNode)
                 
-                if not success:
+                # Only compute IK if NOT interacting via view.
+                # If interacting, the InteractorStyle observers handle _runIk.
+                # If NOT interacting (e.g. typing values), handle it here.
+                if self.isInteracting:
                     return
-                
-                # Choose IK solver based on flag
-                if self.useMoveItIK:
-                    # Use MoveIt IK via robotmodel integration
-                    solution = self.computeIKWithMoveIt(robotmodel=robotmodel, tipLink=self.tipLink)
-                    if DEBUG and solution:
-                        print(f"[MoveIt IK] Solution: {solution}")
-                else:
-                    # Use KDL IK (original method)
-                    self.computeIKOnce(robotmodel=robotmodel)
+                self.computeIK(robotmodel)
 
             self.callback = onModified
             eventId = slicer.vtkMRMLTransformNode.TransformModifiedEvent
             self.obsTag  = fromNode.AddObserver(eventId, self.callback)
+            self._addViewInteractionObservers(robotmodel)
 
             return self.obsTag
     
     # Set robot opacity
-    def setopacity(self, robotmodel, opacity):
+    def setOpacity(self, robotmodel, opacity):
         
         # Get number of model nodes under robotmodel
         numModels = robotmodel.GetNumberOfNodeReferences("model")  
@@ -1535,7 +1685,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return goal_nodes
     
     # Parse urdf to get joint limits. parses only non-fixed joints
-    def parse_joint_limits_from_urdf(self, urdf_xml: str):        
+    def findJointLimitsFromURDF(self, urdf_xml: str):        
         root = ET.fromstring(urdf_xml)
         limits = {} 
 
@@ -1559,7 +1709,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return limits
     
     
-    def parse_joint_structure_from_urdf(self, urdf_xml: str):
+    def findJointStructureFromURDF(self, urdf_xml: str):
             """
             Returns a dict mapping joint_name -> {'parent', 'child', 'axis', 'type', 'origin_rpy'}
             """
@@ -1652,7 +1802,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             else:
                 print("Error: Could not link IK transforms (Nodes missing)")
                 
-    def getcurrentjointpositions(self, robotmodel):
+    def getCurrentJointPositions(self, robotmodel):
             """
             Calculate current joint values by subtracting the fixed URDF origin 
             from the measured link transforms.
@@ -1676,7 +1826,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             urdf_xml = pnode.GetParameterAsString("robot_description")
             
             # Parse joint structure (Must include origin_rpy logic!)
-            joint_info = self.parse_joint_structure_from_urdf(urdf_xml)
+            joint_info = self.findJointStructureFromURDF(urdf_xml)
             
             joint_positions = []
             
@@ -1763,7 +1913,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             
             return joint_positions
     
-    def getcurrentgoaljointpositions(self, robotmodel):
+    def getCurrentGoalJointPositions(self, robotmodel):
         """
         Calculate current joint values from the goal robot's link transforms.
         Returns a list of joint angles in radians.
@@ -1786,7 +1936,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         urdf_xml = pnode.GetParameterAsString("robot_description")
         
         # Parse joint structure from URDF
-        joint_info = self.parse_joint_structure_from_urdf(urdf_xml)
+        joint_info = self.findJointStructureFromURDF(urdf_xml)
         
         joint_positions = []
         

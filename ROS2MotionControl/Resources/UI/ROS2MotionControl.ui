@@ -228,6 +228,16 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="lastGoalPushButton3DControl">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Last goal</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="currentStatePushButton3DControl">
              <property name="enabled">
               <bool>false</bool>
