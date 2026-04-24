@@ -92,9 +92,20 @@ void vtkMRMLROS2RobotNode::RemoveRobotVisualization()
   for (int i = nbModelRefs - 1; i >= 0; --i) {
     vtkMRMLNode* node = this->GetNthNodeReference("model", i);
     if (node) {
-      // 1. Remove the display node(s) associated with this model
       vtkMRMLModelNode* modelNode = vtkMRMLModelNode::SafeDownCast(node);
       if (modelNode) {
+        // 1. Remove the display node(s) associated with this model
+        std::vector<const char*> displayNodeIDs;
+        int numDisplayNodes = modelNode->GetNumberOfDisplayNodes();
+        for (int d = 0; d < numDisplayNodes; ++d) {
+          displayNodeIDs.push_back(modelNode->GetNthDisplayNodeID(d));
+        }
+        for (const char* displayNodeID : displayNodeIDs) {
+          vtkMRMLNode* displayNode = this->GetScene()->GetNodeByID(displayNodeID);
+          if (displayNode) {
+            this->GetScene()->RemoveNode(displayNode);
+          }
+        }
         modelNode->RemoveAllDisplayNodeIDs();
       }
       // 2. Remove the model node itself
@@ -103,11 +114,18 @@ void vtkMRMLROS2RobotNode::RemoveRobotVisualization()
     this->RemoveNthNodeReferenceID("model", i);
   }
 
-  // Remove nodes referenced as "lookup" (and their children should handle themselves if properly observed)
+  // Remove nodes referenced as "lookup"
   int nbLookupRefs = this->GetNumberOfNodeReferences("lookup");
   for (int i = nbLookupRefs - 1; i >= 0; --i) {
     vtkMRMLNode* node = this->GetNthNodeReference("lookup", i);
     if (node) {
+      vtkMRMLROS2Tf2LookupNode* lookupNode = vtkMRMLROS2Tf2LookupNode::SafeDownCast(node);
+      if (lookupNode) {
+        const char* ros2NodeID = this->GetNodeReferenceID("node");
+        if (ros2NodeID) {
+          lookupNode->RemoveFromROS2Node(ros2NodeID);
+        }
+      }
       // 2. Remove the lookup node
       this->GetScene()->RemoveNode(node);
     }
@@ -163,6 +181,52 @@ bool vtkMRMLROS2RobotNode::AddToROS2Node(const char * nodeId,
   SetRobotDescriptionParameterNode();
   SetRobotName(robotName);
   return true;
+}
+
+
+bool vtkMRMLROS2RobotNode::RemoveFromROS2Node(const char * nodeId)
+{
+  // Check that the robot is in the scene
+  std::string errorMessage;
+  vtkMRMLROS2NodeNode * mrmlROSNodePtr = vtkMRMLROS2::CheckROS2NodeExists(this, nodeId, errorMessage);
+  if (!mrmlROSNodePtr) {
+    vtkErrorMacro(<< "RemoveFromROS2Node: " << errorMessage);
+    return false;
+  }
+
+  // Remove the robot visualization
+  this->RemoveRobotVisualization();
+
+  // Remove the goal state robot if it exists
+  this->RemoveGoalStateRobot();
+
+  // Remove the parameter node
+  if (mRobotDescriptionParameterNode) {
+    mRobotDescriptionParameterNode->RemoveFromROS2Node(nodeId);
+    this->GetScene()->RemoveNode(mRobotDescriptionParameterNode);
+    mRobotDescriptionParameterNode = nullptr;
+  }
+
+  // Find and remove the reference by index in the ROS2 node
+  int index = -1;
+  int numRobots = mrmlROSNodePtr->GetNumberOfNodeReferences("robot");
+  for (int i = 0; i < numRobots; ++i) {
+    const char* refID = mrmlROSNodePtr->GetNthNodeReferenceID("robot", i);
+    if (refID && std::string(refID) == this->GetID()) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index != -1) {
+    mrmlROSNodePtr->RemoveNthNodeReferenceID("robot", index);
+    this->SetNodeReferenceID("node", nullptr);
+    mMRMLROS2Node = nullptr;
+    return true;
+  }
+
+  vtkErrorMacro(<< "RemoveFromROS2Node: this robot has not been added to the ROS2 node.");
+  return false;
 }
 
 
@@ -243,6 +307,21 @@ bool vtkMRMLROS2RobotNode::RemoveGoalStateRobot()
     for (int i = count - 1; i >= 0; --i) {
       vtkMRMLNode* node = this->GetNthNodeReference(role, i);
       if (node) {
+        vtkMRMLModelNode* modelNode = vtkMRMLModelNode::SafeDownCast(node);
+        if (modelNode) {
+          std::vector<const char*> displayNodeIDs;
+          int numDisplayNodes = modelNode->GetNumberOfDisplayNodes();
+          for (int d = 0; d < numDisplayNodes; ++d) {
+            displayNodeIDs.push_back(modelNode->GetNthDisplayNodeID(d));
+          }
+          for (const char* displayNodeID : displayNodeIDs) {
+            vtkMRMLNode* displayNode = scene->GetNodeByID(displayNodeID);
+            if (displayNode) {
+              scene->RemoveNode(displayNode);
+            }
+          }
+          modelNode->RemoveAllDisplayNodeIDs();
+        }
         scene->RemoveNode(node);
       }
       this->RemoveNthNodeReferenceID(role, i);

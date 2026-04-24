@@ -596,25 +596,11 @@ bool vtkMRMLROS2NodeNode::RemoveAndDeleteRobotNode(const std::string & robotName
     return false;
   }
 
-  // Remove the lookups on that robot
-  int numLookups = node->GetNumberOfNodeReferences("lookup");
-  for (int i = 0; i < numLookups; i++) {
-    auto lookupNodeID = node->GetNthNodeReferenceID("lookup", 0); // always grab the first one because the ref id changes
-    auto modelNode = vtkMRMLModelNode::SafeDownCast(node->GetNthNodeReference("model", 0)); // always grab the first one because the ref id changes
-    this->RemoveAndDeleteTf2LookupNode(lookupNodeID);
-    if (modelNode) {
-      this->GetScene()->RemoveNode(modelNode);
-    }
-  }
-
-  auto parameterNodeID = node->GetNthNodeReferenceID("parameter", 0);
-  if (parameterNodeID) {
-    this->RemoveAndDeleteParameterNodeByNodeID(parameterNodeID);
-  }
+  // Use the robot node's own cleanup method for its managed objects
+  node->RemoveFromROS2Node(this->GetID());
 
   // Remove the robot itself
   this->GetScene()->RemoveNode(node);
-  node->Delete();
   return true;
 }
 

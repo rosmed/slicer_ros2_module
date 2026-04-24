@@ -49,6 +49,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
 		     const std::string & fixedFrame = "",
                      const std::string & tfPrefix = "");
 
+  bool RemoveFromROS2Node(const char * nodeId);
+
   bool CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRobot);
   bool RemoveGoalStateRobot();
 
