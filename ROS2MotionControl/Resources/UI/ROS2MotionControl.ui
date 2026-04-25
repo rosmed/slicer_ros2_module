@@ -164,6 +164,48 @@
                 </layout>
              </widget>
             </item>
+            <item row="4" column="0" colspan="2">
+             <widget class="ctkCollapsibleButton" name="moveitCollapsibleButton" native="true">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="text" stdset="0">
+                 <string>MoveIt</string>
+                </property>
+                <property name="collapsed" stdset="0">
+                 <bool>false</bool>
+                </property>
+                <layout class="QFormLayout" name="formLayout_moveit">
+                 <item row="0" column="0" colspan="2">
+                    <widget class="QCheckBox" name="moveGroupExistsCheckBox">
+                     <property name="enabled">
+                      <bool>true</bool>
+                     </property>
+                     <property name="text">
+                      <string>Move Group Exists</string>
+                     </property>
+                    </widget>
+                 </item>
+                 <item row="1" column="0">
+                    <widget class="QLabel" name="planGroupLabel">
+                     <property name="text">
+                      <string>Planning Group</string>
+                     </property>
+                    </widget>
+                 </item>
+                 <item row="1" column="1">
+                    <widget class="QComboBox" name="planGroupComboBox">
+                     <property name="editable">
+                      <bool>true</bool>
+                     </property>
+                     <property name="toolTip">
+                      <string>Select or type a MoveIt planning group name</string>
+                     </property>
+                    </widget>
+                 </item>
+                </layout>
+             </widget>
+            </item>
       </layout>
      </widget>
      <widget class="QWidget" name="JointTab">
@@ -249,17 +291,7 @@
            </item>
           </layout>
          </item>
-       <item row="6" column="1">
-        <widget class="QCheckBox" name="checkBox">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="text">
-          <string>Use Move Group</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0" colspan="2">
+       <item row="1" column="0" colspan="2">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -271,26 +303,6 @@
           </size>
          </property>
         </spacer>
-       </item>
-       <item row="4" column="1">
-        <widget class="QCheckBox" name="moveGroupExistsCheckBox">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="text">
-          <string>Move Group Exists</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="planGroupLineEdit"/>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="planGroupLabel">
-         <property name="text">
-          <string>Planning Group Name</string>
-         </property>
-        </widget>
        </item>
       </layout>
      </widget>

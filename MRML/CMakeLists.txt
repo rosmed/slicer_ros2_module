@@ -11,6 +11,7 @@ set(${KIT}_INCLUDE_DIRECTORIES
   ${cisst_msgs_INCLUDE_DIRS}
   ${turtlesim_INCLUDE_DIRS}
   ${std_srvs_INCLUDE_DIRS}
+  ${rcl_interfaces_INCLUDE_DIRS}
   )
 
 # include SlicerROS2 for code generation functions
@@ -41,19 +42,20 @@ generate_ros2_nodes(
   "rosbag2_interfaces/srv/GetRate"
   "rosbag2_interfaces/srv/IsPaused"
   "rosbag2_interfaces/srv/Pause"
-  # "rosbag2_interfaces/srv/Play"
+  "rosbag2_interfaces/srv/Play"
   "rosbag2_interfaces/srv/PlayNext"
   "rosbag2_interfaces/srv/Resume"
   "rosbag2_interfaces/srv/Seek"
   "rosbag2_interfaces/srv/SetRate"
   "rosbag2_interfaces/srv/Snapshot"
-  # "rosbag2_interfaces/srv/SplitBagfile"
-  # "rosbag2_interfaces/srv/Stop"
+  "rosbag2_interfaces/srv/SplitBagfile"
+  "rosbag2_interfaces/srv/Stop"
   "rosbag2_interfaces/srv/TogglePaused"
 
   "moveit_msgs/srv/GetPositionFK"
   "moveit_msgs/srv/GetPositionIK"
   "moveit_msgs/srv/GetCartesianPath"
+  "rcl_interfaces/srv/GetParameters"
   "turtlesim/srv/Spawn"
 
   DEPENDENCIES
@@ -89,6 +91,8 @@ generate_ros2_nodes(
   "moveit_msgs/msg/BoundingVolume"
   "moveit_msgs/msg/OrientationConstraint"
   "moveit_msgs/msg/VisibilityConstraint"
+  "rcl_interfaces/msg/ParameterValue"
+  "rcl_interfaces/msg/Parameter"
   )
 
 get_directory_property(_current_prop ADDITIONAL_CLEAN_FILES)

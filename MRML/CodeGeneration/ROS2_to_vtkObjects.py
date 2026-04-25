@@ -29,6 +29,17 @@ class FieldCategory(Enum):
     STATIC_SEQUENCE = auto()    
     VTK_SEQUENCE = auto()      ## TODO: VTK_OBJECT_SEQUENCE
 
+# ROS bool[] fields map to std::vector<bool> which is a C++ specialization
+# with no .data() pointer — the VTK Python wrapper generator cannot handle it.
+# We store them as std::vector<uint8_t> instead and convert element-by-element.
+_BOOL_TYPES = {'bool', 'boolean'}
+
+def _sequence_cpp_type(underlying_type):
+    """Return the C++ element type to use for a sequence field storage."""
+    if underlying_type in _BOOL_TYPES:
+        return 'uint8_t'
+    return ros2_to_cpp_type_static_mapping[underlying_type]
+
 def get_category_mapping(is_sequence, is_vtk_object):
     """
     Returns the FieldCategory based on whether the attribute is a sequence and/or a VTK object.
@@ -58,8 +69,8 @@ GETSET_GENERATORS = {
     ),
     FieldCategory.STATIC_SEQUENCE: lambda attribute_name, underlying_type: (
         f"{__}// static sequence get/set\n"
-        f"{__}const std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}>& Get{snake_to_camel(attribute_name)}(void) const {{ return {attribute_name}_; }}\n\n"
-        f"{__}void Set{snake_to_camel(attribute_name)}(const std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}>& value) {{ {attribute_name}_ = value; }}\n\n"
+        f"{__}const std::vector<{_sequence_cpp_type(underlying_type)}>& Get{snake_to_camel(attribute_name)}(void) const {{ return {attribute_name}_; }}\n\n"
+        f"{__}void Set{snake_to_camel(attribute_name)}(const std::vector<{_sequence_cpp_type(underlying_type)}>& value) {{ {attribute_name}_ = value; }}\n\n"
     ),
     FieldCategory.VTK_SEQUENCE: lambda attribute_name, underlying_type: (
         f"{__}// vtk sequence get/set\n"
@@ -74,7 +85,7 @@ GETSET_GENERATORS = {
 ATTRIBUTE_DECLARATIONS = {
     FieldCategory.STATIC: lambda attribute_name, underlying_type: f"{__}{ros2_to_cpp_type_static_mapping[underlying_type]} {attribute_name}_;\n",
     FieldCategory.VTK_OBJECT: lambda attribute_name, underlying_type: f"{__}vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}> {attribute_name}_;\n",
-    FieldCategory.STATIC_SEQUENCE: lambda attribute_name, underlying_type: f"{__}std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}> {attribute_name}_;\n",
+    FieldCategory.STATIC_SEQUENCE: lambda attribute_name, underlying_type: f"{__}std::vector<{_sequence_cpp_type(underlying_type)}> {attribute_name}_; // stored as {_sequence_cpp_type(underlying_type)} to avoid std::vector<bool> specialization\n",
     FieldCategory.VTK_SEQUENCE: lambda attribute_name, underlying_type: f"{__}std::vector<vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}>> {attribute_name}_;\n"
 }
 
@@ -117,7 +128,9 @@ SLICER2ROS_GENERATORS = {
     FieldCategory.VTK_OBJECT: lambda attribute_name, camel_case_attribute_name, is_fixed_size: f"{__}vtkSlicerToROS2(input->Get{camel_case_attribute_name}(), result.{attribute_name}, rosNode);\n",
     FieldCategory.STATIC_SEQUENCE: lambda attribute_name, camel_case_attribute_name, is_fixed_size: (
         (f"{__}result.{attribute_name}.resize(input->Get{camel_case_attribute_name}().size());\n" if not is_fixed_size else "") +
-        f"{__}std::copy(input->Get{camel_case_attribute_name}().begin(), input->Get{camel_case_attribute_name}().end(), result.{attribute_name}.begin());\n"
+        f"{__}for (size_t __i = 0; __i < input->Get{camel_case_attribute_name}().size(); ++__i) {{\n"
+        f"{____}result.{attribute_name}[__i] = input->Get{camel_case_attribute_name}()[__i];\n"
+        f"{__}}}\n"
     ),
     FieldCategory.VTK_SEQUENCE: lambda attribute_name, camel_case_attribute_name, is_fixed_size: (
         (f"{__}result.{attribute_name}.resize(input->Get{camel_case_attribute_name}().size());\n" if not is_fixed_size else "") +
@@ -136,9 +149,11 @@ ROS2SLICER_GENERATORS = {
         f"{__}result->Set{camel_case_attribute_name}({attribute_name});\n"
     ),
     FieldCategory.STATIC_SEQUENCE: lambda attribute_name, camel_case_attribute_name, underlying_type: (
-        f"{__}std::vector<{ros2_to_cpp_type_static_mapping[underlying_type]}> temp_{attribute_name};\n"
+        f"{__}std::vector<{_sequence_cpp_type(underlying_type)}> temp_{attribute_name};\n"
         f"{__}temp_{attribute_name}.resize(input.{attribute_name}.size());\n"
-        f"{__}std::copy(input.{attribute_name}.begin(), input.{attribute_name}.end(), temp_{attribute_name}.begin());\n"
+        f"{__}for (size_t __i = 0; __i < input.{attribute_name}.size(); ++__i) {{\n"
+        f"{____}temp_{attribute_name}[__i] = static_cast<{_sequence_cpp_type(underlying_type)}>(input.{attribute_name}[__i]);\n"
+        f"{__}}}\n"
         f"{__}result->Set{camel_case_attribute_name}(temp_{attribute_name});\n"
     ),
     FieldCategory.VTK_SEQUENCE: lambda attribute_name, camel_case_attribute_name, underlying_type: (

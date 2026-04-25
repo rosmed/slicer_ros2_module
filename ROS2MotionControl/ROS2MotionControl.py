@@ -188,6 +188,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.trajectorySlider = None
         self.jointSliders = []
         self.jointSpinboxes = []
+        self._moveGroupParamNode = None
+        self._moveGroupParamObsId = None
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -224,8 +226,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.zeroPushButton3DControl.connect("clicked(bool)", self.onZeroButton)
         self.ui.lastGoalPushButton3DControl.connect("clicked(bool)", self.onLastGoalButton)
         self.ui.currentStatePushButton3DControl.connect("clicked(bool)", self.onCurrentStateButton)
-        self.ui.checkBox.connect("toggled(bool)", self.onMoveGroupToggled)
         self.ui.moveGroupExistsCheckBox.connect("toggled(bool)", self.onMoveGroupExistsToggled)
+        self.ui.planGroupComboBox.connect("activated(int)", self.onPlanGroupActivated)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
@@ -235,18 +237,19 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.generatorComboBox.addItem(gen.name)
         self.ui.generatorComboBox.currentIndexChanged.connect(self.onGeneratorChanged)
                 
-        # Set appearence collapsible button to be collapsed and disabled initially
+        # Set appearance collapsible button to be collapsed and disabled initially
         self.ui.appCollapsibleButton.collapsed = True
         self.ui.appCollapsibleButton.enabled = False
         self.ui.jointStateCollapsibleButton.collapsed = True
         self.ui.jointStateCollapsibleButton.enabled = False
+        self.ui.moveitCollapsibleButton.collapsed = True
+        self.ui.moveitCollapsibleButton.enabled = False
         if not self.ui.jointStateTopicLineEdit.text:
             self.ui.jointStateTopicLineEdit.text = "joint_states"
-        self.ui.checkBox.enabled = False
         self.ui.planButton.enabled = False
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
-        self.ui.planGroupLineEdit.enabled = False
+        self.ui.planGroupComboBox.enabled = False
         self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
         
         # Make sure parameter node is initialized (needed for module reload)
@@ -261,6 +264,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic:
             self.logic.removeObserver()
             self.logic.ClearJointStateSubscriber()
+        if self._moveGroupParamNode is not None:
+            try:
+                if self._moveGroupParamObsId is not None:
+                    self._moveGroupParamNode.RemoveObserver(self._moveGroupParamObsId)
+                slicer.mrmlScene.RemoveNode(self._moveGroupParamNode)
+            except Exception:
+                pass
+            self._moveGroupParamNode = None
         self.removeObservers()
 
     def enter(self) -> None:
@@ -392,6 +403,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.appCollapsibleButton.enabled = True
             self.ui.jointStateCollapsibleButton.collapsed = False
             self.ui.jointStateCollapsibleButton.enabled = True
+            self.ui.moveitCollapsibleButton.collapsed = False
+            self.ui.moveitCollapsibleButton.enabled = True
             
             # Check if /move_group node exists and goal robot in ROS
             # if so enable MoveIt buttons
@@ -410,7 +423,10 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             
             # If the user previously checked the box, we can trigger the logic explicitly, 
             # but since it's a checkbox, they can just check it manually now if they want.
-            
+
+            # Try to populate planning group dropdown from /move_group's SRDF parameter
+            self._setupMoveGroupDropdown(robotNode)
+
             # Create Joint Sliders Dynamically (only if goal model exists)
             self.ui.zeroPushButton.enabled = True
             self.ui.currentStatePushButton.enabled = True
@@ -671,39 +687,101 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             slider.blockSignals(False)
             spinbox.blockSignals(False)
 
-    def onMoveGroupToggled(self, toggled: bool) -> None:
-        if toggled:
-            print("Enabling MoveIt IK")
-            self.logic.useMoveItIK = True
-            
-            if self.ui.planGroupLineEdit.text == "":
-                print("Warning: No MoveIt planning group specified.")
-            self.robot.setupIKmoveit(self.ui.planGroupLineEdit.text)
-        else:
-            print("Disabling MoveIt IK")
-            self.logic.useMoveItIK = False
-
     def onMoveGroupExistsToggled(self, toggled: bool) -> None:
-        generators = TrajectoryGenerators.get_all()
-        idx = self.ui.generatorComboBox.currentIndex
-        is_moveit = idx >= 0 and idx < len(generators) and isinstance(
-            generators[idx], TrajectoryGenerators.MoveItTrajectoryGenerator
-        )
+        self.ui.planGroupLabel.enabled = toggled
+        self.ui.planGroupComboBox.enabled = toggled
 
-        self.ui.checkBox.enabled = toggled and is_moveit
-        self.ui.planGroupLabel.enabled = toggled and is_moveit
-        self.ui.planGroupLineEdit.enabled = toggled and is_moveit
-
-        if is_moveit:
-            self.ui.planButton.enabled = toggled
-            if toggled:
-                print(f"Move Group Exists checked: MoveIt functionality enabled")
-                print(f"User must enter planning group name before using MoveIt IK")
-            else:
-                self.ui.previewButton.enabled = False
-        else:
-            # Non-MoveIt generators are always available.
+        if toggled:
+            print("Move Group Exists checked: MoveIt functionality enabled")
+            self.logic.useMoveItIK = True
+            group = self.ui.planGroupComboBox.currentText
+            if group and self.robot:
+                self.robot.setupIKmoveit(group)
             self.ui.planButton.enabled = True
+        else:
+            self.logic.useMoveItIK = False
+            self.ui.planButton.enabled = False
+            self.ui.previewButton.enabled = False
+
+    def onPlanGroupActivated(self, index: int) -> None:
+        """Called when the user selects or confirms a planning group from the combobox."""
+        if not self.ui.moveGroupExistsCheckBox.checked or not self.robot:
+            return
+        group = self.ui.planGroupComboBox.currentText
+        if group:
+            self.robot.setupIKmoveit(group)
+            print(f"Planning group set to: {group}")
+
+    def _setupMoveGroupDropdown(self, robotNode) -> None:
+        """Fetch robot_description_semantic from /move_group and populate planGroupComboBox."""
+        self._moveGroupParamNode = None
+
+        # The robot node holds a reference to its vtkMRMLROS2NodeNode under role "node"
+        ros2Node = robotNode.GetNodeReference("node")
+        if ros2Node is None:
+            # Fall back: first ROS2 node in the scene
+            ros2Node = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2NodeNode")
+
+        if ros2Node is None:
+            return
+
+        nodeId = ros2Node.GetID()
+
+        try:
+            paramNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2ParameterNode")
+            paramNode.SetName("_moveGroupSRDFParam")
+            paramNode.AddToROS2Node(nodeId, "/move_group")
+            paramNode.AddParameter("robot_description_semantic")
+            self._moveGroupParamNode = paramNode
+
+            # If already available (e.g. cached), populate immediately
+            if paramNode.IsParameterSet("robot_description_semantic"):
+                self._onMoveGroupSRDFReceived()
+            else:
+                self._moveGroupParamObsId = paramNode.AddObserver(
+                    slicer.vtkMRMLROS2ParameterNode.ParameterModifiedEvent,
+                    self._onMoveGroupSRDFReceived
+                )
+        except Exception as e:
+            print(f"Warning: Could not set up move group parameter monitoring: {e}")
+
+    def _onMoveGroupSRDFReceived(self, caller=None, event=None) -> None:
+        """Parse SRDF XML from /move_group and populate planGroupComboBox."""
+        if self._moveGroupParamNode is None:
+            return
+        srdf_xml = self._moveGroupParamNode.GetParameterAsString("robot_description_semantic")
+        if not srdf_xml:
+            return
+
+        try:
+            root = ET.fromstring(srdf_xml)
+            groups = [g.get("name") for g in root.findall("group") if g.get("name")]
+        except ET.ParseError as e:
+            print(f"Warning: Failed to parse SRDF XML: {e}")
+            return
+
+        if not groups:
+            return
+
+        combo = self.ui.planGroupComboBox
+        current = combo.currentText
+        combo.blockSignals(True)
+        combo.clear()
+        for g in groups:
+            combo.addItem(g)
+        # Restore previous selection if it's still valid, otherwise take first
+        idx = combo.findText(current)
+        combo.setCurrentIndex(idx if idx >= 0 else 0)
+        combo.blockSignals(False)
+        print(f"Planning groups available: {groups}")
+
+        # Remove the observer — no need to keep listening once groups are populated
+        if self._moveGroupParamObsId is not None:
+            try:
+                self._moveGroupParamNode.RemoveObserver(self._moveGroupParamObsId)
+            except Exception:
+                pass
+            self._moveGroupParamObsId = None
 
             
     def onTabChanged(self, index):
@@ -825,16 +903,11 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         except: pass
 
     def onGeneratorChanged(self, index: int) -> None:
-        """Show/hide MoveIt-specific controls based on the selected generator."""
+        """Enable/disable Plan button based on selected generator and MoveIt state."""
         generators = TrajectoryGenerators.get_all()
         if index < 0 or index >= len(generators):
             return
         is_moveit = isinstance(generators[index], TrajectoryGenerators.MoveItTrajectoryGenerator)
-        self.ui.planGroupLabel.setVisible(is_moveit)
-        self.ui.planGroupLineEdit.setVisible(is_moveit)
-        self.ui.checkBox.enabled = self.ui.moveGroupExistsCheckBox.checked and is_moveit
-        self.ui.planGroupLabel.enabled = self.ui.moveGroupExistsCheckBox.checked and is_moveit
-        self.ui.planGroupLineEdit.enabled = self.ui.moveGroupExistsCheckBox.checked and is_moveit
         if is_moveit:
             self.ui.planButton.enabled = self.ui.moveGroupExistsCheckBox.checked
         else:
@@ -858,7 +931,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             goal_positions=goal_positions,
             urdf_xml=self.urdf_xml,
             robot=self.robot,
-            plan_group=self.ui.planGroupLineEdit.text,
+            plan_group=self.ui.planGroupComboBox.currentText,
         )
 
         # Parse and store the trajectory
@@ -983,7 +1056,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 self.trajectorySpinBox.blockSignals(False)
                 
     def onExecuteButton(self) -> None:
-        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.planGroupLineEdit.text)
+        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.planGroupComboBox.currentText)
         
         if success:
             print("Execute command sent successfully.")
