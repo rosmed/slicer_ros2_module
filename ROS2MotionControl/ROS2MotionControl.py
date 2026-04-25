@@ -1,5 +1,5 @@
 import logging
-import os, time
+import os, time, sys
 import subprocess
 from typing import Annotated, Optional
 import xml.etree.ElementTree as ET
@@ -7,6 +7,13 @@ import math
 import re
 import qt
 import json
+
+# TrajectoryGenerators.py lives in a subdirectory to prevent Slicer from
+# treating it as a scripted module.  Add that directory to sys.path once.
+_tg_dir = os.path.join(os.path.dirname(__file__), "ROS2MotionControl")
+if _tg_dir not in sys.path:
+    sys.path.insert(0, _tg_dir)
+import TrajectoryGenerators
 try:
     from ROS2Tests import ROS2TestsLogic
 except ImportError:
@@ -173,6 +180,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.rootlink = None
         self.tiplink = None
         self.goaltiplink = None
+        self.urdf_xml = ""
         self.isRobotLoaded = False
         self.trajectoryTimer = None
         self.trajectoryData = None
@@ -220,7 +228,12 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.moveGroupExistsCheckBox.connect("toggled(bool)", self.onMoveGroupExistsToggled)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
-        self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)    
+        self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
+
+        # Populate generator combo box
+        for gen in TrajectoryGenerators.get_all():
+            self.ui.generatorComboBox.addItem(gen.name)
+        self.ui.generatorComboBox.currentIndexChanged.connect(self.onGeneratorChanged)
                 
         # Set appearence collapsible button to be collapsed and disabled initially
         self.ui.appCollapsibleButton.collapsed = True
@@ -234,6 +247,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
         self.ui.planGroupLineEdit.enabled = False
+        self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
         
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -327,6 +341,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 print("Error: No parameter node found for robot.")
                 return
             urdf_xml = pnode.GetParameterAsString("robot_description")
+            self.urdf_xml = urdf_xml
 
             # Auto-detect Root and Tip Links
             rootandtip = robotNode.FindRootAndTipLinks()
@@ -669,20 +684,26 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.useMoveItIK = False
 
     def onMoveGroupExistsToggled(self, toggled: bool) -> None:
-        if toggled:
-            self.ui.planButton.enabled = True
-            self.ui.previewButton.enabled = True
-            self.ui.checkBox.enabled = True
-            self.ui.planGroupLabel.enabled = True
-            self.ui.planGroupLineEdit.enabled = True
-            print(f"Move Group Exists checked: MoveIt functionality enabled")
-            print(f"User must enter planning group name before using MoveIt IK")
+        generators = TrajectoryGenerators.get_all()
+        idx = self.ui.generatorComboBox.currentIndex
+        is_moveit = idx >= 0 and idx < len(generators) and isinstance(
+            generators[idx], TrajectoryGenerators.MoveItTrajectoryGenerator
+        )
+
+        self.ui.checkBox.enabled = toggled and is_moveit
+        self.ui.planGroupLabel.enabled = toggled and is_moveit
+        self.ui.planGroupLineEdit.enabled = toggled and is_moveit
+
+        if is_moveit:
+            self.ui.planButton.enabled = toggled
+            if toggled:
+                print(f"Move Group Exists checked: MoveIt functionality enabled")
+                print(f"User must enter planning group name before using MoveIt IK")
+            else:
+                self.ui.previewButton.enabled = False
         else:
-            self.ui.planButton.enabled = False
-            self.ui.previewButton.enabled = False
-            self.ui.checkBox.enabled = False
-            self.ui.planGroupLabel.enabled = False
-            self.ui.planGroupLineEdit.enabled = False
+            # Non-MoveIt generators are always available.
+            self.ui.planButton.enabled = True
 
             
     def onTabChanged(self, index):
@@ -803,9 +824,43 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             if model: slicer.mrmlScene.RemoveNode(model)
         except: pass
 
+    def onGeneratorChanged(self, index: int) -> None:
+        """Show/hide MoveIt-specific controls based on the selected generator."""
+        generators = TrajectoryGenerators.get_all()
+        if index < 0 or index >= len(generators):
+            return
+        is_moveit = isinstance(generators[index], TrajectoryGenerators.MoveItTrajectoryGenerator)
+        self.ui.planGroupLabel.setVisible(is_moveit)
+        self.ui.planGroupLineEdit.setVisible(is_moveit)
+        self.ui.checkBox.enabled = self.ui.moveGroupExistsCheckBox.checked and is_moveit
+        self.ui.planGroupLabel.enabled = self.ui.moveGroupExistsCheckBox.checked and is_moveit
+        self.ui.planGroupLineEdit.enabled = self.ui.moveGroupExistsCheckBox.checked and is_moveit
+        if is_moveit:
+            self.ui.planButton.enabled = self.ui.moveGroupExistsCheckBox.checked
+        else:
+            self.ui.planButton.enabled = True
+
     def onPlanButton(self) -> None:
-        sol = self.robot.PlanMoveItTrajectoryJSON(self.ui.planGroupLineEdit.text, self.logic.last_ik_solution)
-        
+        generators = TrajectoryGenerators.get_all()
+        idx = self.ui.generatorComboBox.currentIndex
+        if idx < 0 or idx >= len(generators):
+            print("No trajectory generator selected.")
+            return
+        generator = generators[idx]
+
+        joint_names = list(self.robot.GetJoints()) if self.robot else []
+        start_positions = self.jointPositionsRad if self.jointPositionsRad else [0.0] * len(joint_names)
+        goal_positions = self.logic.last_ik_solution if self.logic.last_ik_solution else start_positions
+
+        sol = generator.plan(
+            joint_names=joint_names,
+            start_positions=start_positions,
+            goal_positions=goal_positions,
+            urdf_xml=self.urdf_xml,
+            robot=self.robot,
+            plan_group=self.ui.planGroupLineEdit.text,
+        )
+
         # Parse and store the trajectory
         if sol:
             self.ui.previewButton.enabled = True
