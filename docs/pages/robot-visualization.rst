@@ -50,66 +50,45 @@ by VTK or Assimp (e.g. ``.stl``, ``.obj``, ``.dae``).
 Universal Robot
 ===============
 
-For the UR, we recommend to use the default packages that come with
-ROS 2 Jazzy:
+For the UR, we recommend the default packages that come with ROS 2 Jazzy:
 
 .. code-block:: bash
 
    sudo apt install ros-jazzy-ur
 
-To simplify the startup process, we provide a consolidated launch file
-that starts the UR simulation (URSim), the robot driver, and MoveIt
-configurations in one command:
+We provide a consolidated launch file that starts the UR driver with
+mock hardware (no real robot or simulator required) and MoveIt:
 
 .. code-block:: bash
 
-   ros2 launch slicer_ros2_module ur_sim_control.launch.py ur_type:=<ur_type> robot_ip:=192.168.56.101
+   ros2 launch slicer_ros2_module ur_sim_control.launch.py
 
-Where ``<ur_type>`` can be ``ur3``, ``ur5``, ``ur10`` or ``ur16``.
+By default this launches a **ur5**. To use a different model:
 
-.. note::
+.. code-block:: bash
 
-   After the simulation is launched, you will still need to manually
-   configure the URSim GUI to allow external control.
+   ros2 launch slicer_ros2_module ur_sim_control.launch.py ur_type:=ur10
 
-Navigate to the URSim window and select "Program Robot"
+Supported values for ``ur_type``: ``ur3``, ``ur5``, ``ur10``, ``ur16``.
 
-.. image:: /images/programrobot.png
-  :width: 400
-  :align: center
-  :alt: URSIM program robot window
+Pass ``launch_rviz:=true`` to also open RViz with the MoveIt motion
+planning plugin:
 
-Then select "Empty Program"
+.. code-block:: bash
 
-.. image:: /images/empty.png
-  :width: 400
-  :align: center
-  :alt: URSIM empty program window
+   ros2 launch slicer_ros2_module ur_sim_control.launch.py launch_rviz:=true
 
-Then select "Structure"
+Once the launch is running you should see:
 
-.. image:: /images/structure.png
-  :width: 400
-  :align: center
-  :alt: URSIM structure window
+.. code-block:: text
 
-Then select "URCaps"
+   [move_group] You can start planning now!
 
-.. image:: /images/urcaps.png
-  :width: 400
-  :align: center
-  :alt: URSIM urcaps window
+The MoveIt planning group is named ``ur_manipulator``.
 
-Then finally select "External Control", and then the play button follwing that
-
-.. image:: /images/external.png
-  :width: 400
-  :align: center
-  :alt: URSIM external control window
-
-Finally, in a separate terminal, you can start 3D Slicer. After sourcing
-your workspace, use the provided launcher to start Slicer with the
-correct module paths automatically configured:
+Finally, in a separate terminal, start 3D Slicer. After sourcing your
+workspace, use the provided launcher so that the correct module paths
+are configured automatically:
 
 .. code-block:: bash
 
@@ -117,15 +96,13 @@ correct module paths automatically configured:
    source install/setup.bash
    ros2 launch slicer_ros2_module slicer.launch.py
 
-You can also pass additional arguments to Slicer using the ``slicer_args`` parameter:
+You can pass additional arguments to Slicer via ``slicer_args``:
 
 .. code-block:: bash
 
    ros2 launch slicer_ros2_module slicer.launch.py slicer_args:="--homedir /tmp/foo"
 
-After these steps, you should be able to load the robot in SlicerROS2!
-
-
+After these steps you should be able to load the robot in SlicerROS2!
 
 
 Phantom Omni
