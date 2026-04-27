@@ -1,0 +1,437 @@
+#!/usr/bin/env python3
+import sys
+import os
+import json
+import subprocess
+import requests
+import pathlib
+import threading
+import shutil
+from PyQt5 import QtWidgets, QtCore, QtGui
+
+# Constants
+INDEX_URL = "https://api.github.com/repos/Slicer/ExtensionsIndex/contents"
+RAW_URL_BASE = "https://raw.githubusercontent.com/Slicer/ExtensionsIndex/main/"
+
+# Slicer_DIR is set by CMake during configuration
+SLICER_DIR = "@Slicer_DIR@"
+
+# Extension src root — inside the colcon build tree (build/slicer_ros2_module/extensions/)
+EXT_SRC_BASE = "@CMAKE_CURRENT_BINARY_DIR@/extensions/src"
+
+# Extension build root — inside the colcon build tree (build/slicer_ros2_module/extensions/)
+EXT_BUILD_BASE = "@CMAKE_CURRENT_BINARY_DIR@/extensions/build"
+
+# Extension install prefix — single flat prefix for all third-party extensions
+# (install/slicer_ros2_module/install/)
+EXT_INSTALL_BASE = "@CMAKE_INSTALL_PREFIX@"
+
+# Per-extension manifests — tracks installed files for clean removal
+EXT_MANIFESTS_DIR = "@CMAKE_INSTALL_PREFIX@/.manifests"
+
+class ExtensionWorker(QtCore.QThread):
+    progress = QtCore.pyqtSignal(str)
+    finished = QtCore.pyqtSignal(bool, str)
+
+    def __init__(self, action, extension_name, metadata, slicer_dir, workspace_root, ext_install_base):
+        super().__init__()
+        self.action = action
+        self.extension_name = extension_name
+        self.metadata = metadata
+        self.slicer_dir = slicer_dir
+        self.workspace_root = workspace_root
+        self.ext_install_base = ext_install_base
+
+    def run(self):
+        try:
+            if self.action == "install":
+                self.install_extension()
+            elif self.action == "remove":
+                self.remove_extension()
+        except Exception as e:
+            self.finished.emit(False, str(e))
+
+    def run_command(self, cmd, cwd=None):
+        # Add parallel build support if running a build command
+        if cmd[0] == "cmake" and "--build" in cmd:
+            import multiprocessing
+            # Use half the cores to avoid memory swap issues during heavy Slicer compilation
+            num_cores = max(1, multiprocessing.cpu_count() // 2)
+            # If --parallel is already there, don't add it again
+            if "--parallel" not in cmd and "-j" not in cmd:
+                # Add parallel flag at the end of build command
+                cmd.extend(["--parallel", str(num_cores)])
+
+        self.progress.emit(f"Running: {' '.join(cmd)}")
+        process = subprocess.Popen(
+            cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+        if process.stdout:
+            for line in process.stdout:
+                self.progress.emit(line.strip())
+        process.wait()
+        if process.returncode != 0:
+            raise Exception(f"Command failed with exit code {process.returncode}")
+
+    def install_extension(self):
+        # We need to handle dependencies recursively.
+        # For simplicity in this script, we'll use a set to track what we're building
+        # but the GUI already lets user pick. Let's improve the worker to handle the
+        # "Missing Dependency" issue by checking the 'build_dependencies' field.
+
+        # We want to use a single common install directory structure
+        # so that Slicer can find all shared libraries in the same paths.
+        self.process_extension_recursive(self.extension_name, self.metadata, self.ext_install_base)
+
+    def process_extension_recursive(self, name, metadata, common_install_dir):
+        # 1. Handle Dependencies First
+        deps = metadata.get('build_dependencies', [])
+        dep_dirs = {}
+        for dep_name in deps:
+            self.progress.emit(f"Resolving dependency: {dep_name}")
+            # Fetch dependency metadata
+            dep_meta_url = f"{RAW_URL_BASE}{dep_name}.json"
+            try:
+                dep_resp = requests.get(dep_meta_url)
+                dep_metadata = dep_resp.json()
+                # Build dependency if not already installed
+                self.process_extension_recursive(dep_name, dep_metadata, common_install_dir)
+
+                # Slicer extensions often need <DEP>_DIR pointing to the build or inner-build
+                # We'll search for the Config file
+                dep_build_dir = os.path.join(EXT_BUILD_BASE, dep_name)
+                # Some extensions have an 'inner-build' (SuperBuild)
+                inner_build = os.path.join(dep_build_dir, "inner-build")
+                if os.path.exists(inner_build):
+                    dep_dirs[f"{dep_name}_DIR"] = inner_build
+                else:
+                    dep_dirs[f"{dep_name}_DIR"] = dep_build_dir
+            except Exception as e:
+                self.progress.emit(f"Failed to resolve dependency {dep_name}: {e}")
+
+        # 2. Build the extension itself
+        ext_dir = os.path.join(EXT_SRC_BASE, name)
+        build_dir = os.path.join(EXT_BUILD_BASE, name)
+        install_dir = common_install_dir
+
+        pathlib.Path(ext_dir).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(build_dir).mkdir(parents=True, exist_ok=True)
+
+        # Clone or Pull
+        scm_url = metadata['scm_url']
+        if not os.path.exists(ext_dir):
+            try:
+                self.run_command(["git", "clone", scm_url, ext_dir])
+            except Exception as e:
+                if "https://github.com/" in scm_url:
+                    ssh_url = scm_url.replace("https://github.com/", "git@github.com:").replace(".git", "") + ".git"
+                    self.progress.emit(f"HTTPS clone failed, retrying with SSH: {ssh_url}")
+                    self.run_command(["git", "clone", ssh_url, ext_dir])
+                else:
+                    raise e
+        else:
+            self.run_command(["git", "-C", ext_dir, "pull"])
+
+        # Configure
+        cmake_cmd = [
+            "cmake",
+            f"-S{ext_dir}",
+            f"-B{build_dir}",
+            f"-DSlicer_DIR={self.slicer_dir}",
+            f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+            f"-DSlicer_INSTALL_DATAROOT_DIR={install_dir}/share",
+            "-DCMAKE_BUILD_TYPE=Release"
+        ]
+        # Inject dependency paths
+        for var, path in dep_dirs.items():
+            cmake_cmd.append(f"-D{var}={path}")
+
+        self.run_command(cmake_cmd)
+
+        # Build. Use 'all' or no target if 'install' doesn't exist yet (SuperBuilds)
+        try:
+            # We must specify CMAKE_INSTALL_PREFIX again for the build step to ensure
+            # sub-projects in SuperBuilds respect it.
+            self.run_command(["cmake", "--build", build_dir, "--target", "install", "--", f"DESTDIR="])
+        except Exception as e:
+            self.progress.emit(f"'install' target failed: {e}. Trying default build then inner-build install...")
+            self.run_command(["cmake", "--build", build_dir])
+
+            # Check for inner-build (standard Slicer extension SuperBuild)
+            inner_build_dir = os.path.join(build_dir, "inner-build")
+            if not os.path.exists(inner_build_dir):
+                # Some extensions use <NAME>-build
+                inner_build_dir = os.path.join(build_dir, f"{name}-build")
+
+            if os.path.exists(inner_build_dir):
+                 self.progress.emit(f"Found inner build directory: {inner_build_dir}")
+                 # Force install prefix for inner build too
+                 self.run_command(["cmake", f"-DCMAKE_INSTALL_PREFIX={install_dir}", inner_build_dir])
+                 self.run_command(["cmake", "--build", inner_build_dir, "--target", "install"])
+            else:
+                # If no inner-build, but SlicerIGT has a Makefile in the root, maybe just run install there?
+                if os.path.exists(os.path.join(build_dir, "Makefile")) or os.path.exists(os.path.join(build_dir, "CMakeCache.txt")):
+                    self.progress.emit(f"Attempting direct install in {build_dir}")
+                    self.run_command(["cmake", "--build", build_dir, "--target", "install"])
+                else:
+                    self.progress.emit(f"Could not find an inner build directory for {name}. Build may be incomplete.")
+
+        # Some extensions leave core shared libraries in build/lib/Slicer-*/ instead of
+        # installing them into the unified extension install tree. Copy them so runtime
+        # linker resolution works for module dependencies.
+        install_lib_dir = os.path.join(install_dir, "lib", "Slicer-5.10")
+        os.makedirs(install_lib_dir, exist_ok=True)
+        candidate_lib_dirs = [
+            os.path.join(build_dir, "lib", "Slicer-5.10"),
+            os.path.join(build_dir, "inner-build", "lib", "Slicer-5.10"),
+            os.path.join(build_dir, f"{name}-build", "lib", "Slicer-5.10"),
+        ]
+
+        for candidate_dir in candidate_lib_dirs:
+            if not os.path.isdir(candidate_dir):
+                continue
+
+            for entry in os.listdir(candidate_dir):
+                src_path = os.path.join(candidate_dir, entry)
+                dst_path = os.path.join(install_lib_dir, entry)
+                if os.path.isfile(src_path):
+                    shutil.copy2(src_path, dst_path)
+                    self.progress.emit(f"Synced runtime lib: {dst_path}")
+
+        # Save the CMake install manifest so the extension can be cleanly removed later
+        os.makedirs(EXT_MANIFESTS_DIR, exist_ok=True)
+        manifest_candidates = [
+            os.path.join(build_dir, "inner-build", "install_manifest.txt"),
+            os.path.join(build_dir, f"{name}-build", "install_manifest.txt"),
+            os.path.join(build_dir, "install_manifest.txt"),
+        ]
+        for candidate in manifest_candidates:
+            if os.path.exists(candidate):
+                shutil.copy2(candidate, os.path.join(EXT_MANIFESTS_DIR, f"{name}.txt"))
+                self.progress.emit(f"Saved install manifest for {name}")
+                break
+
+        if name == self.extension_name:
+            self.finished.emit(True, install_dir)
+        return install_dir
+
+    def remove_extension(self):
+        # Implementation for removal
+        self.finished.emit(True, "Removed successfully")
+
+class ExtensionManagerGUI(QtWidgets.QMainWindow):
+    def __init__(self, slicer_dir, workspace_root, ext_install_base):
+        super().__init__()
+        self.slicer_dir = slicer_dir
+        self.workspace_root = workspace_root
+        self.ext_install_base = ext_install_base
+        self.extensions_metadata = {}
+
+        self.init_ui()
+        self.fetch_extensions()
+
+    def init_ui(self):
+        self.setWindowTitle("Slicer Extension Manager for ROS2")
+        self.resize(800, 600)
+
+        central_widget = QtWidgets.QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QtWidgets.QVBoxLayout(central_widget)
+
+        # Info Header
+        info_label = QtWidgets.QLabel(f"Slicer DIR: {self.slicer_dir}")
+        info_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(info_label)
+
+        ext_label = QtWidgets.QLabel(f"Install Root: {self.ext_install_base}")
+        layout.addWidget(ext_label)
+
+        # Search
+        search_layout = QtWidgets.QHBoxLayout()
+        self.search_input = QtWidgets.QLineEdit()
+        self.search_input.setPlaceholderText("Search extensions...")
+        self.search_input.textChanged.connect(self.filter_extensions)
+        search_layout.addWidget(QtWidgets.QLabel("Search:"))
+        search_layout.addWidget(self.search_input)
+        layout.addLayout(search_layout)
+
+        # List
+        self.list_widget = QtWidgets.QListWidget()
+        layout.addWidget(self.list_widget)
+
+        # Log/Output
+        self.log_output = QtWidgets.QPlainTextEdit()
+        self.log_output.setReadOnly(True)
+        layout.addWidget(self.log_output)
+
+        # Buttons
+        btn_layout = QtWidgets.QHBoxLayout()
+        self.install_btn = QtWidgets.QPushButton("Install Selected")
+        self.install_btn.clicked.connect(self.start_install)
+        self.remove_btn = QtWidgets.QPushButton("Remove Selected")
+        self.remove_btn.clicked.connect(self.start_remove)
+        self.quit_btn = QtWidgets.QPushButton("Quit")
+        self.quit_btn.clicked.connect(self.close)
+        btn_layout.addWidget(self.install_btn)
+        btn_layout.addWidget(self.remove_btn)
+        btn_layout.addWidget(self.quit_btn)
+        layout.addLayout(btn_layout)
+
+        # Keyboard shortcuts
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self).activated.connect(self.close)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+C"), self).activated.connect(self.close)
+
+    def fetch_extensions(self):
+        try:
+            # Fallback strategy: GitHub API often hits rate limits.
+            # We can scrape the HTML page for .json file names and construct raw URLs.
+            self.log_output.appendPlainText("Fetching extension list from GitHub...")
+            web_url = "https://github.com/Slicer/ExtensionsIndex/tree/main/"
+            response = requests.get(web_url)
+
+            import re
+            # Match all .json files in the file list
+            pattern = re.compile(r'[^"/]+\.json')
+            files = sorted(list(set(pattern.findall(response.text))))
+
+            if not files:
+                # If scraping fails, maybe it's the API? Try one last time.
+                response = requests.get(INDEX_URL)
+                data = response.json()
+                if isinstance(data, list):
+                    for f in data:
+                        if f['name'].endswith('.json'):
+                            name = f['name'].replace('.json', '')
+                            self.extensions_metadata[name] = f['download_url']
+                else:
+                    raise Exception("Could not find any extensions. GitHub might be blocking requests.")
+            else:
+                for f in files:
+                    name = f.replace('.json', '')
+                    # Construct the raw download URL manually
+                    self.extensions_metadata[name] = f"{RAW_URL_BASE}{f}"
+
+            self.log_output.appendPlainText(f"Found {len(self.extensions_metadata)} extensions.")
+            self.filter_extensions()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to fetch extensions: {e}")
+
+    def filter_extensions(self):
+        self.list_widget.clear()
+        query = self.search_input.text().lower()
+
+        # In a common install dir, there isn't a 1:1 directory per extension name.
+        # However, we can track built extensions by looking at the extensions_build folder contents
+        # in the workspace root.
+        installed_names = []
+        if os.path.isdir(EXT_MANIFESTS_DIR):
+            installed_names = [f[:-4] for f in os.listdir(EXT_MANIFESTS_DIR) if f.endswith(".txt")]
+
+        all_names = sorted(self.extensions_metadata.keys())
+
+        # Sort so installed items are on top
+        installed_items = []
+        other_items = []
+
+        for name in all_names:
+            if query in name.lower():
+                item = QtWidgets.QListWidgetItem(name)
+                if name in installed_names:
+                    item.setForeground(QtGui.QColor("green"))
+                    item.setText(f"{name} (Installed)")
+                    installed_items.append(item)
+                else:
+                    other_items.append(item)
+
+        for item in installed_items:
+            self.list_widget.addItem(item)
+        for item in other_items:
+            self.list_widget.addItem(item)
+
+    def start_install(self):
+        current_item = self.list_widget.currentItem()
+        if not current_item:
+            return
+
+        name = current_item.text().split(' (')[0]
+        self.log_output.appendPlainText(f"Fetching metadata for {name}...")
+
+        # Fetch full metadata
+        metadata_url = self.extensions_metadata[name]
+        try:
+            meta_resp = requests.get(metadata_url)
+            metadata = meta_resp.json()
+        except:
+             QtWidgets.QMessageBox.critical(self, "Error", "Failed to fetch extension metadata")
+             return
+
+        self.worker = ExtensionWorker("install", name, metadata, self.slicer_dir, self.workspace_root, self.ext_install_base)
+        self.worker.progress.connect(lambda msg: self.log_output.appendPlainText(msg))
+        self.worker.finished.connect(self.on_finished)
+        self.install_btn.setEnabled(False)
+        self.worker.start()
+
+    def start_remove(self):
+        current_item = self.list_widget.currentItem()
+        if not current_item:
+            return
+
+        name = current_item.text().split(' (')[0]
+        manifest_path = os.path.join(EXT_MANIFESTS_DIR, f"{name}.txt")
+
+        if not os.path.exists(manifest_path):
+            QtWidgets.QMessageBox.warning(
+                self, "Not Installed",
+                f"{name} has no install manifest and cannot be removed automatically."
+            )
+            return
+
+        reply = QtWidgets.QMessageBox.question(
+            self, "Remove Extension",
+            f"Remove all installed files for {name}?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        )
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+
+        try:
+            with open(manifest_path) as f:
+                files = [line.strip() for line in f if line.strip()]
+            for fpath in files:
+                if os.path.isfile(fpath):
+                    os.remove(fpath)
+                    self.log_output.appendPlainText(f"Removed: {fpath}")
+            os.remove(manifest_path)
+            # Remove the build directory so a future install starts clean
+            ext_build_dir = os.path.join(EXT_BUILD_BASE, name)
+            if os.path.isdir(ext_build_dir):
+                shutil.rmtree(ext_build_dir)
+                self.log_output.appendPlainText(f"Removed build dir: {ext_build_dir}")
+            self.log_output.appendPlainText(f"Successfully removed {name}")
+            self.filter_extensions()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to remove extension: {e}")
+
+    def on_finished(self, success, result):
+        self.install_btn.setEnabled(True)
+        if success:
+            name = self.worker.extension_name
+            self.log_output.appendPlainText(f"Successfully installed {name}")
+            self.filter_extensions()
+        else:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Operation failed: {result}")
+
+if __name__ == "__main__":
+    import signal
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    # workspace_root is 4 levels up from <prefix>/lib/slicer_ros2_module/manage_extensions.py
+    # Extension sources are checked out at <workspace_root>/extensions/<name>
+    _lib_dir = os.path.dirname(os.path.abspath(__file__))
+    workspace_root = os.path.abspath(os.path.join(_lib_dir, "..", "..", "..", ".."))
+
+    window = ExtensionManagerGUI(SLICER_DIR, workspace_root, EXT_INSTALL_BASE)
+    window.show()
+    sys.exit(app.exec_())

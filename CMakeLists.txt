@@ -218,16 +218,34 @@ configure_file(
   launch/slicer.launch.py
 )
 
+# Configure the extension manager with the Slicer build directory path
+configure_file(
+  manage_extensions.py.in
+  manage_extensions.py
+)
+
+# Pre-create the third-party extension install prefix so it exists before any extension is installed.
+# manage_extensions.py installs into: ${CMAKE_INSTALL_PREFIX}/install/
+# Manifests are stored in:           ${CMAKE_INSTALL_PREFIX}/install/.manifests/
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/install/.manifests\")")
+
 # Install static launch files (ur_sim_control.launch.py)
+# We exclude slicer.launch.py.in to avoid polluting the install space with templates
 install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
+  DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+  PATTERN "*.in" EXCLUDE
 )
 
 # Install generated launch file (slicer.launch.py)
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/launch/slicer.launch.py
   DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(PROGRAMS
+  ${CMAKE_CURRENT_BINARY_DIR}/manage_extensions.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()
