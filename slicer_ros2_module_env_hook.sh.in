@@ -18,3 +18,10 @@ fi
 
 # Export the variable so it's available in the shell
 export SLICER_ROS2_MODULE_PATHS
+
+# Add paths to PYTHONPATH so Slicer can find Python scripted modules
+if [ -n "$SLICER_ROS2_MODULE_PATHS" ]; then
+    # We use ament_prepend_unique_value to avoid duplicates
+    # PYTHONPATH is standard for Python
+    ament_prepend_unique_value PYTHONPATH "$SLICER_ROS2_MODULE_PATHS"
+fi

@@ -43,6 +43,12 @@ class ExtensionWorker(QtCore.QThread):
         self.workspace_root = workspace_root
         self.ext_install_base = ext_install_base
 
+        # Determine number of cores for parallel builds
+        import multiprocessing
+        # Use half the cores to avoid memory swap issues during heavy Slicer compilation
+        self.num_cores = max(1, multiprocessing.cpu_count() // 2)
+        self.parallel_args = ["--parallel", str(self.num_cores)]
+
     def run(self):
         try:
             if self.action == "install":
@@ -53,25 +59,10 @@ class ExtensionWorker(QtCore.QThread):
             self.finished.emit(False, str(e))
 
     def run_command(self, cmd, cwd=None):
-        # Add parallel build support if running a build command
-        if cmd[0] == "cmake" and "--build" in cmd:
-            import multiprocessing
-            # Use half the cores to avoid memory swap issues during heavy Slicer compilation
-            num_cores = max(1, multiprocessing.cpu_count() // 2)
-            # If --parallel is already there, don't add it again
-            if "--parallel" not in cmd and "-j" not in cmd:
-                # Add parallel flag BEFORE the -- separator to ensure it's a cmake option
-                # and not passed to the underlying build tool (like gmake)
-                if "--" in cmd:
-                    idx = cmd.index("--")
-                    cmd.insert(idx, "--parallel")
-                    cmd.insert(idx + 1, str(num_cores))
-                else:
-                    cmd.extend(["--parallel", str(num_cores)])
-
         self.progress.emit(f"Running: {' '.join(cmd)}")
         process = subprocess.Popen(
             cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
         )
         if process.stdout:
             for line in process.stdout:
@@ -159,10 +150,10 @@ class ExtensionWorker(QtCore.QThread):
         try:
             # We must specify CMAKE_INSTALL_PREFIX again for the build step to ensure
             # sub-projects in SuperBuilds respect it.
-            self.run_command(["cmake", "--build", build_dir, "--target", "install", "--", f"DESTDIR="])
+            self.run_command(["cmake", "--build", build_dir] + self.parallel_args + ["--target", "install", "--", f"DESTDIR="])
         except Exception as e:
             self.progress.emit(f"'install' target failed: {e}. Trying default build then inner-build install...")
-            self.run_command(["cmake", "--build", build_dir])
+            self.run_command(["cmake", "--build", build_dir] + self.parallel_args)
 
             # Check for inner-build (standard Slicer extension SuperBuild)
             inner_build_dir = os.path.join(build_dir, "inner-build")
@@ -174,12 +165,12 @@ class ExtensionWorker(QtCore.QThread):
                  self.progress.emit(f"Found inner build directory: {inner_build_dir}")
                  # Force install prefix for inner build too
                  self.run_command(["cmake", f"-DCMAKE_INSTALL_PREFIX={install_dir}", inner_build_dir])
-                 self.run_command(["cmake", "--build", inner_build_dir, "--target", "install"])
+                 self.run_command(["cmake", "--build", inner_build_dir] + self.parallel_args + ["--target", "install"])
             else:
                 # If no inner-build, but SlicerIGT has a Makefile in the root, maybe just run install there?
                 if os.path.exists(os.path.join(build_dir, "Makefile")) or os.path.exists(os.path.join(build_dir, "CMakeCache.txt")):
                     self.progress.emit(f"Attempting direct install in {build_dir}")
-                    self.run_command(["cmake", "--build", build_dir, "--target", "install"])
+                    self.run_command(["cmake", "--build", build_dir] + self.parallel_args + ["--target", "install"])
                 else:
                     self.progress.emit(f"Could not find an inner build directory for {name}. Build may be incomplete.")
 

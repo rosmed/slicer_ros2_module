@@ -21,18 +21,33 @@ def generate_launch_description():
 
     # Strip leading "./" so os.path.join works correctly
     module_paths = []
+    
+    # Check for SLICER_ROS2_MODULE_PATHS set by the environment hook (setup.bash)
+    env_module_paths = os.environ.get('SLICER_ROS2_MODULE_PATHS', '')
+    if env_module_paths:
+        for p in env_module_paths.split(':'):
+            if p and os.path.isdir(p) and p not in module_paths:
+                module_paths.append(p)
+
     for rel in all_paths_rel:
         rel = rel.lstrip("./")
         p = os.path.join(install_prefix, rel)
-        if os.path.isdir(p):
+        if os.path.isdir(p) and p not in module_paths:
             module_paths.append(p)
 
     current_ld_library_path = os.environ.get('LD_LIBRARY_PATH', '')
+    current_python_path = os.environ.get('PYTHONPATH', '')
     custom_paths_str = ":".join(module_paths) + ":@Slicer_DIR@/bin"
+
     if current_ld_library_path:
         new_ld_library_path = f"{custom_paths_str}:{current_ld_library_path}"
     else:
         new_ld_library_path = custom_paths_str
+
+    if current_python_path:
+        new_python_path = f"{custom_paths_str}:{current_python_path}"
+    else:
+        new_python_path = custom_paths_str
 
     # Build the base command
     cmd = [slicer_executable]
@@ -48,7 +63,10 @@ def generate_launch_description():
 
         ExecuteProcess(
             cmd=cmd,
-            additional_env={'LD_LIBRARY_PATH': new_ld_library_path},
+            additional_env={
+                'LD_LIBRARY_PATH': new_ld_library_path,
+                'PYTHONPATH': new_python_path
+            },
             shell=False,
             output='screen'
         )
