@@ -63,7 +63,6 @@ class ExtensionWorker(QtCore.QThread):
         process = subprocess.Popen(
             cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
-        )
         if process.stdout:
             for line in process.stdout:
                 self.progress.emit(line.strip())
