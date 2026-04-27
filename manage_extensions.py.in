@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import os
-import json
 import subprocess
 import requests
 import pathlib
-import threading
 import shutil
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -15,6 +13,9 @@ RAW_URL_BASE = "https://raw.githubusercontent.com/Slicer/ExtensionsIndex/main/"
 
 # Slicer_DIR is set by CMake during configuration
 SLICER_DIR = "@Slicer_DIR@"
+
+# Slicer version is used for library paths
+SLICER_VERSION_FULL = "@Slicer_VERSION_MAJOR@.@Slicer_VERSION_MINOR@"
 
 # Extension src root — inside the colcon build tree (build/slicer_ros2_module/extensions/)
 EXT_SRC_BASE = "@CMAKE_CURRENT_BINARY_DIR@/extensions/src"
@@ -59,8 +60,14 @@ class ExtensionWorker(QtCore.QThread):
             num_cores = max(1, multiprocessing.cpu_count() // 2)
             # If --parallel is already there, don't add it again
             if "--parallel" not in cmd and "-j" not in cmd:
-                # Add parallel flag at the end of build command
-                cmd.extend(["--parallel", str(num_cores)])
+                # Add parallel flag BEFORE the -- separator to ensure it's a cmake option
+                # and not passed to the underlying build tool (like gmake)
+                if "--" in cmd:
+                    idx = cmd.index("--")
+                    cmd.insert(idx, "--parallel")
+                    cmd.insert(idx + 1, str(num_cores))
+                else:
+                    cmd.extend(["--parallel", str(num_cores)])
 
         self.progress.emit(f"Running: {' '.join(cmd)}")
         process = subprocess.Popen(
@@ -179,24 +186,21 @@ class ExtensionWorker(QtCore.QThread):
         # Some extensions leave core shared libraries in build/lib/Slicer-*/ instead of
         # installing them into the unified extension install tree. Copy them so runtime
         # linker resolution works for module dependencies.
-        install_lib_dir = os.path.join(install_dir, "lib", "Slicer-5.10")
+        slicer_lib_subdir = f"Slicer-{SLICER_VERSION_FULL}"
+        install_lib_dir = os.path.join(install_dir, "lib", slicer_lib_subdir)
         os.makedirs(install_lib_dir, exist_ok=True)
-        candidate_lib_dirs = [
-            os.path.join(build_dir, "lib", "Slicer-5.10"),
-            os.path.join(build_dir, "inner-build", "lib", "Slicer-5.10"),
-            os.path.join(build_dir, f"{name}-build", "lib", "Slicer-5.10"),
-        ]
-
-        for candidate_dir in candidate_lib_dirs:
-            if not os.path.isdir(candidate_dir):
-                continue
-
-            for entry in os.listdir(candidate_dir):
-                src_path = os.path.join(candidate_dir, entry)
-                dst_path = os.path.join(install_lib_dir, entry)
-                if os.path.isfile(src_path):
-                    shutil.copy2(src_path, dst_path)
-                    self.progress.emit(f"Synced runtime lib: {dst_path}")
+        
+        # Aggressively search for shared libraries in the build directory
+        self.progress.emit(f"Searching for shared libraries to sync in {build_dir}...")
+        for root, dirs, files_in_dir in os.walk(build_dir):
+            for file in files_in_dir:
+                if file.endswith(".so") or ".so." in file:
+                    src_path = os.path.join(root, file)
+                    dst_path = os.path.join(install_lib_dir, file)
+                    # Don't copy if it's already there and is the same file
+                    if not os.path.exists(dst_path) or os.stat(src_path).st_mtime > os.stat(dst_path).st_mtime:
+                        shutil.copy2(src_path, dst_path)
+                        self.progress.emit(f"Synced runtime lib: {file}")
 
         # Save the CMake install manifest so the extension can be cleanly removed later
         os.makedirs(EXT_MANIFESTS_DIR, exist_ok=True)
@@ -302,14 +306,18 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
                     for f in data:
                         if f['name'].endswith('.json'):
                             name = f['name'].replace('.json', '')
+                            # Clean up potential scraping artifacts like '>'
+                            name = name.lstrip('>')
                             self.extensions_metadata[name] = f['download_url']
                 else:
                     raise Exception("Could not find any extensions. GitHub might be blocking requests.")
             else:
                 for f in files:
                     name = f.replace('.json', '')
+                    # Clean up potential scraping artifacts like '>'
+                    name = name.lstrip('>')
                     # Construct the raw download URL manually
-                    self.extensions_metadata[name] = f"{RAW_URL_BASE}{f}"
+                    self.extensions_metadata[name] = f"{RAW_URL_BASE}{f}.json" if not f.endswith(".json") else f"{RAW_URL_BASE}{f}"
 
             self.log_output.appendPlainText(f"Found {len(self.extensions_metadata)} extensions.")
             self.filter_extensions()
