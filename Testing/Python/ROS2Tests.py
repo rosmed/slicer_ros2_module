@@ -29,8 +29,8 @@ class ROS2Tests(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "ROS2 Tests"
-        self.parent.categories = ["IGT"]
+        self.parent.title = "Tests"
+        self.parent.categories = ["ROS 2"]
         self.parent.dependencies = ['ROS2']
         self.parent.contributors = ["Aravind Kumar (JHU)"]
         self.parent.helpText = """

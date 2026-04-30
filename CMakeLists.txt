@@ -91,7 +91,7 @@ endif ()
 #-----------------------------------------------------------------------------
 
 set(MODULE_NAME ROS2)
-set(MODULE_TITLE ${MODULE_NAME})
+set(MODULE_TITLE "Slicer ROS")
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 
@@ -109,6 +109,10 @@ unset(CURL_LIBRARY)
 
 find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
+
+# Define paths for third-party extensions relative to CMAKE_INSTALL_PREFIX.
+set(SlicerROS2_EXTENSIONS_INSTALL_DIR "extensions")
+set(SlicerROS2_EXTENSIONS_CONFIG_DIR "${SlicerROS2_EXTENSIONS_INSTALL_DIR}/config")
 
 # Slicer sets default output directories to its own build tree.
 # We override them here to keep all build artifacts within our colcon build folder.
@@ -225,9 +229,7 @@ configure_file(
 )
 
 # Pre-create the third-party extension install prefix so it exists before any extension is installed.
-# manage_extensions.py installs into: ${CMAKE_INSTALL_PREFIX}/install/
-# Manifests are stored in:           ${CMAKE_INSTALL_PREFIX}/install/.manifests/
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/install/.manifests\")")
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${SlicerROS2_EXTENSIONS_CONFIG_DIR}\")")
 
 # Install static launch files (ur_sim_control.launch.py)
 # We exclude slicer.launch.py.in to avoid polluting the install space with templates

@@ -67,8 +67,8 @@ class ROS2MotionControl(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("ROS2 Motion Control")
-        self.parent.categories = [translate("qSlicerAbstractCoreModule", "IGT")]
+        self.parent.title = _("Motion Control")
+        self.parent.categories = [translate("qSlicerAbstractCoreModule", "ROS 2")]
         self.parent.dependencies = ["ROS2"]
         self.parent.contributors = ["Kaito Hara-Lee", "Anton Deguet"]
         self.parent.helpText = _("""

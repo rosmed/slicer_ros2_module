@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+import json
 import subprocess
 import requests
 import pathlib
@@ -14,34 +15,169 @@ RAW_URL_BASE = "https://raw.githubusercontent.com/Slicer/ExtensionsIndex/main/"
 # Slicer_DIR is set by CMake during configuration
 SLICER_DIR = "@Slicer_DIR@"
 
-# Slicer version is used for library paths
-SLICER_VERSION_FULL = "@Slicer_VERSION_MAJOR@.@Slicer_VERSION_MINOR@"
+# Extension workspace root.  Sources, builds, and launch-time config all live
+# under the package install prefix so the generated launcher can use one stable
+# location without relying on CMake install targets from third-party extensions.
+EXT_BASE = os.path.join("@CMAKE_INSTALL_PREFIX@", "@SlicerROS2_EXTENSIONS_INSTALL_DIR@")
+EXT_SRC_BASE = os.path.join(EXT_BASE, "src")
+EXT_BUILD_BASE = os.path.join(EXT_BASE, "build")
+EXT_CONFIG_DIR = os.path.join("@CMAKE_INSTALL_PREFIX@", "@SlicerROS2_EXTENSIONS_CONFIG_DIR@")
+EXT_RUNTIME_PATHS_FILE = os.path.join(EXT_CONFIG_DIR, "runtime_paths.json")
 
-# Extension src root — inside the colcon build tree (build/slicer_ros2_module/extensions/)
-EXT_SRC_BASE = "@CMAKE_CURRENT_BINARY_DIR@/extensions/src"
+SLICER_REL_PATHS = [
+    "@Slicer_INSTALL_BIN_DIR@",
+    "@Slicer_INSTALL_LIB_DIR@",
+    "@Slicer_INSTALL_QTLOADABLEMODULES_BIN_DIR@",
+    "@Slicer_INSTALL_QTLOADABLEMODULES_LIB_DIR@",
+    "@Slicer_INSTALL_QTLOADABLEMODULES_PYTHON_LIB_DIR@",
+    "@Slicer_INSTALL_QTLOADABLEMODULES_SHARE_DIR@",
+    "@Slicer_INSTALL_QTSCRIPTEDMODULES_BIN_DIR@",
+    "@Slicer_INSTALL_QTSCRIPTEDMODULES_LIB_DIR@",
+    "@Slicer_INSTALL_QTSCRIPTEDMODULES_PYTHON_LIB_DIR@",
+    "@Slicer_INSTALL_QTSCRIPTEDMODULES_SHARE_DIR@",
+]
 
-# Extension build root — inside the colcon build tree (build/slicer_ros2_module/extensions/)
-EXT_BUILD_BASE = "@CMAKE_CURRENT_BINARY_DIR@/extensions/build"
+def normalized_rel_paths():
+    paths = []
+    for rel in SLICER_REL_PATHS:
+        rel = rel.lstrip("./")
+        if rel and rel not in paths:
+            paths.append(rel)
+    return paths
 
-# Extension install prefix — single flat prefix for all third-party extensions
-# (install/slicer_ros2_module/install/)
-EXT_INSTALL_BASE = "@CMAKE_INSTALL_PREFIX@"
+def path_has_runtime_artifacts(path):
+    if not os.path.isdir(path):
+        return False
+    try:
+        entries = os.listdir(path)
+    except OSError:
+        return False
+    for entry in entries:
+        full_path = os.path.join(path, entry)
+        if os.path.isdir(full_path) and entry in ("Resources", "Python"):
+            return True
+        if entry.endswith(".py") or entry.endswith(".dylib") or entry.endswith(".dll") or ".so" in entry:
+            return True
+    return False
 
-# Per-extension manifests — tracks installed files for clean removal
-EXT_MANIFESTS_DIR = "@CMAKE_INSTALL_PREFIX@/.manifests"
+def path_has_libraries(path):
+    if not os.path.isdir(path):
+        return False
+    try:
+        return any(
+            entry.endswith(".dylib") or entry.endswith(".dll") or ".so" in entry
+            for entry in os.listdir(path)
+        )
+    except OSError:
+        return False
+
+def append_unique(paths, path):
+    if path and os.path.isdir(path) and path not in paths:
+        paths.append(path)
+
+def is_module_rel_path(rel):
+    return "qt-loadable-modules" in rel or "qt-scripted-modules" in rel
+
+def discover_runtime_paths(root):
+    load_paths = []
+    library_paths = []
+    for rel in normalized_rel_paths():
+        path = os.path.join(root, rel)
+        if is_module_rel_path(rel) and path_has_runtime_artifacts(path):
+            append_unique(load_paths, path)
+        if path_has_libraries(path):
+            append_unique(library_paths, path)
+    return load_paths, library_paths
+
+def extension_runtime_roots(name):
+    build_dir = os.path.join(EXT_BUILD_BASE, name)
+    roots = [
+        build_dir,
+        os.path.join(build_dir, "inner-build"),
+        os.path.join(build_dir, f"{name}-build"),
+    ]
+    if os.path.isdir(build_dir):
+        try:
+            for entry in os.listdir(build_dir):
+                path = os.path.join(build_dir, entry)
+                if os.path.isdir(path) and entry.endswith("-build"):
+                    append_unique(roots, path)
+        except OSError:
+            pass
+    return roots
+
+def discover_extension_runtime_paths(name):
+    load_paths = []
+    library_paths = []
+    for root in extension_runtime_roots(name):
+        candidate_load_paths, candidate_library_paths = discover_runtime_paths(root)
+        for path in candidate_load_paths:
+            append_unique(load_paths, path)
+        for path in candidate_library_paths:
+            append_unique(library_paths, path)
+    return load_paths, library_paths
+
+def read_runtime_registry():
+    if not os.path.exists(EXT_RUNTIME_PATHS_FILE):
+        return {}
+    try:
+        with open(EXT_RUNTIME_PATHS_FILE) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+def write_runtime_registry(registry):
+    os.makedirs(EXT_CONFIG_DIR, exist_ok=True)
+    with open(EXT_RUNTIME_PATHS_FILE, "w") as f:
+        json.dump(registry, f, indent=2, sort_keys=True)
+        f.write("\n")
+
+def update_runtime_registry_entry(name):
+    build_dir = os.path.join(EXT_BUILD_BASE, name)
+    source_dir = os.path.join(EXT_SRC_BASE, name)
+    load_paths, library_paths = discover_extension_runtime_paths(name)
+    if not load_paths:
+        raise Exception(f"No Slicer module artifacts found in build tree for {name}")
+    registry = read_runtime_registry()
+    registry[name] = {
+        "source_dir": source_dir,
+        "build_dir": build_dir,
+        "load_paths": load_paths,
+        "library_paths": library_paths,
+    }
+    write_runtime_registry(registry)
+    return registry[name]
+
+def regenerate_runtime_registry():
+    registry = {}
+    if os.path.isdir(EXT_BUILD_BASE):
+        for name in sorted(os.listdir(EXT_BUILD_BASE)):
+            build_dir = os.path.join(EXT_BUILD_BASE, name)
+            if not os.path.isdir(build_dir):
+                continue
+            load_paths, library_paths = discover_extension_runtime_paths(name)
+            if load_paths:
+                registry[name] = {
+                    "source_dir": os.path.join(EXT_SRC_BASE, name),
+                    "build_dir": build_dir,
+                    "load_paths": load_paths,
+                    "library_paths": library_paths,
+                }
+    write_runtime_registry(registry)
+    return registry
 
 class ExtensionWorker(QtCore.QThread):
     progress = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal(bool, str)
 
-    def __init__(self, action, extension_name, metadata, slicer_dir, workspace_root, ext_install_base):
+    def __init__(self, action, extension_name, metadata, slicer_dir, workspace_root):
         super().__init__()
         self.action = action
         self.extension_name = extension_name
         self.metadata = metadata
         self.slicer_dir = slicer_dir
         self.workspace_root = workspace_root
-        self.ext_install_base = ext_install_base
 
         # Determine number of cores for parallel builds
         import multiprocessing
@@ -71,16 +207,9 @@ class ExtensionWorker(QtCore.QThread):
             raise Exception(f"Command failed with exit code {process.returncode}")
 
     def install_extension(self):
-        # We need to handle dependencies recursively.
-        # For simplicity in this script, we'll use a set to track what we're building
-        # but the GUI already lets user pick. Let's improve the worker to handle the
-        # "Missing Dependency" issue by checking the 'build_dependencies' field.
+        self.process_extension_recursive(self.extension_name, self.metadata)
 
-        # We want to use a single common install directory structure
-        # so that Slicer can find all shared libraries in the same paths.
-        self.process_extension_recursive(self.extension_name, self.metadata, self.ext_install_base)
-
-    def process_extension_recursive(self, name, metadata, common_install_dir):
+    def process_extension_recursive(self, name, metadata):
         # 1. Handle Dependencies First
         deps = metadata.get('build_dependencies', [])
         dep_dirs = {}
@@ -92,7 +221,7 @@ class ExtensionWorker(QtCore.QThread):
                 dep_resp = requests.get(dep_meta_url)
                 dep_metadata = dep_resp.json()
                 # Build dependency if not already installed
-                self.process_extension_recursive(dep_name, dep_metadata, common_install_dir)
+                self.process_extension_recursive(dep_name, dep_metadata)
 
                 # Slicer extensions often need <DEP>_DIR pointing to the build or inner-build
                 # We'll search for the Config file
@@ -109,7 +238,6 @@ class ExtensionWorker(QtCore.QThread):
         # 2. Build the extension itself
         ext_dir = os.path.join(EXT_SRC_BASE, name)
         build_dir = os.path.join(EXT_BUILD_BASE, name)
-        install_dir = common_install_dir
 
         pathlib.Path(ext_dir).parent.mkdir(parents=True, exist_ok=True)
         pathlib.Path(build_dir).mkdir(parents=True, exist_ok=True)
@@ -135,8 +263,6 @@ class ExtensionWorker(QtCore.QThread):
             f"-S{ext_dir}",
             f"-B{build_dir}",
             f"-DSlicer_DIR={self.slicer_dir}",
-            f"-DCMAKE_INSTALL_PREFIX={install_dir}",
-            f"-DSlicer_INSTALL_DATAROOT_DIR={install_dir}/share",
             "-DCMAKE_BUILD_TYPE=Release"
         ]
         # Inject dependency paths
@@ -144,81 +270,26 @@ class ExtensionWorker(QtCore.QThread):
             cmake_cmd.append(f"-D{var}={path}")
 
         self.run_command(cmake_cmd)
+        self.run_command(["cmake", "--build", build_dir] + self.parallel_args)
 
-        # Build. Use 'all' or no target if 'install' doesn't exist yet (SuperBuilds)
-        try:
-            # We must specify CMAKE_INSTALL_PREFIX again for the build step to ensure
-            # sub-projects in SuperBuilds respect it.
-            self.run_command(["cmake", "--build", build_dir] + self.parallel_args + ["--target", "install", "--", f"DESTDIR="])
-        except Exception as e:
-            self.progress.emit(f"'install' target failed: {e}. Trying default build then inner-build install...")
-            self.run_command(["cmake", "--build", build_dir] + self.parallel_args)
-
-            # Check for inner-build (standard Slicer extension SuperBuild)
-            inner_build_dir = os.path.join(build_dir, "inner-build")
-            if not os.path.exists(inner_build_dir):
-                # Some extensions use <NAME>-build
-                inner_build_dir = os.path.join(build_dir, f"{name}-build")
-
-            if os.path.exists(inner_build_dir):
-                 self.progress.emit(f"Found inner build directory: {inner_build_dir}")
-                 # Force install prefix for inner build too
-                 self.run_command(["cmake", f"-DCMAKE_INSTALL_PREFIX={install_dir}", inner_build_dir])
-                 self.run_command(["cmake", "--build", inner_build_dir] + self.parallel_args + ["--target", "install"])
-            else:
-                # If no inner-build, but SlicerIGT has a Makefile in the root, maybe just run install there?
-                if os.path.exists(os.path.join(build_dir, "Makefile")) or os.path.exists(os.path.join(build_dir, "CMakeCache.txt")):
-                    self.progress.emit(f"Attempting direct install in {build_dir}")
-                    self.run_command(["cmake", "--build", build_dir] + self.parallel_args + ["--target", "install"])
-                else:
-                    self.progress.emit(f"Could not find an inner build directory for {name}. Build may be incomplete.")
-
-        # Some extensions leave core shared libraries in build/lib/Slicer-*/ instead of
-        # installing them into the unified extension install tree. Copy them so runtime
-        # linker resolution works for module dependencies.
-        slicer_lib_subdir = f"Slicer-{SLICER_VERSION_FULL}"
-        install_lib_dir = os.path.join(install_dir, "lib", slicer_lib_subdir)
-        os.makedirs(install_lib_dir, exist_ok=True)
-        
-        # Aggressively search for shared libraries in the build directory
-        self.progress.emit(f"Searching for shared libraries to sync in {build_dir}...")
-        for root, dirs, files_in_dir in os.walk(build_dir):
-            for file in files_in_dir:
-                if file.endswith(".so") or ".so." in file:
-                    src_path = os.path.join(root, file)
-                    dst_path = os.path.join(install_lib_dir, file)
-                    # Don't copy if it's already there and is the same file
-                    if not os.path.exists(dst_path) or os.stat(src_path).st_mtime > os.stat(dst_path).st_mtime:
-                        shutil.copy2(src_path, dst_path)
-                        self.progress.emit(f"Synced runtime lib: {file}")
-
-        # Save the CMake install manifest so the extension can be cleanly removed later
-        os.makedirs(EXT_MANIFESTS_DIR, exist_ok=True)
-        manifest_candidates = [
-            os.path.join(build_dir, "inner-build", "install_manifest.txt"),
-            os.path.join(build_dir, f"{name}-build", "install_manifest.txt"),
-            os.path.join(build_dir, "install_manifest.txt"),
-        ]
-        for candidate in manifest_candidates:
-            if os.path.exists(candidate):
-                shutil.copy2(candidate, os.path.join(EXT_MANIFESTS_DIR, f"{name}.txt"))
-                self.progress.emit(f"Saved install manifest for {name}")
-                break
+        entry = update_runtime_registry_entry(name)
+        self.progress.emit(f"Saved runtime paths for {name}")
+        self.progress.emit(f"  Module paths: {len(entry['load_paths'])}")
+        self.progress.emit(f"  Library paths: {len(entry['library_paths'])}")
 
         if name == self.extension_name:
-            self.finished.emit(True, install_dir)
-        return install_dir
+            self.finished.emit(True, build_dir)
+        return build_dir
 
     def remove_extension(self):
         # Implementation for removal
         self.finished.emit(True, "Removed successfully")
 
 class ExtensionManagerGUI(QtWidgets.QMainWindow):
-    def __init__(self, slicer_dir, workspace_root, ext_install_base):
+    def __init__(self, slicer_dir, workspace_root):
         super().__init__()
         self.slicer_dir = slicer_dir
         self.workspace_root = workspace_root
-        self.ext_install_base = ext_install_base
         self.extensions_metadata = {}
 
         self.init_ui()
@@ -237,7 +308,7 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         info_label.setStyleSheet("font-weight: bold;")
         layout.addWidget(info_label)
 
-        ext_label = QtWidgets.QLabel(f"Install Root: {self.ext_install_base}")
+        ext_label = QtWidgets.QLabel(f"Extension Root: {EXT_BASE}")
         layout.addWidget(ext_label)
 
         # Search
@@ -318,12 +389,8 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         self.list_widget.clear()
         query = self.search_input.text().lower()
 
-        # In a common install dir, there isn't a 1:1 directory per extension name.
-        # However, we can track built extensions by looking at the extensions_build folder contents
-        # in the workspace root.
-        installed_names = []
-        if os.path.isdir(EXT_MANIFESTS_DIR):
-            installed_names = [f[:-4] for f in os.listdir(EXT_MANIFESTS_DIR) if f.endswith(".txt")]
+        runtime_registry = regenerate_runtime_registry()
+        installed_names = sorted(runtime_registry.keys())
 
         all_names = sorted(self.extensions_metadata.keys())
 
@@ -363,7 +430,7 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
              QtWidgets.QMessageBox.critical(self, "Error", "Failed to fetch extension metadata")
              return
 
-        self.worker = ExtensionWorker("install", name, metadata, self.slicer_dir, self.workspace_root, self.ext_install_base)
+        self.worker = ExtensionWorker("install", name, metadata, self.slicer_dir, self.workspace_root)
         self.worker.progress.connect(lambda msg: self.log_output.appendPlainText(msg))
         self.worker.finished.connect(self.on_finished)
         self.install_btn.setEnabled(False)
@@ -375,36 +442,31 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
             return
 
         name = current_item.text().split(' (')[0]
-        manifest_path = os.path.join(EXT_MANIFESTS_DIR, f"{name}.txt")
-
-        if not os.path.exists(manifest_path):
-            QtWidgets.QMessageBox.warning(
-                self, "Not Installed",
-                f"{name} has no install manifest and cannot be removed automatically."
-            )
-            return
 
         reply = QtWidgets.QMessageBox.question(
             self, "Remove Extension",
-            f"Remove all installed files for {name}?",
+            f"Remove source, build, and runtime config for {name}?",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
         if reply != QtWidgets.QMessageBox.Yes:
             return
 
         try:
-            with open(manifest_path) as f:
-                files = [line.strip() for line in f if line.strip()]
-            for fpath in files:
-                if os.path.isfile(fpath):
-                    os.remove(fpath)
-                    self.log_output.appendPlainText(f"Removed: {fpath}")
-            os.remove(manifest_path)
-            # Remove the build directory so a future install starts clean
+            runtime_registry = read_runtime_registry()
+            if name in runtime_registry:
+                del runtime_registry[name]
+                write_runtime_registry(runtime_registry)
+
             ext_build_dir = os.path.join(EXT_BUILD_BASE, name)
             if os.path.isdir(ext_build_dir):
                 shutil.rmtree(ext_build_dir)
                 self.log_output.appendPlainText(f"Removed build dir: {ext_build_dir}")
+
+            ext_src_dir = os.path.join(EXT_SRC_BASE, name)
+            if os.path.isdir(ext_src_dir):
+                shutil.rmtree(ext_src_dir)
+                self.log_output.appendPlainText(f"Removed source dir: {ext_src_dir}")
+
             self.log_output.appendPlainText(f"Successfully removed {name}")
             self.filter_extensions()
         except Exception as e:
@@ -430,6 +492,6 @@ if __name__ == "__main__":
     _lib_dir = os.path.dirname(os.path.abspath(__file__))
     workspace_root = os.path.abspath(os.path.join(_lib_dir, "..", "..", "..", ".."))
 
-    window = ExtensionManagerGUI(SLICER_DIR, workspace_root, EXT_INSTALL_BASE)
+    window = ExtensionManagerGUI(SLICER_DIR, workspace_root)
     window.show()
     sys.exit(app.exec_())
