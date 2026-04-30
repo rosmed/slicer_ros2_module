@@ -40,3 +40,6 @@ If you use SlicerROS2 and find it helpful for your research, please use the 2024
 }
 ```
 
+## Other
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rosmed/slicer_ros2_module)
