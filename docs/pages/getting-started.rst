@@ -124,14 +124,26 @@ you prefer a graphical interface, you can use ``cmake-gui`` instead of
 Loading the module
 ==================
 
-After sourcing your workspace, use the provided launcher to start
-Slicer with the correct module paths automatically configured:
+After building your workspace, you should start Slicer using the
+provided ROS 2 launcher. This launcher automatically configures the
+necessary environment variables and module paths for
+``slicer_ros2_module`` and any extensions installed via
+``manage-extensions.py``.
 
 .. code-block:: bash
 
-   source ~/ros2_ws/install/setup.bash # or whatever your ROS workspace is
+   source ~/ros2_ws/install/setup.bash
    ros2 launch slicer_ros2_module slicer.launch.py
 
-During the ``colcon`` build, the files required for the SlicerROS2 module are
-installed in the Slicer build directory so the user doesn't have to
-change the module paths to load the newly created module.
+===================
+Managing Extensions
+===================
+
+If you need additional Slicer extensions (like SlicerIGT), use the
+provided management script. This script handles downloading, compiling
+(with correct build flags for ROS 2 compatibility), and registering
+extensions.
+
+.. code-block:: bash
+
+   ros2 run slicer_ros2_module manage-extensions.py

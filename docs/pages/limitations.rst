@@ -40,42 +40,42 @@ Missing features
   extensively tested and might not work.
 
 ==============================
-Compiling 3D Slicer extensions
+3D Slicer extensions
 ==============================
 
-The 3D Slicer extension wizard is unfortunately not available when you
-compile Slicer from source.  Therefore, if you want to use another
-extension, you will need to compile it on your machine.
+When using SlicerROS2, you may want to use other Slicer extensions
+(e.g., SlicerIGT). Since you are running Slicer from a ROS 2
+environment, extensions should be managed using the
+``manage-extensions.py`` script provided with this module.
 
-Here is an example for SlicerIGT (a module that supports pivot
-calibration, point-to-point registration, etc.).  Note that SlicerIGT
-has a dependency of SlicerIGSIO so we will build this too.
+The ``manage-extensions.py`` script allows you to search for,
+download, and build extensions from the Slicer Extensions Index. It
+automatically handles dependencies and registers the built extensions
+so they are loaded when you use ``slicer.launch.py``.
+
+To use the extension manager:
 
 .. code-block:: bash
 
-  git clone https://github.com/SlicerIGT/SlicerIGT.git
-  mkdir SlicerIGT-build
-  git clone https://github.com/IGSIO/SlicerIGSIO.git
-  mkdir SlicerIGSIO-build
-  cd SlicerIGSIO-build
-  cmake ../SlicerIGSIO -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build/
-  make
-  cd ../
-  cd SlicerIGT-build
-  cmake ../SlicerIGT -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build/ \
-   -DSlicerIGSIO_DIR:PATH=/home/your_user_name_here/something_something/SlicerIGSIO-build/inner-build/
-  make
+   ros2 run slicer_ros2_module manage-extensions.py
 
-After the extensions are built, open 3D Slicer and press "Edit" in the
-top left of the window, then "Applicaton settings".  A popup will come
-up and you need to click the "Modules" menu within the popup. In the
-space that says additional module paths you can press "Add" and enter
-the path to the modules you just build
-(ie. ``/home/your_user_name_here/something_something/SlicerIGSIO-build/inner-build/lib/Slicer5.x/qt-loadable-modules``
-and
-``/home/your_user_name_here/something_something/SlicerIGSIO-build/lib/Slicer5.x/qt-loadable-modules``
-and
-``/home/your_user_name_here/something_something/SlicerIGSIO-build/lib/Slicer5.x/qt-scripted-modules``). Not
-every extension will have loadable and scripted modules like SlicerIGT
-does. After you have added these paths, restart Slicer and you should
-now have access to the modules.
+This will open a graphical interface where you can manage your extensions.
+
+==================
+Loading the module
+==================
+
+Always use the provided ROS 2 launcher to start Slicer. This ensures
+all environment variables (like ``LD_LIBRARY_PATH``) and Slicer module
+paths are correctly configured to include both ``slicer_ros2_module``
+and any extensions managed by ``manage-extensions.py``.
+
+.. code-block:: bash
+
+   ros2 launch slicer_ros2_module slicer.launch.py
+
+You can also pass additional arguments to Slicer using the ``slicer_args`` launch argument:
+
+.. code-block:: bash
+
+   ros2 launch slicer_ros2_module slicer.launch.py slicer_args:="--no-splash --python-script my_script.py"
