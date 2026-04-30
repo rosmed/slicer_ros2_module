@@ -216,38 +216,10 @@ ament_environment_hooks(
   "${CMAKE_CURRENT_BINARY_DIR}/slicer_ros2_module_env_hook.sh"
 )
 
-# Configure the Slicer launcher with the Slicer build directory path
-configure_file(
-  launch/slicer.launch.py.in
-  launch/slicer.launch.py
-)
-
-# Configure the extension manager with the Slicer build directory path
-configure_file(
-  manage_extensions.py.in
-  manage_extensions.py
-)
-
 # Pre-create the third-party extension install prefix so it exists before any extension is installed.
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${SlicerROS2_EXTENSIONS_CONFIG_DIR}\")")
 
-# Install static launch files (ur_sim_control.launch.py)
-# We exclude slicer.launch.py.in to avoid polluting the install space with templates
-install(
-  DIRECTORY launch/
-  DESTINATION share/${PROJECT_NAME}/launch
-  PATTERN "*.in" EXCLUDE
-)
-
-# Install generated launch file (slicer.launch.py)
-install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/launch/slicer.launch.py
-  DESTINATION share/${PROJECT_NAME}/launch
-)
-
-install(PROGRAMS
-  ${CMAKE_CURRENT_BINARY_DIR}/manage_extensions.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+add_subdirectory(launch)
+add_subdirectory(scripts)
 
 ament_package()
