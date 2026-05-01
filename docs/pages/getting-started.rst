@@ -146,4 +146,4 @@ extensions.
 
 .. code-block:: bash
 
-   ros2 run slicer_ros2_module manage-extensions.py
+   ros2 run slicer_ros2_module manage_extensions.py
