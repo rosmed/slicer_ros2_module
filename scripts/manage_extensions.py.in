@@ -23,6 +23,7 @@ EXT_SRC_BASE = os.path.join(EXT_BASE, "src")
 EXT_BUILD_BASE = os.path.join(EXT_BASE, "build")
 EXT_CONFIG_DIR = os.path.join("@CMAKE_INSTALL_PREFIX@", "@SlicerROS2_EXTENSIONS_CONFIG_DIR@")
 EXT_RUNTIME_PATHS_FILE = os.path.join(EXT_CONFIG_DIR, "runtime_paths.json")
+EXTRA_METADATA_URLS_FILE = os.path.join(EXT_CONFIG_DIR, "extra_metadata_urls.json")
 
 SLICER_REL_PATHS = [
     "@Slicer_INSTALL_BIN_DIR@",
@@ -89,8 +90,9 @@ def discover_runtime_paths(root):
             append_unique(library_paths, path)
     return load_paths, library_paths
 
-def extension_runtime_roots(name):
-    build_dir = os.path.join(EXT_BUILD_BASE, name)
+def extension_runtime_roots(name, build_dir=None):
+    if build_dir is None:
+        build_dir = os.path.join(EXT_BUILD_BASE, name)
     roots = [
         build_dir,
         os.path.join(build_dir, "inner-build"),
@@ -106,10 +108,10 @@ def extension_runtime_roots(name):
             pass
     return roots
 
-def discover_extension_runtime_paths(name):
+def discover_extension_runtime_paths(name, build_dir=None):
     load_paths = []
     library_paths = []
-    for root in extension_runtime_roots(name):
+    for root in extension_runtime_roots(name, build_dir):
         candidate_load_paths, candidate_library_paths = discover_runtime_paths(root)
         for path in candidate_load_paths:
             append_unique(load_paths, path)
@@ -132,6 +134,107 @@ def write_runtime_registry(registry):
     with open(EXT_RUNTIME_PATHS_FILE, "w") as f:
         json.dump(registry, f, indent=2, sort_keys=True)
         f.write("\n")
+
+def read_extra_metadata_urls():
+    if not os.path.exists(EXTRA_METADATA_URLS_FILE):
+        return []
+    try:
+        with open(EXTRA_METADATA_URLS_FILE) as f:
+            data = json.load(f)
+        if not isinstance(data, list):
+            return []
+        urls = []
+        for entry in data:
+            if isinstance(entry, str):
+                normalized = entry.strip()
+                if normalized and normalized not in urls:
+                    urls.append(normalized)
+        return urls
+    except Exception:
+        return []
+
+def write_extra_metadata_urls(urls):
+    os.makedirs(EXT_CONFIG_DIR, exist_ok=True)
+    normalized_urls = []
+    for entry in urls:
+        if not isinstance(entry, str):
+            continue
+        normalized = entry.strip()
+        if normalized and normalized not in normalized_urls:
+            normalized_urls.append(normalized)
+    with open(EXTRA_METADATA_URLS_FILE, "w") as f:
+        json.dump(normalized_urls, f, indent=2)
+        f.write("\n")
+
+class ExtraUrlsDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None, urls=None):
+        super().__init__(parent)
+        self.setWindowTitle("Extra Extension Metadata URLs")
+        self.resize(700, 360)
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        description = QtWidgets.QLabel(
+            "Add source repository URLs (HTTPS) for extensions that are not listed in the default Slicer index."
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        self.list_widget = QtWidgets.QListWidget()
+        layout.addWidget(self.list_widget)
+
+        input_layout = QtWidgets.QHBoxLayout()
+        self.url_input = QtWidgets.QLineEdit()
+        self.url_input.setPlaceholderText("https://github.com/User/SlicerExtension.git")
+        self.url_input.returnPressed.connect(self.add_url)
+        add_btn = QtWidgets.QPushButton("Add Repo")
+        add_btn.clicked.connect(self.add_url)
+        remove_btn = QtWidgets.QPushButton("Remove Selected")
+        remove_btn.clicked.connect(self.remove_selected)
+        input_layout.addWidget(self.url_input)
+        input_layout.addWidget(add_btn)
+        input_layout.addWidget(remove_btn)
+        layout.addLayout(input_layout)
+
+        button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+        for url in urls or []:
+            self._append_url(url)
+
+    def _append_url(self, url):
+        normalized = url.strip()
+        if not normalized:
+            return False
+        existing = [self.list_widget.item(index).text() for index in range(self.list_widget.count())]
+        if normalized in existing:
+            return False
+        self.list_widget.addItem(normalized)
+        return True
+
+    def add_url(self):
+        url = self.url_input.text().strip()
+        if not url:
+            return
+        if not (url.startswith("http://") or url.startswith("https://")):
+            QtWidgets.QMessageBox.warning(self, "Invalid URL", "Enter a full http(s) URL.")
+            return
+        if not self._append_url(url):
+            QtWidgets.QMessageBox.information(self, "Duplicate URL", "That URL is already in the list.")
+            return
+        self.url_input.clear()
+
+    def remove_selected(self):
+        row = self.list_widget.currentRow()
+        if row >= 0:
+            self.list_widget.takeItem(row)
+
+    def urls(self):
+        return [self.list_widget.item(index).text() for index in range(self.list_widget.count())]
 
 def update_runtime_registry_entry(name):
     build_dir = os.path.join(EXT_BUILD_BASE, name)
@@ -291,6 +394,7 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         self.slicer_dir = slicer_dir
         self.workspace_root = workspace_root
         self.extensions_metadata = {}
+        self.extra_metadata_urls = read_extra_metadata_urls()
 
         self.init_ui()
         self.fetch_extensions()
@@ -318,6 +422,9 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         self.search_input.textChanged.connect(self.filter_extensions)
         search_layout.addWidget(QtWidgets.QLabel("Search:"))
         search_layout.addWidget(self.search_input)
+        self.extra_urls_btn = QtWidgets.QPushButton("Extra URLs...")
+        self.extra_urls_btn.clicked.connect(self.manage_extra_urls)
+        search_layout.addWidget(self.extra_urls_btn)
         layout.addLayout(search_layout)
 
         # List
@@ -348,6 +455,7 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
 
     def fetch_extensions(self):
         try:
+            self.extensions_metadata = {}
             # Fallback strategy: GitHub API often hits rate limits.
             # We can scrape the HTML page for .json file names and construct raw URLs.
             self.log_output.appendPlainText("Fetching extension list from GitHub...")
@@ -369,7 +477,7 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
                             name = f['name'].replace('.json', '')
                             # Clean up potential scraping artifacts like '>'
                             name = name.lstrip('>')
-                            self.extensions_metadata[name] = f['download_url']
+                            self.extensions_metadata[name] = {"metadata_url": f['download_url']}
                 else:
                     raise Exception("Could not find any extensions. GitHub might be blocking requests.")
             else:
@@ -378,12 +486,34 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
                     # Clean up potential scraping artifacts like '>'
                     name = name.lstrip('>')
                     # Construct the raw download URL manually
-                    self.extensions_metadata[name] = f"{RAW_URL_BASE}{f}.json" if not f.endswith(".json") else f"{RAW_URL_BASE}{f}"
+                    self.extensions_metadata[name] = {"metadata_url": f"{RAW_URL_BASE}{f}.json" if not f.endswith(".json") else f"{RAW_URL_BASE}{f}"}
+
+            for repo_url in self.extra_metadata_urls:
+                name = os.path.basename(repo_url.rstrip("/"))
+                if name.endswith(".git"):
+                    name = name[:-4]
+                self.extensions_metadata[f"{name} (Manual)"] = {"scm_url": repo_url}
 
             self.log_output.appendPlainText(f"Found {len(self.extensions_metadata)} extensions.")
+            if self.extra_metadata_urls:
+                self.log_output.appendPlainText(
+                    f"Included {len(self.extra_metadata_urls)} manual repository URLs."
+                )
             self.filter_extensions()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Failed to fetch extensions: {e}")
+
+    def manage_extra_urls(self):
+        dialog = ExtraUrlsDialog(self, self.extra_metadata_urls)
+        if dialog.exec_() != QtWidgets.QDialog.Accepted:
+            return
+
+        self.extra_metadata_urls = dialog.urls()
+        write_extra_metadata_urls(self.extra_metadata_urls)
+        self.log_output.appendPlainText(
+            f"Saved {len(self.extra_metadata_urls)} extra repository URLs."
+        )
+        self.fetch_extensions()
 
     def filter_extensions(self):
         self.list_widget.clear()
@@ -418,17 +548,35 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         if not current_item:
             return
 
-        name = current_item.text().split(' (')[0]
+        name_with_status = current_item.text()
+        name = name_with_status.split(' (')[0]
         self.log_output.appendPlainText(f"Fetching metadata for {name}...")
 
-        # Fetch full metadata
-        metadata_url = self.extensions_metadata[name]
-        try:
-            meta_resp = requests.get(metadata_url)
-            metadata = meta_resp.json()
-        except:
-             QtWidgets.QMessageBox.critical(self, "Error", "Failed to fetch extension metadata")
+        # Fetch or synthesize full metadata
+        ext_info = self.extensions_metadata.get(name)
+        if not ext_info:
+            # Try with status suffix for manual repos
+            ext_info = self.extensions_metadata.get(f"{name} (Manual)")
+            
+        if not ext_info:
+             QtWidgets.QMessageBox.critical(self, "Error", f"Could not find metadata for {name}")
              return
+             
+        if "metadata_url" in ext_info:
+            metadata_url = ext_info["metadata_url"]
+            try:
+                meta_resp = requests.get(metadata_url)
+                metadata = meta_resp.json()
+            except:
+                 QtWidgets.QMessageBox.critical(self, "Error", "Failed to fetch extension metadata")
+                 return
+        else:
+            # Manual repo URL
+            metadata = {
+                "extensionname": name,
+                "scm_url": ext_info["scm_url"],
+                "build_dependencies": []
+            }
 
         self.worker = ExtensionWorker("install", name, metadata, self.slicer_dir, self.workspace_root)
         self.worker.progress.connect(lambda msg: self.log_output.appendPlainText(msg))
@@ -442,30 +590,35 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
             return
 
         name = current_item.text().split(' (')[0]
+        runtime_registry = read_runtime_registry()
+        is_imported = name in runtime_registry and runtime_registry[name].get("imported")
+
+        msg = f"Remove source, build, and runtime config for {name}?"
+        if is_imported:
+            msg = f"Remove runtime config for imported extension {name}? (Files will not be deleted)"
 
         reply = QtWidgets.QMessageBox.question(
-            self, "Remove Extension",
-            f"Remove source, build, and runtime config for {name}?",
+            self, "Remove Extension", msg,
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
         if reply != QtWidgets.QMessageBox.Yes:
             return
 
         try:
-            runtime_registry = read_runtime_registry()
             if name in runtime_registry:
                 del runtime_registry[name]
                 write_runtime_registry(runtime_registry)
 
-            ext_build_dir = os.path.join(EXT_BUILD_BASE, name)
-            if os.path.isdir(ext_build_dir):
-                shutil.rmtree(ext_build_dir)
-                self.log_output.appendPlainText(f"Removed build dir: {ext_build_dir}")
+            if not is_imported:
+                ext_build_dir = os.path.join(EXT_BUILD_BASE, name)
+                if os.path.isdir(ext_build_dir):
+                    shutil.rmtree(ext_build_dir)
+                    self.log_output.appendPlainText(f"Removed build dir: {ext_build_dir}")
 
-            ext_src_dir = os.path.join(EXT_SRC_BASE, name)
-            if os.path.isdir(ext_src_dir):
-                shutil.rmtree(ext_src_dir)
-                self.log_output.appendPlainText(f"Removed source dir: {ext_src_dir}")
+                ext_src_dir = os.path.join(EXT_SRC_BASE, name)
+                if os.path.isdir(ext_src_dir):
+                    shutil.rmtree(ext_src_dir)
+                    self.log_output.appendPlainText(f"Removed source dir: {ext_src_dir}")
 
             self.log_output.appendPlainText(f"Successfully removed {name}")
             self.filter_extensions()
