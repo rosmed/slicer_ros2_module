@@ -4,6 +4,7 @@
 #include <vtkStringArray.h>
 #include <vtkIntArray.h>
 #include <vtkMRMLROS2Utils.h>
+#include <iostream>
 
 void vtkROS2ToSlicer(const std_msgs::msg::Empty &, std::string &)
 {
