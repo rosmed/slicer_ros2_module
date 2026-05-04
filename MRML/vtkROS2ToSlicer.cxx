@@ -2,9 +2,11 @@
 #include <vtkMath.h>
 #include <vtkVariant.h>
 #include <vtkStringArray.h>
+#include <vtkFloatArray.h>
 #include <vtkIntArray.h>
 #include <vtkMRMLROS2Utils.h>
 #include <iostream>
+using vtkROS2ToSlicerLimits::kMaxPoints;
 
 void vtkROS2ToSlicer(const std_msgs::msg::Empty &, std::string &)
 {
@@ -200,16 +202,74 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkT
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result)
 {
-    // Initialize the vtkPoints
-    result->Reset();
-    result->Allocate(input.points.size());
-
-    // Iterate through all points in the input PointCloud
-    for (const auto& point : input.points) {
-        // Add each point to the vtkPoints object
-        result->InsertNextPoint(point.x, point.y, point.z);
+    if (!result) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud): null result" << std::endl;
+        return;
+    }
+    
+    const size_t n = input.points.size();
+    if (n > kMaxPoints) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud): refusing " << n << " points (max " 
+                  << kMaxPoints << ")" << std::endl;
+        return;
+    }
+    
+    try {
+        result->SetNumberOfPoints(static_cast<vtkIdType>(n));
+        for (vtkIdType i = 0; i < static_cast<vtkIdType>(n); ++i) {
+            const auto& p = input.points[i];
+            result->SetPoint(i, p.x, p.y, p.z);
+        }
+    } catch (const std::bad_alloc &) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud): allocation failed for " << n << " points" << std::endl;
+        result->Reset();
     }
 }
+
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result)
+{
+    if (!result) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud2): null result" << std::endl;
+        return;
+    }
+    
+    result->Reset();
+    
+    if (input.data.empty() || input.width == 0 || input.height == 0) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud2): empty input" << std::endl;
+        return;
+    }
+    
+    const size_t num_points = static_cast<size_t>(input.width) * input.height;
+    if (num_points > kMaxPoints) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud2): refusing " << num_points << " points (max "
+                  << kMaxPoints << ")" << std::endl;
+        return;
+    }
+    
+    try {
+        auto vtkArray = vtkSmartPointer<vtkFloatArray>::New();
+        vtkArray->SetNumberOfComponents(3);
+        vtkArray->Allocate(num_points * 3);
+        
+        sensor_msgs::PointCloud2ConstIterator<float> iter_x(input, "x");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_y(input, "y");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_z(input, "z");
+        
+        for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
+            if (std::isfinite(*iter_x) && std::isfinite(*iter_y) && std::isfinite(*iter_z)) {
+                float xyz[3] = { *iter_x, *iter_y, *iter_z };
+                vtkArray->InsertNextTuple(xyz);
+            }
+        }
+        
+        result->SetData(vtkArray);
+    } catch (const std::bad_alloc &) {
+        std::cerr << "vtkROS2ToSlicer(PointCloud2): allocation failed for " << num_points << " points" << std::endl;
+        result->Reset();
+    }
+}
+
 
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result)

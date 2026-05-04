@@ -2,6 +2,7 @@
 #include <vtkMath.h>
 
 #include <vtkMRMLROS2Utils.h>
+using vtkSlicerToROS2Limits::kMaxPoints;
 
 void vtkSlicerToROS2(const std::string &, std_msgs::msg::Empty &,
 		     const std::shared_ptr<rclcpp::Node> &)
@@ -234,23 +235,83 @@ void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result
 }
 
 
-void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
-                     const std::shared_ptr<rclcpp::Node> & rosNode)
+void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result, 
+                    const std::shared_ptr<rclcpp::Node> & rosNode)
 {
-  result.header.stamp = rosNode->get_clock()->now();
-  // Initialize the point cloud
-  result.points.clear();
-  result.points.reserve(input->GetNumberOfPoints());
+    result.header.stamp = rosNode->get_clock()->now();
+    if (!input) {
+        std::cerr << "vtkSlicerToROS2(PointCloud): null input" << std::endl;
+        return;
+    }
+    
+    const vtkIdType n = input->GetNumberOfPoints();
+    if (n < 0 || static_cast<size_t>(n) > kMaxPoints) {
+        std::cerr << "vtkSlicerToROS2(PointCloud): refusing " << n << " points (max "
+                  << kMaxPoints << ")" << std::endl;
+        return;
+    }
+    
+    try {
+        result.points.clear();
+        result.points.reserve(n);
+        
+        for (vtkIdType i = 0; i < n; ++i) {
+            double p[3];
+            input->GetPoint(i, p);
+            
+            geometry_msgs::msg::Point32 pt;
+            pt.x = static_cast<float>(p[0]);
+            pt.y = static_cast<float>(p[1]);
+            pt.z = static_cast<float>(p[2]);
+            result.points.push_back(pt);
+        }
+    } catch (const std::bad_alloc &) {
+        std::cerr << "vtkSlicerToROS2(PointCloud): allocation failed for " << n << " points" << std::endl;
+        result.points.clear();
+    }
+}
 
-  double p[3];
-  for (vtkIdType i = 0; i < input->GetNumberOfPoints(); i++) {
-    input->GetPoint(i, p); // Get the point at index i
-    geometry_msgs::msg::Point32 new_point;
-    new_point.x = static_cast<float>(p[0]);
-    new_point.y = static_cast<float>(p[1]);
-    new_point.z = static_cast<float>(p[2]);
-    result.points.push_back(new_point);
-   }
+void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result, 
+                      const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+    result.header.stamp = rosNode->get_clock()->now();
+    if (!input) {
+        std::cerr << "vtkSlicerToROS2(PointCloud2): null input" << std::endl;
+        return;
+    }
+    
+    const vtkIdType n = input->GetNumberOfPoints();
+    if (n < 0 || static_cast<size_t>(n) > kMaxPoints) {
+        std::cerr << "vtkSlicerToROS2(PointCloud2): refusing " << n << " points (max "
+                  << kMaxPoints << ")" << std::endl;
+        return;
+    }
+    
+    try {
+        result.height = 1;
+        result.width = static_cast<uint32_t>(n);
+        result.is_bigendian = false;
+        result.is_dense = true;
+        
+        sensor_msgs::PointCloud2Modifier modifier(result);
+        modifier.setPointCloud2FieldsByString(1, "xyz");
+        modifier.resize(n);
+        
+        sensor_msgs::PointCloud2Iterator<float> iter_x(result, "x");
+        sensor_msgs::PointCloud2Iterator<float> iter_y(result, "y");
+        sensor_msgs::PointCloud2Iterator<float> iter_z(result, "z");
+        
+        for (vtkIdType i = 0; i < n; ++i, ++iter_x, ++iter_y, ++iter_z) {
+            double p[3];
+            input->GetPoint(i, p);
+            *iter_x = static_cast<float>(p[0]);
+            *iter_y = static_cast<float>(p[1]);
+            *iter_z = static_cast<float>(p[2]);
+        }
+    } catch (const std::bad_alloc &) {
+        std::cerr << "vtkSlicerToROS2(PointCloud2): allocation failed for " << n << " points" << std::endl;
+        result = sensor_msgs::msg::PointCloud2{};
+    }
 }
 
 

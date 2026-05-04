@@ -19,3 +19,4 @@ VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkDoubleArray, geometry_msgs::msg::Wrench, Wrenc
 
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkTypeUInt8Array, sensor_msgs::msg::Image, UInt8Image);
 VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkPoints, sensor_msgs::msg::PointCloud, PointCloud);
+VTK_MRML_ROS_PUBLISHER_VTK_CXX(vtkPoints, sensor_msgs::msg::PointCloud2, PointCloud2);

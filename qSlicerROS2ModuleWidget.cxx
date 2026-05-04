@@ -322,21 +322,40 @@ void qSlicerROS2ModuleWidget::subscriberClicked(int row, int col)
     return;
   }
   if (col == 1) { // only invoked when users click the number of messages cell
-    QString subName = d->rosSubscriberTableWidget->item(row,0)->text();
+    QString subName = d->rosSubscriberTableWidget->item(row, 0)->text();
     std::string topic = subName.toStdString();
-    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + topic).c_str()));
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(
+      logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + topic).c_str()));
     if (!sub) {
       std::cerr << "No subscriber by this name in the scene" << std::endl;
       return;
     }
+
+    const QString rosType = QString::fromUtf8(sub->GetROSType());
+    const bool skipYAML =
+      rosType.contains("PointCloud") ||
+      rosType.contains("Image") ||
+      rosType.contains("LaserScan");
+
+    QString body = QStringLiteral("Topic: %1\nType: %2\nNumber of messages: %3")
+                   .arg(subName).arg(rosType).arg(sub->GetNumberOfMessages());
+
+    if (!skipYAML) {
+      constexpr size_t kMaxYAMLChars = 10000;
+      std::string yaml = sub->GetLastMessageYAML();
+      if (yaml.size() > kMaxYAMLChars) {
+        yaml = yaml.substr(0, kMaxYAMLChars) + "\n\n[truncated]";
+      }
+      body += QStringLiteral("\nLast message:\n%1").arg(QString::fromStdString(yaml));
+    } else {
+      body += QStringLiteral("\n\n(Message preview disabled for high-volume type)");
+    }
+
     QMessageBox msgBox;
-    msgBox.setText(QStringLiteral("Number of messages: %1\nLast message: %2")
-                   .arg(sub->GetNumberOfMessages())
-                   .arg(sub->GetLastMessageYAML().c_str()));
+    msgBox.setText(body);
     msgBox.exec();
   }
 }
-
 
 void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
 {

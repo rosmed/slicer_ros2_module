@@ -22,6 +22,8 @@
 
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
 #include "geometry_msgs/msg/transform.hpp"
@@ -33,6 +35,11 @@
 
 // custom types
 #include <vtkCustomTypes.h>
+
+namespace vtkROS2ToSlicerLimits {
+    // Maximum point count we're willing to convert. Can be adjusted to specific applications.
+    inline constexpr size_t kMaxPoints = 50'000'000;
+}
 
 // std_msgs
 void vtkROS2ToSlicer(const std_msgs::msg::Empty & input, std::string & result);
@@ -58,6 +65,7 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<v
 // sensor_msgs
 void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkTypeUInt8Array> result);
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result);
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result);
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result);

@@ -32,12 +32,20 @@
 
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 
 // new
 #include <std_srvs/srv/set_bool.hpp>
 
 // custom types
 #include <vtkCustomTypes.h>
+
+namespace vtkSlicerToROS2Limits{
+    // Maximum point count we're willing to convert. Can be adjusted to specific applications.
+    inline constexpr size_t kMaxPoints = 50'000'000;
+}
+
 
 // std_msgs
 void vtkSlicerToROS2(const std::string & input, std_msgs::msg::Empty & result,
@@ -77,6 +85,8 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
 void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 
 void vtkSlicerToROS2(vtkBool * input, std_srvs::srv::SetBool::Request & result,

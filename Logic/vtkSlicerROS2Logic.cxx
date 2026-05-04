@@ -118,6 +118,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberUInt8ImageNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloud2Node>::New());
 
   // Publishers
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherEmptyNode>::New());
@@ -133,6 +134,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherUInt8ImageNode>::New());
+
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloudNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloud2Node>::New());
 
 #if USE_CISST_MSGS
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
