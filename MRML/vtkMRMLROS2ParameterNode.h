@@ -63,6 +63,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
       string. Returns empty string if value not set */
    std::string PrintParameter(const std::string& parameterName);
 
+    /*! Returns the names of all parameters currently monitored by this
+      node (i.e. keys in the parameter store). */
+    std::vector<std::string> GetMonitoredParameterNames(void) const;
+
 // todo-address: in RbotoNode, make sure we check with IsParameterSet and GetParameterType
 
     /*! Returns true if it is a boolean and it is set. Users should
@@ -179,7 +183,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     private:
     // vector to store all parameter names that are monitored by the node. This is used for saving and reloading state.
     std::vector<std::string> MonitoredParameterNamesCache = {};
-    std::vector<std::string> GetMonitoredParameterNamesCache();
+    std::vector<std::string> GetMonitoredParameterNamesCache();  // serialization only
 
 };
 

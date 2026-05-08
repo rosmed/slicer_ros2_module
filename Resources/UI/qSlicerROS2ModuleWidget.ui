@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>525</width>
-    <height>1063</height>
+    <width>600</width>
+    <height>900</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,19 +19,13 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
+     <!-- ═══════════════════════ DEFAULT NODE TAB ═══════════════════════ -->
      <widget class="QWidget" name="tab">
       <attribute name="title">
        <string>Default Node</string>
       </attribute>
-      <layout class="QFormLayout" name="formLayout">
-       <item row="14" column="0">
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
+      <layout class="QVBoxLayout" name="defaultNodeLayout">
+       <item>
         <widget class="QTabWidget" name="tabWidget_2">
          <property name="tabPosition">
           <enum>QTabWidget::West</enum>
@@ -39,7 +33,9 @@
          <property name="currentIndex">
           <number>0</number>
          </property>
-         <widget class="QWidget" name="tab_3">
+
+         <!-- ─────────────────── ROBOTS TAB ─────────────────── -->
+         <widget class="QWidget" name="tab_robots">
           <attribute name="title">
            <string>Robots</string>
           </attribute>
@@ -53,72 +49,441 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_4">
+
+         <!-- ─────────────────── TOPICS TAB ─────────────────── -->
+         <widget class="QWidget" name="tab_topics">
           <attribute name="title">
-           <string>Other</string>
+           <string>Topics</string>
           </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_2">
+          <layout class="QVBoxLayout" name="topicsOuterLayout">
            <item>
-            <widget class="QTableWidget" name="rosSubscriberTableWidget">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>15</horstretch>
-               <verstretch>15</verstretch>
-              </sizepolicy>
+            <widget class="QSplitter" name="topicsSplitter">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
              </property>
-             <property name="rowCount">
-              <number>0</number>
-             </property>
-             <property name="columnCount">
-              <number>2</number>
-             </property>
-             <attribute name="horizontalHeaderStretchLastSection">
-              <bool>true</bool>
-             </attribute>
-             <attribute name="verticalHeaderStretchLastSection">
-              <bool>false</bool>
-             </attribute>
-             <column>
-              <property name="text">
-               <string>Topic</string>
+             <!-- Top pane: two tables -->
+             <widget class="QWidget" name="topicsTablesWidget">
+              <layout class="QVBoxLayout" name="topicsTablesLayout">
+               <item>
+                <widget class="QGroupBox" name="subscriberGroupBox">
+                 <property name="title">
+                  <string>Subscribers</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="subscriberGroupLayout">
+                  <item>
+                   <widget class="QTableWidget" name="rosSubscriberTableWidget">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>1</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectRows</enum>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::SingleSelection</enum>
+                    </property>
+                    <property name="editTriggers">
+                     <set>QAbstractItemView::NoEditTriggers</set>
+                    </property>
+                    <property name="rowCount">
+                     <number>0</number>
+                    </property>
+                    <property name="columnCount">
+                     <number>3</number>
+                    </property>
+                    <attribute name="horizontalHeaderStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <column>
+                     <property name="text"><string>Topic</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>ROS Type</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string># Received</string></property>
+                    </column>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="publisherGroupBox">
+                 <property name="title">
+                  <string>Publishers</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="publisherGroupLayout">
+                  <item>
+                   <widget class="QTableWidget" name="rosPublisherTableWidget">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>1</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectRows</enum>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::SingleSelection</enum>
+                    </property>
+                    <property name="editTriggers">
+                     <set>QAbstractItemView::NoEditTriggers</set>
+                    </property>
+                    <property name="rowCount">
+                     <number>0</number>
+                    </property>
+                    <property name="columnCount">
+                     <number>3</number>
+                    </property>
+                    <attribute name="horizontalHeaderStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <column>
+                     <property name="text"><string>Topic</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>ROS Type</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string># Sent</string></property>
+                    </column>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <!-- Bottom pane: detail panel -->
+             <widget class="QGroupBox" name="topicDetailGroupBox">
+              <property name="title">
+               <string>Detail</string>
               </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Message type</string>
+              <property name="visible">
+               <bool>false</bool>
               </property>
-             </column>
-            </widget>
-           </item>
-           <item>
-            <widget class="QTableWidget" name="rosPublisherTableWidget">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <attribute name="horizontalHeaderStretchLastSection">
-              <bool>true</bool>
-             </attribute>
-             <column>
-              <property name="text">
-               <string>Topic</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Message type</string>
-              </property>
-             </column>
+              <layout class="QVBoxLayout" name="topicDetailLayout">
+               <item>
+                <widget class="QLabel" name="topicDetailHeaderLabel">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPlainTextEdit" name="topicDetailTextEdit">
+                 <property name="readOnly">
+                  <bool>true</bool>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Monospace</family>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
             </widget>
            </item>
           </layout>
          </widget>
+
+         <!-- ─────────────────── PARAMETERS TAB ─────────────────── -->
+         <widget class="QWidget" name="tab_parameters">
+          <attribute name="title">
+           <string>Parameters</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="parametersOuterLayout">
+           <item>
+            <widget class="QSplitter" name="parameterSplitter">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <!-- Top: node summary table -->
+             <widget class="QTableWidget" name="parameterNodeTableWidget">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>1</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="selectionBehavior">
+               <enum>QAbstractItemView::SelectRows</enum>
+              </property>
+              <property name="selectionMode">
+               <enum>QAbstractItemView::SingleSelection</enum>
+              </property>
+              <property name="editTriggers">
+               <set>QAbstractItemView::NoEditTriggers</set>
+              </property>
+              <property name="rowCount">
+               <number>0</number>
+              </property>
+              <property name="columnCount">
+               <number>3</number>
+              </property>
+              <attribute name="horizontalHeaderStretchLastSection">
+               <bool>true</bool>
+              </attribute>
+              <attribute name="verticalHeaderVisible">
+               <bool>false</bool>
+              </attribute>
+              <column>
+               <property name="text"><string>ROS Node</string></property>
+              </column>
+              <column>
+               <property name="text"><string>Status</string></property>
+              </column>
+              <column>
+               <property name="text"><string># Params</string></property>
+              </column>
+             </widget>
+             <!-- Bottom: detail -->
+             <widget class="QGroupBox" name="parameterDetailGroupBox">
+              <property name="title">
+               <string>Parameters</string>
+              </property>
+              <property name="visible">
+               <bool>false</bool>
+              </property>
+              <layout class="QVBoxLayout" name="parameterDetailLayout">
+               <item>
+                <widget class="QLabel" name="parameterDetailNodeLabel">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTableWidget" name="parameterDetailTableWidget">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>2</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="editTriggers">
+                  <set>QAbstractItemView::NoEditTriggers</set>
+                 </property>
+                 <property name="rowCount">
+                  <number>0</number>
+                 </property>
+                 <property name="columnCount">
+                  <number>3</number>
+                 </property>
+                 <attribute name="horizontalHeaderStretchLastSection">
+                  <bool>true</bool>
+                 </attribute>
+                 <attribute name="verticalHeaderVisible">
+                  <bool>false</bool>
+                 </attribute>
+                 <column>
+                  <property name="text"><string>Name</string></property>
+                 </column>
+                 <column>
+                  <property name="text"><string>Type</string></property>
+                 </column>
+                 <column>
+                  <property name="text"><string>Value</string></property>
+                 </column>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+
+         <!-- ─────────────────── TF2 TAB ─────────────────── -->
+         <widget class="QWidget" name="tab_tf2">
+          <attribute name="title">
+           <string>Tf2</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="tf2OuterLayout">
+           <item>
+            <widget class="QSplitter" name="tf2Splitter">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <!-- Top: two tables -->
+             <widget class="QWidget" name="tf2TablesWidget">
+              <layout class="QVBoxLayout" name="tf2TablesLayout">
+               <item>
+                <widget class="QGroupBox" name="tf2LookupGroupBox">
+                 <property name="title">
+                  <string>Lookups</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="tf2LookupGroupLayout">
+                  <item>
+                   <widget class="QTableWidget" name="tf2LookupTableWidget">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>1</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectRows</enum>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::SingleSelection</enum>
+                    </property>
+                    <property name="editTriggers">
+                     <set>QAbstractItemView::NoEditTriggers</set>
+                    </property>
+                    <property name="rowCount">
+                     <number>0</number>
+                    </property>
+                    <property name="columnCount">
+                     <number>3</number>
+                    </property>
+                    <attribute name="horizontalHeaderStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <column>
+                     <property name="text"><string>Parent Frame</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Child Frame</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Attempts</string></property>
+                    </column>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="tf2BroadcasterGroupBox">
+                 <property name="title">
+                  <string>Broadcasters</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="tf2BroadcasterGroupLayout">
+                  <item>
+                   <widget class="QTableWidget" name="tf2BroadcasterTableWidget">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>1</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectRows</enum>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::SingleSelection</enum>
+                    </property>
+                    <property name="editTriggers">
+                     <set>QAbstractItemView::NoEditTriggers</set>
+                    </property>
+                    <property name="rowCount">
+                     <number>0</number>
+                    </property>
+                    <property name="columnCount">
+                     <number>3</number>
+                    </property>
+                    <attribute name="horizontalHeaderStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <column>
+                     <property name="text"><string>Parent Frame</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Child Frame</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string># Broadcasts</string></property>
+                    </column>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <!-- Bottom: detail -->
+             <widget class="QGroupBox" name="tf2DetailGroupBox">
+              <property name="title">
+               <string>Transform Detail</string>
+              </property>
+              <property name="visible">
+               <bool>false</bool>
+              </property>
+              <layout class="QVBoxLayout" name="tf2DetailLayout">
+               <item>
+                <layout class="QHBoxLayout" name="tf2DetailHeaderLayout">
+                 <item>
+                  <widget class="QLabel" name="tf2DetailHeaderLabel">
+                   <property name="text">
+                    <string/>
+                   </property>
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                     <horstretch>1</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="tf2DisplayModeButton">
+                   <property name="text">
+                    <string>Matrix 4×4</string>
+                   </property>
+                   <property name="popupMode">
+                    <enum>QToolButton::MenuButtonPopup</enum>
+                   </property>
+                   <property name="toolButtonStyle">
+                    <enum>Qt::ToolButtonTextOnly</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QPlainTextEdit" name="tf2DetailTextEdit">
+                 <property name="readOnly">
+                  <bool>true</bool>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Monospace</family>
+                  </font>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+
         </widget>
        </item>
       </layout>
      </widget>
+
+     <!-- ═══════════════════════ + NODE TAB ═══════════════════════ -->
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
        <string>+</string>
@@ -133,20 +498,8 @@
        </item>
       </layout>
      </widget>
+
     </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
    </item>
   </layout>
  </widget>

@@ -31,14 +31,15 @@
 #include <QMessageBox>
 #include <QLineEdit>
 #include <QUiLoader>
-#include <QLineEdit>
 #include <QCheckBox> 
 #include <QTimer>
+#include <QMenu>
+#include <QAction>
+#include <cmath>
 
 // Slicer includes
 #include "qSlicerROS2ModuleWidget.h"
 #include "ui_qSlicerROS2ModuleWidget.h"
-// #include "qSlicerApplication.h"
 #include "ui_qSlicerROS2RobotWidget.h"
 
 // MRML includes
@@ -47,10 +48,12 @@
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2Tf2BroadcasterNode.h>
+#include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLModelDisplayNode.h>
 #include <vtkMRMLLinearTransformNode.h>
-#include <vtkMRMLROS2Tf2LookupNode.h>
 
 // Native includes
 #include <iostream>
@@ -89,6 +92,9 @@ qSlicerROS2ModuleWidget::qSlicerROS2ModuleWidget(QWidget* _parent)
 //-----------------------------------------------------------------------------
 qSlicerROS2ModuleWidget::~qSlicerROS2ModuleWidget()
 {
+  observeSubscriber(nullptr);
+  observeParameter(nullptr);
+  observeTf2Lookup(nullptr);
 }
 
 
@@ -100,9 +106,31 @@ void qSlicerROS2ModuleWidget::setup(void)
   this->Superclass::setup();
 
   // Set up signals / slots for dynamically loaded widgets
-  this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberClicked(int, int)));
-  this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherClicked(int, int)));
   this->connect(d->addNewRobotButton, SIGNAL(clicked(bool)), this, SLOT(onAddNewRobotClicked()));
+
+  // Topics
+  this->connect(d->rosSubscriberTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(subscriberRowSelected(int, int)));
+  this->connect(d->rosPublisherTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(publisherRowSelected(int, int)));
+
+  // Parameters
+  this->connect(d->parameterNodeTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(parameterNodeRowSelected(int, int)));
+
+  // Tf2
+  this->connect(d->tf2LookupTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(tf2LookupRowSelected(int, int)));
+  
+  // Display mode menu for Tf2
+  QMenu* tf2Menu = new QMenu(this);
+  QAction* actionMatrix = tf2Menu->addAction("Matrix 4x4");
+  QAction* actionRPY = tf2Menu->addAction("RPY + XYZ");
+  QAction* actionQuat = tf2Menu->addAction("Unit Quaternion");
+  
+  connect(actionMatrix, &QAction::triggered, this, [this](){ setTf2DisplayMode(0); });
+  connect(actionRPY, &QAction::triggered, this, [this](){ setTf2DisplayMode(1); });
+  connect(actionQuat, &QAction::triggered, this, [this](){ setTf2DisplayMode(2); });
+  d->tf2DisplayModeButton->setMenu(tf2Menu);
+
+  // Tab changes
+  this->connect(d->tabWidget_2, SIGNAL(currentChanged(int)), this, SLOT(onInnerTabChanged(int)));
 
   vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
   if (!logic) {
@@ -112,35 +140,24 @@ void qSlicerROS2ModuleWidget::setup(void)
   this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(updateWidget()));
   this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceRemovedEvent,this, SLOT(updateWidget()));
   updateWidget(); // if the scene is loaded before the widget is activated
+
+  QTimer* timer = new QTimer(this);
+  connect(timer, SIGNAL(timeout()), this, SLOT(onUpdateTimer()));
+  timer->start(1000);
 }
 
 
 void qSlicerROS2ModuleWidget::updateWidget()
 {
   Q_D(qSlicerROS2ModuleWidget);
-  this->Superclass::setup();
   vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
+  if (!logic || !logic->mDefaultROS2Node) {
     return;
   }
 
-  // Check how many subscriber references are on the node vs. how many rows are in the table
-  int visibleSubscriberRefs = d->rosSubscriberTableWidget->rowCount();
-  int visiblePublisherRefs = d->rosPublisherTableWidget->rowCount();
-
-  // The following needs to be updated to list all ROS nodes in logic
-  int subscriberRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
-  int publisherRefs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
-
-  // update subscriber table
-  if (visibleSubscriberRefs < subscriberRefs) {
-    refreshSubTable();
-  }
-  // update publisher table
-  if (visiblePublisherRefs < publisherRefs) {
-    refreshPubTable();
-  }
+  refreshTopicsPanel();
+  refreshParameterTable();
+  refreshTf2Tables();
 
   // update the robot widgets based on the default node robot connections
   int numRobots = logic->mDefaultROS2Node->GetNumberOfNodeReferences("robot");
@@ -160,6 +177,416 @@ void qSlicerROS2ModuleWidget::updateWidget()
   }
 }
 
+void qSlicerROS2ModuleWidget::onUpdateTimer()
+{
+  refreshTopicsPanel();
+  refreshParameterTable();
+  refreshTf2Tables();
+}
+
+// ── Observer helpers ────────────────────────────────────────────────────────
+void qSlicerROS2ModuleWidget::observeSubscriber(vtkMRMLROS2SubscriberNode * node)
+{
+  if (mObservedSubscriber == node) return;
+  if (mObservedSubscriber) {
+    qvtkDisconnect(mObservedSubscriber, vtkCommand::ModifiedEvent, this, SLOT(updateTopicDetail()));
+  }
+  mObservedSubscriber = node;
+  if (mObservedSubscriber) {
+    qvtkConnect(mObservedSubscriber, vtkCommand::ModifiedEvent, this, SLOT(updateTopicDetail()));
+    updateTopicDetail();
+  }
+}
+
+void qSlicerROS2ModuleWidget::observeParameter(vtkMRMLROS2ParameterNode  * node)
+{
+  if (mObservedParameter == node) return;
+  if (mObservedParameter) {
+    qvtkDisconnect(mObservedParameter, vtkMRMLROS2ParameterNode::ParameterModifiedEvent, this, SLOT(updateParameterDetail()));
+  }
+  mObservedParameter = node;
+  if (mObservedParameter) {
+    qvtkConnect(mObservedParameter, vtkMRMLROS2ParameterNode::ParameterModifiedEvent, this, SLOT(updateParameterDetail()));
+    updateParameterDetail();
+  }
+}
+
+void qSlicerROS2ModuleWidget::observeTf2Lookup(vtkMRMLROS2Tf2LookupNode  * node)
+{
+  if (mObservedTf2Lookup == node) return;
+  if (mObservedTf2Lookup) {
+    qvtkDisconnect(mObservedTf2Lookup, vtkMRMLTransformNode::TransformModifiedEvent, this, SLOT(updateTf2Detail()));
+  }
+  mObservedTf2Lookup = node;
+  if (mObservedTf2Lookup) {
+    qvtkConnect(mObservedTf2Lookup, vtkMRMLTransformNode::TransformModifiedEvent, this, SLOT(updateTf2Detail()));
+    updateTf2Detail();
+  }
+}
+
+void qSlicerROS2ModuleWidget::onInnerTabChanged(int index)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  QWidget* currentTab = d->tabWidget_2->widget(index);
+  if (currentTab != d->tab_topics) {
+    observeSubscriber(nullptr);
+    d->rosSubscriberTableWidget->clearSelection();
+    d->topicDetailGroupBox->setVisible(false);
+  }
+  if (currentTab != d->tab_parameters) {
+    observeParameter(nullptr);
+    d->parameterNodeTableWidget->clearSelection();
+    d->parameterDetailGroupBox->setVisible(false);
+  }
+  if (currentTab != d->tab_tf2) {
+    observeTf2Lookup(nullptr);
+    d->tf2LookupTableWidget->clearSelection();
+    d->tf2DetailGroupBox->setVisible(false);
+  }
+}
+
+// ── Math helpers ────────────────────────────────────────────────────────────
+
+void qSlicerROS2ModuleWidget::matrixToRPY(double m[4][4], double & roll, double & pitch, double & yaw)
+{
+  // ZYX Euler
+  double sy = std::sqrt(m[0][0]*m[0][0] + m[1][0]*m[1][0]);
+  bool singular = sy < 1e-6;
+  if (!singular) {
+    roll = std::atan2(m[2][1], m[2][2]);
+    pitch = std::atan2(-m[2][0], sy);
+    yaw = std::atan2(m[1][0], m[0][0]);
+  } else {
+    roll = std::atan2(-m[1][2], m[1][1]);
+    pitch = std::atan2(-m[2][0], sy);
+    yaw = 0;
+  }
+  // to degrees
+  roll = roll * 180.0 / M_PI;
+  pitch = pitch * 180.0 / M_PI;
+  yaw = yaw * 180.0 / M_PI;
+}
+
+void qSlicerROS2ModuleWidget::matrixToQuaternion(double m[4][4], double & qw, double & qx, double & qy, double & qz)
+{
+  double tr = m[0][0] + m[1][1] + m[2][2];
+  if (tr > 0) {
+    double S = std::sqrt(tr+1.0) * 2; // S=4*qw 
+    qw = 0.25 * S;
+    qx = (m[2][1] - m[1][2]) / S;
+    qy = (m[0][2] - m[2][0]) / S; 
+    qz = (m[1][0] - m[0][1]) / S; 
+  } else if ((m[0][0] > m[1][1])&&(m[0][0] > m[2][2])) {
+    double S = std::sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]) * 2; // S=4*qx 
+    qw = (m[2][1] - m[1][2]) / S;
+    qx = 0.25 * S;
+    qy = (m[0][1] + m[1][0]) / S; 
+    qz = (m[0][2] + m[2][0]) / S; 
+  } else if (m[1][1] > m[2][2]) {
+    double S = std::sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]) * 2; // S=4*qy
+    qw = (m[0][2] - m[2][0]) / S;
+    qx = (m[0][1] + m[1][0]) / S; 
+    qy = 0.25 * S;
+    qz = (m[1][2] + m[2][1]) / S; 
+  } else {
+    double S = std::sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]) * 2; // S=4*qz
+    qw = (m[1][0] - m[0][1]) / S;
+    qx = (m[0][2] + m[2][0]) / S;
+    qy = (m[1][2] + m[2][1]) / S;
+    qz = 0.25 * S;
+  }
+}
+
+// ── Topics ──────────────────────────────────────────────────────────────────
+
+void qSlicerROS2ModuleWidget::refreshTopicsPanel()
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  // Update subscribers
+  size_t numSubs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber");
+  d->rosSubscriberTableWidget->setRowCount(numSubs);
+  for (size_t index = 0; index < numSubs; ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("subscriber", index);
+    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+    if (sub) {
+      updateSubscriberTable(sub, index);
+    }
+  }
+
+  // Update publishers
+  size_t numPubs = logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher");
+  d->rosPublisherTableWidget->setRowCount(numPubs);
+  for (size_t index = 0; index < numPubs; ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("publisher", index);
+    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+    if (pub) {
+      updatePublisherTable(pub, index);
+    }
+  }
+}
+
+void qSlicerROS2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  if (!d->rosSubscriberTableWidget->item(row, 0)) d->rosSubscriberTableWidget->setItem(row, 0, new QTableWidgetItem);
+  if (!d->rosSubscriberTableWidget->item(row, 1)) d->rosSubscriberTableWidget->setItem(row, 1, new QTableWidgetItem);
+  if (!d->rosSubscriberTableWidget->item(row, 2)) d->rosSubscriberTableWidget->setItem(row, 2, new QTableWidgetItem);
+  
+  d->rosSubscriberTableWidget->item(row, 0)->setText(QString::fromStdString(sub->GetTopic()));
+  d->rosSubscriberTableWidget->item(row, 1)->setText(QString::fromStdString(sub->GetROSType()));
+  d->rosSubscriberTableWidget->item(row, 2)->setText(QString::number(sub->GetNumberOfMessages()));
+}
+
+void qSlicerROS2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* pub, size_t row)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  if (!d->rosPublisherTableWidget->item(row, 0)) d->rosPublisherTableWidget->setItem(row, 0, new QTableWidgetItem);
+  if (!d->rosPublisherTableWidget->item(row, 1)) d->rosPublisherTableWidget->setItem(row, 1, new QTableWidgetItem);
+  if (!d->rosPublisherTableWidget->item(row, 2)) d->rosPublisherTableWidget->setItem(row, 2, new QTableWidgetItem);
+  
+  d->rosPublisherTableWidget->item(row, 0)->setText(QString::fromStdString(pub->GetTopic()));
+  d->rosPublisherTableWidget->item(row, 1)->setText(QString::fromStdString(pub->GetROSType()));
+  d->rosPublisherTableWidget->item(row, 2)->setText(QString::number(pub->GetNumberOfMessagesSent()));
+}
+
+void qSlicerROS2ModuleWidget::subscriberRowSelected(int row, int col)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  Q_UNUSED(col);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  QString topicName = d->rosSubscriberTableWidget->item(row, 0)->text();
+  vtkMRMLROS2SubscriberNode *sub = logic->mDefaultROS2Node->GetSubscriberNodeByTopic(topicName.toStdString());
+  
+  d->rosPublisherTableWidget->clearSelection();
+  observeSubscriber(sub);
+}
+
+void qSlicerROS2ModuleWidget::publisherRowSelected(int row, int col)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  Q_UNUSED(col);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  d->rosSubscriberTableWidget->clearSelection();
+  observeSubscriber(nullptr);
+  
+  QString topicName = d->rosPublisherTableWidget->item(row, 0)->text();
+  vtkMRMLROS2PublisherNode *pub = logic->mDefaultROS2Node->GetPublisherNodeByTopic(topicName.toStdString());
+  
+  if (pub) {
+    d->topicDetailGroupBox->setVisible(true);
+    d->topicDetailHeaderLabel->setText(QStringLiteral("Topic: %1  [%2]").arg(topicName).arg(QString::fromUtf8(pub->GetROSType())));
+    d->topicDetailTextEdit->setPlainText(QStringLiteral("Messages sent: %1").arg(pub->GetNumberOfMessagesSent()));
+  }
+}
+
+void qSlicerROS2ModuleWidget::updateTopicDetail()
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  if (!mObservedSubscriber) return;
+  
+  d->topicDetailGroupBox->setVisible(true);
+  QString topicName = QString::fromStdString(mObservedSubscriber->GetTopic());
+  QString rosType = QString::fromUtf8(mObservedSubscriber->GetROSType());
+  
+  d->topicDetailHeaderLabel->setText(QStringLiteral("Topic: %1  [%2]").arg(topicName).arg(rosType));
+  
+  const bool skipYAML = rosType.contains("PointCloud") || rosType.contains("Image") || rosType.contains("LaserScan");
+  
+  if (!skipYAML) {
+    constexpr size_t kMaxYAMLChars = 10000;
+    std::string yaml = mObservedSubscriber->GetLastMessageYAML();
+    if (yaml.size() > kMaxYAMLChars) {
+      yaml = yaml.substr(0, kMaxYAMLChars) + "\n\n[truncated]";
+    }
+    d->topicDetailTextEdit->setPlainText(QString::fromStdString(yaml));
+  } else {
+    d->topicDetailTextEdit->setPlainText(QStringLiteral("(Message preview disabled for high-volume type)"));
+  }
+}
+
+// ── Parameters ──────────────────────────────────────────────────────────────
+
+void qSlicerROS2ModuleWidget::refreshParameterTable()
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  size_t numParams = logic->mDefaultROS2Node->GetNumberOfNodeReferences("parameter");
+  d->parameterNodeTableWidget->setRowCount(numParams);
+  
+  for (size_t index = 0; index < numParams; ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("parameter", index);
+    vtkMRMLROS2ParameterNode *param = vtkMRMLROS2ParameterNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+    if (param) {
+      if (!d->parameterNodeTableWidget->item(index, 0)) d->parameterNodeTableWidget->setItem(index, 0, new QTableWidgetItem);
+      if (!d->parameterNodeTableWidget->item(index, 1)) d->parameterNodeTableWidget->setItem(index, 1, new QTableWidgetItem);
+      if (!d->parameterNodeTableWidget->item(index, 2)) d->parameterNodeTableWidget->setItem(index, 2, new QTableWidgetItem);
+      
+      d->parameterNodeTableWidget->item(index, 0)->setText(QString::fromStdString(param->GetMonitoredNodeName()));
+      d->parameterNodeTableWidget->item(index, 1)->setText(param->IsMonitoredNodeReady() ? "Ready" : "Waiting");
+      d->parameterNodeTableWidget->item(index, 2)->setText(QString::number(param->GetMonitoredParameterNames().size()));
+    }
+  }
+}
+
+void qSlicerROS2ModuleWidget::parameterNodeRowSelected(int row, int col)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  Q_UNUSED(col);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  QString nodeName = d->parameterNodeTableWidget->item(row, 0)->text();
+  vtkMRMLROS2ParameterNode *param = logic->mDefaultROS2Node->GetParameterNodeByNode(nodeName.toStdString());
+  
+  observeParameter(param);
+}
+
+void qSlicerROS2ModuleWidget::updateParameterDetail()
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  if (!mObservedParameter) return;
+  
+  d->parameterDetailGroupBox->setVisible(true);
+  QString nodeName = QString::fromStdString(mObservedParameter->GetMonitoredNodeName());
+  QString status = mObservedParameter->IsMonitoredNodeReady() ? "Ready" : "Waiting";
+  d->parameterDetailNodeLabel->setText(QStringLiteral("Node: %1 [%2]").arg(nodeName).arg(status));
+  
+  auto paramNames = mObservedParameter->GetMonitoredParameterNames();
+  d->parameterDetailTableWidget->setRowCount(paramNames.size());
+  
+  for (size_t i = 0; i < paramNames.size(); ++i) {
+    if (!d->parameterDetailTableWidget->item(i, 0)) d->parameterDetailTableWidget->setItem(i, 0, new QTableWidgetItem);
+    if (!d->parameterDetailTableWidget->item(i, 1)) d->parameterDetailTableWidget->setItem(i, 1, new QTableWidgetItem);
+    if (!d->parameterDetailTableWidget->item(i, 2)) d->parameterDetailTableWidget->setItem(i, 2, new QTableWidgetItem);
+    
+    std::string name = paramNames[i];
+    d->parameterDetailTableWidget->item(i, 0)->setText(QString::fromStdString(name));
+    d->parameterDetailTableWidget->item(i, 1)->setText(QString::fromStdString(mObservedParameter->GetParameterType(name)));
+    d->parameterDetailTableWidget->item(i, 2)->setText(QString::fromStdString(mObservedParameter->PrintParameter(name)));
+  }
+}
+
+// ── Tf2 ─────────────────────────────────────────────────────────────────────
+
+void qSlicerROS2ModuleWidget::refreshTf2Tables()
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  size_t numLookups = logic->mDefaultROS2Node->GetNumberOfNodeReferences("lookup");
+  d->tf2LookupTableWidget->setRowCount(numLookups);
+  for (size_t index = 0; index < numLookups; ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("lookup", index);
+    vtkMRMLROS2Tf2LookupNode *lookup = vtkMRMLROS2Tf2LookupNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+    if (lookup) {
+      if (!d->tf2LookupTableWidget->item(index, 0)) d->tf2LookupTableWidget->setItem(index, 0, new QTableWidgetItem);
+      if (!d->tf2LookupTableWidget->item(index, 1)) d->tf2LookupTableWidget->setItem(index, 1, new QTableWidgetItem);
+      if (!d->tf2LookupTableWidget->item(index, 2)) d->tf2LookupTableWidget->setItem(index, 2, new QTableWidgetItem);
+      
+      d->tf2LookupTableWidget->item(index, 0)->setText(QString::fromStdString(lookup->GetParentID()));
+      d->tf2LookupTableWidget->item(index, 1)->setText(QString::fromStdString(lookup->GetChildID()));
+      d->tf2LookupTableWidget->item(index, 2)->setText(QString::number(lookup->GetLookupAttempts()));
+    }
+  }
+  
+  size_t numBroadcasters = logic->mDefaultROS2Node->GetNumberOfNodeReferences("broadcaster");
+  d->tf2BroadcasterTableWidget->setRowCount(numBroadcasters);
+  for (size_t index = 0; index < numBroadcasters; ++index) {
+    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("broadcaster", index);
+    vtkMRMLROS2Tf2BroadcasterNode *bc = vtkMRMLROS2Tf2BroadcasterNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
+    if (bc) {
+      if (!d->tf2BroadcasterTableWidget->item(index, 0)) d->tf2BroadcasterTableWidget->setItem(index, 0, new QTableWidgetItem);
+      if (!d->tf2BroadcasterTableWidget->item(index, 1)) d->tf2BroadcasterTableWidget->setItem(index, 1, new QTableWidgetItem);
+      if (!d->tf2BroadcasterTableWidget->item(index, 2)) d->tf2BroadcasterTableWidget->setItem(index, 2, new QTableWidgetItem);
+      
+      d->tf2BroadcasterTableWidget->item(index, 0)->setText(QString::fromStdString(bc->GetParentID()));
+      d->tf2BroadcasterTableWidget->item(index, 1)->setText(QString::fromStdString(bc->GetChildID()));
+      d->tf2BroadcasterTableWidget->item(index, 2)->setText(QString::number(bc->GetNumberOfBroadcasts()));
+    }
+  }
+}
+
+void qSlicerROS2ModuleWidget::tf2LookupRowSelected(int row, int col)
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  Q_UNUSED(col);
+  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
+  if (!logic || !logic->mDefaultROS2Node) return;
+  
+  QString parentFrame = d->tf2LookupTableWidget->item(row, 0)->text();
+  QString childFrame = d->tf2LookupTableWidget->item(row, 1)->text();
+  vtkMRMLROS2Tf2LookupNode *lookup = logic->mDefaultROS2Node->GetTf2LookupNodeByParentChild(parentFrame.toStdString(), childFrame.toStdString());
+  
+  observeTf2Lookup(lookup);
+}
+
+void qSlicerROS2ModuleWidget::updateTf2Detail()
+{
+  Q_D(qSlicerROS2ModuleWidget);
+  if (!mObservedTf2Lookup) return;
+  
+  d->tf2DetailGroupBox->setVisible(true);
+  d->tf2DetailHeaderLabel->setText(QStringLiteral("Lookup: %1 → %2")
+    .arg(QString::fromStdString(mObservedTf2Lookup->GetParentID()))
+    .arg(QString::fromStdString(mObservedTf2Lookup->GetChildID())));
+    
+  vtkNew<vtkMatrix4x4> mat;
+  if (!mObservedTf2Lookup->GetMatrixTransformToParent(mat.GetPointer())) {
+    d->tf2DetailTextEdit->setPlainText("No transform data available.");
+    return;
+  }
+  
+  double m[4][4];
+  for (int i=0; i<4; i++) for (int j=0; j<4; j++) m[i][j] = mat->GetElement(i, j);
+  
+  QString text;
+  if (mTf2DisplayMode == Tf2DisplayMode::Matrix) {
+    text = QStringLiteral("%1 %2 %3 %4\n%5 %6 %7 %8\n%9 %10 %11 %12\n%13 %14 %15 %16")
+      .arg(m[0][0], 8, 'f', 4).arg(m[0][1], 8, 'f', 4).arg(m[0][2], 8, 'f', 4).arg(m[0][3], 8, 'f', 4)
+      .arg(m[1][0], 8, 'f', 4).arg(m[1][1], 8, 'f', 4).arg(m[1][2], 8, 'f', 4).arg(m[1][3], 8, 'f', 4)
+      .arg(m[2][0], 8, 'f', 4).arg(m[2][1], 8, 'f', 4).arg(m[2][2], 8, 'f', 4).arg(m[2][3], 8, 'f', 4)
+      .arg(m[3][0], 8, 'f', 4).arg(m[3][1], 8, 'f', 4).arg(m[3][2], 8, 'f', 4).arg(m[3][3], 8, 'f', 4);
+    d->tf2DisplayModeButton->setText("Matrix 4x4");
+  } else if (mTf2DisplayMode == Tf2DisplayMode::RPY) {
+    double roll, pitch, yaw;
+    matrixToRPY(m, roll, pitch, yaw);
+    text = QStringLiteral("Position (X,Y,Z):\n  %1  %2  %3\n\nRotation RPY (deg):\n  %4  %5  %6")
+      .arg(m[0][3], 8, 'f', 4).arg(m[1][3], 8, 'f', 4).arg(m[2][3], 8, 'f', 4)
+      .arg(roll, 8, 'f', 4).arg(pitch, 8, 'f', 4).arg(yaw, 8, 'f', 4);
+    d->tf2DisplayModeButton->setText("RPY + XYZ");
+  } else {
+    double qw, qx, qy, qz;
+    matrixToQuaternion(m, qw, qx, qy, qz);
+    text = QStringLiteral("Position (X,Y,Z):\n  %1  %2  %3\n\nQuaternion (W,X,Y,Z):\n  %4  %5  %6  %7")
+      .arg(m[0][3], 8, 'f', 4).arg(m[1][3], 8, 'f', 4).arg(m[2][3], 8, 'f', 4)
+      .arg(qw, 8, 'f', 4).arg(qx, 8, 'f', 4).arg(qy, 8, 'f', 4).arg(qz, 8, 'f', 4);
+    d->tf2DisplayModeButton->setText("Unit Quaternion");
+  }
+  
+  d->tf2DetailTextEdit->setPlainText(text);
+}
+
+void qSlicerROS2ModuleWidget::setTf2DisplayMode(int mode)
+{
+  if (mode == 0) mTf2DisplayMode = Tf2DisplayMode::Matrix;
+  else if (mode == 1) mTf2DisplayMode = Tf2DisplayMode::RPY;
+  else if (mode == 2) mTf2DisplayMode = Tf2DisplayMode::Quaternion;
+  
+  updateTf2Detail();
+}
+
+
+// ── Robots (Existing) ───────────────────────────────────────────────────────
 
 void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName, bool active)
 {
@@ -203,185 +630,6 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
     robotNameLineEdit->setText(name);
   }
 }
-
-
-void qSlicerROS2ModuleWidget::refreshSubTable()
-{
-  Q_D(qSlicerROS2ModuleWidget);
-  this->Superclass::setup();
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  // Update the subscriber table widget
-  size_t subRow = 0;
-  d->rosSubscriberTableWidget->clearContents();
-
-  // // Resize the table
-  d->rosSubscriberTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"));
-
-  // // Iterate through the references
-  for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("subscriber"); ++index) {
-  const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("subscriber", index);
-  vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
-  if (sub == nullptr) {
-    } else {
-      updateSubscriberTable(sub, subRow);
-      subRow++;
-    }
-  }
-}
-
-
-void qSlicerROS2ModuleWidget::refreshPubTable()
-{
-  Q_D(qSlicerROS2ModuleWidget);
-  this->Superclass::setup();
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  // Update the publisher table widget
-  size_t pubRow = 0;
-  d->rosPublisherTableWidget->clearContents();
-
-  // Resize the table
-  d->rosPublisherTableWidget->setRowCount(logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"));
-
-  // Iterate through the references
-  for (int index = 0; index < logic->mDefaultROS2Node->GetNumberOfNodeReferences("publisher"); ++index) {
-    const char * id = logic->mDefaultROS2Node->GetNthNodeReferenceID("publisher", index);
-    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->mDefaultROS2Node->GetScene()->GetNodeByID(id));
-    if (pub == nullptr) {
-    } else {
-      updatePublisherTable(pub, pubRow);
-      pubRow++;
-    }
-  }
-}
-
-
-void qSlicerROS2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* sub, size_t row)
-{
-  Q_D(qSlicerROS2ModuleWidget);
-  this->Superclass::setup();
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-
-  QTableWidgetItem *topic_item = d->rosSubscriberTableWidget->item(row, 0);
-  QTableWidgetItem *type_item = d->rosSubscriberTableWidget->item(row, 1);
-
-  if (!topic_item) {
-    topic_item = new QTableWidgetItem;
-    d->rosSubscriberTableWidget->setItem(row, 0, topic_item);
-    topic_item->setText(sub->GetTopic().c_str());
-    type_item = new QTableWidgetItem;
-    d->rosSubscriberTableWidget->setItem(row, 1, type_item);
-    type_item->setText(sub->GetROSType());
-  }
-  row++;
-}
-
-
-void qSlicerROS2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* sub, size_t row){
-  Q_D(qSlicerROS2ModuleWidget);
-  this->Superclass::setup();
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-
-  QTableWidgetItem *topic_item = d->rosPublisherTableWidget->item(row, 0);
-  QTableWidgetItem *type_item = d->rosPublisherTableWidget->item(row, 2);
-
-  if (!topic_item) {
-    topic_item = new QTableWidgetItem;
-    d->rosPublisherTableWidget->setItem(row, 0, topic_item);
-    topic_item->setText(sub->GetTopic().c_str());
-    type_item = new QTableWidgetItem;
-    d->rosPublisherTableWidget->setItem(row, 1, type_item);
-    type_item->setText(sub->GetROSType());
-  }
-  row++;
-}
-
-
-void qSlicerROS2ModuleWidget::subscriberClicked(int row, int col)
-{
-  // Row is a reference to the message index
-  Q_D(qSlicerROS2ModuleWidget);
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  if (col == 1) { // only invoked when users click the number of messages cell
-    QString subName = d->rosSubscriberTableWidget->item(row, 0)->text();
-    std::string topic = subName.toStdString();
-    vtkMRMLROS2SubscriberNode *sub = vtkMRMLROS2SubscriberNode::SafeDownCast(
-      logic->GetMRMLScene()->GetFirstNodeByName(("ros2:sub:" + topic).c_str()));
-    if (!sub) {
-      std::cerr << "No subscriber by this name in the scene" << std::endl;
-      return;
-    }
-
-    const QString rosType = QString::fromUtf8(sub->GetROSType());
-    const bool skipYAML =
-      rosType.contains("PointCloud") ||
-      rosType.contains("Image") ||
-      rosType.contains("LaserScan");
-
-    QString body = QStringLiteral("Topic: %1\nType: %2\nNumber of messages: %3")
-                   .arg(subName).arg(rosType).arg(sub->GetNumberOfMessages());
-
-    if (!skipYAML) {
-      constexpr size_t kMaxYAMLChars = 10000;
-      std::string yaml = sub->GetLastMessageYAML();
-      if (yaml.size() > kMaxYAMLChars) {
-        yaml = yaml.substr(0, kMaxYAMLChars) + "\n\n[truncated]";
-      }
-      body += QStringLiteral("\nLast message:\n%1").arg(QString::fromStdString(yaml));
-    } else {
-      body += QStringLiteral("\n\n(Message preview disabled for high-volume type)");
-    }
-
-    QMessageBox msgBox;
-    msgBox.setText(body);
-    msgBox.exec();
-  }
-}
-
-void qSlicerROS2ModuleWidget::publisherClicked(int row, int col)
-{
-  // Row is a reference to the message index
-  Q_D(qSlicerROS2ModuleWidget);
-  vtkSlicerROS2Logic* logic = vtkSlicerROS2Logic::SafeDownCast(this->logic());
-  if (!logic) {
-    qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
-    return;
-  }
-  if (col == 1) { // only invoked when users click the number of messages cell
-    QString pubName = d->rosPublisherTableWidget->item(row,0)->text();
-    std::string topic = pubName.toStdString();
-    vtkMRMLROS2PublisherNode *pub = vtkMRMLROS2PublisherNode::SafeDownCast(logic->GetMRMLScene()->GetFirstNodeByName(("ros2:pub:" + topic).c_str()));
-    if (!pub) {
-      std::cerr << "No publisher by this name in the scene" << std::endl;
-      return;
-    }
-    QMessageBox msgBox;
-    msgBox.setText(QStringLiteral("Number of calls: %1\nNumber of messages sent: %2")
-                   .arg(pub->GetNumberOfCalls())
-                   .arg(pub->GetNumberOfMessagesSent()));
-    msgBox.exec();
-  }
-}
-
 
 void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
                                                  QLineEdit * parameterNodeNameLineEdit,

@@ -30,15 +30,22 @@ class vtkMRMLNode;
 class vtkMRMLROS2SubscriberNode;
 class vtkMRMLROS2PublisherNode;
 class vtkMRMLROS2RobotNode;
+class vtkMRMLROS2ParameterNode;
+class vtkMRMLROS2Tf2LookupNode;
 class QLineEdit;
 class QPushButton;
 class QCheckBox;
+class QMenu;
+class QAction;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerROS2ModuleWidget :
   public qSlicerAbstractModuleWidget
 {
   Q_OBJECT
+
+  /// Current display mode for the Tf2 detail panel.
+  enum class Tf2DisplayMode { Matrix, RPY, Quaternion };
 
 public:
   typedef qSlicerAbstractModuleWidget Superclass;
@@ -50,17 +57,23 @@ protected:
 
   void setup() override;
 
-protected slots:
-  void updateWidget(void);
-  void updateSubscriberTable(vtkMRMLROS2SubscriberNode * sub, size_t row);
-  void updatePublisherTable(vtkMRMLROS2PublisherNode * sub, size_t row);
-  void onAddNewRobotClicked(const std::string & robotName = "robot", bool active = false);
-  void refreshSubTable(void);
-  void refreshPubTable(void);
+  // ── Observer helpers ──────────────────────────────────────────────────────
+  void observeSubscriber(vtkMRMLROS2SubscriberNode * node);
+  void observeParameter(vtkMRMLROS2ParameterNode  * node);
+  void observeTf2Lookup(vtkMRMLROS2Tf2LookupNode  * node);
 
-  // Slots for dynamic widgets
-  void subscriberClicked(int row, int col);
-  void publisherClicked(int row, int col);
+  // ── Transform decomposition helpers ───────────────────────────────────────
+  static void matrixToRPY(double m[4][4],
+                           double & roll, double & pitch, double & yaw);
+  static void matrixToQuaternion(double m[4][4],
+                                  double & qw, double & qx,
+                                  double & qy, double & qz);
+
+protected slots:
+  // ── Existing / Robots ─────────────────────────────────────────────────────
+  void updateWidget(void);
+  void onUpdateTimer(void);
+  void onAddNewRobotClicked(const std::string & robotName = "robot", bool active = false);
   void onLoadRobotClicked(QLineEdit * robotNameLineEdit,
                           QLineEdit * parameterNodeNameLineEdit,
                           QLineEdit * parameterNameLineEdit,
@@ -68,7 +81,6 @@ protected slots:
                           QLineEdit * tfPrefixLineEdit,
                           QPushButton * loadRobotButton,
                           QPushButton * removeRobotButton);
-
   void onRemoveRobotClicked(QLineEdit * robotNameLineEdit,
                             QLineEdit * parameterNodeNameLineEdit,
                             QLineEdit * parameterNameLineEdit,
@@ -78,8 +90,39 @@ protected slots:
                             QPushButton * removeRobotButton,
                             QWidget * robotWidget);
 
+  // ── Topics tab ────────────────────────────────────────────────────────────
+  void refreshTopicsPanel(void);
+  void updateSubscriberTable(vtkMRMLROS2SubscriberNode * sub, size_t row);
+  void updatePublisherTable(vtkMRMLROS2PublisherNode  * pub, size_t row);
+  void subscriberRowSelected(int row, int col);
+  void publisherRowSelected(int row, int col);
+  void updateTopicDetail(void);       // driven by MRML observer
+
+  // ── Parameters tab ────────────────────────────────────────────────────────
+  void refreshParameterTable(void);
+  void parameterNodeRowSelected(int row, int col);
+  void updateParameterDetail(void);   // driven by MRML observer
+
+  // ── Tf2 tab ───────────────────────────────────────────────────────────────
+  void refreshTf2Tables(void);
+  void tf2LookupRowSelected(int row, int col);
+  void updateTf2Detail(void);         // driven by MRML observer
+  void setTf2DisplayMode(int mode);   // called by QAction
+
+  // ── Tab visibility gating ─────────────────────────────────────────────────
+  void onInnerTabChanged(int index);
+
 private:
   std::vector<std::string> robotsAddedToTheWidget;
+
+  // Currently observed MRML nodes (one per detail panel)
+  vtkMRMLROS2SubscriberNode * mObservedSubscriber = nullptr;
+  vtkMRMLROS2ParameterNode  * mObservedParameter  = nullptr;
+  vtkMRMLROS2Tf2LookupNode  * mObservedTf2Lookup  = nullptr;
+
+  // Tf2 detail display mode
+  Tf2DisplayMode mTf2DisplayMode = Tf2DisplayMode::Matrix;
+
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);
   Q_DISABLE_COPY(qSlicerROS2ModuleWidget);
 };

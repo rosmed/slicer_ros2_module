@@ -525,6 +525,19 @@ std::vector<std::string> vtkMRMLROS2ParameterNode::GetMonitoredParameterNamesCac
 }
 
 
+/* Returns names of all parameters in the live parameter store */
+std::vector<std::string> vtkMRMLROS2ParameterNode::GetMonitoredParameterNames(void) const
+{
+  std::vector<std::string> names;
+  names.reserve(mInternals->mParameterStore.size());
+  for (const auto & kv : mInternals->mParameterStore) {
+    names.push_back(kv.first);
+  }
+  return names;
+}
+
+
+
 bool vtkMRMLROS2ParameterNode::CheckParameterExistsAndIsSet(const std::string &parameterName) const
 {
   if (mInternals->mParameterStore.find(parameterName) == mInternals->mParameterStore.end()) {

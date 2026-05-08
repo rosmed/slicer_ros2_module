@@ -206,6 +206,20 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # "setMRMLScene(vtkMRMLScene*)" slot.
         uiWidget.setMRMLScene(slicer.mrmlScene)
 
+        # Embed Slicer ROS2 module widget
+        import ctk
+        self.ros2CollapsibleButton = ctk.ctkCollapsibleButton()
+        self.ros2CollapsibleButton.text = "Slicer ROS2"
+        self.ros2CollapsibleButton.collapsed = True
+        try:
+            self.ros2Widget = slicer.modules.ros2.createNewWidgetRepresentation()
+            self.ros2Widget.setMRMLScene(slicer.mrmlScene)
+            layout = qt.QVBoxLayout(self.ros2CollapsibleButton)
+            layout.addWidget(self.ros2Widget)
+            self.layout.addWidget(self.ros2CollapsibleButton)
+        except Exception as e:
+            print(f"Warning: Could not embed Slicer ROS2 widget: {e}")
+
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
         self.logic = ROS2MotionControlLogic()
@@ -215,6 +229,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
+        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAboutToBeRemovedEvent, self.onNodeAboutToBeRemoved)
         self.ui.tabWidget.currentChanged.connect(self.onTabChanged)
         
         # Buttons
@@ -284,11 +299,65 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Stop streaming when exiting module
         if self.logic:
             self.logic.removeObserver()
+        self.exitControlMode()
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         if self._parameterNode:
             self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
             self._parameterNodeGuiTag = None
             self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
+
+    @vtk.calldata_type(vtk.VTK_OBJECT)
+    def onNodeAboutToBeRemoved(self, caller, event, callData) -> None:
+        if self.robot and callData == self.robot:
+            print("Motion Control: Robot node about to be removed. Disabling UI and cleaning up.")
+            if self.logic:
+                self.logic.ClearJointStateSubscriber()
+            self.exitControlMode()
+            self.ui.appCollapsibleButton.enabled = False
+            self.ui.jointStateCollapsibleButton.enabled = False
+            self.ui.moveitCollapsibleButton.enabled = False
+            self.isRobotLoaded = False
+            self.robot = None
+            
+            # Clean up dynamic sliders
+            container = self.ui.JointTab.layout()
+            if container is not None:
+                for i in reversed(range(container.count())):
+                    item = container.itemAt(i)
+                    widget = item.widget()
+                    if widget == self.ui.zeroPushButton:
+                        continue
+                    if widget is not None:
+                        container.takeAt(i)
+                        widget.deleteLater()
+            self.jointSliders = []
+            self.jointSpinboxes = []
+            self.jointPositionsRad = []
+
+            # Clean up move group param
+            if self._moveGroupParamNode is not None:
+                try:
+                    if self._moveGroupParamObsId is not None:
+                        self._moveGroupParamNode.RemoveObserver(self._moveGroupParamObsId)
+                    slicer.mrmlScene.RemoveNode(self._moveGroupParamNode)
+                except Exception:
+                    pass
+                self._moveGroupParamNode = None
+                self._moveGroupParamObsId = None
+
+            # Disable Joint Control buttons
+            self.ui.zeroPushButton.enabled = False
+            self.ui.currentStatePushButton.enabled = False
+            
+            # Disable 3D Control buttons
+            self.ui.zeroPushButton3DControl.enabled = False
+            self.ui.lastGoalPushButton3DControl.enabled = False
+            self.ui.currentStatePushButton3DControl.enabled = False
+
+            # Disable Trajectory buttons
+            self.ui.planButton.enabled = False
+            self.ui.previewButton.enabled = False
+            self.ui.executeButton.enabled = False
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
