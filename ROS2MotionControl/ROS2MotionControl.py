@@ -544,41 +544,65 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                     # --- 3. CALCULATE LIMITS ---
                     lo_hi = limits.get(joint_name)
                     if lo_hi:
-                        lo_deg = int(round(math.degrees(lo_hi[0])))
-                        hi_deg = int(round(math.degrees(lo_hi[1])))
-                        if lo_deg > hi_deg:
-                            lo_deg, hi_deg = hi_deg, lo_deg
+                        jtype = lo_hi[2] if len(lo_hi) > 2 else "revolute"
+                        if jtype == "prismatic":
+                            lo_ui = lo_hi[0] * 1000.0
+                            hi_ui = lo_hi[1] * 1000.0
+                        else:
+                            lo_ui = math.degrees(lo_hi[0])
+                            hi_ui = math.degrees(lo_hi[1])
+
+                        if lo_ui > hi_ui:
+                            lo_ui, hi_ui = hi_ui, lo_ui
                     else:
-                        lo_deg, hi_deg = -180, 180
+                        jtype = "revolute"
+                        lo_ui, hi_ui = -180.0, 180.0
+
+                    lo_ui_int = int(round(lo_ui))
+                    hi_ui_int = int(round(hi_ui))
 
                     # Determine initial value
                     initial_val_rad = currentjointpos[i] if currentjointpos and i < len(currentjointpos) else 0.0
-                    initial_val_deg = int(round(math.degrees(initial_val_rad)))
-                    initial_val_deg = max(lo_deg, min(hi_deg, initial_val_deg))
+                    
+                    if jtype == "prismatic":
+                        initial_val_ui = initial_val_rad * 1000.0
+                    else:
+                        initial_val_ui = math.degrees(initial_val_rad)
+                        
+                    initial_val_ui_int = int(round(initial_val_ui))
+                    initial_val_ui_int = max(lo_ui_int, min(hi_ui_int, initial_val_ui_int))
+                    
+                    # Store jtype on UI elements for later use
+                    joint_slider.setProperty("jtype", jtype)
+                    joint_spinbox.setProperty("jtype", jtype)
 
                     # --- 4. CONFIGURE SLIDER ---
-                    joint_slider.setMinimum(lo_deg)
-                    joint_slider.setMaximum(hi_deg)
-                    joint_slider.setValue(initial_val_deg)
+                    joint_slider.setMinimum(lo_ui_int)
+                    joint_slider.setMaximum(hi_ui_int)
+                    joint_slider.setValue(initial_val_ui_int)
                     joint_slider.setTickInterval(10)
                     joint_slider.setTickPosition(qt.QSlider.TicksBelow)
 
                     # --- 5. CONFIGURE SPINBOX ---
-                    joint_spinbox.setMinimum(lo_deg)
-                    joint_spinbox.setMaximum(hi_deg)
-                    joint_spinbox.setSingleStep(1.0) 
-                    joint_spinbox.setValue(initial_val_deg)
-                    joint_spinbox.setSuffix(" deg")
+                    joint_spinbox.setMinimum(lo_ui)
+                    joint_spinbox.setMaximum(hi_ui)
+                    
+                    if jtype == "prismatic":
+                        joint_spinbox.setSingleStep(1.0)
+                        joint_spinbox.setSuffix(" mm")
+                    else:
+                        joint_spinbox.setSingleStep(1.0)
+                        joint_spinbox.setSuffix(" deg")
+                        
+                    joint_spinbox.setValue(initial_val_ui)
 
                     # --- 6. SYNC LOGIC ---
                     # A. Slider moves -> Update Spinbox
                     joint_slider.valueChanged.connect(lambda val, sb=joint_spinbox: sb.setValue(val))
 
-                    # B. Spinbox changes -> Update Slider
-                    joint_spinbox.valueChanged.connect(lambda val, sl=joint_slider: sl.setValue(int(val)))
-
-                    # C. Slider moves -> Trigger your IK Logic
-                    joint_slider.valueChanged.connect(lambda value, idx=i: self.onJointSliderChanged(idx, value))
+                    # B. Spinbox changes -> Update Slider AND IK Logic
+                    joint_spinbox.valueChanged.connect(lambda val, sl=joint_slider: sl.setValue(int(round(val))))
+                    joint_spinbox.valueChanged.connect(lambda value, idx=i: self.onJointSliderChanged(idx, value))
 
                     # --- 7. ADD TO LAYOUTS ---
                     
@@ -615,19 +639,23 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.logic.baseGoalColor = (color.redF(), color.greenF(), color.blueF())
         
     # Joint slider change handler
-    def onJointSliderChanged(self, idx: int, valueDeg: int) -> None:
+    def onJointSliderChanged(self, idx: int, value: float) -> None:
         # Ensure array is large enough
         while len(self.jointPositionsRad) <= idx:
             self.jointPositionsRad.append(0.0)
+            
+        jtype = self.jointSliders[idx].property("jtype") if idx < len(self.jointSliders) else "revolute"
         
-        # store as radians
-        self.jointPositionsRad[idx] = math.radians(valueDeg)
+        if jtype == "prismatic":
+            self.jointPositionsRad[idx] = value / 1000.0
+        else:
+            self.jointPositionsRad[idx] = math.radians(value)
 
         # Update goal robot transforms with new joint positions
         if self.logic is not None and self.robot is not None:
             self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
         if DEBUG:
-            print(f"All joint values (rad): {[f'{j:.4f}' for j in self.jointPositionsRad]}")
+            print(f"All joint values (rad/m): {[f'{j:.4f}' for j in self.jointPositionsRad]}")
     
     # Zero button handler
     def onZeroButton(self) -> None:
@@ -714,7 +742,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.jointPositionsRad = joint_values.copy()
         self.logic.last_ik_solution = joint_values.copy()
         self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_values)
-        self._setJointUiFromRadians(joint_values)
+        self._setJointUi_SIToSlicer(joint_values)
         self._syncProbeToCurrentTipPose()
         if DEBUG:
             print(f"Current state applied from subscriber: {[f'{j:.4f}' for j in joint_values]}")
@@ -739,20 +767,30 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         tip_transform_node.GetMatrixTransformToWorld(tip_matrix)
         self.fromtransform.SetMatrixTransformToParent(tip_matrix)
 
-    def _setJointUiFromRadians(self, joint_values_rad) -> None:
-        for i, rad in enumerate(joint_values_rad):
+    def _setJointUi_SIToSlicer(self, joint_values_rad) -> None:
+        for i, val in enumerate(joint_values_rad):
             if i >= len(self.jointSliders):
                 break
             slider = self.jointSliders[i]
             spinbox = self.jointSpinboxes[i]
-            deg = int(round(math.degrees(rad)))
+            
+            jtype = slider.property("jtype")
+            if jtype == "prismatic":
+                ui_val = val * 1000.0
+            else:
+                ui_val = math.degrees(val)
+                
+            ui_val_int = int(round(ui_val))
+            
             lo = slider.minimum
             hi = slider.maximum
-            clamped = max(lo, min(hi, deg))
+            clamped_int = max(lo, min(hi, ui_val_int))
+            clamped_float = max(spinbox.minimum, min(spinbox.maximum, ui_val))
+            
             slider.blockSignals(True)
             spinbox.blockSignals(True)
-            slider.setValue(clamped)
-            spinbox.setValue(clamped)
+            slider.setValue(clamped_int)
+            spinbox.setValue(clamped_float)
             slider.blockSignals(False)
             spinbox.blockSignals(False)
 
@@ -889,7 +927,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
 
         self.jointPositionsRad = list(latest_solution)
-        self._setJointUiFromRadians(self.jointPositionsRad)
+        self._setJointUi_SIToSlicer(self.jointPositionsRad)
 
     def enterControlMode(self):
                 # 1. Check if Robot is Loaded
@@ -1901,7 +1939,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if lo is None or hi is None:
                 continue
 
-            limits[name] = (float(lo), float(hi))
+            limits[name] = (float(lo), float(hi), jtype)
 
         return limits
     
@@ -1971,17 +2009,27 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 f"!= joint count ({len(limits_rad)})"
             )
 
-        for slider, (jointName, (lo_rad, hi_rad)) in zip(sliders, limits_rad.items()):
-            lo_deg = int(round(math.degrees(lo_rad)))
-            hi_deg = int(round(math.degrees(hi_rad)))
+        for slider, (jointName, limit_info) in zip(sliders, limits_rad.items()):
+            lo_rad = limit_info[0]
+            hi_rad = limit_info[1]
+            jtype = limit_info[2] if len(limit_info) > 2 else "revolute"
+            
+            if jtype == "prismatic":
+                lo_ui = int(round(lo_rad * 1000.0))
+                hi_ui = int(round(hi_rad * 1000.0))
+                unit_str = "mm"
+            else:
+                lo_ui = int(round(math.degrees(lo_rad)))
+                hi_ui = int(round(math.degrees(hi_rad)))
+                unit_str = "deg"
 
-            if lo_deg > hi_deg:
-                lo_deg, hi_deg = hi_deg, lo_deg
+            if lo_ui > hi_ui:
+                lo_ui, hi_ui = hi_ui, lo_ui
 
-            slider.setRange(lo_deg, hi_deg)
+            slider.setRange(lo_ui, hi_ui)
             slider.setValue(0)
 
-            print(f"[ROS2MotionControl] {jointName}: {lo_deg}..{hi_deg} deg")
+            print(f"[ROS2MotionControl] {jointName}: {lo_ui}..{hi_ui} {unit_str}")
             
     def setIKSourceTransforms(self, fromtransformname, totransformname):
             """
@@ -2100,6 +2148,10 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     angle_rad = math.radians(angle_deg)
                     
                     # Debug print (Optional)
+                    jtype = info.get('type', 'revolute')
+                    if jtype == "prismatic":
+                        # We would extract translation here, but we are just printing
+                        pass
                     # print(f"Joint {joint_name}: raw={rotation}, fixed={angle_deg}")
 
                     joint_positions.append(angle_rad)
@@ -2184,7 +2236,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     angle_deg = -angle_deg
                     
                 angle_rad = math.radians(angle_deg)
-                print(f"[goal] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_deg={angle_deg:.1f}, rad={angle_rad:.4f}")
+                
+                jtype = info.get('type', 'revolute')
+                if jtype == "prismatic":
+                    print(f"[goal] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_ui={angle_deg:.1f}, rad_or_m={angle_rad:.4f}")
+                else:
+                    print(f"[goal] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_deg={angle_deg:.1f}, rad={angle_rad:.4f}")
                 joint_positions.append(angle_rad)
                     
             except Exception as e:
