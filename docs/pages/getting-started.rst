@@ -20,7 +20,13 @@ Before you can start compiling the SlicerROS2 module, you will need:
 Versions
 ========
 
-SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with Slicer 3D 5.10
+SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with Slicer 3D 5.10.  When you clone the Slicer repo, make sure to checkout the v5.10 branch/tag.
+
+.. code-block:: bash
+
+   git clone https://github.com/slicer/slicer
+   cd Slicer
+   git checkout v5.10.0
 
 ================
 Compiling Slicer
