@@ -22,7 +22,7 @@ copyright = '2022-2025, Queen’s University (Kingston, Canada), Johns Hopkins U
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = '1.1'
 
 
 # -- General configuration ---------------------------------------------------

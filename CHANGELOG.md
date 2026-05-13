@@ -1,3 +1,17 @@
+v1.1
+====
+
+* Tested on Ubuntu 24.04 with ROS2 Jazzy
+* Added ROS2MotionControl module with MoveIt integration for trajectory planning and execution
+* Added interactive 3D control and joint control interfaces for robot manipulation
+* Added extension manager script with GUI to download, build, and install extensions from git repos
+* Added launch file to start Slicer with correct paths
+* Build is now in colcon workspace, no files dumped in the Slicer build tree
+* Added support for `PointCloud` and `PointCloud2` message types in subscribers
+* Robot cleanup improved: added `RemoveFromROS2Node` method and fixes to avoid crashes on removal
+* Added DAE mesh loading, now creates multiple meshes per link when multiple colors are used (no need to manually update URDF files)
+* Module is now listed under the **ROS** category in Slicer's Modules menu
+
 v1.0
 ====
 

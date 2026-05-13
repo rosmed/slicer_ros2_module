@@ -141,6 +141,10 @@ necessary environment variables and module paths for
    source ~/ros2_ws/install/setup.bash
    ros2 launch slicer_ros2_module slicer.launch.py
 
+Once Slicer is open, SlicerROS2 can be found in the **ROS** category
+of the Modules menu (previously it was listed under the **IGT**
+category).
+
 ===================
 Managing Extensions
 ===================
