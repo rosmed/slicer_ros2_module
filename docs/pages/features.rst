@@ -41,8 +41,9 @@ Acknowledgment
 The initial core developers are:
 
 * Laura Connolly, EE PhD student at Queens University, Kingston, Ontario, Canada
-* Aravind S. Kumar, CS Masters student at Johns Hopkins University, Baltimore, Maryland, USA
+* Aravind S. Kumar, CS Master's student at Johns Hopkins University, Baltimore, Maryland, USA
 * Anton Deguet, Associate Research Engineer at Johns Hopkins University, Baltimore, Maryland, USA
+* Kaito Hara-Lee, Master's student at Queens University, Kingston, Ontario, Canada
 
 This project is supported by:
 
