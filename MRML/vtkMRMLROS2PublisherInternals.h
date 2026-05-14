@@ -61,7 +61,30 @@ protected:
       return false;
     }
     mROSNode = mrmlROSNodePtr->mInternals->mNodePointer;
-    mPublisher = mROSNode->create_publisher<_ros_type>(topic, 10);
+
+    rclcpp::QoS qos_profile(mMRMLNode->GetQoSHistoryDepth());
+    switch (mMRMLNode->GetQoSReliability()) {
+      case vtkMRMLROS2PublisherNode::Reliable:
+        qos_profile.reliable();
+        break;
+      case vtkMRMLROS2PublisherNode::BestEffort:
+        qos_profile.best_effort();
+        break;
+      default:
+        break;
+    }
+    switch (mMRMLNode->GetQoSDurability()) {
+      case vtkMRMLROS2PublisherNode::TransientLocal:
+        qos_profile.transient_local();
+        break;
+      case vtkMRMLROS2PublisherNode::Volatile:
+        qos_profile.durability_volatile();
+        break;
+      default:
+        break;
+    }
+
+    mPublisher = mROSNode->create_publisher<_ros_type>(topic, qos_profile);
     mrmlROSNodePtr->SetNthNodeReferenceID("publisher",
                                           mrmlROSNodePtr->GetNumberOfNodeReferences("publisher"),
                                           mMRMLNode->GetID());

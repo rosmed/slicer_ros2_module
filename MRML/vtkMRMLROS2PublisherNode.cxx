@@ -68,6 +68,9 @@ void vtkMRMLROS2PublisherNode::WriteXML(ostream& of, int nIndent)
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
   vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
+  vtkMRMLWriteXMLIntMacro(QoSHistoryDepth, QoSHistoryDepth);
+  vtkMRMLWriteXMLIntMacro(QoSReliability, QoSReliability);
+  vtkMRMLWriteXMLIntMacro(QoSDurability, QoSDurability);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -78,6 +81,9 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes(const char** atts)
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
+  vtkMRMLReadXMLIntMacro(QoSHistoryDepth, QoSHistoryDepth);
+  vtkMRMLReadXMLIntMacro(QoSReliability, QoSReliability);
+  vtkMRMLReadXMLIntMacro(QoSDurability, QoSDurability);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }

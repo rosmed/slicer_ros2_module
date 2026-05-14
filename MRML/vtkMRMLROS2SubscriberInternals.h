@@ -76,8 +76,31 @@ protected:
       return false;
     }
     mROSNode = mrmlROSNodePtr->mInternals->mNodePointer;
+
+    rclcpp::QoS qos_profile(mMRMLNode->GetQoSHistoryDepth());
+    switch (mMRMLNode->GetQoSReliability()) {
+      case vtkMRMLROS2SubscriberNode::Reliable:
+        qos_profile.reliable();
+        break;
+      case vtkMRMLROS2SubscriberNode::BestEffort:
+        qos_profile.best_effort();
+        break;
+      default:
+        break;
+    }
+    switch (mMRMLNode->GetQoSDurability()) {
+      case vtkMRMLROS2SubscriberNode::TransientLocal:
+        qos_profile.transient_local();
+        break;
+      case vtkMRMLROS2SubscriberNode::Volatile:
+        qos_profile.durability_volatile();
+        break;
+      default:
+        break;
+    }
+
     mSubscription
-      = mROSNode->create_subscription<_ros_type>(topic, 100,
+      = mROSNode->create_subscription<_ros_type>(topic, qos_profile,
                                                  std::bind(&SelfType::SubscriberCallback, this, std::placeholders::_1));
     mrmlROSNodePtr->SetNthNodeReferenceID("subscriber",
                                           mrmlROSNodePtr->GetNumberOfNodeReferences("subscriber"),
@@ -153,9 +176,15 @@ public:
     vtkROS2ToSlicer(this->mLastMessageROS, result);
   }
 
+  _slicer_type GetLastMessage(void)
+  {
+    this->GetLastMessage(mLastMessageSlicer);
+    return mLastMessageSlicer;
+  }
+
   vtkVariant GetLastMessageVariant(void)
   {
-    GetLastMessage(mLastMessageSlicer);
+    this->GetLastMessage(mLastMessageSlicer);
     return vtkVariant(mLastMessageSlicer);
   }
 };
@@ -183,9 +212,15 @@ public:
     vtkROS2ToSlicer(this->mLastMessageROS, result);
   }
 
+  _slicer_type * GetLastMessage(void)
+  {
+    this->GetLastMessage(mLastMessageSlicer.GetPointer());
+    return mLastMessageSlicer.GetPointer();
+  }
+
   vtkVariant GetLastMessageVariant(void)
   {
-    GetLastMessage(mLastMessageSlicer.GetPointer());
+    this->GetLastMessage(mLastMessageSlicer.GetPointer());
     return vtkVariant(mLastMessageSlicer.GetPointer());
   }
 };

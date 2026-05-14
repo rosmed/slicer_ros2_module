@@ -91,7 +91,7 @@
                      <number>0</number>
                     </property>
                     <property name="columnCount">
-                     <number>3</number>
+                     <number>6</number>
                     </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
@@ -107,6 +107,15 @@
                     </column>
                     <column>
                      <property name="text"><string># Received</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Depth</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Reliability</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Durability</string></property>
                     </column>
                    </widget>
                   </item>
@@ -140,7 +149,7 @@
                      <number>0</number>
                     </property>
                     <property name="columnCount">
-                     <number>3</number>
+                     <number>6</number>
                     </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
@@ -156,6 +165,15 @@
                     </column>
                     <column>
                      <property name="text"><string># Sent</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Depth</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Reliability</string></property>
+                    </column>
+                    <column>
+                     <property name="text"><string>Durability</string></property>
                     </column>
                    </widget>
                   </item>
