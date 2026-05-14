@@ -10,6 +10,8 @@
 #include <vtkTable.h>
 #include <vtkTypeUInt8Array.h>
 #include <vtkPoints.h>
+#include <vtkImageData.h>
+#include <vtkPolyData.h>
 
 // ROS2
 #include <std_msgs/msg/empty.hpp>
@@ -64,8 +66,10 @@ void vtkROS2ToSlicer(const geometry_msgs::msg::Wrench & input, vtkSmartPointer<v
 
 // sensor_msgs
 void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkTypeUInt8Array> result);
+void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkImageData> result);
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result);
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result);
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPolyData> result);
 
 void vtkROS2ToSlicer(const std_srvs::srv::Trigger::Response & input, vtkSmartPointer<vtkTable> result);
 void vtkROS2ToSlicer(const std_srvs::srv::SetBool::Response & input, vtkSmartPointer<vtkBoolString> result);

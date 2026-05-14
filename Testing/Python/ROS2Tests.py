@@ -783,6 +783,97 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.ros2Node.Destroy()
 
 
+    class TestImageAndPointCloud(unittest.TestCase):
+        def setUp(self):
+            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+            self.ros2Node.Create("testNodeImagePC_" + uuid.uuid4().hex[:4])
+            ROS2TestsLogic.spin_some()
+
+        def test_image_bridge(self):
+            print("\nTesting Image bridge - Starting..")
+            topic = "/test_image"
+            # Use shorthand names "Image" and "PolyData" as registered in default nodes
+            pub = self.ros2Node.CreateAndAddPublisherNode("Image", topic)
+            sub = self.ros2Node.CreateAndAddSubscriberNode("Image", topic)
+            
+            # Create a volume node as target (explicit bridging)
+            volumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "TestVolume")
+            sub.SetTargetNodeID(volumeNode.GetID())
+            
+            # Create a test image (10x10 gray)
+            imageData = vtk.vtkImageData()
+            imageData.SetDimensions(10, 10, 1)
+            imageData.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 1)
+            imageData.GetPointData().GetScalars().Fill(128)
+            
+            pub.Publish(imageData)
+            
+            # Wait for message
+            for i in range(20):
+                if sub.GetNumberOfMessages() > 0:
+                    break
+                ROS2TestsLogic.spin_some()
+            
+            self.assertTrue(sub.GetNumberOfMessages() > 0, "Image message not received")
+            
+            # Check if volume node was updated automatically by the logic
+            updatedImageData = volumeNode.GetImageData()
+            self.assertIsNotNone(updatedImageData, "Volume node image data is None")
+            self.assertEqual(updatedImageData.GetDimensions()[0], 10)
+            self.assertEqual(updatedImageData.GetPointData().GetScalars().GetValue(0), 128)
+            
+            # Cleanup
+            slicer.mrmlScene.RemoveNode(volumeNode)
+            self.ros2Node.RemoveAndDeletePublisherNode(topic)
+            self.ros2Node.RemoveAndDeleteSubscriberNode(topic)
+            print("Testing Image bridge - Done")
+
+        def test_pointcloud_bridge(self):
+            print("\nTesting PointCloud2 bridge - Starting..")
+            topic = "/test_points"
+            pub = self.ros2Node.CreateAndAddPublisherNode("PolyData", topic)
+            sub = self.ros2Node.CreateAndAddSubscriberNode("PolyData", topic)
+            
+            # Create a model node as target (explicit bridging)
+            modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", "TestModel")
+            sub.SetTargetNodeID(modelNode.GetID())
+            
+            # Create a test polydata (one point)
+            points = vtk.vtkPoints()
+            points.InsertNextPoint(1.0, 2.0, 3.0)
+            polyData = vtk.vtkPolyData()
+            polyData.SetPoints(points)
+            
+            pub.Publish(polyData)
+            
+            # Wait for message
+            for i in range(20):
+                if sub.GetNumberOfMessages() > 0:
+                    break
+                ROS2TestsLogic.spin_some()
+            
+            self.assertTrue(sub.GetNumberOfMessages() > 0, "PointCloud2 message not received")
+            
+            # Check if model node was updated automatically by the logic
+            updatedPolyData = modelNode.GetPolyData()
+            self.assertIsNotNone(updatedPolyData, "Model node poly data is None")
+            self.assertEqual(updatedPolyData.GetNumberOfPoints(), 1)
+            pt = updatedPolyData.GetPoint(0)
+            self.assertAlmostEqual(pt[0], 1.0)
+            self.assertAlmostEqual(pt[1], 2.0)
+            self.assertAlmostEqual(pt[2], 3.0)
+            
+            # Cleanup
+            slicer.mrmlScene.RemoveNode(modelNode)
+            self.ros2Node.RemoveAndDeletePublisherNode(topic)
+            self.ros2Node.RemoveAndDeleteSubscriberNode(topic)
+            print("Testing PointCloud2 bridge - Done")
+
+        def tearDown(self):
+            self.ros2Node.Destroy()
+            ROS2TestsLogic.spin_some()
+
+
     def run(self):
         print('Running all tests...')
 
@@ -795,6 +886,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestParameterNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestImageAndPointCloud))
 
         runner = unittest.TextTestRunner()
         runner.run(suite)

@@ -11,4 +11,5 @@ MRML ROS Nodes
    nodes/services
    nodes/parameters
    nodes/tf2
+   nodes/images_pointclouds
    nodes/robots

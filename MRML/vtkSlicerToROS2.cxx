@@ -234,6 +234,41 @@ void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result
   result.data = picture;
 }
 
+void vtkSlicerToROS2(vtkImageData * input, sensor_msgs::msg::Image & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  if (!input) {
+    return;
+  }
+  result.header.stamp = rosNode->get_clock()->now();
+  int dims[3];
+  input->GetDimensions(dims);
+  result.width = dims[0];
+  result.height = dims[1];
+  
+  int numberOfComponents = input->GetNumberOfScalarComponents();
+  int vtkDataType = input->GetScalarType();
+
+  if (vtkDataType == VTK_UNSIGNED_CHAR) {
+    if (numberOfComponents == 1) result.encoding = "mono8";
+    else if (numberOfComponents == 3) result.encoding = "rgb8";
+    else if (numberOfComponents == 4) result.encoding = "rgba8";
+  } else if (vtkDataType == VTK_UNSIGNED_SHORT && numberOfComponents == 1) {
+    result.encoding = "16UC1";
+  } else if (vtkDataType == VTK_FLOAT && numberOfComponents == 1) {
+    result.encoding = "32FC1";
+  } else {
+    std::cerr << "vtkSlicerToROS2(Image): unsupported VTK data type or component count" << std::endl;
+    return;
+  }
+
+  size_t pixelSize = input->GetScalarSize() * numberOfComponents;
+  size_t dataSize = result.width * result.height * pixelSize;
+  result.step = result.width * pixelSize;
+  result.data.resize(dataSize);
+  std::memcpy(result.data.data(), input->GetScalarPointer(), dataSize);
+}
+
 
 void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result, 
                     const std::shared_ptr<rclcpp::Node> & rosNode)
@@ -312,6 +347,15 @@ void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result,
         std::cerr << "vtkSlicerToROS2(PointCloud2): allocation failed for " << n << " points" << std::endl;
         result = sensor_msgs::msg::PointCloud2{};
     }
+}
+
+void vtkSlicerToROS2(vtkPolyData * input, sensor_msgs::msg::PointCloud2 & result, 
+                      const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+  if (!input) {
+    return;
+  }
+  vtkSlicerToROS2(input->GetPoints(), result, rosNode);
 }
 
 

@@ -12,6 +12,8 @@
 #include <vtkTable.h>
 #include <vtkTypeUInt8Array.h>
 #include <vtkPoints.h>
+#include <vtkImageData.h>
+#include <vtkPolyData.h>
 
 // ROS2
 #include <rclcpp/rclcpp.hpp>
@@ -84,9 +86,13 @@ void vtkSlicerToROS2(vtkTransformCollection * input, geometry_msgs::msg::PoseArr
 // sensor_msgs
 void vtkSlicerToROS2(vtkTypeUInt8Array * input, sensor_msgs::msg::Image & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkImageData * input, sensor_msgs::msg::Image & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkPolyData * input, sensor_msgs::msg::PointCloud2 & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 
 void vtkSlicerToROS2(vtkBool * input, std_srvs::srv::SetBool::Request & result,

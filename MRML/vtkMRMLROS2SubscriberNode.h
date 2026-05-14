@@ -27,6 +27,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
 					     const std::string & topic);
 
   bool IsAddedToROS2Node(void) const;
+  
+  const char* GetTargetNodeID();
+  void SetTargetNodeID(const char* targetNodeID);
+  vtkMRMLNode* GetTargetNode();
 
   const std::string & GetTopic(void) const {
     return mTopic;
@@ -83,7 +87,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
   vtkGetMacro(QoSDurability, int);
 
  protected:
-  vtkMRMLROS2SubscriberNode() = default;
+  vtkMRMLROS2SubscriberNode();
   ~vtkMRMLROS2SubscriberNode() = default;
 
   vtkMRMLROS2SubscriberInternals * mInternals = nullptr;

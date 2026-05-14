@@ -199,6 +199,46 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkT
     }
 }
 
+void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkImageData> result)
+{
+  if (!result) {
+    return;
+  }
+
+  int numberOfComponents = 1;
+  int vtkDataType = VTK_UNSIGNED_CHAR;
+
+  if (input.encoding == "rgb8" || input.encoding == "bgr8") {
+    numberOfComponents = 3;
+  } else if (input.encoding == "rgba8" || input.encoding == "bgra8") {
+    numberOfComponents = 4;
+  } else if (input.encoding == "mono8") {
+    numberOfComponents = 1;
+  } else if (input.encoding == "mono16" || input.encoding == "16UC1") {
+    numberOfComponents = 1;
+    vtkDataType = VTK_UNSIGNED_SHORT;
+  } else if (input.encoding == "32FC1") {
+    numberOfComponents = 1;
+    vtkDataType = VTK_FLOAT;
+  }
+
+  result->SetDimensions(input.width, input.height, 1);
+  result->AllocateScalars(vtkDataType, numberOfComponents);
+
+  size_t expectedSize = input.width * input.height * numberOfComponents * (vtkDataType == VTK_UNSIGNED_SHORT ? 2 : (vtkDataType == VTK_FLOAT ? 4 : 1));
+  if (input.data.size() < expectedSize) {
+    std::cerr << "vtkROS2ToSlicer(Image): input data size mismatch. Expected " << expectedSize << " got " << input.data.size() << std::endl;
+    return;
+  }
+
+  void* pVtk = result->GetScalarPointer();
+  std::memcpy(pVtk, input.data.data(), expectedSize);
+
+  // Note: ROS images are top-down, VTK are bottom-up by default, but we'll leave it to the user/logic
+  // to apply a flip if needed, or we could do it here if we want to be opinionated.
+  result->Modified();
+}
+
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result)
 {
@@ -268,6 +308,27 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointe
         std::cerr << "vtkROS2ToSlicer(PointCloud2): allocation failed for " << num_points << " points" << std::endl;
         result->Reset();
     }
+}
+
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPolyData> result)
+{
+  if (!result) {
+    return;
+  }
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  vtkROS2ToSlicer(input, points);
+  result->SetPoints(points);
+
+  vtkIdType numPoints = points->GetNumberOfPoints();
+  if (numPoints > 0) {
+    auto vertices = vtkSmartPointer<vtkCellArray>::New();
+    vertices->AllocateEstimate(numPoints, 1);
+    for (vtkIdType i = 0; i < numPoints; ++i) {
+      vertices->InsertNextCell(1, &i);
+    }
+    result->SetVerts(vertices);
+  }
+  result->Modified();
 }
 
 

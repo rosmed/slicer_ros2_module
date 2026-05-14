@@ -20,6 +20,7 @@
 #include <SlicerROS2Config.h>
 #include <vtkSlicerROS2Logic.h>
 #include <qSlicerCoreApplication.h>
+#include <algorithm>
 
 // VTK includes
 #include <vtkTimerLog.h>
@@ -33,6 +34,10 @@
 #include <vtkMRMLModelStorageNode.h>
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLModelDisplayNode.h>
+#include <vtkMRMLScalarVolumeNode.h>
+#include <vtkMRMLScalarVolumeDisplayNode.h>
+#include <vtkMRMLVectorVolumeNode.h>
+#include <vtkMRMLVectorVolumeDisplayNode.h>
 
 // MRMLROS2
 #include <vtkMRMLROS2Utils.h>
@@ -117,8 +122,10 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPoseNode>::New());
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberUInt8ImageNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberImageNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloud2Node>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPolyDataNode>::New());
 
   // Publishers
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherEmptyNode>::New());
@@ -134,9 +141,11 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherUInt8ImageNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherImageNode>::New());
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloudNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloud2Node>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPolyDataNode>::New());
 
 #if USE_CISST_MSGS
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
@@ -168,11 +177,29 @@ void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
-  vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
+  if (!node || !this->GetMRMLScene()) {
+    return;
+  }
+
+  vtkMRMLROS2NodeNode * rosNode = vtkMRMLROS2NodeNode::SafeDownCast(node);
   if (rosNode != nullptr) {
     if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node) == mROS2Nodes.end()) {
       mROS2Nodes.push_back(rosNode);
     }
+    return;
+  }
+
+  vtkMRMLROS2SubscriberImageNode * imageSub = vtkMRMLROS2SubscriberImageNode::SafeDownCast(node);
+  if (imageSub) {
+    // Set up observation
+    imageSub->AddObserver(vtkCommand::ModifiedEvent, this, &vtkSlicerROS2Logic::OnSubscriberModified);
+  }
+
+  // Automatic bridging for PolyData subscribers
+  vtkMRMLROS2SubscriberPolyDataNode * polySub = vtkMRMLROS2SubscriberPolyDataNode::SafeDownCast(node);
+  if (polySub) {
+    // Set up observation
+    polySub->AddObserver(vtkCommand::ModifiedEvent, this, &vtkSlicerROS2Logic::OnSubscriberModified);
   }
 }
 
@@ -186,6 +213,34 @@ void vtkSlicerROS2Logic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
     if (it != mROS2Nodes.end()) {
       mROS2Nodes.erase(it);
     }
+  }
+}
+
+
+void vtkSlicerROS2Logic::OnSubscriberModified(vtkObject* caller, unsigned long event, void* vtkNotUsed(callData))
+{
+  if (event != vtkCommand::ModifiedEvent || !this->GetMRMLScene()) {
+    return;
+  }
+
+  // Handle Image data update
+  vtkMRMLROS2SubscriberImageNode* imageSub = vtkMRMLROS2SubscriberImageNode::SafeDownCast(caller);
+  if (imageSub) {
+    vtkMRMLScalarVolumeNode* volumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(imageSub->GetTargetNode());
+    if (volumeNode) {
+      volumeNode->SetAndObserveImageData(imageSub->GetLastMessage());
+    }
+    return;
+  }
+
+  // Handle PolyData data update
+  vtkMRMLROS2SubscriberPolyDataNode* polySub = vtkMRMLROS2SubscriberPolyDataNode::SafeDownCast(caller);
+  if (polySub) {
+    vtkMRMLModelNode* modelNode = vtkMRMLModelNode::SafeDownCast(polySub->GetTargetNode());
+    if (modelNode) {
+      modelNode->SetAndObservePolyData(polySub->GetLastMessage());
+    }
+    return;
   }
 }
 

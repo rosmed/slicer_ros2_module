@@ -14,6 +14,8 @@ VTK_MRML_ROS_SUBSCRIBER_NATIVE_H(double, Double);
 #include <vtkTable.h>
 #include <vtkTypeUInt8Array.h>
 #include <vtkPoints.h>
+#include <vtkImageData.h>
+#include <vtkPolyData.h>
 
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkIntArray, IntArray);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkDoubleArray, DoubleArray);
@@ -25,7 +27,9 @@ VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkMatrix4x4, Transform);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkDoubleArray, Wrench);
 
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkTypeUInt8Array, UInt8Image);
+VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkImageData, Image);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkPoints, PointCloud);
 VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkPoints, PointCloud2);
+VTK_MRML_ROS_SUBSCRIBER_VTK_H(vtkPolyData, PolyData);
 
 #endif // __vtkMRMLROS2SubscriberDefaultNodes_h

@@ -4,6 +4,12 @@
 #include <vtkMRMLROS2SubscriberInternals.h>
 
 
+vtkMRMLROS2SubscriberNode::vtkMRMLROS2SubscriberNode()
+{
+  this->AddNodeReferenceRole("target");
+}
+
+
 void vtkMRMLROS2SubscriberNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -50,6 +56,24 @@ bool vtkMRMLROS2SubscriberNode::RemoveFromROS2Node(const char * nodeId,
 bool vtkMRMLROS2SubscriberNode::IsAddedToROS2Node(void) const
 {
   return mInternals->IsAddedToROS2Node();
+}
+
+
+const char* vtkMRMLROS2SubscriberNode::GetTargetNodeID()
+{
+  return this->GetNodeReferenceID("target");
+}
+
+
+void vtkMRMLROS2SubscriberNode::SetTargetNodeID(const char* targetNodeID)
+{
+  this->SetAndObserveNodeReferenceID("target", targetNodeID);
+}
+
+
+vtkMRMLNode* vtkMRMLROS2SubscriberNode::GetTargetNode()
+{
+  return this->GetNodeReference("target");
 }
 
 
