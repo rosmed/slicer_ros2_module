@@ -190,6 +190,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.jointSpinboxes = []
         self._moveGroupParamNode = None
         self._moveGroupParamObsId = None
+        self.obstaclePublishers = {} # modelNodeID -> publisherNode
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -205,6 +206,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
         # "setMRMLScene(vtkMRMLScene*)" slot.
         uiWidget.setMRMLScene(slicer.mrmlScene)
+        self.ui.obstacleModelComboBox.setMRMLScene(slicer.mrmlScene)
 
         # Embed Slicer ROS2 module widget
         import ctk
@@ -246,6 +248,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
+        self.ui.addObstacleButton.connect("clicked(bool)", self.onAddObstacle)
 
         # Populate generator combo box
         for gen in TrajectoryGenerators.get_all():
@@ -794,10 +797,97 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             slider.blockSignals(False)
             spinbox.blockSignals(False)
 
+        self.ui.planGroupComboBox.enabled = toggled
+        
+    def onAddObstacle(self) -> None:
+        modelNode = self.ui.obstacleModelComboBox.currentNode()
+        if not modelNode:
+            return
+        
+        frameId = self.ui.obstacleFrameLineEdit.text.strip()
+        if not frameId:
+            frameId = "world"
+            
+        modelID = modelNode.GetID()
+        if modelID in self.obstaclePublishers:
+            print(f"Obstacle {modelNode.GetName()} is already synced.")
+            return
+
+        # Find a ROS2 node to host the publisher
+        ros2Node = None
+        if self.robot and self.robot.GetNodeReference("node"):
+            ros2Node = self.robot.GetNodeReference("node")
+        else:
+            ros2Node = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2NodeNode")
+            
+        if not ros2Node:
+            print("Error: No ROS2 node found to host the obstacle publisher.")
+            return
+
+        # Create and configure the publisher
+        # Note: "CollisionObject" is the shorthand we registered in C++
+        topic = "/planning_scene"
+        pub = ros2Node.CreateAndAddPublisherNode("CollisionObject", topic)
+        if not pub:
+            print("Failed to create CollisionObject publisher.")
+            return
+            
+        pub.SetSourceNodeID(modelID)
+        pub.SetFrameId(frameId)
+        
+        # Immediate publish
+        pub.Publish()
+        
+        # Store and observe
+        self.obstaclePublishers[modelID] = pub
+        self.addObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+        
+        self.updateObstacleTable()
+        print(f"Obstacle {modelNode.GetName()} added to MoveIt planning scene.")
+
+    def onObstacleModified(self, caller, event) -> None:
+        modelID = caller.GetID()
+        if modelID in self.obstaclePublishers:
+            self.obstaclePublishers[modelID].Publish()
+
+    def removeObstacle(self, modelID) -> None:
+        if modelID in self.obstaclePublishers:
+            pub = self.obstaclePublishers[modelID]
+            ros2NodeID = pub.GetNodeReferenceID("node")
+            ros2Node = slicer.mrmlScene.GetNodeByID(ros2NodeID)
+            if ros2Node:
+                ros2Node.RemoveAndDeletePublisherNode(pub.GetTopic())
+            
+            # Stop observing the model
+            modelNode = slicer.mrmlScene.GetNodeByID(modelID)
+            if modelNode:
+                self.removeObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+                
+            del self.obstaclePublishers[modelID]
+            self.updateObstacleTable()
+
+    def updateObstacleTable(self) -> None:
+        self.ui.obstaclesTable.setRowCount(0)
+        for modelID, pub in self.obstaclePublishers.items():
+            modelNode = slicer.mrmlScene.GetNodeByID(modelID)
+            row = self.ui.obstaclesTable.rowCount
+            self.ui.obstaclesTable.insertRow(row)
+            
+            # Model Name
+            name = modelNode.GetName() if modelNode else modelID
+            self.ui.obstaclesTable.setItem(row, 0, qt.QTableWidgetItem(name))
+            
+            # Frame ID
+            self.ui.obstaclesTable.setItem(row, 1, qt.QTableWidgetItem(pub.GetFrameId()))
+            
+            # Action Button
+            removeBtn = qt.QPushButton("Remove")
+            removeBtn.clicked.connect(lambda checked, mID=modelID: self.removeObstacle(mID))
+            self.ui.obstaclesTable.setCellWidget(row, 2, removeBtn)
+
     def onMoveGroupExistsToggled(self, toggled: bool) -> None:
         self.ui.planGroupLabel.enabled = toggled
         self.ui.planGroupComboBox.enabled = toggled
-
         if toggled:
             print("Move Group Exists checked: MoveIt functionality enabled")
             self.logic.useMoveItIK = True

@@ -13,9 +13,9 @@ The ``ROS2MotionControl`` module provides a high-level interface for robot motio
 *   **Plan trajectories** using internal generators or MoveIt's planning services.
 *   **Execute trajectories** on real or simulated hardware.
 
-==============
+===============
 Getting Started
-==============
+===============
 
 To use motion control, you must have a robot running with a MoveIt ``move_group`` node. 
 
@@ -52,3 +52,28 @@ Execution
 =========
 
 The "Execute" button sends the planned trajectory to the robot's controller via the ``ExecuteTrajectory`` action.
+
+============================
+MoveIt Scene Synchronization
+============================
+
+The **Obstacles** tab allows you to use Slicer models as collision obstacles in MoveIt.
+
+Adding Collision Objects
+========================
+
+1.  **Select a Model**: Choose a ``vtkMRMLModelNode`` from the dropdown.
+2.  **Set Frame ID**: Specify the ROS reference frame (e.g., ``world`` or ``base_link``).
+3.  **Add to MoveIt**: Click the **Add to MoveIt** button.
+
+Once added, the obstacle is managed in the table below.
+
+Live Synchronization
+====================
+
+A powerful feature of this integration is **Live Sync**. Because SlicerROS2 observes the Slicer scene, any movement of the model node (e.g., via a transform gizmo or a tracking system) is immediately pushed to the MoveIt planning scene. MoveIt will then account for these moving obstacles in all future planning requests.
+
+Removing Obstacles
+==================
+
+To remove an obstacle from the MoveIt scene, simply click the **Remove** button in the obstacles table.
