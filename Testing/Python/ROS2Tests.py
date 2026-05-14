@@ -150,6 +150,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     def spin_some(self):
         ros2Logic = slicer.util.getModuleLogic('ROS2')
         for i in range(10):
+            slicer.app.processEvents()
             time.sleep(0.01)
             ros2Logic.Spin()
 
@@ -163,7 +164,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        ros2_process.wait()
+        while ros2_process.poll() is None:
+            slicer.app.processEvents()
+            time.sleep(0.05)
         return ros2_process
 
     @classmethod
@@ -222,6 +225,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
             if time.time() - start_time >= timeout:
                 break
+            slicer.app.processEvents()
             time.sleep(0.5)
         return False
 
@@ -252,6 +256,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
             if time.time() - start_time >= timeout:
                 break
+            slicer.app.processEvents()
             time.sleep(0.5)
         return False
 
