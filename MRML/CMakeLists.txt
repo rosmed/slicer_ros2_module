@@ -139,6 +139,10 @@ set(${KIT}_SRCS
   vtkMRMLROS2ServiceClientNode.cxx
   vtkMRMLROS2ServiceClientDefaultNodes.h
   vtkMRMLROS2ServiceClientDefaultNodes.cxx
+  vtkMRMLROS2PublisherCollisionObjectNode.h
+  vtkMRMLROS2PublisherCollisionObjectNode.cxx
+  vtkSlicerToROS2.h
+  vtkSlicerToROS2.cxx
   vtkCustomTypes.h
   vtkCustomTypes.cxx
   )

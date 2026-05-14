@@ -24,6 +24,7 @@ public:
   virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
+  virtual std::shared_ptr<rclcpp::Node> GetROSNode() const = 0;
 protected:
   vtkMRMLROS2PublisherNode * mMRMLNode;
   std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
@@ -40,6 +41,21 @@ public:
   vtkMRMLROS2PublisherTemplatedInternals(vtkMRMLROS2PublisherNode *  mrmlNode):
     vtkMRMLROS2PublisherInternals(mrmlNode)
   {}
+
+  size_t PublishDirect(const _ros_type & rosMessage)
+  {
+    if (!mPublisher) return 0;
+    const auto nbSubscriber = mPublisher->get_subscription_count();
+    if (nbSubscriber != 0) {
+      mPublisher->publish(rosMessage);
+    }
+    return nbSubscriber;
+  }
+
+  std::shared_ptr<rclcpp::Node> GetROSNode() const override
+  {
+    return mROSNode;
+  }
 
 protected:
   std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher = nullptr;

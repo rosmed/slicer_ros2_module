@@ -14,6 +14,7 @@
 #include <vtkPoints.h>
 #include <vtkImageData.h>
 #include <vtkPolyData.h>
+#include <vtkMRMLModelNode.h>
 
 // ROS2
 #include <rclcpp/rclcpp.hpp>
@@ -36,6 +37,8 @@
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <shape_msgs/msg/mesh.hpp>
+#include <moveit_msgs/msg/collision_object.hpp>
 
 // new
 #include <std_srvs/srv/set_bool.hpp>
@@ -93,6 +96,10 @@ void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
 void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 void vtkSlicerToROS2(vtkPolyData * input, sensor_msgs::msg::PointCloud2 & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkPolyData * input, shape_msgs::msg::Mesh & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode);
+void vtkSlicerToROS2(vtkMRMLModelNode * input, moveit_msgs::msg::CollisionObject & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode);
 
 void vtkSlicerToROS2(vtkBool * input, std_srvs::srv::SetBool::Request & result,

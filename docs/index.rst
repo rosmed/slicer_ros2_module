@@ -15,6 +15,7 @@ SlicerROS2
    pages/getting-started
    pages/robot-visualization
    pages/nodes
+   pages/motion-control
    pages/limitations
    pages/tests
    pages/links

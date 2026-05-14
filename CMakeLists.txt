@@ -64,6 +64,7 @@ set (
   std_srvs
   geometry_msgs
   sensor_msgs
+  shape_msgs
   object_recognition_msgs
   trajectory_msgs
   moveit_msgs

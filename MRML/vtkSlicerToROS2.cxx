@@ -1,5 +1,7 @@
 #include <vtkSlicerToROS2.h>
 #include <vtkMath.h>
+#include <vtkCellArray.h>
+#include <vtkIdList.h>
 
 #include <vtkMRMLROS2Utils.h>
 using vtkSlicerToROS2Limits::kMaxPoints;
@@ -375,4 +377,74 @@ void vtkMatrix4x4ToQuaternion(vtkMatrix4x4 * input, double quaternion[4])
     }
   }
   vtkMath::Matrix3x3ToQuaternion(A, quaternion);
+}
+
+
+void vtkSlicerToROS2(vtkPolyData * input, shape_msgs::msg::Mesh & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+    (void)rosNode;
+    if (!input) {
+        return;
+    }
+
+    vtkPoints* points = input->GetPoints();
+    if (!points) {
+        return;
+    }
+
+    const vtkIdType nPoints = points->GetNumberOfPoints();
+    result.vertices.resize(nPoints);
+    for (vtkIdType i = 0; i < nPoints; ++i) {
+        double p[3];
+        points->GetPoint(i, p);
+        // RAS (mm) to LPS (m) conversion
+        result.vertices[i].x = -p[0] / 1000.0;
+        result.vertices[i].y = -p[1] / 1000.0;
+        result.vertices[i].z =  p[2] / 1000.0;
+    }
+
+    vtkCellArray* polys = input->GetPolys();
+    if (polys) {
+        vtkNew<vtkIdList> idList;
+        polys->InitTraversal();
+        while (polys->GetNextCell(idList)) {
+            // We only support triangles for shape_msgs/Mesh
+            // For polygons with > 3 vertices, we use a simple fan triangulation
+            if (idList->GetNumberOfIds() >= 3) {
+                for (vtkIdType i = 1; i < idList->GetNumberOfIds() - 1; ++i) {
+                    shape_msgs::msg::MeshTriangle tri;
+                    tri.vertex_indices[0] = static_cast<uint32_t>(idList->GetId(0));
+                    tri.vertex_indices[1] = static_cast<uint32_t>(idList->GetId(i));
+                    tri.vertex_indices[2] = static_cast<uint32_t>(idList->GetId(i + 1));
+                    result.triangles.push_back(tri);
+                }
+            }
+        }
+    }
+}
+
+
+void vtkSlicerToROS2(vtkMRMLModelNode * input, moveit_msgs::msg::CollisionObject & result,
+                     const std::shared_ptr<rclcpp::Node> & rosNode)
+{
+    if (!input) {
+        return;
+    }
+
+    result.header.stamp = rosNode->get_clock()->now();
+    // Default to a world frame or similar if not specified
+    // But usually the publisher node will override the frame_id
+    result.id = input->GetName() ? input->GetName() : "slicer_model";
+    result.operation = moveit_msgs::msg::CollisionObject::ADD;
+
+    shape_msgs::msg::Mesh mesh;
+    vtkSlicerToROS2(input->GetPolyData(), mesh, rosNode);
+    if (!mesh.vertices.empty()) {
+        result.meshes.push_back(mesh);
+        // Identity pose for the mesh relative to the CollisionObject frame
+        geometry_msgs::msg::Pose pose;
+        pose.orientation.w = 1.0;
+        result.mesh_poses.push_back(pose);
+    }
 }
