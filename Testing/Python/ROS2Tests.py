@@ -11,6 +11,7 @@ import unittest
 import subprocess
 import logging
 import sys
+import uuid
 try:
     import psutil
 except:
@@ -189,39 +190,70 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def kill_subprocess(self, proc):
-        os.killpg(os.getpgid(proc.pid), subprocess.signal.SIGTERM) # SIGTERM is CTRL-C
+        try:
+            os.killpg(os.getpgid(proc.pid), subprocess.signal.SIGTERM) # SIGTERM is CTRL-C
+        except (ProcessLookupError, AttributeError):
+            pass
+        except Exception as e:
+            logging.warning(f"Error killing subprocess: {e}")
         time.sleep(1)
 
     @classmethod
-    def check_ros2_node_running(self, nodeName):
-        # Check if a node is running by checking the rosnode list
-        output = subprocess.check_output(
-            ROS2TestsLogic.ros2_exec + 'node list',
-            shell = True,
-        )
-        nodes = output.decode("utf-8").split("\n")
+    def check_ros2_node_running(self, nodeName, timeout=0):
+        """
+        Check if a node is running by checking the rosnode list.
+        Optional timeout in seconds to wait for the node to appear.
+        """
+        start_time = time.time()
+        while True:
+            try:
+                output = subprocess.check_output(
+                    ROS2TestsLogic.ros2_exec + 'node list',
+                    shell=True,
+                    stderr=subprocess.STDOUT
+                )
+                nodes = [n.strip() for n in output.decode("utf-8").split("\n")]
+                if nodeName in nodes:
+                    return True
+            except subprocess.CalledProcessError as e:
+                logging.warning(f"ros2 node list failed: {e.output.decode('utf-8')}")
+            except Exception as e:
+                logging.warning(f"Error checking ros2 nodes: {e}")
 
-        # Assert that the nodeName is in the list of running nodes
-        return nodeName in nodes
+            if time.time() - start_time >= timeout:
+                break
+            time.sleep(0.5)
+        return False
 
 
     @classmethod
-    def check_server_running(self, serverName):
+    def check_server_running(self, serverName, timeout=0):
         """
         Checks if the specified server is running.
+        Optional timeout in seconds to wait for the server to appear.
         """
-        try:
-            output = subprocess.check_output(
-                ROS2TestsLogic.ros2_exec + "service list",
-                shell=True,
-            ).decode("utf-8").split("\n")
+        start_time = time.time()
+        while True:
+            try:
+                output = subprocess.check_output(
+                    ROS2TestsLogic.ros2_exec + "service list",
+                    shell=True,
+                    stderr=subprocess.STDOUT
+                ).decode("utf-8").split("\n")
+                
+                servers = [s.strip() for s in output]
+                if serverName in servers:
+                    return True
 
-            print(output)
+            except subprocess.CalledProcessError as e:
+                logging.warning(f"ros2 service list failed: {e.output.decode('utf-8')}")
+            except Exception as e:
+                logging.warning(f"Error checking ros2 services: {e}")
 
-            return serverName in output
-
-        except subprocess.CalledProcessError as e:
-            return None
+            if time.time() - start_time >= timeout:
+                break
+            time.sleep(0.5)
+        return False
 
     # It creates a turtlesim node, checks if it's running, and then kills it
     class TestTurtlesimNode(unittest.TestCase):
@@ -233,7 +265,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_turtlesim_node_create_and_destroy(self):
             print("\nTesting creation and destruction of turtlesim node - Starting..")
             # Check if the turtlesim node is running by checking the rosnode list
-            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
+            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim", timeout=10.0), "Turtlesim node not running")
             print("Testing creation and destruction of turtlesim node - Done")
 
         def tearDown(self):
@@ -245,7 +277,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     class TestCreateAndAddPubSub(unittest.TestCase):
         def setUp(self):
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNode")
+            self.ros2Node.Create("testNode_" + uuid.uuid4().hex[:4])
             self.testObs = TestObserverSubscriber()
             ROS2TestsLogic.spin_some()
 
@@ -583,12 +615,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def setUp(self):
             print("\nCreating ROS2 node for parameter tests..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNodeParameter")
+            self.ros2Node.Create("testNodeParameter_" + uuid.uuid4().hex[:4])
             ROS2TestsLogic.spin_some()
             print("Start turtlesim node to test parameters")
             self.create_turtlesim_node_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
-            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
+            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim", timeout=10.0), "Turtlesim node not running")
 
         def test_parameter_monitoring(self):
             print("\nTesting creation and working of parameter node - Starting..")
@@ -663,7 +695,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def setUp(self):
             print("\nCreating ROS2 node to test broadcaster nodes..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNodeBroadcaster")
+            self.ros2Node.Create("testNodeBroadcaster_" + uuid.uuid4().hex[:4])
             ROS2TestsLogic.spin_some()
 
         def test_broadcaster_functioning(self):
@@ -676,7 +708,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             broadcastedMat = vtk.vtkMatrix4x4()
             broadcastedMat.SetElement(0,3,66) # Set a default value
             broadcaster.Broadcast(broadcastedMat)
-            ROS2TestsLogic.spin_some()
+            # wait for the lookup node to receive the transform (up to 2 seconds)
+            for i in range(20):
+                if observer.counter > 0:
+                    break
+                ROS2TestsLogic.spin_some()
             lookupMat = vtk.vtkMatrix4x4()
             lookupNode.GetMatrixTransformToParent(lookupMat)
             self.assertEqual(lookupMat.GetElement(0,3), broadcastedMat.GetElement(0,3)) # maybe use assert almost equal
@@ -697,11 +733,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def setUp(self):
             print("\nCreating ROS2 node to test service clients ..")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
-            self.ros2Node.Create("testNodeServiceClient")
+            self.ros2Node.Create("testNodeServiceClient_" + uuid.uuid4().hex[:4])
             print("Start turtlesim node to test services")
             self.service_server_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
-            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node not running")
+            self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim", timeout=10.0), "Turtlesim node not running")
+            self.assertTrue(ROS2TestsLogic.check_server_running("/spawn", timeout=10.0), "Spawn service not available")
 
         def test_service_client(self):
             print("\nTesting service client - Starting..")
@@ -713,8 +750,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             req.SetX(4.0)
             req.SetY(4.0)
             spawn1.SendAsyncRequest(req)
-            # wait get the response
-            ROS2TestsLogic.spin_some()
+            # wait for the response to arrive (up to 5 seconds)
+            for i in range(50):
+                if self.obs.counter > 0:
+                    break
+                ROS2TestsLogic.spin_some()
             res = spawn1.GetLastResponse()
             # The /spawn service allows you to spawn additional turtles.
             # When you send a spawn request, the service responds with the name of the new turtle.
@@ -734,6 +774,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def tearDown(self):
             ROS2TestsLogic.kill_subprocess(self.service_server_process)
             ROS2TestsLogic.spin_some()
+            self.assertTrue(self.ros2Node.RemoveAndDeleteServiceClientNode('/spawn'), "Failed to delete service client node")
             self.ros2Node.Destroy()
 
 
