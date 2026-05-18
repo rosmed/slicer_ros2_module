@@ -124,3 +124,136 @@ To visualize this published point cloud in RViz:
    - Click the **Add** button at the bottom left of the window.
    - Switch to the **By topic** tab, expand ``/slicer_point_cloud``, select **PointCloud2**, and click **OK**.
    - (Optional) In the newly added PointCloud2 display properties, increase the **Size (m)** parameter to ``0.2`` or larger to render the sphere points clearly in the 3D grid.
+
+===================================
+MoveIt Obstacle from a Slicer Model
+===================================
+
+This example demonstrates how to create a geometric obstacle directly in 3D Slicer
+using VTK/MRML Python commands and push it to the MoveIt 2 planning scene so that
+motion planning (IK and trajectory generation) avoids it.
+
+Prerequisites
+=============
+
+You need a running UR5 simulation with MoveIt and the Slicer launcher.
+Open **two terminals** and source your workspace in each:
+
+.. code-block:: bash
+
+   # Terminal 1 – UR5 with mock hardware + MoveIt
+   source ~/ros2_ws/install/setup.bash
+   ros2 launch slicer_ros2_module ur_sim_control.launch.py
+
+.. code-block:: bash
+
+   # Terminal 2 – 3D Slicer
+   source ~/ros2_ws/install/setup.bash
+   ros2 launch slicer_ros2_module slicer.launch.py
+
+Once Slicer is open, load the robot via the **ROS2** module as described in
+:ref:`load_robot`. Wait for the ``[move_group] You can start planning now!``
+message in Terminal 1 before proceeding.
+
+.. note::
+
+   All coordinates in the Slicer Python interactor are in **millimetres** (Slicer's
+   native unit). The SlicerROS2 module automatically converts them to metres when
+   publishing to ROS 2.
+
+Creating the Obstacle
+=====================
+
+Open the Slicer Python Interactor (**Ctrl + 3** or through the
+**Developer Tools** menu) and paste the following snippet.
+
+It creates a 200 mm × 200 mm × 200 mm box positioned in front of the UR5
+base (400 mm along X, 300 mm up along Z — well within the robot's reach envelope):
+
+.. code-block:: python
+
+   import slicer
+   import vtk
+
+   # 1. Build a box geometry with vtkCubeSource (dimensions in mm)
+   cube = vtk.vtkCubeSource()
+   cube.SetXLength(200.0)
+   cube.SetYLength(200.0)
+   cube.SetZLength(200.0)
+   cube.SetCenter(400.0, 0.0, 300.0)
+   cube.Update()
+
+   # 2. Wrap it in a vtkMRMLModelNode so it appears in the Slicer scene
+   obstacleNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLModelNode', 'MoveItObstacle')
+   obstacleNode.SetAndObservePolyData(cube.GetOutput())
+   obstacleNode.CreateDefaultDisplayNodes()
+
+   # Style it so it is clearly visible in the 3D view
+   dispNode = obstacleNode.GetDisplayNode()
+   dispNode.SetColor(1.0, 0.5, 0.0)   # orange
+   dispNode.SetOpacity(0.6)
+
+   print("Obstacle node created:", obstacleNode.GetName())
+
+You should see an orange semi-transparent cube appear in the 3D view.
+
+.. note::
+
+   The node **name** (here ``MoveItObstacle``) becomes the collision-object ``id``
+   in MoveIt. Use a unique, descriptive name for each obstacle so that MoveIt can
+   track and remove them individually.
+
+Publishing the Obstacle to MoveIt
+==================================
+
+Still in the Python Interactor, paste the second snippet to create a
+``CollisionObject`` publisher and push the obstacle to the ``/planning_scene`` topic:
+
+.. code-block:: python
+
+   # 3. Get the default SlicerROS2 node
+   rosLogic = slicer.util.getModuleLogic('ROS2')
+   rosNode = rosLogic.GetDefaultROS2Node()
+
+   # 4. Create the CollisionObject publisher
+   #    '/planning_scene' is the standard topic that move_group's
+   #    PlanningSceneMonitor subscribes to for incremental scene diffs.
+   pub = rosNode.CreateAndAddPublisherNode('CollisionObject', '/planning_scene')
+
+   # 5. Point the publisher at our obstacle model and set the reference frame
+   pub.SetSourceNodeID(obstacleNode.GetID())
+   pub.SetFrameId('world')   # must match the MoveIt fixed frame
+
+   # 6. Publish once – MoveIt adds it to its internal planning scene
+   pub.Publish()
+
+   print("Obstacle published to MoveIt planning scene.")
+
+.. note::
+
+   ``/planning_scene`` is the ROS 2 / MoveIt 2 standard topic for planning-scene
+   diffs. The ``move_group`` node's ``PlanningSceneMonitor`` subscribes to it and
+   updates its internal representation upon receipt. This is equivalent to what
+   MoveIt's ``PlanningSceneInterface::applyCollisionObject()`` does under the hood.
+
+Verifying the Obstacle in MoveIt
+================================
+
+You can verify that MoveIt received the obstacle in a third terminal:
+
+.. code-block:: bash
+
+   source ~/ros2_ws/install/setup.bash
+   ros2 service call /get_planning_scene moveit_msgs/srv/GetPlanningScene \
+       "{components: {components: 1}}"
+
+Look for an entry whose ``id`` matches ``MoveItObstacle`` in the response's
+``world.collision_objects`` list.
+
+Alternatively, open RViz (``ros2 launch slicer_ros2_module ur_sim_control.launch.py launch_rviz:=true``),
+add a **PlanningScene** display, and the orange box will appear in the 3D view
+alongside the robot.
+
+From this point, any IK or trajectory-planning request issued through the
+**ROS2 Motion Control** module (or directly via MoveIt) will treat the box as a
+hard collision constraint and plan around it.
