@@ -6,6 +6,7 @@ configure_file(
 
 install(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/manage_extensions.py
+  demo_point_cloud.py
   DESTINATION lib/${PROJECT_NAME}
   COMPONENT slicer_ros2_scripts
 )
