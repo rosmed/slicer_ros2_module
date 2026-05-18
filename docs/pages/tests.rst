@@ -26,6 +26,16 @@ transform and uses a lookup to retrieve the value of the Tf2 buffer.
 Running the unit tests
 ======================
 
+Using the test wrapper script
+-----------------------------
+
+The easiest way to run all Python unit tests is to use the provided wrapper script. This script launches Slicer, automatically triggers the test suite, and leaves Slicer open afterwards so you can inspect the Python Console or GUI state:
+
+.. code-block:: bash
+
+   source ~/ros2_ws/install/setup.bash
+   ros2 run slicer_ros2_module test
+
 Interactive (Within Slicer)
 ---------------------------
 
@@ -53,4 +63,4 @@ To run the unit tests automatically from the command line using CTest, source yo
    ctest --test-dir build/slicer_ros2_module -R py_ROS2Tests --verbose
 
 .. note::
-   When running via CTest or Colcon, you might see ``vtkDebugLeaks`` warning messages on shutdown after the tests have successfully completed. Slicer's CTest runner may report this leak as a test failure even if all individual unit tests passed successfully. You can verify that all individual tests passed by reviewing the console output (``Ran 23 tests ... OK``).
+   When running via CTest, you might see ``vtkDebugLeaks`` warning messages on shutdown after the tests have successfully completed. Slicer's CTest runner may report this leak as a test failure even if all individual unit tests passed successfully. You can verify that all individual tests passed by reviewing the console output (``Ran 23 tests ... OK``).

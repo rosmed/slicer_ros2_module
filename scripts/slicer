@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+import sys
+import subprocess
+
+def main():
+    cmd = ["ros2", "launch", "slicer_ros2_module", "slicer.launch.py"]
+    if len(sys.argv) > 1:
+        args_str = " ".join(sys.argv[1:])
+        cmd.append(f"slicer_args:={args_str}")
+        
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == '__main__':
+    main()

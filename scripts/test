@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+import subprocess
+
+def main():
+    cmd = [
+        "ros2", "launch", "slicer_ros2_module", "slicer.launch.py",
+        "slicer_args:=--python-code \"tests = slicer.util.getModuleLogic('ROS2Tests'); tests.run()\""
+    ]
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == '__main__':
+    main()

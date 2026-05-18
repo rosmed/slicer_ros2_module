@@ -130,11 +130,22 @@ you prefer a graphical interface, you can use ``cmake-gui`` instead of
 Loading the module
 ==================
 
-After building your workspace, you should start Slicer using the
-provided ROS 2 launcher. This launcher automatically configures the
-necessary environment variables and module paths for
-``slicer_ros2_module`` and any extensions installed via
-``manage-extensions.py``.
+After building your workspace, you should start Slicer using one of the provided ROS 2 launchers. These automatically configure the necessary environment variables and module paths for ``slicer_ros2_module`` and any extensions installed via``manage-extensions.py``.
+
+Using ros2 run (Convenient wrapper)
+-----------------------------------
+
+You can launch Slicer directly using:
+
+.. code-block:: bash
+
+   source ~/ros2_ws/install/setup.bash
+   ros2 run slicer_ros2_module slicer
+
+Using ros2 launch (Standard launcher)
+-------------------------------------
+
+For multi-process stack composition, you can launch the underlying launch file:
 
 .. code-block:: bash
 

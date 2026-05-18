@@ -60,3 +60,67 @@ Open Slicer's Python Interactor (Ctrl + 3 or through the **Developer Tools** men
    print("Point cloud subscriber successfully initialized!")
 
 Once run, you will see a 10x20 grid of points in the 3D view representing a dynamic 2D wavelet propagating outwards from the center.
+
+====================
+PointCloud publisher
+====================
+
+This example demonstrates how to create a static point cloud using 3D Slicer's built-in features and publish it over a ROS 2 topic to be visualized in RViz.
+
+Creating and Publishing the Point Cloud in 3D Slicer
+====================================================
+
+Open 3D Slicer's Python Interactor (**Ctrl + 3** or through the **Developer Tools** menu). Copy and paste the following Python script to create a static sphere-shaped point cloud using VTK/Slicer, and publish it using the native **SlicerROS2** PolyData publisher:
+
+.. code-block:: python
+
+   import slicer
+   import vtk
+
+   # 1. Create a sphere using Slicer's built-in VTK library to serve as a static point cloud
+   sphere = vtk.vtkSphereSource()
+   sphere.SetRadius(15.0)
+   sphere.SetThetaResolution(20)
+   sphere.SetPhiResolution(20)
+   sphere.Update()
+
+   # Create a Model node in the Slicer scene to visualize it locally first
+   modelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLModelNode', 'SlicerStaticPointCloud')
+   modelNode.SetAndObservePolyData(sphere.GetOutput())
+   modelNode.CreateDefaultDisplayNodes()
+
+   # 2. Retrieve Slicer's default ROS 2 Node
+   rosLogic = slicer.util.getModuleLogic('ROS2')
+   rosNode = rosLogic.GetDefaultROS2Node()
+
+   # 3. Create the native PointCloud2 publisher (using 'PolyData' bridge type)
+   # We publish onto the '/slicer_point_cloud' topic
+   pub = rosNode.CreateAndAddPublisherNode('PolyData', '/slicer_point_cloud')
+
+   # 4. Set the frame ID natively on the publisher node!
+   pub.SetFrameId('world')
+
+   # 5. Publish the point cloud
+   pub.Publish(modelNode.GetPolyData())
+
+   print("Successfully published static point cloud of sphere via native SlicerROS2 publisher!")
+
+Once executed, Slicer will create a local model displaying the sphere, and publish the points to the ROS 2 topic ``/slicer_point_cloud`` with the ``frame_id`` set to ``world``.
+
+Visualizing in RViz
+===================
+
+To visualize this published point cloud in RViz:
+
+1. **Open a terminal**, source the ROS 2 setup script, and launch RViz:
+
+   .. code-block:: bash
+
+      source /opt/ros/jazzy/setup.bash
+      rviz2
+
+2. **Configure RViz Display**:
+   - In the **Global Options** panel, set the **Fixed Frame** to ``world``.
+   - Click the **Add** button at the bottom left of the window.
+   - Switch to the **By topic** tab, expand ``/slicer_point_cloud``, select **PointCloud2**, and click **OK**.
+   - (Optional) In the newly added PointCloud2 display properties, increase the **Size (m)** parameter to ``0.2`` or larger to render the sphere points clearly in the 3D grid.

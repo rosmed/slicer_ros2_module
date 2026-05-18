@@ -11,6 +11,7 @@ void vtkMRMLROS2PublisherNode::PrintSelf(std::ostream& os, vtkIndent indent)
   os << indent << "Slicer type: " << mInternals->GetSlicerType() << "\n"; // This is scrambled
   os << indent << "Number of calls: " << mNumberOfCalls << "\n";
   os << indent << "Number of messages sent:" << mNumberOfMessagesSent << "\n";
+  os << indent << "Frame ID: " << mFrameId << "\n";
 }
 
 
@@ -68,6 +69,7 @@ void vtkMRMLROS2PublisherNode::WriteXML(ostream& of, int nIndent)
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
   vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
+  vtkMRMLWriteXMLStdStringMacro(frameId, FrameId);
   vtkMRMLWriteXMLIntMacro(QoSHistoryDepth, QoSHistoryDepth);
   vtkMRMLWriteXMLIntMacro(QoSReliability, QoSReliability);
   vtkMRMLWriteXMLIntMacro(QoSDurability, QoSDurability);
@@ -81,6 +83,7 @@ void vtkMRMLROS2PublisherNode::ReadXMLAttributes(const char** atts)
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
+  vtkMRMLReadXMLStdStringMacro(frameId, FrameId);
   vtkMRMLReadXMLIntMacro(QoSHistoryDepth, QoSHistoryDepth);
   vtkMRMLReadXMLIntMacro(QoSReliability, QoSReliability);
   vtkMRMLReadXMLIntMacro(QoSDurability, QoSDurability);

@@ -22,10 +22,6 @@ public:
   const char* GetSourceNodeID();
   vtkMRMLModelNode* GetSourceNode();
 
-  // Explicit frame ID for MoveIt
-  void SetFrameId(const std::string& frameId) { this->FrameId = frameId; }
-  std::string GetFrameId() const { return this->FrameId; }
-
   // Publish the current state of the source node
   size_t Publish();
 
@@ -36,7 +32,6 @@ protected:
   vtkMRMLROS2PublisherCollisionObjectNode();
   ~vtkMRMLROS2PublisherCollisionObjectNode() override;
 
-  std::string FrameId = "world";
 };
 
 #endif

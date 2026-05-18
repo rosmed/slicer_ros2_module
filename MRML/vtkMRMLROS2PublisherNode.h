@@ -45,6 +45,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
 
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
 
+  // Frame ID configuration
+  virtual void SetFrameId(const std::string& frameId) { mFrameId = frameId; }
+  virtual std::string GetFrameId() const { return mFrameId; }
+
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
@@ -85,6 +89,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
   int QoSHistoryDepth = 10;
   int QoSReliability = ReliabilitySystemDefault;
   int QoSDurability = DurabilitySystemDefault;
+
+  std::string mFrameId = "";
 
   // For ReadXMLAttributes
   inline void SetTopic(const std::string & topic) {

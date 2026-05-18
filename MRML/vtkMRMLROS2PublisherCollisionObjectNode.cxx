@@ -13,6 +13,7 @@ vtkMRMLROS2PublisherCollisionObjectNode::vtkMRMLROS2PublisherCollisionObjectNode
 {
   this->AddNodeReferenceRole("source");
   mInternals = new vtkMRMLROS2PublisherCollisionObjectInternals(this);
+  this->mFrameId = "world";
 }
 
 vtkMRMLROS2PublisherCollisionObjectNode::~vtkMRMLROS2PublisherCollisionObjectNode()
@@ -58,7 +59,7 @@ size_t vtkMRMLROS2PublisherCollisionObjectNode::Publish(vtkMRMLModelNode* modelN
 
   moveit_msgs::msg::CollisionObject msg;
   vtkSlicerToROS2(modelNode, msg, mInternals->GetROSNode());
-  msg.header.frame_id = this->FrameId;
+  msg.header.frame_id = this->GetFrameId();
 
   mNumberOfCalls++;
   const auto justSent = (reinterpret_cast<vtkMRMLROS2PublisherCollisionObjectInternals *>(mInternals))->PublishDirect(msg);

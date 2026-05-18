@@ -8,6 +8,24 @@
 #include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
+#include <type_traits>
+
+namespace SlicerROS2Internal {
+  template <typename T, typename = void>
+  struct has_header : std::false_type {};
+
+  template <typename T>
+  struct has_header<T, std::void_t<decltype(std::declval<T>().header.frame_id)>> : std::true_type {};
+
+  template <typename T>
+  void SetFrameId(T & msg, const std::string & frameId) {
+    if constexpr (has_header<T>::value) {
+      if (!frameId.empty()) {
+        msg.header.frame_id = frameId;
+      }
+    }
+  }
+}
 
 class vtkMRMLROS2PublisherInternals
 {
@@ -168,6 +186,7 @@ public:
     if (nbSubscriber != 0) {
       _ros_type rosMessage;
       vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
+      SlicerROS2Internal::SetFrameId(rosMessage, this->mMRMLNode->GetFrameId());
       this->mPublisher->publish(rosMessage);
     }
     return nbSubscriber;
@@ -197,6 +216,7 @@ public:
     if (nbSubscriber != 0) {
       _ros_type rosMessage;
       vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
+      SlicerROS2Internal::SetFrameId(rosMessage, this->mMRMLNode->GetFrameId());
       this->mPublisher->publish(rosMessage);
     }
     return nbSubscriber;
