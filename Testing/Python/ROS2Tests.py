@@ -88,6 +88,30 @@ class ROS2TestsWidget(ScriptedLoadableModuleWidget):
 
 
 #
+# ROS2TestsTest
+#
+
+class ROS2TestsTest(ScriptedLoadableModuleTest):
+    """
+    This is the test case for the ROS2Tests module.
+    """
+
+    def setUp(self):
+        """ Do cleanup before each test """
+        slicer.mrmlScene.Clear(0)
+
+    def runTest(self):
+        """Run as few or as many tests as needed here."""
+        self.setUp()
+        self.test_ROS2Tests()
+
+    def test_ROS2Tests(self):
+        """ Run the actual tests """
+        logic = ROS2TestsLogic()
+        logic.run()
+
+
+#
 # ROS2TestsLogic
 #
 
@@ -919,6 +943,210 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.ros2Node.Destroy()
             ROS2TestsLogic.spin_some()
 
+    class TestQoS(unittest.TestCase):
+        def setUp(self):
+            print("\nTesting QoS configuration - Setting up..")
+            self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
+            self.ros2Node.Create("testNodeQoS_" + uuid.uuid4().hex[:4])
+            self.testObs = TestObserverSubscriber()
+            ROS2TestsLogic.spin_some()
+
+        def test_qos_getters_setters(self):
+            print("Testing QoS getters and setters - Starting..")
+            
+            # Publisher node getters/setters
+            pub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2PublisherStringNode")
+            self.assertEqual(pub.GetQoSHistoryDepth(), 10) # default value
+            self.assertEqual(pub.GetQoSReliability(), pub.ReliabilitySystemDefault)
+            self.assertEqual(pub.GetQoSDurability(), pub.DurabilitySystemDefault)
+            
+            pub.SetQoSHistoryDepth(15)
+            pub.SetQoSReliability(pub.BestEffort)
+            pub.SetQoSDurability(pub.TransientLocal)
+            
+            self.assertEqual(pub.GetQoSHistoryDepth(), 15)
+            self.assertEqual(pub.GetQoSReliability(), pub.BestEffort)
+            self.assertEqual(pub.GetQoSDurability(), pub.TransientLocal)
+            slicer.mrmlScene.RemoveNode(pub)
+
+            # Subscriber node getters/setters
+            sub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+            self.assertEqual(sub.GetQoSHistoryDepth(), 10) # default value
+            self.assertEqual(sub.GetQoSReliability(), sub.ReliabilitySystemDefault)
+            self.assertEqual(sub.GetQoSDurability(), sub.DurabilitySystemDefault)
+            
+            sub.SetQoSHistoryDepth(5)
+            sub.SetQoSReliability(sub.Reliable)
+            sub.SetQoSDurability(sub.Volatile)
+            
+            self.assertEqual(sub.GetQoSHistoryDepth(), 5)
+            self.assertEqual(sub.GetQoSReliability(), sub.Reliable)
+            self.assertEqual(sub.GetQoSDurability(), sub.Volatile)
+            slicer.mrmlScene.RemoveNode(sub)
+            print("Testing QoS getters and setters - Done")
+
+        def test_compatible_qos(self):
+            print("Testing compatible QoS communication - Starting..")
+            topic = "slicer_test_compatible_qos_" + uuid.uuid4().hex[:4]
+            
+            pub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2PublisherStringNode")
+            pub.SetQoSReliability(pub.Reliable)
+            pub.SetQoSDurability(pub.Volatile)
+            pub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            
+            sub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+            sub.SetQoSReliability(sub.Reliable)
+            sub.SetQoSDurability(sub.Volatile)
+            sub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            observerId = sub.AddObserver("ModifiedEvent", self.testObs.Callback)
+            
+            ROS2TestsLogic.spin_some()
+            
+            # Send message
+            sentString = "CompatibleQoS"
+            pub.Publish(sentString)
+            
+            # Spin and check in a loop for up to 2.0 seconds
+            received = False
+            startTime = time.time()
+            while time.time() - startTime < 2.0:
+                ROS2TestsLogic.spin_some()
+                if sub.GetLastMessage() == sentString:
+                    received = True
+                    break
+            
+            self.assertTrue(received, "Compatible QoS message not received")
+            self.assertEqual(self.testObs.counter, 1, "Observer not called exactly once")
+            
+            # Clean up
+            sub.RemoveObserver(observerId)
+            slicer.mrmlScene.RemoveNode(pub)
+            slicer.mrmlScene.RemoveNode(sub)
+            print("Testing compatible QoS communication - Done")
+ 
+        def test_incompatible_reliability(self):
+            print("Testing incompatible reliability QoS communication - Starting..")
+            topic = "slicer_test_incompatible_rel_qos_" + uuid.uuid4().hex[:4]
+            
+            # Publisher has BestEffort reliability (offered)
+            pub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2PublisherStringNode")
+            pub.SetQoSReliability(pub.BestEffort)
+            pub.SetQoSDurability(pub.Volatile)
+            pub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            
+            # Subscriber has Reliable reliability (requested)
+            # Offered (BestEffort) < Requested (Reliable), so connection should NOT form
+            sub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+            sub.SetQoSReliability(sub.Reliable)
+            sub.SetQoSDurability(sub.Volatile)
+            sub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            observerId = sub.AddObserver("ModifiedEvent", self.testObs.Callback)
+            
+            ROS2TestsLogic.spin_some()
+            
+            # Send message
+            sentString = "IncompatibleRel"
+            pub.Publish(sentString)
+            
+            # Spin and check in a loop for 1.5 seconds
+            startTime = time.time()
+            while time.time() - startTime < 1.5:
+                ROS2TestsLogic.spin_some()
+            
+            self.assertNotEqual(sub.GetLastMessage(), sentString, "Message received despite incompatible reliability QoS")
+            self.assertEqual(self.testObs.counter, 0, "Observer should not have been called")
+            
+            # Clean up
+            sub.RemoveObserver(observerId)
+            slicer.mrmlScene.RemoveNode(pub)
+            slicer.mrmlScene.RemoveNode(sub)
+            print("Testing incompatible reliability QoS communication - Done")
+ 
+        def test_incompatible_durability(self):
+            print("Testing incompatible durability QoS communication - Starting..")
+            topic = "slicer_test_incompatible_dur_qos_" + uuid.uuid4().hex[:4]
+            
+            # Publisher has Volatile durability (offered)
+            pub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2PublisherStringNode")
+            pub.SetQoSReliability(pub.Reliable)
+            pub.SetQoSDurability(pub.Volatile)
+            pub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            
+            # Subscriber has TransientLocal durability (requested)
+            # Offered (Volatile) < Requested (TransientLocal), so connection should NOT form
+            sub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+            sub.SetQoSReliability(sub.Reliable)
+            sub.SetQoSDurability(sub.TransientLocal)
+            sub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            observerId = sub.AddObserver("ModifiedEvent", self.testObs.Callback)
+            
+            ROS2TestsLogic.spin_some()
+            
+            # Send message
+            sentString = "IncompatibleDur"
+            pub.Publish(sentString)
+            
+            # Spin and check in a loop for 1.5 seconds
+            startTime = time.time()
+            while time.time() - startTime < 1.5:
+                ROS2TestsLogic.spin_some()
+            
+            self.assertNotEqual(sub.GetLastMessage(), sentString, "Message received despite incompatible durability QoS")
+            self.assertEqual(self.testObs.counter, 0, "Observer should not have been called")
+            
+            # Clean up
+            sub.RemoveObserver(observerId)
+            slicer.mrmlScene.RemoveNode(pub)
+            slicer.mrmlScene.RemoveNode(sub)
+            print("Testing incompatible durability QoS communication - Done")
+ 
+        def test_transient_local_durability(self):
+            print("Testing transient local durability (late joiner) - Starting..")
+            topic = "/slicer_test_transient_local_qos_" + uuid.uuid4().hex[:4]
+            sentString = "TransientLocalLateJoiner"
+            
+            # Start background publisher process using ROS2 CLI
+            # We use --rate 0.01 (once every 100 seconds) so it publishes the first message immediately,
+            # and stays alive without publishing a second message during our test window.
+            pub_cmd = f"topic pub --rate 0.01 --qos-reliability reliable --qos-durability transient_local {topic} std_msgs/msg/String \"{{data: '{sentString}'}}\""
+            pub_proc = ROS2TestsLogic.run_ros2_cli_command_non_blocking(pub_cmd)
+            
+            # Give the publisher process 3.0 seconds to fully start up and publish the initial message
+            startTime = time.time()
+            while time.time() - startTime < 3.0:
+                ROS2TestsLogic.spin_some()
+            
+            # Create and add subscriber with TransientLocal durability (requested)
+            sub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+            sub.SetQoSReliability(sub.Reliable)
+            sub.SetQoSDurability(sub.TransientLocal)
+            sub.AddToROS2Node(self.ros2Node.GetID(), topic)
+            observerId = sub.AddObserver("ModifiedEvent", self.testObs.Callback)
+            
+            # Spin and verify in a loop for up to 5.0 seconds to allow discovery of late joiner
+            received = False
+            startTime = time.time()
+            while time.time() - startTime < 5.0:
+                ROS2TestsLogic.spin_some()
+                if sub.GetLastMessage() == sentString:
+                    received = True
+                    break
+            
+            # Clean up background process first
+            ROS2TestsLogic.kill_subprocess(pub_proc)
+            
+            self.assertTrue(received, "Late-joining TransientLocal subscriber did not receive cached message")
+            self.assertEqual(self.testObs.counter, 1, "Observer not called for TransientLocal late joiner")
+            
+            # Clean up nodes
+            sub.RemoveObserver(observerId)
+            slicer.mrmlScene.RemoveNode(sub)
+            print("Testing transient local durability - Done")
+ 
+        def tearDown(self):
+            self.ros2Node.Destroy()
+            ROS2TestsLogic.spin_some()
+
 
     def run(self):
         print('Running all tests...')
@@ -933,12 +1161,16 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestTf2BroadcasterAndLookupNode))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestServiceClient))
         suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestImageAndPointCloud))
+        suite.addTest(unittest.makeSuite(ROS2TestsLogic.TestQoS))
 
         runner = unittest.TextTestRunner()
-        runner.run(suite)
+        result = runner.run(suite)
 
         # Restore VTK warnings
         vtk.vtkObject.GlobalWarningDisplayOn()
+
+        if not result.wasSuccessful():
+            raise AssertionError(f"Unit tests failed with {len(result.failures)} failures and {len(result.errors)} errors.")
 
 
 # tests = slicer.util.getModuleLogic('ROS2Tests')
