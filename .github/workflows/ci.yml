@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Cancel in-progress runs for the same branch/PR to save CI minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (ROS2 Jazzy / Slicer 5.10)
+    runs-on: ubuntu-latest
+
+    # Pull the pre-built CI image from GHCR.
+    # The image contains Ubuntu 24.04 + ROS2 Jazzy + Slicer 5.10 (from source).
+    # Rebuild it locally and push a new tag only when Ubuntu/ROS2/Slicer versions change.
+    # See docker/build-and-push.sh for instructions.
+    container:
+      image: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+      # GITHUB_TOKEN has read:packages on public repos — no extra secrets needed
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Check out the module source into a colcon workspace layout
+      # -----------------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Place the source under ws/src/slicer_ros2_module so colcon
+          # finds it as a single package workspace.
+          path: ws/src/slicer_ros2_module
+
+      # -----------------------------------------------------------------------
+      # 2. Build the module with colcon
+      # -----------------------------------------------------------------------
+      - name: Build
+        working-directory: ws
+        run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
+          colcon build \
+            --cmake-args \
+              -DSlicer_DIR:PATH=$Slicer_DIR \
+              -DCMAKE_BUILD_TYPE=Release \
+            --event-handlers console_cohesion+
+
+      # -----------------------------------------------------------------------
+      # 3. Run CTest-registered tests
+      # -----------------------------------------------------------------------
+      - name: Test
+        working-directory: ws
+        run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
+          source install/setup.bash
+          colcon test \
+            --return-code-on-test-failure \
+            --event-handlers console_cohesion+
+
+      # -----------------------------------------------------------------------
+      # 4. Upload build/test logs as an artifact (visible even on failure)
+      # -----------------------------------------------------------------------
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-logs
+          path: ws/log/
+          retention-days: 14
