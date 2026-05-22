@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, devel ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, devel ]
+  workflow_dispatch:  # allows manual trigger from the GitHub Actions UI
 
 # Cancel in-progress runs for the same branch/PR to save CI minutes
 concurrency:
