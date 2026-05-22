@@ -28,6 +28,11 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    # GitHub Actions defaults to /bin/sh — force bash so 'source' works
+    defaults:
+      run:
+        shell: bash
+
     steps:
       # -----------------------------------------------------------------------
       # 1. Check out the module source into a colcon workspace layout
