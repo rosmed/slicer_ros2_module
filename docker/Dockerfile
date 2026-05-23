@@ -146,6 +146,13 @@ ARG SLICER_TAG
 COPY --from=slicer-build /opt/slicer/Slicer-SuperBuild \
   /opt/slicer/Slicer-SuperBuild
 
+# SlicerConfig.cmake and UseSlicer.cmake also include cmake modules from the
+# Slicer *source* tree (e.g. SlicerBlockFindQtAndCheckVersion.cmake,
+# UseSlicerMacros.cmake) using absolute paths baked in at build time.
+# We only need the CMake/ subdirectory — not the entire ~500 MB source clone.
+COPY --from=slicer-build /opt/slicer/Slicer/CMake \
+  /opt/slicer/Slicer/CMake
+
 # Space recovery — all steps are safe for a build-only (not runtime) image.
 # Headers and *Config.cmake files are intentionally kept; colcon needs them
 # to compile and link the module against Slicer's dependencies.
