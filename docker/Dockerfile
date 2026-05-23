@@ -160,25 +160,16 @@ RUN set -e; \
   SB=/opt/slicer/Slicer-SuperBuild; \
   \
   echo "==> Stripping debug symbols from shared libs and executables..."; \
-  find "$SB" -type f \( -name "*.so" -o -name "*.so.*" \) \
-  -exec strip --strip-unneeded {} \; 2>/dev/null || true; \
-  find "$SB/Slicer-build/bin" -type f -executable \
-  -exec strip --strip-unneeded {} \; 2>/dev/null || true; \
+  find "$SB" -type f -name "*.so*" \
+    -exec strip --strip-unneeded {} \; 2>/dev/null || true; \
+  find "$SB/Slicer-build/bin" -maxdepth 1 -type f -executable \
+    -exec strip --strip-unneeded {} \; 2>/dev/null || true; \
   \
-  echo "==> Deleting object files and build-intermediate static archives..."; \
+  echo "==> Deleting object files (always safe — never link targets)..."; \
   find "$SB" -name "*.o" -delete; \
-  find "$SB" -name "*.a" \
-    -not -path "*-install/*" \
-    -not -path "*/install/*" \
-    -delete; \
   \
   echo "==> Deleting dependency source trees (*-src)..."; \
   find "$SB" -maxdepth 1 -name "*-src" -type d -exec rm -rf {} + 2>/dev/null || true; \
-  \
-  echo "==> Deleting CMakeFiles compiler-detection artifacts from dep builds..."; \
-  find "$SB" -mindepth 2 -maxdepth 3 -name "CMakeFiles" -type d \
-  -not -path "$SB/Slicer-build/*" \
-  -exec rm -rf {} + 2>/dev/null || true; \
   \
   echo "==> Deleting Python bytecode cache..."; \
   find /opt/slicer -name "*.pyc" -delete 2>/dev/null || true; \
