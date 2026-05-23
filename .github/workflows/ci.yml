@@ -58,7 +58,17 @@ jobs:
             --event-handlers console_cohesion+
 
       # -----------------------------------------------------------------------
-      # 3. Run CTest-registered tests
+      # 3. Start virtual display (needed by ROS2 subprocess nodes, e.g. turtlesim)
+      #    Slicer itself runs with --no-main-window (set in Testing CMakeLists)
+      #    so it does not need a real display — but its subprocess children do.
+      # -----------------------------------------------------------------------
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      # -----------------------------------------------------------------------
+      # 4. Run CTest-registered tests
       # -----------------------------------------------------------------------
       - name: Test
         working-directory: ws
