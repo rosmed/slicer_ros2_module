@@ -165,8 +165,12 @@ RUN set -e; \
   find "$SB/Slicer-build/bin" -type f -executable \
   -exec strip --strip-unneeded {} \; 2>/dev/null || true; \
   \
-  echo "==> Deleting object files and static archives..."; \
-  find "$SB" \( -name "*.o" -o -name "*.a" \) -delete; \
+  echo "==> Deleting object files and build-intermediate static archives..."; \
+  find "$SB" -name "*.o" -delete; \
+  find "$SB" -name "*.a" \
+    -not -path "*-install/*" \
+    -not -path "*/install/*" \
+    -delete; \
   \
   echo "==> Deleting dependency source trees (*-src)..."; \
   find "$SB" -maxdepth 1 -name "*-src" -type d -exec rm -rf {} + 2>/dev/null || true; \
