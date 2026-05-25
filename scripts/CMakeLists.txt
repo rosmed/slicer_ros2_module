@@ -9,6 +9,7 @@ install(PROGRAMS
   demo_point_cloud.py
   slicer
   test
+  test_ci
   DESTINATION lib/${PROJECT_NAME}
   COMPONENT slicer_ros2_scripts
 )

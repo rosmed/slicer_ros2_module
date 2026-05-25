@@ -68,16 +68,14 @@ jobs:
           echo "DISPLAY=:99" >> $GITHUB_ENV
 
       # -----------------------------------------------------------------------
-      # 4. Run CTest-registered tests
+      # 4. Run tests using Slicer with the test module
       # -----------------------------------------------------------------------
       - name: Test
         working-directory: ws
         run: |
           source /opt/ros/$ROS_DISTRO/setup.bash
           source install/setup.bash
-          colcon test \
-            --return-code-on-test-failure \
-            --event-handlers console_cohesion+
+          ros2 run slicer_ros2_module test_ci
 
       # -----------------------------------------------------------------------
       # 4. Upload build/test logs as an artifact (visible even on failure)
