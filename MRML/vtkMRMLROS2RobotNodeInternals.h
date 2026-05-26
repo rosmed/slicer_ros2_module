@@ -57,9 +57,6 @@ class vtkMRMLROS2RobotNodeInternals
   const moveit::core::JointModelGroup* JointModelGroupPtr = nullptr;
   std::string IKGroupName;
 
-  // Cached trajectory for execution after planning
-  moveit_msgs::msg::RobotTrajectory CachedTrajectory;
-
   // KDL solvers
   std::unique_ptr<KDL::Chain> KDLChain;
   std::unique_ptr<KDL::ChainFkSolverPos_recursive> KDLFkSolver;

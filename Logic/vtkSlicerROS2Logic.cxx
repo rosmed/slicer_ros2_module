@@ -49,6 +49,7 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLROS2MotionControlNode.h>
 #include <vtkMRMLROS2PublisherCollisionObjectNode.h>
 
 // Automatically generated nodes
@@ -161,6 +162,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 
   // Robot
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
+
+  // Motion control
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2MotionControlNode>::New());
 
   // Services
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolStringNode>::New());

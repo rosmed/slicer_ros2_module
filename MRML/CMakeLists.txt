@@ -135,6 +135,8 @@ set(${KIT}_SRCS
   vtkMRMLROS2Tf2LookupNode.cxx
   vtkMRMLROS2RobotNode.h
   vtkMRMLROS2RobotNode.cxx
+  vtkMRMLROS2MotionControlNode.h
+  vtkMRMLROS2MotionControlNode.cxx
   vtkMRMLROS2ServiceClientNode.h
   vtkMRMLROS2ServiceClientNode.cxx
   vtkMRMLROS2ServiceClientDefaultNodes.h

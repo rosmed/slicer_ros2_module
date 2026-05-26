@@ -13,7 +13,6 @@
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
-class vtkMoveitMsgsRobotTrajectory;
 class vtkMRMLROS2NodeNode;
 class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2LookupNode;
@@ -79,46 +78,19 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   std::vector<std::string> GetJoints();
   std::vector<std::string> FindRootAndTipLinks() const;
 
+  /** Position limits (rad or m) for each joint in the same order as GetJoints(). */
+  std::vector<double> GetJointLowerPositionLimits();
+  std::vector<double> GetJointUpperPositionLimits();
+
+  /** Maximum velocity (rad/s or m/s) from URDF for each joint in GetJoints() order.
+   *  Returns 0.0 for a joint with no URDF velocity limit. */
+  std::vector<double> GetJointVelocityLimits();
+
+  /** Joint types ("revolute", "continuous", "prismatic") in GetJoints() order. */
+  std::vector<std::string> GetJointTypes();
+
   vtkMatrix4x4* ComputeKDLFK(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName = "");
   vtkMatrix4x4* ComputeLocalTransform(const std::vector<double>& jointValues, vtkMatrix4x4* outTransform, const std::string& linkName);
-
-  // Plan a joint-space trajectory using MoveIt for the given group.
-  // goalJointValues must match the group's joint order. Returns empty trajectory on failure.
-  vtkMoveitMsgsRobotTrajectory* PlanMoveItTrajectory(const std::string& groupName,
-                                                         const std::vector<double>& goalJointValues,
-                                                         double velocityScaling = 0.5,
-                                                         double accelerationScaling = 0.5,
-                                                         double planningTimeSec = 2.0);
-
-  // Python-friendly wrapper: returns JSON string of waypoints
-  // Format: {"joint_names": [...], "points": [{"positions": [...], "velocities": [...], "time_from_start": sec}, ...]}
-  std::string PlanMoveItTrajectoryJSON(const std::string& groupName,
-                                       const std::vector<double>& goalJointValues,
-                                       double velocityScaling = 0.5,
-                                       double accelerationScaling = 0.5,
-                                       double planningTimeSec = 2.0);
-
-  // Execute a previously planned trajectory using MoveIt
-  // Returns true on successful execution, false otherwise
-  bool ExecuteMoveItTrajectory(const std::string& groupName,
-                               vtkMoveitMsgsRobotTrajectory* trajectory);
-
-  // Execute the cached trajectory from the last PlanMoveItTrajectoryJSON call
-  // Returns true on successful execution, false otherwise
-  bool ExecuteCachedMoveItTrajectory(const std::string& groupName);
-
-  // Plan and execute a joint-space trajectory in one call
-  // Returns true on successful execution, false otherwise
-  bool PlanAndExecuteMoveItTrajectory(const std::string& groupName,
-                                      const std::vector<double>& goalJointValues,
-                                      double velocityScaling = 0.5,
-                                      double accelerationScaling = 0.5,
-                                      double planningTimeSec = 2.0);
-
-  // Execute trajectory asynchronously (non-blocking) in a background thread
-  // Updates the main robot model in real-time during execution
-  // Returns immediately, does not block UI
-  bool ExecuteMoveItTrajectoryAsync(const std::string& groupName, vtkMoveitMsgsRobotTrajectory* trajectory);
 
   // Remove all visual nodes (models, transforms, lookups) associated with the robot
   void RemoveRobotVisualization();

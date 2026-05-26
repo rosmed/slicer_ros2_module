@@ -159,6 +159,9 @@
                      <property name="text">
                         <string>joint_states</string>
                      </property>
+                     <property name="SlicerParameterName" stdset="0">
+                      <string>jointStateTopic</string>
+                     </property>
                     </widget>
                  </item>
                 </layout>
@@ -184,6 +187,9 @@
                      <property name="text">
                       <string>Move Group Exists</string>
                      </property>
+                     <property name="SlicerParameterName" stdset="0">
+                      <string>moveGroupExists</string>
+                     </property>
                     </widget>
                  </item>
                  <item row="1" column="0">
@@ -200,6 +206,35 @@
                      </property>
                      <property name="toolTip">
                       <string>Select or type a MoveIt planning group name</string>
+                     </property>
+                    </widget>
+                 </item>
+                 <item row="2" column="0">
+                    <widget class="QLabel" name="planningTimeLabel">
+                     <property name="text">
+                      <string>Planning Time (s)</string>
+                     </property>
+                    </widget>
+                 </item>
+                 <item row="2" column="1">
+                    <widget class="QDoubleSpinBox" name="planningTimeSpinBox">
+                     <property name="toolTip">
+                      <string>Maximum time allowed for MoveIt motion planning (seconds)</string>
+                     </property>
+                     <property name="SlicerParameterName" stdset="0">
+                      <string>planningTimeSec</string>
+                     </property>
+                     <property name="minimum">
+                      <double>0.500000000000000</double>
+                     </property>
+                     <property name="maximum">
+                      <double>60.000000000000000</double>
+                     </property>
+                     <property name="singleStep">
+                      <double>0.500000000000000</double>
+                     </property>
+                     <property name="value">
+                      <double>5.000000000000000</double>
                      </property>
                     </widget>
                  </item>
