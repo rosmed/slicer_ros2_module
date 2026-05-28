@@ -139,6 +139,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.jointSpinboxes = []
         self._sliderInitRetryCount = 0
         self._moveGroupParamObsId = None
+        self._srdfEndEffectors = []  # list of {name, parent_link} dicts from SRDF
         self.obstaclePublishers = {} # modelNodeID -> publisherNode
 
     def setup(self) -> None:
@@ -194,6 +195,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.currentStatePushButton3DControl.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.moveGroupExistsCheckBox.connect("toggled(bool)", self.onMoveGroupExistsToggled)
         self.ui.planGroupComboBox.connect("activated(int)", self.onPlanGroupActivated)
+        self.ui.endEffectorLinkComboBox.connect("activated(int)", self.onEndEffectorLinkActivated)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
@@ -215,6 +217,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
         self.ui.planGroupComboBox.enabled = False
+        self.ui.endEffectorLinkComboBox.enabled = False
+        self.ui.endEffectorLinkLabel.enabled = False
         self.ui.planningTimeSpinBox.enabled = False
         self.ui.planningTimeLabel.enabled = False
         self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
@@ -884,6 +888,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
     def onMoveGroupExistsToggled(self, toggled: bool) -> None:
         self.ui.planGroupLabel.enabled = toggled
         self.ui.planGroupComboBox.enabled = toggled
+        self.ui.endEffectorLinkLabel.enabled = toggled
+        self.ui.endEffectorLinkComboBox.enabled = toggled
         self.ui.planningTimeLabel.enabled = toggled
         self.ui.planningTimeSpinBox.enabled = toggled
         # Persist to parameter node
@@ -956,7 +962,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print(f"Warning: Could not set up move group parameter monitoring: {e}")
 
     def _onMoveGroupSRDFReceived(self, caller=None, event=None) -> None:
-        """Parse SRDF XML from /move_group and populate planGroupComboBox."""
+        """Parse SRDF XML from /move_group, populate planGroupComboBox and endEffectorLinkComboBox."""
         if self._moveGroupParamNode is None:
             return
         srdf_xml = self._moveGroupParamNode.GetParameterAsString("robot_description_semantic")
@@ -966,6 +972,12 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         try:
             root = ET.fromstring(srdf_xml)
             groups = [g.get("name") for g in root.findall("group") if g.get("name")]
+            # Each <end_effector> has a name and a parent_link which is the tip link for IK
+            end_effectors = [
+                {"name": ee.get("name"), "parent_link": ee.get("parent_link")}
+                for ee in root.findall("end_effector")
+                if ee.get("parent_link")
+            ]
         except ET.ParseError as e:
             print(f"Warning: Failed to parse SRDF XML: {e}")
             return
@@ -973,24 +985,53 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if not groups:
             return
 
+        # --- Planning group combo ---
         combo = self.ui.planGroupComboBox
         current = combo.currentText
         combo.blockSignals(True)
         combo.clear()
         for g in groups:
             combo.addItem(g)
-        # Restore previous selection if it's still valid, otherwise take first
         idx = combo.findText(current)
         combo.setCurrentIndex(idx if idx >= 0 else 0)
         combo.blockSignals(False)
-        # Sync param node with the now-current selection (activated signal was suppressed)
         if self._parameterNode is not None:
             selected = combo.currentText
             if selected:
                 self._parameterNode.planningGroup = selected
         print(f"Planning groups available: {groups}")
 
-        # Remove the observer — no need to keep listening once groups are populated
+        # --- End effector link combo ---
+        self._srdfEndEffectors = end_effectors
+        eeCombo = self.ui.endEffectorLinkComboBox
+        eeCombo.blockSignals(True)
+        eeCombo.clear()
+        for ee in end_effectors:
+            # Display as "name (parent_link)" so the user sees both pieces of info
+            eeCombo.addItem(f"{ee['name']} ({ee['parent_link']})", ee["parent_link"])
+        # Pre-select the entry whose parent_link matches the current tiplink (from URDF traversal)
+        preselect_idx = -1
+        if self.tiplink:
+            for i, ee in enumerate(end_effectors):
+                if ee["parent_link"] == self.tiplink:
+                    preselect_idx = i
+                    break
+        eeCombo.setCurrentIndex(preselect_idx if preselect_idx >= 0 else 0)
+        eeCombo.blockSignals(False)
+        if end_effectors:
+            # Apply the selected entry immediately so tiplink is authoritative
+            selected_link = eeCombo.itemData(eeCombo.currentIndex)
+            if selected_link:
+                self.tiplink = selected_link
+                self.goaltiplink = selected_link
+                if self.logic is not None:
+                    self.logic.tipLink = selected_link
+            print(f"End effectors available: {[ee['name'] for ee in end_effectors]}")
+            print(f"Active end effector link: {self.tiplink}")
+        else:
+            print("No end_effector elements found in SRDF; tip link unchanged.")
+
+        # Remove the observer — no need to keep listening once populated
         if self._moveGroupParamObsId is not None:
             try:
                 self._moveGroupParamNode.RemoveObserver(self._moveGroupParamObsId)
@@ -998,7 +1039,25 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 pass
             self._moveGroupParamObsId = None
 
-            
+
+    def onEndEffectorLinkActivated(self, index: int) -> None:
+        """Called when the user selects an end-effector link from the dropdown.
+        Updates tiplink/goaltiplink so subsequent IK calls use the correct frame.
+        """
+        eeCombo = self.ui.endEffectorLinkComboBox
+        link = eeCombo.itemData(index)
+        if not link:
+            # Editable combo: user may have typed a raw link name
+            link = eeCombo.currentText.strip()
+        if not link:
+            return
+        self.tiplink = link
+        self.goaltiplink = link
+        if self.logic is not None:
+            self.logic.tipLink = link
+        if self.robot is not None:
+            print(f"End effector link set to: {link}")
+
     def onTabChanged(self, index):
             if not self.isRobotLoaded:
                 return
