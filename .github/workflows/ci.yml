@@ -2,14 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main, devel]
+    branches: [ main, devel ]
   pull_request:
-    branches: [main, devel]
-  workflow_dispatch: # allows manual trigger from the GitHub Actions UI
-
-permissions:
-  contents: read
-  packages: read
+    branches: [ main, devel ]
+  workflow_dispatch:  # allows manual trigger from the GitHub Actions UI
 
 # Cancel in-progress runs for the same branch/PR to save CI minutes
 concurrency:
@@ -26,12 +22,11 @@ jobs:
     # Rebuild it locally and push a new tag only when Ubuntu/ROS2/Slicer versions change.
     # See docker/build-and-push.sh for instructions.
     container:
-      image: ghcr.io/${{ github.repository_owner }}/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
-      # For private GHCR images, add a repo secret named PERSONAL_GHCR_PAT
-      # with at least read:packages scope.
+      image: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+      # GITHUB_TOKEN has read:packages on public repos — no extra secrets needed
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.PERSONAL_GHCR_PAT }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     # GitHub Actions defaults to /bin/sh — force bash so 'source' works
     defaults:

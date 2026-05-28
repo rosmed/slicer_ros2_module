@@ -14,7 +14,6 @@
 # Usage:
 #   ./docker/build-and-push.sh                         # build only, tag=latest
 #   ./docker/build-and-push.sh --push                  # build + push with default tag
-#   ./docker/build-and-push.sh --org <owner> --push    # push to a specific GHCR owner
 #   ./docker/build-and-push.sh --push --tag jazzy-slicer-v5.10.0
 #   ./docker/build-and-push.sh --slicer-tag v5.12.0 --push --tag jazzy-slicer-v5.12.0
 #
@@ -25,7 +24,7 @@ set -euo pipefail
 # Defaults — edit these if you rename the repo / org
 # --------------------------------------------------------------------------
 REGISTRY="ghcr.io"
-ORG="${GITHUB_REPOSITORY_OWNER:-rosmed}"
+ORG="rosmed"
 IMAGE="slicer_ros2_module/ci"
 DEFAULT_TAG="jazzy-slicer-v5.10.0"
 SLICER_BUILD_TAG="v5.10.0"   # git tag of Slicer to build inside the image
@@ -40,8 +39,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --push)
       DO_PUSH=true; shift ;;
-    --org)
-      ORG="$2"; shift 2 ;;
     --tag)
       TAG="$2"; shift 2 ;;
     --slicer-tag)
