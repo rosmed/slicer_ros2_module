@@ -222,4 +222,13 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"\$ENV
 add_subdirectory(launch)
 add_subdirectory(scripts)
 
+
+# Install documentation code snippets so they are reachable via the installed package
+# (e.g. $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/...)
+install(
+  DIRECTORY docs/code/
+  DESTINATION share/${PROJECT_NAME}/docs/code
+  COMPONENT slicer_ros2_docs_code
+)
+
 ament_package()

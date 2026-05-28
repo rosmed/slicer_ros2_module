@@ -32,32 +32,20 @@ Visualizing in 3D Slicer
 
 Open the 3D Slicer application (launched using the recommended launcher ``ros2 launch slicer_ros2_module slicer.launch.py``).
 
-Open Slicer's Python Interactor (Ctrl + 3 or through the **Developer Tools** menu) and copy/paste the following code to setup a subscriber, create a 3D model node, and link them:
+You can set up the subscriber in one of two ways:
 
-.. code-block:: python
+**Option A – run the script directly from a terminal** using the ``slicer`` launcher's
+``--python-script`` argument (the script executes automatically after Slicer starts):
 
-   import slicer
+.. code-block:: bash
 
-   # 1. Create a Model node to display the point cloud
-   modelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLModelNode', 'SimulatedPointCloud')
-   modelNode.CreateDefaultDisplayNodes()
+   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/point_cloud_subscriber.py
 
-   # Set point size and color for better visibility in 3D view
-   displayNode = modelNode.GetDisplayNode()
-   displayNode.SetPointSize(5.0)
-   displayNode.SetColor(0.2, 0.6, 1.0) # Sleek blue color
+**Option B – paste the code** into Slicer's Python Interactor (Ctrl + 3 or through the
+**Developer Tools** menu):
 
-   # 2. Retrieve the default ROS 2 Node from Slicer
-   rosLogic = slicer.util.getModuleLogic('ROS2')
-   rosNode = rosLogic.GetDefaultROS2Node()
-
-   # 3. Create the subscriber for PointCloud2 (using 'PolyData' bridge type)
-   sub = rosNode.CreateAndAddSubscriberNode('PolyData', '/simulated_point_cloud')
-
-   # 4. Link the subscriber node to the Model node
-   sub.SetTargetNodeID(modelNode.GetID())
-
-   print("Point cloud subscriber successfully initialized!")
+.. literalinclude:: ../code/point_cloud_subscriber.py
+   :language: python
 
 Once run, you will see a 10x20 grid of points in the 3D view representing a dynamic 2D wavelet propagating outwards from the center.
 
@@ -70,40 +58,20 @@ This example demonstrates how to create a static point cloud using 3D Slicer's b
 Creating and Publishing the Point Cloud in 3D Slicer
 ====================================================
 
-Open 3D Slicer's Python Interactor (**Ctrl + 3** or through the **Developer Tools** menu). Copy and paste the following Python script to create a static sphere-shaped point cloud using VTK/Slicer, and publish it using the native **SlicerROS2** PolyData publisher:
+You can run the publisher script in one of two ways:
 
-.. code-block:: python
+**Option A – run the script directly from a terminal** using the ``slicer`` launcher's
+``--python-script`` argument (the script executes automatically after Slicer starts):
 
-   import slicer
-   import vtk
+.. code-block:: bash
 
-   # 1. Create a sphere using Slicer's built-in VTK library to serve as a static point cloud
-   sphere = vtk.vtkSphereSource()
-   sphere.SetRadius(15.0)
-   sphere.SetThetaResolution(20)
-   sphere.SetPhiResolution(20)
-   sphere.Update()
+   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/point_cloud_publisher.py
 
-   # Create a Model node in the Slicer scene to visualize it locally first
-   modelNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLModelNode', 'SlicerStaticPointCloud')
-   modelNode.SetAndObservePolyData(sphere.GetOutput())
-   modelNode.CreateDefaultDisplayNodes()
+**Option B – paste the code** into Slicer's Python Interactor (**Ctrl + 3** or through the
+**Developer Tools** menu):
 
-   # 2. Retrieve Slicer's default ROS 2 Node
-   rosLogic = slicer.util.getModuleLogic('ROS2')
-   rosNode = rosLogic.GetDefaultROS2Node()
-
-   # 3. Create the native PointCloud2 publisher (using 'PolyData' bridge type)
-   # We publish onto the '/slicer_point_cloud' topic
-   pub = rosNode.CreateAndAddPublisherNode('PolyData', '/slicer_point_cloud')
-
-   # 4. Set the frame ID natively on the publisher node!
-   pub.SetFrameId('world')
-
-   # 5. Publish the point cloud
-   pub.Publish(modelNode.GetPolyData())
-
-   print("Successfully published static point cloud of sphere via native SlicerROS2 publisher!")
+.. literalinclude:: ../code/point_cloud_publisher.py
+   :language: python
 
 Once executed, Slicer will create a local model displaying the sphere, and publish the points to the ROS 2 topic ``/slicer_point_cloud`` with the ``frame_id`` set to ``world``.
 

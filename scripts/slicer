@@ -1,13 +1,34 @@
 #!/usr/bin/env python3
 import sys
+import argparse
 import subprocess
 
 def main():
-    cmd = ["ros2", "launch", "slicer_ros2_module", "slicer.launch.py"]
-    if len(sys.argv) > 1:
-        args_str = " ".join(sys.argv[1:])
-        cmd.append(f"slicer_args:={args_str}")
-        
+    parser = argparse.ArgumentParser(
+        description='Launch 3D Slicer via the slicer_ros2_module ROS 2 launcher.',
+        add_help=True,
+    )
+    parser.add_argument(
+        '--python-script', '-p',
+        metavar='FILE',
+        help='Python script to execute inside Slicer after startup '
+             '(passed to Slicer as --python-script <FILE>).',
+    )
+    # Collect any remaining args that should be forwarded to Slicer
+    parser.add_argument('slicer_args', nargs='*', help='Extra arguments forwarded to Slicer')
+
+    args = parser.parse_args()
+
+    # Build the extra Slicer arguments list
+    extra = list(args.slicer_args)
+    if args.python_script:
+        extra = ['--python-script', args.python_script] + extra
+
+    cmd = ['ros2', 'launch', 'slicer_ros2_module', 'slicer.launch.py']
+    if extra:
+        args_str = ' '.join(extra)
+        cmd.append(f'slicer_args:={args_str}')
+
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
