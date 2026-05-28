@@ -1,0 +1,10 @@
+/* Soft-wrap long lines in all code blocks (code-block, literalinclude, etc.).
+   white-space: pre-wrap preserves intentional newlines and indentation while
+   letting the browser visually wrap long lines at the viewport edge.
+   Copy-paste still yields the original unwrapped text because no real newline
+   characters are inserted into the HTML content. */
+div.highlight pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-x: visible;
+}

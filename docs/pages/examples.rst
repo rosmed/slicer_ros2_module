@@ -117,7 +117,7 @@ Open **two terminals** and source your workspace in each:
 
    # Terminal 2 – 3D Slicer
    source ~/ros2_ws/install/setup.bash
-   ros2 launch slicer_ros2_module slicer.launch.py
+   ros2 run slicer_ros2_module slicer
 
 Once Slicer is open, load the robot via the **ROS2** module as described in
 :ref:`load_robot`. Wait for the ``[move_group] You can start planning now!``
@@ -129,39 +129,29 @@ message in Terminal 1 before proceeding.
    native unit). The SlicerROS2 module automatically converts them to metres when
    publishing to ROS 2.
 
-Creating the Obstacle
-=====================
+Creating and Publishing the Obstacle
+=====================================
 
-Open the Slicer Python Interactor (**Ctrl + 3** or through the
-**Developer Tools** menu) and paste the following snippet.
+You can run the full example in one of two ways:
+
+**Option A – run the script directly from a terminal** using the ``slicer`` launcher's
+``--python-script`` argument (creates the obstacle and publishes it automatically after
+Slicer starts):
+
+.. code-block:: bash
+
+   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_obstacle.py
+
+**Option B – paste the code** into Slicer's Python Interactor (**Ctrl + 3** or through
+the **Developer Tools** menu). The full script is split here to match the step-by-step
+description below.
 
 It creates a 200 mm × 200 mm × 200 mm box positioned in front of the UR5
 base (400 mm along X, 300 mm up along Z — well within the robot's reach envelope):
 
-.. code-block:: python
-
-   import slicer
-   import vtk
-
-   # 1. Build a box geometry with vtkCubeSource (dimensions in mm)
-   cube = vtk.vtkCubeSource()
-   cube.SetXLength(200.0)
-   cube.SetYLength(200.0)
-   cube.SetZLength(200.0)
-   cube.SetCenter(400.0, 0.0, 300.0)
-   cube.Update()
-
-   # 2. Wrap it in a vtkMRMLModelNode so it appears in the Slicer scene
-   obstacleNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLModelNode', 'MoveItObstacle')
-   obstacleNode.SetAndObservePolyData(cube.GetOutput())
-   obstacleNode.CreateDefaultDisplayNodes()
-
-   # Style it so it is clearly visible in the 3D view
-   dispNode = obstacleNode.GetDisplayNode()
-   dispNode.SetColor(1.0, 0.5, 0.0)   # orange
-   dispNode.SetOpacity(0.6)
-
-   print("Obstacle node created:", obstacleNode.GetName())
+.. literalinclude:: ../code/moveit_obstacle.py
+   :language: python
+   :lines: 1-22
 
 You should see an orange semi-transparent cube appear in the 3D view.
 
@@ -174,28 +164,12 @@ You should see an orange semi-transparent cube appear in the 3D view.
 Publishing the Obstacle to MoveIt
 ==================================
 
-Still in the Python Interactor, paste the second snippet to create a
+Still in the Python Interactor, paste the second part of the script to create a
 ``CollisionObject`` publisher and push the obstacle to the ``/planning_scene`` topic:
 
-.. code-block:: python
-
-   # 3. Get the default SlicerROS2 node
-   rosLogic = slicer.util.getModuleLogic('ROS2')
-   rosNode = rosLogic.GetDefaultROS2Node()
-
-   # 4. Create the CollisionObject publisher
-   #    '/planning_scene' is the standard topic that move_group's
-   #    PlanningSceneMonitor subscribes to for incremental scene diffs.
-   pub = rosNode.CreateAndAddPublisherNode('CollisionObject', '/planning_scene')
-
-   # 5. Point the publisher at our obstacle model and set the reference frame
-   pub.SetSourceNodeID(obstacleNode.GetID())
-   pub.SetFrameId('world')   # must match the MoveIt fixed frame
-
-   # 6. Publish once – MoveIt adds it to its internal planning scene
-   pub.Publish()
-
-   print("Obstacle published to MoveIt planning scene.")
+.. literalinclude:: ../code/moveit_obstacle.py
+   :language: python
+   :lines: 24-40
 
 .. note::
 
