@@ -1,11 +1,5 @@
-
-""""""""""""
-Introduction
-""""""""""""
-
-========
-Overview
-========
+What Is It
+----------
 
 This module is designed to enable direct communication between ROS 2
 and 3D Slicer.
@@ -13,7 +7,10 @@ and 3D Slicer.
 This module currently supports ROS 2 topics (subscribers and
 publishers), tf2 (broadcasters and lookups) as well as a parameter
 client (no server yet).  Users can add new publishers and subscribers
-with the CMake macro ``generate_ros2_nodes``.
+with the CMake macro ``generate_ros2_nodes``.  See
+:doc:`/pages/nodes/topics`, :doc:`/pages/nodes/services`,
+:doc:`/pages/nodes/parameters`, and :doc:`/pages/nodes/tf2` for the
+main ROS communication features.
 
 This module can also be used to visualize a ROS robot in action using a
 parameter client and tf2 lookups.  The robot visualization
@@ -25,6 +22,15 @@ are from Tf2.  For each robot, you will need a
 * provide an URDF robot description using a ROS parameter ``robot_description``
 * update the links positions and broadcast them to tf2
 
+See :doc:`/pages/robot-visualization` for a complete robot visualization
+workflow.
+
+SlicerROS2 also includes initial support for MoveIt-based motion
+control.  The ``ROS2MotionControl`` module can use a loaded robot and
+a running MoveIt configuration to select planning groups, preview
+planned trajectories, execute trajectories, and publish Slicer models
+as MoveIt collision objects.  See :doc:`/pages/motion-control` for
+setup and usage details.
 
 All the functionalities in this module are encapsulated in
 ``vtkMRMLNode`` so you use them in your own applications.  Since
@@ -34,9 +40,21 @@ either C++ or Python. For more information on each of these nodes,
 please see the 'Methodology' section of the `most recent paper
 <https://ieeexplore.ieee.org/abstract/document/10684721>`_.
 
-===============
+Where To Go Next
+----------------
+
+* New users should start with :doc:`/pages/compatibility` and
+  :doc:`/pages/getting-started`.
+* To start Slicer with the correct ROS 2 environment, see
+  :doc:`/pages/launching-slicer`.
+* For complete workflows, see :doc:`/pages/robot-visualization`,
+  :doc:`/pages/motion-control`, and :doc:`/pages/examples`.
+* For lower-level APIs, see :doc:`/pages/nodes`.
+* For testing and diagnosis, see :doc:`/pages/tests` and
+  :doc:`/pages/common-errors`.
+
 Acknowledgment
-===============
+---------------
 
 The initial core developers are:
 
@@ -57,9 +75,8 @@ This project is supported by:
   Memorial Award, the Mitacs Globalink Award and the Michael Smith
   Foreign Study Supplement.
 
-============
 Publications
-============
+------------
 
 .. note::
 
@@ -86,9 +103,8 @@ Publications
   :download:`BibTeX </images/connolly2022.bib>`
 
 
-=============
 Documentation
-=============
+-------------
 
 Besides this document, you can also check DeepWiki:
 https://deepwiki.com/rosmed/slicer_ros2_module. DeepWiki might be able

@@ -17,7 +17,7 @@ the services client classes available.
 .. _service_client:
 
 Clients
-=======
+-------
 
 To create a new service client, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddServiceCleintNode``.  This method takes
@@ -84,6 +84,6 @@ one parameter:
 
 
 Servers
-=======
+-------
 
 Not yet implemented.

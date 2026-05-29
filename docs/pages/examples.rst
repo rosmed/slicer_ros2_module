@@ -1,17 +1,19 @@
-""""""""
 Examples
-""""""""
+========
 
 This page provides various step-by-step examples demonstrating how to use SlicerROS2 to connect 3D Slicer with ROS 2 workflows.
 
-=====================
+For background on the APIs used by these examples, see
+:doc:`/pages/nodes/topics`, :doc:`/pages/nodes/images_pointclouds`,
+:doc:`/pages/robot-visualization`, and :doc:`/pages/motion-control`.
+
 PointCloud subscriber
-=====================
+---------------------
 
 This example demonstrates how to stream a simulated point cloud from a terminal node using a ROS 2 topic, and visualize it dynamically in 3D Slicer.
 
 Running the Point Cloud Publisher
-=================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We have provided a demo script, ``demo_point_cloud.py``, which publishes a 10x20 point cloud simulating a 2D wavelet at 10Hz.
 
@@ -28,7 +30,7 @@ To run the publisher, first make sure you have sourced your ROS 2 environment an
 The publisher will start generating the simulated point cloud and publishing it over the ROS topic ``/simulated_point_cloud``.
 
 Visualizing in 3D Slicer
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Open the 3D Slicer application using the recommended launcher ``ros2 run slicer_ros2_module slicer``.
 
@@ -49,14 +51,13 @@ You can set up the subscriber in one of two ways:
 
 Once run, you will see a 10x20 grid of points in the 3D view representing a dynamic 2D wavelet propagating outwards from the center.
 
-====================
 PointCloud publisher
-====================
+--------------------
 
 This example demonstrates how to create a static point cloud using 3D Slicer's built-in features and publish it over a ROS 2 topic to be visualized in RViz.
 
 Creating and Publishing the Point Cloud in 3D Slicer
-====================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can run the publisher script in one of two ways:
 
@@ -76,33 +77,32 @@ You can run the publisher script in one of two ways:
 Once executed, Slicer will create a local model displaying the sphere, and publish the points to the ROS 2 topic ``/slicer_point_cloud`` with the ``frame_id`` set to ``world``.
 
 Visualizing in RViz
-===================
+~~~~~~~~~~~~~~~~~~~
 
 To visualize this published point cloud in RViz:
 
-1. **Open a terminal**, source the ROS 2 setup script, and launch RViz:
+* **Open a terminal**, source the ROS 2 setup script, and launch RViz:
 
    .. code-block:: bash
 
       source /opt/ros/jazzy/setup.bash
       rviz2
 
-2. **Configure RViz Display**:
+* **Configure RViz Display**:
    - In the **Global Options** panel, set the **Fixed Frame** to ``world``.
    - Click the **Add** button at the bottom left of the window.
    - Switch to the **By topic** tab, expand ``/slicer_point_cloud``, select **PointCloud2**, and click **OK**.
    - (Optional) In the newly added PointCloud2 display properties, increase the **Size (m)** parameter to ``0.2`` or larger to render the sphere points clearly in the 3D grid.
 
-===================================
 MoveIt Obstacle from a Slicer Model
-===================================
+-----------------------------------
 
 This example demonstrates how to create a geometric obstacle directly in 3D Slicer
 using VTK/MRML Python commands and push it to the MoveIt 2 planning scene so that
 motion planning (IK and trajectory generation) avoids it.
 
 Prerequisites
-=============
+~~~~~~~~~~~~~
 
 You need a running UR5 simulation with MoveIt and the Slicer launcher.
 Open **two terminals** and source your workspace in each:
@@ -135,7 +135,7 @@ interpreter, or run the complete script from the terminal using the
 is provided at the end of this example.
 
 Configuration
-=============
+~~~~~~~~~~~~~
 
 All parameters are gathered in a single block at the top of the script.
 Edit these values to match your robot and MoveIt setup before running
@@ -147,16 +147,16 @@ any of the sections below:
    :end-before: [end: config]
 
 Setting Up the Robot and MoveIt
-================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following code performs the same steps you would normally carry out
 by hand in the **ROS2 Motion Control** module UI. By using a ``ParameterNode``,
 this scripted setup synchronizes with the Slicer UI, allowing you
 to switch between code and manual interaction:
 
-1. Create the robot node from the URDF on the ROS 2 parameter server.
-2. Wait asynchronously for the URDF to be parsed.
-3. Delegate the motion-control initialization to the module's logic class.
+* Create the robot node from the URDF on the ROS 2 parameter server.
+* Wait asynchronously for the URDF to be parsed.
+* Delegate the motion-control initialization to the module's logic class.
 
 .. literalinclude:: ../code/moveit_obstacle.py
    :language: python
@@ -167,7 +167,7 @@ Once the code prints *"Setup complete"* you can proceed to create and
 publish obstacles.
 
 Creating the Obstacle
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 The following code creates a 200 mm × 200 mm × 200 mm box positioned in front
 of the UR5 base (400 mm along X, 300 mm up along Z — well within the robot's
@@ -187,7 +187,7 @@ You should see an orange semi-transparent cube appear in the 3D view.
    track and remove them individually.
 
 Publishing the Obstacle to MoveIt
-==================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Paste the final section to mark the model as a MoveIt obstacle and publish it
 as a ``CollisionObject``:
@@ -205,7 +205,7 @@ as a ``CollisionObject``:
    planning scene upon receipt.
 
 Running the Complete Example from the Terminal
-===============================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To run all four sections as a single unattended script (Slicer starts, loads
 the robot, creates and publishes the obstacle, then stays open):
@@ -215,7 +215,7 @@ the robot, creates and publishes the obstacle, then stays open):
    ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_obstacle.py
 
 Verifying the Obstacle in MoveIt
-================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can verify that MoveIt received the obstacle in a third terminal:
 

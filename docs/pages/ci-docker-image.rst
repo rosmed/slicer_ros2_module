@@ -1,0 +1,62 @@
+CI Docker Image
+===============
+
+The Docker image built using the configuration files in the ``docker`` directory is used by GitHub Actions to build
+and test SlicerROS2. It contains Ubuntu, ROS 2 Jazzy, and a source-built 3D
+Slicer tree, so CI jobs do not have to rebuild Slicer on every run.
+
+The workflow currently pulls the image from GitHub Container Registry:
+
+.. code-block:: text
+
+   ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+
+Rebuild and push the image when the base operating system, ROS distribution,
+Slicer version, or required system dependencies change.
+
+Build Locally
+-------------
+
+From the repository root:
+
+.. code-block:: bash
+
+   ./docker/build-and-push.sh
+
+This builds the default tag locally:
+
+.. code-block:: text
+
+   ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+
+To build a different Slicer tag and image tag:
+
+.. code-block:: bash
+
+   ./docker/build-and-push.sh \
+     --slicer-tag v5.12.0 \
+     --tag jazzy-slicer-v5.12.0
+
+Push To GHCR
+------------
+
+Create a GitHub personal access token with ``write:packages`` permission, then
+export it before running the script:
+
+.. code-block:: bash
+
+   export GITHUB_TOKEN=<your_token>
+   ./docker/build-and-push.sh --push
+
+To push a custom tag:
+
+.. code-block:: bash
+
+   export GITHUB_TOKEN=<your_token>
+   ./docker/build-and-push.sh \
+     --slicer-tag v5.12.0 \
+     --tag jazzy-slicer-v5.12.0 \
+     --push
+
+After pushing a new tag, update ``.github/workflows/ci.yml`` so the
+``container`` image points to the new versioned image.

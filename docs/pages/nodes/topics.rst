@@ -78,7 +78,7 @@ publisher or subscriber classes available.
 .. _publishers:
 
 Publishers
-==========
+----------
 
 To create a new publisher, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddPublisherNode``.  This method takes
@@ -135,7 +135,7 @@ one parameter:
 
 
 Subscribers
-===========
+-----------
 
 To create a new subscriber, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode``.  This method
@@ -206,7 +206,7 @@ one parameter:
 
 
 Quality of Service (QoS)
-========================
+------------------------
 
 SlicerROS2 supports custom Quality of Service (QoS) settings for both publishers and subscribers. This allows you to configure reliability, durability, and history depth to match the requirements of your application (e.g., ensuring message delivery or supporting late-joining nodes).
 

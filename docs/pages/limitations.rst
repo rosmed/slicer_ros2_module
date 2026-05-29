@@ -1,6 +1,5 @@
-"""""""
 Caveats
-"""""""
+=======
 
 .. warning::
 
@@ -10,9 +9,8 @@ Caveats
    are not very consistent.  For example, point clouds, velocities,
    efforts are not scaled while tf2 and Transform/Poses are scaled.
 
-================
 Missing features
-================
+----------------
 
 * ROS namespaces are not supported yet.  The current implementation
   allows multiple nodes but doesn't provide a parameter to set the ROS
@@ -35,9 +33,8 @@ Missing features
 * Saving and reloading the scene as a MRML scene has not been
   extensively tested and might not work.
 
-==============================
 3D Slicer extensions
-==============================
+--------------------
 
 When using SlicerROS2, you may want to use other Slicer extensions
 (e.g., SlicerIGT). Since you are running Slicer from a ROS 2
@@ -57,9 +54,8 @@ To use the extension manager:
 
 This will open a graphical interface where you can manage your extensions.
 
-==================
 Loading the module
-==================
+------------------
 
 Always use the provided ROS 2 launcher to start Slicer. This ensures
 all environment variables (like ``LD_LIBRARY_PATH``) and Slicer module

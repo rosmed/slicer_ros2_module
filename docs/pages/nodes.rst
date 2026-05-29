@@ -1,7 +1,9 @@
-
-""""""""""""""
 MRML ROS Nodes
-""""""""""""""
+==============
+
+These pages describe the MRML node APIs used internally by
+:doc:`/pages/robot-visualization`, :doc:`/pages/motion-control`, and the
+scripts in :doc:`/pages/examples`.
 
 .. toctree::
 

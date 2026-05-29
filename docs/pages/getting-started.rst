@@ -1,11 +1,10 @@
 ..    include:: <isonum.txt>
 
-"""""""""""""""
 Getting Started
-"""""""""""""""
-==============
+===============
+
 Pre-requisites
-==============
+--------------
 
 Before you can start compiling the SlicerROS2 module, you will need:
 
@@ -16,11 +15,11 @@ Before you can start compiling the SlicerROS2 module, you will need:
 * Slicer 3D built from source, this is required to build any C++
   extension, including SlicerROS2.
 
-========
 Versions
-========
+--------
 
 SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with Slicer 3D 5.10.  When you clone the Slicer repo, make sure to checkout the v5.10 branch/tag.
+See :doc:`/pages/compatibility` for the supported release matrix.
 
 .. code-block:: bash
 
@@ -28,9 +27,8 @@ SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with Slicer 3D 5.10.  When yo
    cd Slicer
    git checkout v5.10.0
 
-================
 Compiling Slicer
-================
+----------------
 
 See `Slicer build instructions
 <https://slicer.readthedocs.io/en/latest/developer_guide/build_instructions/linux.html>`_
@@ -72,9 +70,8 @@ If you are comfortable with Docker, you can also use the provided docker image u
 
 The docker image is built using the provided Dockerfile in the repository in the ``docker`` directory. You can also build the image yourself using the provided Dockerfile if you want to make modifications to the image.
 
-===========
 Compilation
-===========
+-----------
 
 This code should be built with ``colcon`` as a ROS package.
 ``colcon`` is usually installed along ROS but if it isn't, install
@@ -133,14 +130,14 @@ you prefer a graphical interface, you can use ``cmake-gui`` instead of
 ``ccmake``.  Once ``Slicer_DIR`` is set, try ``colcon build`` again
 (after ``cd ~/ros2_ws``).
 
-==================
 Loading the module
-==================
+------------------
 
 After building your workspace, you should start Slicer using one of the provided ROS 2 launchers. These automatically configure the necessary environment variables and module paths for ``slicer_ros2_module`` and any extensions installed via``manage-extensions.py``.
+For more launcher details and examples, see :doc:`/pages/launching-slicer`.
 
 Using ros2 run (Convenient wrapper)
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can launch Slicer directly using:
 
@@ -150,7 +147,7 @@ You can launch Slicer directly using:
    ros2 run slicer_ros2_module slicer
 
 Passing Slicer arguments
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additional Slicer arguments can be passed after the launcher command:
 
@@ -163,9 +160,12 @@ Once Slicer is open, SlicerROS2 can be found in the **ROS** category
 of the Modules menu (previously it was listed under the **IGT**
 category).
 
-===================
+After the module loads, a good first workflow is
+:doc:`/pages/robot-visualization`.  If you are using MoveIt, continue
+with :doc:`/pages/motion-control`.
+
 Managing Extensions
-===================
+-------------------
 
 If you need additional Slicer extensions (like SlicerIGT), use the
 provided management script. This script handles downloading, compiling

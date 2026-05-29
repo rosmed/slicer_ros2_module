@@ -1,24 +1,15 @@
-
-"""""""""""""""""""
 Robot Visualization
-"""""""""""""""""""
-
-========
-Overview
-========
+===================
 
 For the robot visualization in 3D Slicer, one first need to properly
 configure a robot in ROS 2. The default ROS approach requires:
 
-* an XML robot definition file (``UFA``) and usually CAD files for
-  the links.
-
-* a robot state publisher node which will make the URDF description
+* A robot state publisher node which will make the URDF description
   available as a ROS parameter for other nodes.  The robot state
   publisher will also compute the forward kinematics and broadcast the
   3D position of each link to tf2.
 
-* a source (publisher) for the current joint positions.  This can be
+* A source (publisher) for the current joint positions.  This can be
   an actual robot driver or a script emulating the robot.
 
 Before testing SlicerROS2, you should always check that your setup is
@@ -29,14 +20,18 @@ used to visualize the robot in Slicer.  Internally, the robot node
 will use a parameter node to retrieve the URDF description and tf2
 lookups to refresh the position of each link.
 
+Robot visualization uses the ROS parameter and tf2 features described in
+:doc:`/pages/nodes/parameters` and :doc:`/pages/nodes/tf2`.  If your
+robot also has a MoveIt configuration, see :doc:`/pages/motion-control`
+after loading the robot.
+
 .. note::
 
    VTK natively imports ``.stl`` and ``.obj`` meshes. We use the Assimp library
    to support other CAD formats like ``.dae``.
 
-=========
 ROS Robot
-=========
+---------
 
 The following are examples of robots we've used to test the SlicerROS2
 module. They can be used without the actual hardware if you just want
@@ -48,7 +43,7 @@ with any other robots as long as the links CAD files are supported
 by VTK or Assimp (e.g. ``.stl``, ``.obj``, ``.dae``).
 
 Universal Robot
-===============
+~~~~~~~~~~~~~~~
 
 For the UR, we recommend the default packages that come with ROS 2 Jazzy:
 
@@ -104,9 +99,12 @@ You can pass additional arguments directly to Slicer:
 
 After these steps you should be able to load the robot in SlicerROS2!
 
+Once the robot is visible, you can use it for motion planning in
+:doc:`/pages/motion-control`.
+
 
 Phantom Omni
-============
+~~~~~~~~~~~~
 
 The Phantom Omni is an entry level haptic device initially sold by
 Sensable. Later on, it has been renamed Geomagic Touch or 3DS Touch.
@@ -119,7 +117,7 @@ Ethernet and more recently USB.
   :alt: Sensable Omni in Slicer
 
 Full cisst/SAW stack
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 Installing the cisst/SAW Omni code base is not too difficult, but it
 will take a`few minutes to compile. It is useful if and only if you
@@ -127,7 +125,7 @@ happen to have an actual device. You can find the build instructions
 for ROS 2 in the README for https://github.com/jhu-saw/vcs.
 
 Models only
------------
+^^^^^^^^^^^
 
 If you prefer to not compile the full dVRK cisst/SAW, you can get the
 URDF and models using clone:
@@ -140,7 +138,7 @@ URDF and models using clone:
     git sparse-checkout set models
 
 Testing
--------
+^^^^^^^
 
 Don't forget to build and source the ROS workspace after cloning. The
 package ``sensable_phantom_model`` contains the URDF, STL meshes, a
@@ -162,7 +160,7 @@ Then, to start the robot's dance, use another terminal:
 
 
 dVRK PSM
-========
+~~~~~~~~
 
 The dVRK PSM (`da Vinci Research
 Kit <https://dvrk.readthedocs.io/>`_
@@ -177,7 +175,7 @@ ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
 
 
 Cobot
-=====
+~~~~~
 
 We also tested SlicerROS2 on `myCobot by Elephant Robotics
 <https://www.elephantrobotics.com/en/mycobot-en/>`_, specifically the
@@ -213,14 +211,13 @@ instructions for basic operation of the myCobot can be found in the
 <https://docs.elephantrobotics.com/docs/gitbook-en/2-serialproduct/2.1-280/2.1-280.html>`_
 
 
-============
 Slicer Robot
-============
+------------
 
 .. _load_robot:
 
 Adding and removing robots
-==========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We've simplified loading the robot by adding some shortcuts on the
 widget UI. The default parameter node name: ``/robot_state_publisher``
@@ -257,10 +254,10 @@ widget will update with additional line edits for the second robot.
   :alt: Defining a robot with a namespace in Slicer
 
 Tips and tricks
-===============
+~~~~~~~~~~~~~~~
 
 Fixed frame
------------
+^^^^^^^^^^^
 
 All cartesian poses used to display the robot's links are defined with
 respect to a base frame, also know as "Fixed Frame" in RViz. The
@@ -289,7 +286,7 @@ visualization. The example below shows a rendering of the TurtleBot in
    <https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Debugging-Tf2-Problems.html>`_).
 
 ROS namespaces
---------------
+^^^^^^^^^^^^^^
 
 Namespaces are frequently used for ROS applications. They allow users
 to declare multiple robots with the same topic, service, tf... names

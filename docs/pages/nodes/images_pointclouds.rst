@@ -21,7 +21,7 @@ Unlike basic topics that return simple data types (like strings or matrices), im
      - PolyData
 
 Explicit Bridging
-=================
+-----------------
 
 To avoid scene pollution, SlicerROS2 uses an **Explicit Bridging** model for sensor data. By default, a subscriber will receive data but will not visualize it. To visualize the data, you must link the subscriber node to a "Target Node" in the Slicer scene.
 
@@ -31,7 +31,7 @@ To avoid scene pollution, SlicerROS2 uses an **Explicit Bridging** model for sen
 When a target node is linked, the SlicerROS2 logic automatically updates that node's contents whenever a new ROS 2 message arrives, using high-performance C++ memory copying.
 
 Images
-======
+------
 
 Image subscribers support multiple encodings including ``mono8``, ``rgb8``, ``rgba8``, ``mono16``, and ``32FC1``.
 
@@ -65,7 +65,7 @@ Image subscribers support multiple encodings including ``mono8``, ``rgb8``, ``rg
          sub->SetTargetNodeID(volumeNode->GetID());
 
 Point Clouds
-============
+------------
 
 Point cloud subscribers convert ``sensor_msgs/PointCloud2`` messages into ``vtkPolyData``. The bridge automatically generates vertex cells, making the point cloud immediately renderable in Slicer's 3D views.
 

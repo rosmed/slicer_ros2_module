@@ -2,9 +2,6 @@
 Design
 ======
 
-Introduction
-============
-
 The high level ROS functionalities (publisher, subscriber, Tf2
 broadcast, Tf2 lookup or parameter client) are all encapsulated as
 Slicer MRML nodes, i.e. derived from the class ``vtkMRMLNode`` and
@@ -31,7 +28,7 @@ bit hard to read for the MRML node than encapsulates a ROS node,
 i.e. a ``vtkMRMLROS2NodeNode``. No - this is not a typo.
 
 C++ vs Python
-=============
+-------------
 
 Since both Slicer and ROS provide a Python interface we first tried to
 use Python as the glue between Slicer and ROS.  The main issue on
@@ -58,7 +55,7 @@ macros and have different Python version requirements.  The
 ignore some error and warning messages.
 
 Execution Model
-===============
+---------------
 
 One of the challenges of integrating ROS in Slicer is to figure out
 the execution model.  ROS relies heavily on callbacks triggered by
@@ -74,7 +71,7 @@ this periodic call.
    The default frequency for the SlicerROS2 module is 50Hz, i.e. 20ms
 
 Templates vs Inheritance
-========================
+------------------------
 
 The two packages also differ in their design patterns.  Slicer (and
 VTK) strongly relies on base classes and inheritance to allow runtime
@@ -93,10 +90,10 @@ C++ class that can be used within Slicer (including the Python
 bindings generation).
 
 Code generation
-===============
+---------------
 
 Motivation
-----------
+~~~~~~~~~~
 
 It's not always easy to find a VTK object corresponding to a ROS
 message, i.e. a VTK object that replicates all the information
@@ -110,7 +107,7 @@ also create the overloaded conversion methods (``vtkSlicerToROS2`` and
 to create the publisher or subscriber node.
 
 Example
--------
+~~~~~~~
 
 For example, the ``WrenchStamped`` ROS message contains a ``header``
 and a ``wrench``:
@@ -224,7 +221,7 @@ accessible in the Slicer Python interpreter:
   :align: center
 
 CMake integration
------------------
+~~~~~~~~~~~~~~~~~
 
 Finally, we added a CMake macro to easily call the code generator in
 the build process.  The macro ``generate_ros2_nodes`` is used in
@@ -269,7 +266,7 @@ new publishers and subscribers.
 
 
 Coordinate Systems and Units
-============================
+----------------------------
 
 The SlicerROS2 module will automatically convert between the default
 3D frames conventions in Slicer and ROS.  Slicer (and by extension all
