@@ -1,5 +1,5 @@
 Tests
-============
+=====
 
 We provide some unit tests for the Slicer ROS module.  The unit tests
 rely on the automatically generated Python wrapper to to test the C++

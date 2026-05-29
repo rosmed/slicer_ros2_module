@@ -6,8 +6,7 @@ Caveats
    The current code to load a robot description assumes that ROS uses
    SI units while Slicer uses millimeters so it will perform a
    conversion.  Unfortunately, the conversion methods in SlicerROS2
-   are not very consistent.  For example, point clouds, velocities,
-   efforts are not scaled while tf2 and Transform/Poses are scaled.
+   are not very consistent.
 
 Missing features
 ----------------
