@@ -42,6 +42,7 @@
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
 // ROS2 parameter client for reading remote node parameters
 #include <rclcpp/parameter_client.hpp>
 #include <chrono>
@@ -352,7 +353,11 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
     return false;
   }
 
-  RemoveGoalStateRobot();
+  // Check if goal robot already exists
+  if (this->GetNumberOfNodeReferences("goal_model") > 0) {
+    vtkWarningMacro(<< "CreateGoalStateRobot: goal robot already exists, skipping.");
+    return true;
+  }
 
   int lookupCount = sourceRobot->GetNumberOfNodeReferences("lookup");
   std::vector<vtkSmartPointer<vtkMRMLLinearTransformNode>> goalTransforms;
@@ -405,7 +410,7 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
   }
 
   int modelCount = sourceRobot->GetNumberOfNodeReferences("model");
-  std::cout << "Found " << modelCount << " model nodes to duplicate" << std::endl;
+  vtkDebugMacro(<< "Found " << modelCount << " model nodes to duplicate");
   for (int i = 0; i < modelCount; ++i) {
     vtkMRMLModelNode* original = vtkMRMLModelNode::SafeDownCast(sourceRobot->GetNthNodeReference("model", i));
     if (!original) {
@@ -426,7 +431,7 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
 
     std::string goalName = std::string(original->GetName() ? original->GetName() : "model") + "_goal";
     goal->SetName(goalName.c_str());
-    std::cout << "  Creating goal: " << goalName << " with transform: " << goalTransform->GetName() << std::endl;
+    vtkDebugMacro(<< "  Creating goal: " << goalName << " with transform: " << goalTransform->GetName());
 
     if (original->GetMesh()) {
       goal->SetAndObserveMesh(original->GetMesh());
@@ -472,7 +477,7 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
     }
   });
 
-  std::cout << "goal creation complete!" << std::endl;
+  vtkDebugMacro(<< "goal creation complete!");
   return true;
 }
 
@@ -749,7 +754,7 @@ void vtkMRMLROS2RobotNode::ReadXMLAttributes(const char** atts)
 }
 
 // MoveIt IK implementation (commented out for faster build)
-bool vtkMRMLROS2RobotNode::setupIKmoveit(const std::string & groupName)
+bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
 {
 
   if (!mMRMLROS2Node) {
@@ -780,6 +785,10 @@ bool vtkMRMLROS2RobotNode::setupIKmoveit(const std::string & groupName)
     ensureParam(prefix + ".kinematics_solver_search_resolution", 0.005);
     ensureParam(prefix + ".kinematics_solver_timeout", 0.05);
 
+    if (mInternals->RobotModelLoaderPtr && mInternals->PlanningSceneMonitorPtr && mInternals->IKGroupName == groupName) {
+      return true; // Already configured
+    }
+
     // Load and cache RobotModel
     mInternals->RobotModelLoaderPtr = std::make_unique<robot_model_loader::RobotModelLoader>(node, "robot_description");
     mInternals->RobotModelPtr = mInternals->RobotModelLoaderPtr->getModel();
@@ -796,6 +805,17 @@ bool vtkMRMLROS2RobotNode::setupIKmoveit(const std::string & groupName)
       vtkErrorMacro(<< "setupIK: joint model group '" << groupName << "' not found");
       return false;
     }
+
+    mInternals->PlanningSceneMonitorPtr =
+      std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(node, "robot_description", "slicer_ros2_moveit_ik");
+    if (!mInternals->PlanningSceneMonitorPtr || !mInternals->PlanningSceneMonitorPtr->getPlanningScene()) {
+      vtkErrorMacro(<< "setupIK: failed to initialize PlanningSceneMonitor");
+      return false;
+    }
+    mInternals->PlanningSceneMonitorPtr->startStateMonitor();
+    mInternals->PlanningSceneMonitorPtr->startSceneMonitor();
+    mInternals->PlanningSceneMonitorPtr->startWorldGeometryMonitor();
+    mInternals->PlanningSceneMonitorPtr->requestPlanningSceneState();
 
     // Verify solver is available
     const auto& solver = mInternals->JointModelGroupPtr->getSolverInstance();
@@ -814,7 +834,7 @@ bool vtkMRMLROS2RobotNode::setupIKmoveit(const std::string & groupName)
   }
 }
 
-std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const std::string& tipLink, const std::vector<double>& seedJointValues, double timeout)
+std::string vtkMRMLROS2RobotNode::FindIKMoveIt(vtkMatrix4x4* targetPose, const std::string& tipLink, const std::vector<double>& seedJointValues, double timeout)
 {
   if (!targetPose) {
     vtkErrorMacro(<< "FindIK: target pose is null");
@@ -823,7 +843,7 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
 
   // Setup IK if needed (only once, since we auto-discover the group)
   if (!mInternals->RobotModelPtr || !mInternals->JointModelGroupPtr) {
-      vtkErrorMacro(<< "FindIK: setupIKmoveit failed");
+      vtkErrorMacro(<< "FindIK: SetupIKMoveIt failed");
       return "";
   }
 
@@ -861,8 +881,28 @@ std::string vtkMRMLROS2RobotNode::FindIKmoveit(vtkMatrix4x4* targetPose, const s
     pose_msg.orientation.z = quat.z();
     pose_msg.orientation.w = quat.w();
 
-    // Call IK using setFromIK
-    bool found_ik = robot_state.setFromIK(mInternals->JointModelGroupPtr, pose_msg, tipLink, timeout);
+    moveit::core::GroupStateValidityCallbackFn validity_callback;
+    if (mInternals->PlanningSceneMonitorPtr) {
+      validity_callback =
+        [this](moveit::core::RobotState* state,
+               const moveit::core::JointModelGroup* joint_group,
+               const double* joint_group_variable_values) -> bool {
+          if (!state || !joint_group || !joint_group_variable_values) {
+            return false;
+          }
+          state->setJointGroupPositions(joint_group, joint_group_variable_values);
+          state->update();
+
+          planning_scene_monitor::LockedPlanningSceneRO planning_scene(mInternals->PlanningSceneMonitorPtr);
+          if (!planning_scene) {
+            return true;
+          }
+          return !planning_scene->isStateColliding(*state, joint_group->getName());
+        };
+    }
+
+    // Call IK using setFromIK and reject candidate states that collide with the current planning scene.
+    bool found_ik = robot_state.setFromIK(mInternals->JointModelGroupPtr, pose_msg, tipLink, timeout, validity_callback);
     if (!found_ik) {
       // vtkWarningMacro(<< "FindIK: IK solution not found for group '" << mInternals->IKGroupName << "'");
       return "";

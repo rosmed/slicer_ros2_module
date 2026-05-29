@@ -129,29 +129,54 @@ message in Terminal 1 before proceeding.
    native unit). The SlicerROS2 module automatically converts them to metres when
    publishing to ROS 2.
 
-Creating and Publishing the Obstacle
-=====================================
+You can copy/paste each section of the code below into the Slicer Python
+interpreter, or run the complete script from the terminal using the
+``--python-script`` argument of the ``slicer`` launcher — the full command
+is provided at the end of this example.
 
-You can run the full example in one of two ways:
+Configuration
+=============
 
-**Option A – run the script directly from a terminal** using the ``slicer`` launcher's
-``--python-script`` argument (creates the obstacle and publishes it automatically after
-Slicer starts):
-
-.. code-block:: bash
-
-   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_obstacle.py
-
-**Option B – paste the code** into Slicer's Python Interactor (**Ctrl + 3** or through
-the **Developer Tools** menu). The full script is split here to match the step-by-step
-description below.
-
-It creates a 200 mm × 200 mm × 200 mm box positioned in front of the UR5
-base (400 mm along X, 300 mm up along Z — well within the robot's reach envelope):
+All parameters are gathered in a single block at the top of the script.
+Edit these values to match your robot and MoveIt setup before running
+any of the sections below:
 
 .. literalinclude:: ../code/moveit_obstacle.py
    :language: python
-   :lines: 1-22
+   :start-after: [doc: config]
+   :end-before: [end: config]
+
+Setting Up the Robot and MoveIt
+================================
+
+The following code performs the same steps you would normally carry out
+by hand in the **ROS2 Motion Control** module UI. By using a ``ParameterNode``,
+this scripted setup synchronizes with the Slicer UI, allowing you
+to switch between code and manual interaction:
+
+1. Create the robot node from the URDF on the ROS 2 parameter server.
+2. Wait asynchronously for the URDF to be parsed.
+3. Delegate the motion-control initialization to the module's logic class.
+
+.. literalinclude:: ../code/moveit_obstacle.py
+   :language: python
+   :start-after: [doc: setup]
+   :end-before: [end: setup]
+
+Once the code prints *"Setup complete"* you can proceed to create and
+publish obstacles.
+
+Creating the Obstacle
+=====================
+
+The following code creates a 200 mm × 200 mm × 200 mm box positioned in front
+of the UR5 base (400 mm along X, 300 mm up along Z — well within the robot's
+reach envelope):
+
+.. literalinclude:: ../code/moveit_obstacle.py
+   :language: python
+   :start-after: [doc: geometry]
+   :end-before: [end: geometry]
 
 You should see an orange semi-transparent cube appear in the 3D view.
 
@@ -164,19 +189,30 @@ You should see an orange semi-transparent cube appear in the 3D view.
 Publishing the Obstacle to MoveIt
 ==================================
 
-Still in the Python Interactor, paste the second part of the script to create a
-``CollisionObject`` publisher and push the obstacle to the ``/planning_scene`` topic:
+Paste the final section to mark the model as a MoveIt obstacle and publish it
+as a ``CollisionObject``:
 
 .. literalinclude:: ../code/moveit_obstacle.py
    :language: python
-   :lines: 24-40
+   :start-after: [doc: publish]
+   :end-before: [end: publish]
 
 .. note::
 
-   ``/planning_scene`` is the ROS 2 / MoveIt 2 standard topic for planning-scene
-   diffs. The ``move_group`` node's ``PlanningSceneMonitor`` subscribes to it and
-   updates its internal representation upon receipt. This is equivalent to what
-   MoveIt's ``PlanningSceneInterface::applyCollisionObject()`` does under the hood.
+   ``/collision_object`` is the ROS 2 / MoveIt 2 standard topic for
+   ``moveit_msgs/msg/CollisionObject`` messages.  The ``move_group`` node's
+   ``PlanningSceneMonitor`` subscribes to it and updates its internal
+   planning scene upon receipt.
+
+Running the Complete Example from the Terminal
+===============================================
+
+To run all four sections as a single unattended script (Slicer starts, loads
+the robot, creates and publishes the obstacle, then stays open):
+
+.. code-block:: bash
+
+   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_obstacle.py
 
 Verifying the Obstacle in MoveIt
 ================================
@@ -187,10 +223,15 @@ You can verify that MoveIt received the obstacle in a third terminal:
 
    source ~/ros2_ws/install/setup.bash
    ros2 service call /get_planning_scene moveit_msgs/srv/GetPlanningScene \
-       "{components: {components: 1}}"
+       "{components: {components: 24}}"
 
 Look for an entry whose ``id`` matches ``MoveItObstacle`` in the response's
 ``world.collision_objects`` list.
+
+The value ``24`` requests MoveIt's ``WORLD_OBJECT_NAMES`` and
+``WORLD_OBJECT_GEOMETRY`` components (``8 + 16``). Requesting only component
+``1`` returns scene settings, so the ``world.collision_objects`` field may look
+empty even when the object has been received.
 
 Alternatively, open RViz (``ros2 launch slicer_ros2_module ur_sim_control.launch.py launch_rviz:=true``),
 add a **PlanningScene** display, and the orange box will appear in the 3D view

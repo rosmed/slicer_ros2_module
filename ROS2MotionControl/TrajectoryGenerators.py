@@ -163,7 +163,7 @@ class MoveItTrajectoryGenerator(TrajectoryGeneratorBase):
     """Trajectory generator that delegates to the MoveIt move_group action.
 
     Requires that a ``/move_group`` ROS 2 node is running and that the robot
-    node was set up with ``setupIKmoveit()``.
+    node was set up with ``SetupIKMoveIt()``.
     """
 
     @property

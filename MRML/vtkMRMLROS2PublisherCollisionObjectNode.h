@@ -28,6 +28,9 @@ public:
   // Overload to allow manual publishing of a specific model
   size_t Publish(vtkMRMLModelNode* modelNode);
 
+  // Publish a remove operation for a model's collision object id
+  size_t PublishRemove(vtkMRMLModelNode* modelNode);
+
 protected:
   vtkMRMLROS2PublisherCollisionObjectNode();
   ~vtkMRMLROS2PublisherCollisionObjectNode() override;

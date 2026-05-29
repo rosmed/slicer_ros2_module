@@ -11,13 +11,8 @@ def main():
     parser.add_argument(
         '--python-script', '-p',
         metavar='FILE',
-        action='append',
-        dest='python_scripts',
-        default=[],
-        help='Python script to execute inside Slicer after startup. '
-             'May be repeated to execute multiple scripts in order. '
-             'A single script uses Slicer\'s --python-script flag; '
-             'multiple scripts are chained via --python-code.',
+        help='Python script to execute inside Slicer after startup '
+             '(passed to Slicer as --python-script <FILE>).',
     )
     # Collect any remaining args that should be forwarded to Slicer
     parser.add_argument('slicer_args', nargs='*', help='Extra arguments forwarded to Slicer')
@@ -26,18 +21,8 @@ def main():
 
     # Build the extra Slicer arguments list
     extra = list(args.slicer_args)
-
-    scripts = args.python_scripts
-    if len(scripts) == 1:
-        # Single script: use the native --python-script flag
-        extra = ['--python-script', scripts[0]] + extra
-    elif len(scripts) > 1:
-        # Multiple scripts: chain them with --python-code using exec()
-        # Each file is executed in order in the same interpreter session.
-        chain = '; '.join(
-            f"exec(open('{f}').read())" for f in scripts
-        )
-        extra = ['--python-code', chain] + extra
+    if args.python_script:
+        extra = ['--python-script', args.python_script] + extra
 
     cmd = ['ros2', 'launch', 'slicer_ros2_module', 'slicer.launch.py']
     if extra:

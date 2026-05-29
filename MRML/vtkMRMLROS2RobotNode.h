@@ -66,8 +66,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
                      std::vector< std::vector<double> >& meshColors);
 
   // MoveIt IK methods (commented out for faster build)
-  bool setupIKmoveit(const std::string & groupName);
-  std::string FindIKmoveit(vtkMatrix4x4* targetPose, const std::string& tipLink,const std::vector<double>& seedJointValues,double timeout = 1.0);
+  bool SetupIKMoveIt(const std::string & groupName);
+  std::string FindIKMoveIt(vtkMatrix4x4* targetPose, const std::string& tipLink,const std::vector<double>& seedJointValues,double timeout = 1.0);
 
   // KDL Setup and IK methods
   bool SetupKDLIKWithLimits(void);

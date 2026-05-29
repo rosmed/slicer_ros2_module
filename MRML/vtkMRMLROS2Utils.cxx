@@ -30,7 +30,7 @@ bool vtkMRMLROS2::ROSInit(void)
     // use our own to make sure ROS closes properly
     signal(SIGINT, vtkMRMLROS2SignalHandler);
   } catch (...) {
-    std::cerr << "vtkMRMLROS2::ROSInit: rclcpp::init was called multiple times. This is fine." << std::endl; // Key word this
+    vtkGenericWarningMacro(<< "vtkMRMLROS2::ROSInit: rclcpp::init was called multiple times. This is fine."); // Key word this
     return false;
   }
   return true;

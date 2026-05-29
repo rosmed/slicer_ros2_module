@@ -64,9 +64,7 @@ public:
   {
     if (!mPublisher) return 0;
     const auto nbSubscriber = mPublisher->get_subscription_count();
-    if (nbSubscriber != 0) {
-      mPublisher->publish(rosMessage);
-    }
+    mPublisher->publish(rosMessage);
     return nbSubscriber;
   }
 

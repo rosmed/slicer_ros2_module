@@ -195,7 +195,7 @@ public:
       }
     }
     catch (const std::exception& e) {
-      std::cerr << "ServiceNode::ServiceCallback: Exception: " << e.what() << std::endl;
+      vtkGenericWarningMacro(<< "ServiceNode::ServiceCallback: Exception: " << e.what());
       this->mLastResponseSuccess = false;
       // Still notify observers so that they can react to failure states
       if (this->mMRMLNode)
@@ -239,7 +239,7 @@ public:
   bool WaitForServer(const std::chrono::duration<double>& timeout = std::chrono::seconds(5))
   {
     if (!this->mServiceClient) {
-      std::cerr << "Service client is not initialized" << std::endl;
+      vtkGenericWarningMacro(<< "Service client is not initialized");
       return false;
     }
     return this->mServiceClient->wait_for_service(timeout);

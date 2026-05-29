@@ -260,7 +260,7 @@ void vtkSlicerToROS2(vtkImageData * input, sensor_msgs::msg::Image & result,
   } else if (vtkDataType == VTK_FLOAT && numberOfComponents == 1) {
     result.encoding = "32FC1";
   } else {
-    std::cerr << "vtkSlicerToROS2(Image): unsupported VTK data type or component count" << std::endl;
+    vtkGenericWarningMacro(<< "vtkSlicerToROS2(Image): unsupported VTK data type or component count");
     return;
   }
 
@@ -277,14 +277,14 @@ void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
 {
     result.header.stamp = rosNode->get_clock()->now();
     if (!input) {
-        std::cerr << "vtkSlicerToROS2(PointCloud): null input" << std::endl;
+        vtkGenericWarningMacro(<< "vtkSlicerToROS2(PointCloud): null input");
         return;
     }
     
     const vtkIdType n = input->GetNumberOfPoints();
     if (n < 0 || static_cast<size_t>(n) > kMaxPoints) {
-        std::cerr << "vtkSlicerToROS2(PointCloud): refusing " << n << " points (max "
-                  << kMaxPoints << ")" << std::endl;
+        vtkGenericWarningMacro(<< "vtkSlicerToROS2(PointCloud): refusing " << n << " points (max "
+                  << kMaxPoints << ")");
         return;
     }
     
@@ -303,7 +303,7 @@ void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud & result,
             result.points.push_back(pt);
         }
     } catch (const std::bad_alloc &) {
-        std::cerr << "vtkSlicerToROS2(PointCloud): allocation failed for " << n << " points" << std::endl;
+        vtkGenericWarningMacro(<< "vtkSlicerToROS2(PointCloud): allocation failed for " << n << " points");
         result.points.clear();
     }
 }
@@ -313,14 +313,14 @@ void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result,
 {
     result.header.stamp = rosNode->get_clock()->now();
     if (!input) {
-        std::cerr << "vtkSlicerToROS2(PointCloud2): null input" << std::endl;
+        vtkGenericWarningMacro(<< "vtkSlicerToROS2(PointCloud2): null input");
         return;
     }
     
     const vtkIdType n = input->GetNumberOfPoints();
     if (n < 0 || static_cast<size_t>(n) > kMaxPoints) {
-        std::cerr << "vtkSlicerToROS2(PointCloud2): refusing " << n << " points (max "
-                  << kMaxPoints << ")" << std::endl;
+        vtkGenericWarningMacro(<< "vtkSlicerToROS2(PointCloud2): refusing " << n << " points (max "
+                  << kMaxPoints << ")");
         return;
     }
     
@@ -346,7 +346,7 @@ void vtkSlicerToROS2(vtkPoints * input, sensor_msgs::msg::PointCloud2 & result,
             *iter_z = static_cast<float>(p[2]);
         }
     } catch (const std::bad_alloc &) {
-        std::cerr << "vtkSlicerToROS2(PointCloud2): allocation failed for " << n << " points" << std::endl;
+        vtkGenericWarningMacro(<< "vtkSlicerToROS2(PointCloud2): allocation failed for " << n << " points");
         result = sensor_msgs::msg::PointCloud2{};
     }
 }
@@ -398,10 +398,11 @@ void vtkSlicerToROS2(vtkPolyData * input, shape_msgs::msg::Mesh & result,
     for (vtkIdType i = 0; i < nPoints; ++i) {
         double p[3];
         points->GetPoint(i, p);
-        // RAS (mm) to LPS (m) conversion
-        result.vertices[i].x = -p[0] / 1000.0;
-        result.vertices[i].y = -p[1] / 1000.0;
-        result.vertices[i].z =  p[2] / 1000.0;
+        // Match the module's transform/IK convention: Slicer coordinates map
+        // directly to ROS coordinates, with millimetres converted to metres.
+        result.vertices[i].x = vtkMRMLROS2::ToSI(p[0]);
+        result.vertices[i].y = vtkMRMLROS2::ToSI(p[1]);
+        result.vertices[i].z = vtkMRMLROS2::ToSI(p[2]);
     }
 
     vtkCellArray* polys = input->GetPolys();

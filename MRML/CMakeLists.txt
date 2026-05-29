@@ -160,6 +160,7 @@ set(${KIT}_TARGET_LIBRARIES
   assimp::assimp
   moveit_ros_planning_interface::moveit_move_group_interface
   moveit_ros_planning::moveit_robot_model_loader
+  moveit_ros_planning::moveit_planning_scene_monitor
   ${kdl_parser_LIBRARIES}
   kdl_parser::kdl_parser
   )

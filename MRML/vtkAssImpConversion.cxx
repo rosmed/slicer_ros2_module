@@ -29,7 +29,7 @@ std::vector<vtkAssImpMeshPart> vtkAssImpConversion::vtkAssImpToPolyDataParts(con
                                            aiProcess_FixInfacingNormals);
 
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-    std::cerr << "Assimp failed to read file: " << filename << " (" << importer.GetErrorString() << ")" << std::endl;
+    vtkGenericWarningMacro(<< "Assimp failed to read file: " << filename << " (" << importer.GetErrorString() << ")");
     return {};
   }
 

@@ -14,6 +14,7 @@ vtkMRMLROS2PublisherCollisionObjectNode::vtkMRMLROS2PublisherCollisionObjectNode
   this->AddNodeReferenceRole("source");
   mInternals = new vtkMRMLROS2PublisherCollisionObjectInternals(this);
   this->mFrameId = "world";
+  this->SetQoSReliability(vtkMRMLROS2PublisherNode::Reliable);
 }
 
 vtkMRMLROS2PublisherCollisionObjectNode::~vtkMRMLROS2PublisherCollisionObjectNode()
@@ -60,6 +61,24 @@ size_t vtkMRMLROS2PublisherCollisionObjectNode::Publish(vtkMRMLModelNode* modelN
   moveit_msgs::msg::CollisionObject msg;
   vtkSlicerToROS2(modelNode, msg, mInternals->GetROSNode());
   msg.header.frame_id = this->GetFrameId();
+
+  mNumberOfCalls++;
+  const auto justSent = (reinterpret_cast<vtkMRMLROS2PublisherCollisionObjectInternals *>(mInternals))->PublishDirect(msg);
+  mNumberOfMessagesSent += justSent;
+  return justSent;
+}
+
+size_t vtkMRMLROS2PublisherCollisionObjectNode::PublishRemove(vtkMRMLModelNode* modelNode)
+{
+  if (!modelNode || !this->IsAddedToROS2Node()) {
+    return 0;
+  }
+
+  moveit_msgs::msg::CollisionObject msg;
+  msg.header.stamp = mInternals->GetROSNode()->get_clock()->now();
+  msg.header.frame_id = this->GetFrameId();
+  msg.id = modelNode->GetName() ? modelNode->GetName() : "slicer_model";
+  msg.operation = moveit_msgs::msg::CollisionObject::REMOVE;
 
   mNumberOfCalls++;
   const auto justSent = (reinterpret_cast<vtkMRMLROS2PublisherCollisionObjectInternals *>(mInternals))->PublishDirect(msg);
