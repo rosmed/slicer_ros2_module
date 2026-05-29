@@ -47,7 +47,7 @@ environment, extensions should be managed using the
 The ``manage-extensions.py`` script allows you to search for,
 download, and build extensions from the Slicer Extensions Index. It
 automatically handles dependencies and registers the built extensions
-so they are loaded when you use ``slicer.launch.py``.
+so they are loaded when you use ``ros2 run slicer_ros2_module slicer``.
 
 To use the extension manager:
 
@@ -68,10 +68,10 @@ and any extensions managed by ``manage-extensions.py``.
 
 .. code-block:: bash
 
-   ros2 launch slicer_ros2_module slicer.launch.py
+   ros2 run slicer_ros2_module slicer
 
-You can also pass additional arguments to Slicer using the ``slicer_args`` launch argument:
+You can also pass additional arguments directly to Slicer:
 
 .. code-block:: bash
 
-   ros2 launch slicer_ros2_module slicer.launch.py slicer_args:="--no-splash --python-script my_script.py"
+   ros2 run slicer_ros2_module slicer --no-splash --python-script my_script.py

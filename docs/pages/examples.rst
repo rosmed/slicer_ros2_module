@@ -30,7 +30,7 @@ The publisher will start generating the simulated point cloud and publishing it 
 Visualizing in 3D Slicer
 ========================
 
-Open the 3D Slicer application (launched using the recommended launcher ``ros2 launch slicer_ros2_module slicer.launch.py``).
+Open the 3D Slicer application using the recommended launcher ``ros2 run slicer_ros2_module slicer``.
 
 You can set up the subscriber in one of two ways:
 

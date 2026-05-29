@@ -22,7 +22,7 @@ copyright = '2022-2025, Queen’s University (Kingston, Canada), Johns Hopkins U
 author = 'Laura Connolly and Anton Deguet and Aravind Kumar'
 
 # The full version, including alpha/beta/rc tags
-release = '1.1'
+release = '1.2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,7 +42,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'venv', '.venv']
 
 
 # -- Options for HTML output -------------------------------------------------

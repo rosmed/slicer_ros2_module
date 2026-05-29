@@ -94,13 +94,13 @@ are configured automatically:
 
    cd ~/ros2_ws
    source install/setup.bash
-   ros2 launch slicer_ros2_module slicer.launch.py
+   ros2 run slicer_ros2_module slicer
 
-You can pass additional arguments to Slicer via ``slicer_args``:
+You can pass additional arguments directly to Slicer:
 
 .. code-block:: bash
 
-   ros2 launch slicer_ros2_module slicer.launch.py slicer_args:="--homedir /tmp/foo"
+   ros2 run slicer_ros2_module slicer --homedir /tmp/foo
 
 After these steps you should be able to load the robot in SlicerROS2!
 

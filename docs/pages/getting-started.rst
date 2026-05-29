@@ -64,6 +64,13 @@ you start compiling Slicer:
   clone https://github.com/slicer/slicer`` and then checkout the
   version using ``git checkout v5.10.0``.
 
+If you are comfortable with Docker, you can also use the provided docker image used for continuous integration to build SlicerROS2 module in a containerized environment. The docker file is based on Ubuntu 24.04 and ROS2 Jazzy.  It comes with Slicer pre-installed. It is available on GitHub as a package:
+
+.. code-block:: bash
+
+   docker pull ghcr.io/rosmed/slicer_ros2_module/ci:latest
+
+The docker image is built using the provided Dockerfile in the repository in the ``docker`` directory. You can also build the image yourself using the provided Dockerfile if you want to make modifications to the image.
 
 ===========
 Compilation
@@ -84,7 +91,7 @@ install all remaining core components and libraries by doing:
    source /opt/ros/jazzy/setup.bash
    sudo apt install ros-$ROS_DISTRO-rclcpp ros-$ROS_DISTRO-tf2 ros-$ROS_DISTRO-tf2-ros ros-$ROS_DISTRO-kdl-parser ros-$ROS_DISTRO-urdf ros-$ROS_DISTRO-std-msgs ros-$ROS_DISTRO-std-srvs ros-$ROS_DISTRO-geometry-msgs ros-$ROS_DISTRO-sensor-msgs ros-$ROS_DISTRO-trajectory-msgs ros-$ROS_DISTRO-object-recognition-msgs ros-$ROS_DISTRO-rosbag2-interfaces ros-$ROS_DISTRO-turtlesim ros-$ROS_DISTRO-moveit-msgs ros-$ROS_DISTRO-moveit-core ros-$ROS_DISTRO-moveit-ros-planning ros-$ROS_DISTRO-moveit-ros-planning-interface liborocos-kdl-dev libassimp-dev mold
 
-* You will first need to "source" the ROS setup script for ROS (Jazzy
+You will first need to "source" the ROS setup script for ROS (Jazzy
 in this example):
 
 .. code-block:: bash
@@ -142,15 +149,15 @@ You can launch Slicer directly using:
    source ~/ros2_ws/install/setup.bash
    ros2 run slicer_ros2_module slicer
 
-Using ros2 launch (Standard launcher)
--------------------------------------
+Passing Slicer arguments
+------------------------
 
-For multi-process stack composition, you can launch the underlying launch file:
+Additional Slicer arguments can be passed after the launcher command:
 
 .. code-block:: bash
 
    source ~/ros2_ws/install/setup.bash
-   ros2 launch slicer_ros2_module slicer.launch.py
+   ros2 run slicer_ros2_module slicer --no-splash
 
 Once Slicer is open, SlicerROS2 can be found in the **ROS** category
 of the Modules menu (previously it was listed under the **IGT**
@@ -168,3 +175,6 @@ extensions.
 .. code-block:: bash
 
    ros2 run slicer_ros2_module manage_extensions.py
+
+All files for the extensions will be downloaded and built in the
+``install`` directory for slicer in your ROS 2 workspace (``~/ros2_ws/install/slicer_ros2_module/extensions``). The script will also automatically add the extensions to the Slicer module path so they are available when you launch Slicer using the provided ROS 2 launchers (under ``~/ros2_ws/install/slicer_ros2_module/config``).
