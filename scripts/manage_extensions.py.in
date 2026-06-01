@@ -166,6 +166,45 @@ def write_extra_metadata_urls(urls):
         json.dump(normalized_urls, f, indent=2)
         f.write("\n")
 
+class UpdateDialog(QtWidgets.QDialog):
+    """Modal dialog that lets the user optionally specify a git ref before updating."""
+
+    def __init__(self, parent=None, extension_name=""):
+        super().__init__(parent)
+        self.setWindowTitle(f"Update Extension: {extension_name}")
+        self.setMinimumWidth(420)
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        description = QtWidgets.QLabel(
+            f"Update <b>{extension_name}</b> by pulling the latest changes and rebuilding."
+            "<br>Optionally specify a branch, tag, or commit hash to check out before building."
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        form_layout = QtWidgets.QFormLayout()
+        self.ref_input = QtWidgets.QLineEdit()
+        self.ref_input.setPlaceholderText("e.g. main, v1.2.3, a3f8c21  (leave blank for current branch)")
+        form_layout.addRow("Branch / Tag / Hash:", self.ref_input)
+        layout.addLayout(form_layout)
+
+        btn_layout = QtWidgets.QHBoxLayout()
+        self.pull_btn = QtWidgets.QPushButton("Pull")
+        self.pull_btn.setDefault(True)
+        self.pull_btn.clicked.connect(self.accept)
+        cancel_btn = QtWidgets.QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.pull_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+
+    def git_ref(self):
+        """Return the user-specified ref, or empty string if none."""
+        return self.ref_input.text().strip()
+
+
 class ExtraUrlsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, urls=None):
         super().__init__(parent)
@@ -253,34 +292,35 @@ def update_runtime_registry_entry(name):
     return registry[name]
 
 def regenerate_runtime_registry():
-    registry = {}
-    if os.path.isdir(EXT_BUILD_BASE):
-        for name in sorted(os.listdir(EXT_BUILD_BASE)):
-            build_dir = os.path.join(EXT_BUILD_BASE, name)
-            if not os.path.isdir(build_dir):
-                continue
-            load_paths, library_paths = discover_extension_runtime_paths(name)
-            if load_paths:
-                registry[name] = {
-                    "source_dir": os.path.join(EXT_SRC_BASE, name),
-                    "build_dir": build_dir,
-                    "load_paths": load_paths,
-                    "library_paths": library_paths,
-                }
-    write_runtime_registry(registry)
+    """Return the runtime registry, pruning entries whose build dirs are gone.
+
+    The authoritative source of truth is the persisted runtime_paths.json,
+    which is written by update_runtime_registry_entry() at install time using
+    the actual discovered paths.  We never re-run the CMake-template-based
+    path discovery here, because those template values may not match the real
+    on-disk layout of a given extension.
+    """
+    registry = read_runtime_registry()
+    stale = [name for name, info in registry.items()
+             if not os.path.isdir(info.get("build_dir", ""))]
+    if stale:
+        for name in stale:
+            del registry[name]
+        write_runtime_registry(registry)
     return registry
 
 class ExtensionWorker(QtCore.QThread):
     progress = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal(bool, str)
 
-    def __init__(self, action, extension_name, metadata, slicer_dir, workspace_root):
+    def __init__(self, action, extension_name, metadata, slicer_dir, workspace_root, git_ref=""):
         super().__init__()
         self.action = action
         self.extension_name = extension_name
         self.metadata = metadata
         self.slicer_dir = slicer_dir
         self.workspace_root = workspace_root
+        self.git_ref = git_ref
 
         # Determine number of cores for parallel builds
         import multiprocessing
@@ -294,6 +334,10 @@ class ExtensionWorker(QtCore.QThread):
                 self.install_extension()
             elif self.action == "remove":
                 self.remove_extension()
+            elif self.action == "update":
+                self.update_extension()
+            elif self.action == "recompile":
+                self.recompile_extension()
         except Exception as e:
             self.finished.emit(False, str(e))
 
@@ -388,6 +432,86 @@ class ExtensionWorker(QtCore.QThread):
         # Implementation for removal
         self.finished.emit(True, "Removed successfully")
 
+    def update_extension(self):
+        """Pull (and optionally checkout a ref), then rebuild the extension."""
+        name = self.extension_name
+        ext_dir = os.path.join(EXT_SRC_BASE, name)
+        build_dir = os.path.join(EXT_BUILD_BASE, name)
+
+        if not os.path.isdir(ext_dir):
+            raise Exception(
+                f"Source directory not found for {name}: {ext_dir}\n"
+                "Please install the extension first."
+            )
+
+        # Fetch all refs from remote
+        self.run_command(["git", "-C", ext_dir, "fetch", "--all", "--tags"])
+
+        # Check out a specific ref if the user requested one
+        if self.git_ref:
+            self.progress.emit(f"Checking out ref: {self.git_ref}")
+            self.run_command(["git", "-C", ext_dir, "checkout", self.git_ref])
+            # If it's a branch, pull the latest commits on that branch
+            result = subprocess.run(
+                ["git", "-C", ext_dir, "symbolic-ref", "--quiet", "HEAD"],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                self.run_command(["git", "-C", ext_dir, "pull"])
+        else:
+            # On current branch, simply pull
+            self.run_command(["git", "-C", ext_dir, "pull"])
+
+        # Rebuild
+        if not os.path.isdir(build_dir):
+            pathlib.Path(build_dir).mkdir(parents=True, exist_ok=True)
+
+        cmake_cmd = [
+            "cmake",
+            f"-S{ext_dir}",
+            f"-B{build_dir}",
+            f"-DSlicer_DIR={self.slicer_dir}",
+            "-DCMAKE_BUILD_TYPE=Release"
+        ]
+        self.run_command(cmake_cmd)
+        self.run_command(["cmake", "--build", build_dir] + self.parallel_args)
+
+        entry = update_runtime_registry_entry(name)
+        self.progress.emit(f"Runtime paths updated for {name}")
+        self.progress.emit(f"  Module paths: {len(entry['load_paths'])}")
+        self.progress.emit(f"  Library paths: {len(entry['library_paths'])}")
+
+        self.finished.emit(True, build_dir)
+
+    def recompile_extension(self):
+        """Re-run cmake --build without touching git."""
+        name = self.extension_name
+        ext_dir = os.path.join(EXT_SRC_BASE, name)
+        build_dir = os.path.join(EXT_BUILD_BASE, name)
+
+        if not os.path.isdir(build_dir):
+            raise Exception(
+                f"Build directory not found for {name}: {build_dir}\n"
+                "Please install the extension first."
+            )
+
+        cmake_cmd = [
+            "cmake",
+            f"-S{ext_dir}",
+            f"-B{build_dir}",
+            f"-DSlicer_DIR={self.slicer_dir}",
+            "-DCMAKE_BUILD_TYPE=Release"
+        ]
+        self.run_command(cmake_cmd)
+        self.run_command(["cmake", "--build", build_dir] + self.parallel_args)
+
+        entry = update_runtime_registry_entry(name)
+        self.progress.emit(f"Runtime paths updated for {name}")
+        self.progress.emit(f"  Module paths: {len(entry['load_paths'])}")
+        self.progress.emit(f"  Library paths: {len(entry['library_paths'])}")
+
+        self.finished.emit(True, build_dir)
+
 class ExtensionManagerGUI(QtWidgets.QMainWindow):
     def __init__(self, slicer_dir, workspace_root):
         super().__init__()
@@ -438,16 +562,26 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
 
         # Buttons
         btn_layout = QtWidgets.QHBoxLayout()
-        self.install_btn = QtWidgets.QPushButton("Install Selected")
+        self.install_btn = QtWidgets.QPushButton("Install")
         self.install_btn.clicked.connect(self.start_install)
-        self.remove_btn = QtWidgets.QPushButton("Remove Selected")
+        self.update_btn = QtWidgets.QPushButton("Update")
+        self.update_btn.clicked.connect(self.start_update)
+        self.recompile_btn = QtWidgets.QPushButton("Recompile")
+        self.recompile_btn.clicked.connect(self.start_recompile)
+        self.remove_btn = QtWidgets.QPushButton("Remove")
         self.remove_btn.clicked.connect(self.start_remove)
         self.quit_btn = QtWidgets.QPushButton("Quit")
         self.quit_btn.clicked.connect(self.close)
         btn_layout.addWidget(self.install_btn)
+        btn_layout.addWidget(self.update_btn)
+        btn_layout.addWidget(self.recompile_btn)
         btn_layout.addWidget(self.remove_btn)
         btn_layout.addWidget(self.quit_btn)
         layout.addLayout(btn_layout)
+
+        # All action buttons start disabled until the user selects an item
+        self.list_widget.currentItemChanged.connect(self._on_selection_changed)
+        self._update_button_states()
 
         # Keyboard shortcuts
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self).activated.connect(self.close)
@@ -519,24 +653,32 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         self.list_widget.clear()
         query = self.search_input.text().lower()
 
-        runtime_registry = regenerate_runtime_registry()
-        installed_names = sorted(runtime_registry.keys())
+        # Use the persisted registry directly — regenerate_runtime_registry() is
+        # only called after install/remove to prune stale entries.
+        runtime_registry = read_runtime_registry()
+        installed_names = set(runtime_registry.keys())
 
         all_names = sorted(self.extensions_metadata.keys())
 
-        # Sort so installed items are on top
+        # Installed packages first, then alphabetical within each group.
         installed_items = []
         other_items = []
 
-        for name in all_names:
-            if query in name.lower():
-                item = QtWidgets.QListWidgetItem(name)
-                if name in installed_names:
-                    item.setForeground(QtGui.QColor("green"))
-                    item.setText(f"{name} (Installed)")
-                    installed_items.append(item)
-                else:
-                    other_items.append(item)
+        for meta_key in all_names:
+            if query not in meta_key.lower():
+                continue
+            # The registry uses the bare extension name; metadata keys for
+            # extra-URL repos carry a " (Manual)" suffix — strip it for lookup.
+            bare_name = meta_key.split(" (Manual)")[0]
+            is_installed = bare_name in installed_names
+
+            item = QtWidgets.QListWidgetItem(meta_key)
+            if is_installed:
+                item.setForeground(QtGui.QColor("green"))
+                item.setText(f"{bare_name} (Installed)")
+                installed_items.append(item)
+            else:
+                other_items.append(item)
 
         for item in installed_items:
             self.list_widget.addItem(item)
@@ -581,7 +723,64 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         self.worker = ExtensionWorker("install", name, metadata, self.slicer_dir, self.workspace_root)
         self.worker.progress.connect(lambda msg: self.log_output.appendPlainText(msg))
         self.worker.finished.connect(self.on_finished)
-        self.install_btn.setEnabled(False)
+        self._lock_action_buttons()
+        self.worker.start()
+
+    def start_update(self):
+        current_item = self.list_widget.currentItem()
+        if not current_item:
+            return
+
+        name_with_status = current_item.text()
+        name = name_with_status.split(' (')[0]
+
+        runtime_registry = read_runtime_registry()
+        if name not in runtime_registry:
+            QtWidgets.QMessageBox.warning(
+                self, "Not Installed",
+                f"{name} is not installed. Please install it first."
+            )
+            return
+
+        dialog = UpdateDialog(self, extension_name=name)
+        if dialog.exec_() != QtWidgets.QDialog.Accepted:
+            return
+
+        git_ref = dialog.git_ref()
+
+        # Resolve metadata (same logic as start_install)
+        ext_info = self.extensions_metadata.get(name)
+        if not ext_info:
+            ext_info = self.extensions_metadata.get(f"{name} (Manual)")
+        if not ext_info:
+            # Extension may have been installed manually; synthesise minimal metadata
+            ext_info = {"scm_url": runtime_registry[name].get("scm_url", "")}
+
+        if "metadata_url" in ext_info:
+            try:
+                meta_resp = requests.get(ext_info["metadata_url"])
+                metadata = meta_resp.json()
+            except Exception:
+                QtWidgets.QMessageBox.critical(self, "Error", "Failed to fetch extension metadata")
+                return
+        else:
+            metadata = {
+                "extensionname": name,
+                "scm_url": ext_info.get("scm_url", ""),
+                "build_dependencies": []
+            }
+
+        self.log_output.appendPlainText(
+            f"Updating {name}" + (f" @ {git_ref}" if git_ref else " (current branch)…")
+        )
+
+        self.worker = ExtensionWorker(
+            "update", name, metadata, self.slicer_dir, self.workspace_root,
+            git_ref=git_ref
+        )
+        self.worker.progress.connect(lambda msg: self.log_output.appendPlainText(msg))
+        self.worker.finished.connect(self.on_finished)
+        self._lock_action_buttons()
         self.worker.start()
 
     def start_remove(self):
@@ -625,14 +824,61 @@ class ExtensionManagerGUI(QtWidgets.QMainWindow):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Failed to remove extension: {e}")
 
+    # ------------------------------------------------------------------
+    # Button-state helpers
+    # ------------------------------------------------------------------
+
+    def _is_selected_installed(self):
+        """Return True if the currently selected list item is installed."""
+        item = self.list_widget.currentItem()
+        if item is None:
+            return False
+        return "(Installed)" in item.text()
+
+    def _update_button_states(self):
+        """Enable/disable action buttons based on the current selection."""
+        installed = self._is_selected_installed()
+        has_selection = self.list_widget.currentItem() is not None
+        self.install_btn.setEnabled(has_selection and not installed)
+        self.update_btn.setEnabled(installed)
+        self.recompile_btn.setEnabled(installed)
+        self.remove_btn.setEnabled(installed)
+
+    def _lock_action_buttons(self):
+        """Disable all action buttons while a background worker is running."""
+        for btn in (self.install_btn, self.update_btn, self.recompile_btn, self.remove_btn):
+            btn.setEnabled(False)
+
+    def _on_selection_changed(self, current, previous):
+        self._update_button_states()
+
+    def start_recompile(self):
+        current_item = self.list_widget.currentItem()
+        if not current_item:
+            return
+
+        name = current_item.text().split(' (')[0]
+        self.log_output.appendPlainText(f"Recompiling {name}…")
+
+        self.worker = ExtensionWorker(
+            "recompile", name, {}, self.slicer_dir, self.workspace_root
+        )
+        self.worker.progress.connect(lambda msg: self.log_output.appendPlainText(msg))
+        self.worker.finished.connect(self.on_finished)
+        self._lock_action_buttons()
+        self.worker.start()
+
     def on_finished(self, success, result):
-        self.install_btn.setEnabled(True)
         if success:
             name = self.worker.extension_name
-            self.log_output.appendPlainText(f"Successfully installed {name}")
-            self.filter_extensions()
+            action = self.worker.action
+            verbs = {"update": "updated", "recompile": "recompiled", "install": "installed"}
+            verb = verbs.get(action, action + "ed")
+            self.log_output.appendPlainText(f"Successfully {verb} {name}")
+            self.filter_extensions()  # also calls _update_button_states via currentItemChanged
         else:
             QtWidgets.QMessageBox.critical(self, "Error", f"Operation failed: {result}")
+        self._update_button_states()
 
 if __name__ == "__main__":
     import signal
