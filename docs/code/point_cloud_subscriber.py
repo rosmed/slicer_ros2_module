@@ -20,3 +20,9 @@ sub = rosNode.CreateAndAddSubscriberNode('PolyData', '/simulated_point_cloud')
 sub.SetTargetNodeID(modelNode.GetID())
 
 print("Point cloud subscriber successfully initialized!")
+# [end: code]
+
+# Open the ROS2 module UI so the user can interact with the scene immediately.
+# This line is intentionally outside the doc tags and will not appear in
+# the documentation.
+slicer.util.selectModule('ROS2')

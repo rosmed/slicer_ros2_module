@@ -12,13 +12,13 @@ Before you can start compiling the SlicerROS2 module, you will need:
 
 * Ubuntu Linux with `ROS 2 <https://www.ros.org>`_.
 
-* Slicer 3D built from source, this is required to build any C++
+* 3D Slicer built from source, this is required to build any C++
   extension, including SlicerROS2.
 
 Versions
 --------
 
-SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with Slicer 3D 5.10.  When you clone the Slicer repo, make sure to checkout the v5.10 branch/tag.
+SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with 3D Slicer 5.10.  When you clone the Slicer repo, make sure to checkout the v5.10 branch/tag.
 See :doc:`/pages/compatibility` for the supported release matrix.
 
 .. code-block:: bash

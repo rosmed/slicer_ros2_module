@@ -269,6 +269,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     @vtk.calldata_type(vtk.VTK_OBJECT)
     def onNodeAboutToBeRemoved(self, caller, event, callData) -> None:
+        """MRML scene callback: clean up and disable the UI when the active robot node is removed."""
         if self.robot and callData == self.robot:
             print("Motion Control: Robot node about to be removed. Disabling UI and cleaning up.")
             if self.logic:
@@ -384,6 +385,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         pass
 
     def onUseButton(self) -> None:
+        """Handler for the *Use Robot* button: initialises motion control for the selected robot and activates the UI."""
         # Stop any prior streaming callbacks
         self.logic.removeObserver()
         self.logic.ClearJointStateSubscriber()
@@ -601,6 +603,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     # Opacity slider handler
     def onOpacitySliderChanged(self, value: int) -> None:
+        """Handler for the opacity slider: updates the display opacity of all robot model parts."""
         if self.logic is None or self.robot is None:
             return
         opacity = value / 100.0
@@ -608,6 +611,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     # Robot color button handler
     def onRobotColorChanged(self) -> None:
+        """Handler for the goal-robot color button: applies the new colour to all goal model parts and persists it in the parameter node."""
         if self.logic is None or self.robot is None:
             return
         color = self.ui.robotColorButton.color
@@ -618,6 +622,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     # Joint slider change handler
     def onJointSliderChanged(self, idx: int, value: float) -> None:
+        """Handler for joint slider / spinbox changes: converts the UI value (deg or mm) to radians/metres, stores it, and updates the goal robot."""
         # Ensure array is large enough
         while len(self.jointPositionsRad) <= idx:
             self.jointPositionsRad.append(0.0)
@@ -639,6 +644,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     # Zero button handler
     def onZeroButton(self) -> None:
+        """Handler for the *Zero* button: resets all joint sliders and the goal robot to the zero configuration."""
 
         print("Resetting joint sliders to zero.")
 
@@ -722,6 +728,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print("Warning: /joint_states not received after 5 s; sliders remain at zero.")
 
     def onCurrentStateButton(self) -> None:
+        """Handler for the *Current State* button: reads live joint positions from the JointState subscriber and synchronises sliders and the goal robot."""
         if self.logic is None or self.robot is None:
             print("Current state: robot is not initialized")
             return
@@ -796,6 +803,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             spinbox.blockSignals(False)
 
     def onAddObstacle(self) -> None:
+        """Handler for the *Add Obstacle* button: publishes the selected model to the MoveIt planning scene and registers a ModifiedEvent observer to keep it in sync."""
         modelNode = self.ui.obstacleModelComboBox.currentNode()
         if not modelNode:
             return
@@ -816,10 +824,12 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         print(f"Obstacle {modelNode.GetName()} added to MoveIt planning scene.")
 
     def onObstacleModified(self, caller, event) -> None:
+        """MRML ModifiedEvent callback: re-publishes a collision object to MoveIt whenever its source model node changes."""
         if caller and caller.GetAttribute(self.logic.MOVEIT_OBSTACLE_ATTRIBUTE):
             self.logic.PublishMoveItObstacle(caller, robotNode=self.robot)
 
     def removeObstacle(self, modelID) -> None:
+        """Remove an obstacle from the MoveIt planning scene, stop observing it, and refresh the obstacle table."""
         modelNode = slicer.mrmlScene.GetNodeByID(modelID)
         if modelNode:
             self.logic.RemoveMoveItObstacle(modelNode, self.robot)
@@ -830,6 +840,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.updateObstacleTable()
 
     def updateObstacleTable(self) -> None:
+        """Rebuild the obstacle table widget from the current set of MoveIt obstacle model nodes."""
         self.ui.obstaclesTable.setRowCount(0)
         self.obstaclePublishers = {
             modelID: modelNode
@@ -855,6 +866,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.obstaclesTable.setCellWidget(row, 2, removeBtn)
 
     def onMoveGroupExistsToggled(self, toggled: bool) -> None:
+        """Handler for the *Move Group Exists* checkbox: enables or disables the MoveIt-specific UI controls and IK backend."""
         self.ui.planGroupLabel.enabled = toggled
         self.ui.planGroupComboBox.enabled = toggled
         self.ui.endEffectorLinkLabel.enabled = toggled
@@ -1001,6 +1013,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print(f"End effector link set to: {link}")
 
     def onTabChanged(self, index):
+        """Handler for tab-widget changes: enters/exits control mode and refreshes the appropriate tab."""
         if not self.isRobotLoaded:
             return
 
@@ -1064,6 +1077,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self._setJointUi_SIToSlicer(self.jointPositionsRad)
 
     def enterControlMode(self):
+        """Activate interactive IK control mode: create the probe sphere, attach it to the tip transform, and start observing it for IK updates."""
         if not self.isRobotLoaded or not self.robot or not self.rootlink:
             return
         if self._parameterNode is not None:
@@ -1083,6 +1097,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.totransform = state["toTransform"]
 
     def exitControlMode(self):
+        """Deactivate IK control mode: remove the probe sphere and stop all transform observers."""
         if not self.isRobotLoaded:
             return
         if self.logic:
@@ -1102,6 +1117,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.planButton.enabled = True
 
     def onPlanButton(self) -> None:
+        """Handler for the *Plan* button: runs the selected trajectory generator from the current joint state to the IK goal, then displays a scrubber slider."""
         generators = TrajectoryGenerators.get_all()
         idx = self.ui.generatorComboBox.currentIndex
         if idx < 0 or idx >= len(generators):
@@ -1282,6 +1298,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 self.trajectorySpinBox.blockSignals(False)
 
     def onExecuteButton(self) -> None:
+        """Handler for the *Execute* button: sends the last planned trajectory to the robot controller via MoveIt's async execution interface."""
         if self.motionControlNode is None:
             print("No motion control node available. Please use the robot first.")
             return
@@ -1372,11 +1389,21 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return ros2Node.CreateAndAddPublisherNode("CollisionObject", self.MOVEIT_COLLISION_OBJECT_TOPIC)
 
     def SetupMoveItPlanningGroup(self, robotNode, groupName) -> bool:
+        """Configure MoveIt IK for the given planning group on *robotNode*.
+
+        Returns True on success, False if either argument is missing or the
+        underlying C++ call fails.
+        """
         if not robotNode or not groupName:
             return False
         return bool(robotNode.SetupIKMoveIt(groupName))
 
     def CreateMoveGroupSRDFParameterNode(self, robotNode):
+        """Create a ROS 2 parameter node connected to ``/move_group`` that subscribes
+        to ``robot_description_semantic`` (the SRDF).
+
+        Returns the new ``vtkMRMLROS2ParameterNode`` or ``None`` on failure.
+        """
         if not robotNode:
             return None
 
@@ -1393,6 +1420,16 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return paramNode
 
     def ParseMoveGroupSRDF(self, srdf_xml):
+        """Parse a SRDF XML string and extract planning group names and end-effector definitions.
+
+        Args:
+            srdf_xml: Raw SRDF XML string from the ``robot_description_semantic`` parameter.
+
+        Returns:
+            (groups, end_effectors) where *groups* is a list of planning group name
+            strings and *end_effectors* is a list of dicts with keys ``name`` and
+            ``parent_link``.
+        """
         if not srdf_xml:
             return [], []
 
@@ -1418,6 +1455,23 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return groups, end_effectors
 
     def AddMoveItObstacle(self, modelNode, frameId="world", robotNode=None) -> bool:
+        """Mark *modelNode* as a MoveIt collision obstacle and publish it.
+
+        Tags the model with internal MRML attributes so it is re-published on
+        future calls to ``PublishAllMoveItObstacles``.  Schedules two deferred
+        re-publishes (at 250 ms and 1 s) to compensate for move_group startup
+        latency.
+
+        Args:
+            modelNode:  ``vtkMRMLModelNode`` whose polydata is the obstacle geometry.
+            frameId:    TF frame in which the mesh coordinates are expressed
+                        (default ``"world"``).  Pass the obstacle's node name to
+                        use a TF2-broadcasted frame instead.
+            robotNode:  Optional ``vtkMRMLROS2RobotNode`` used to locate the
+                        correct ROS 2 node for the publisher.
+
+        Returns True on success.
+        """
         if not modelNode:
             print("Add obstacle: model node is invalid")
             return False
@@ -1436,6 +1490,13 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return True
 
     def PublishMoveItObstacle(self, modelNode, frameId=None, robotNode=None) -> bool:
+        """Publish a single collision object to the ``/collision_object`` topic.
+
+        If *frameId* is ``None`` the value stored on the model node's MRML
+        attribute is used, falling back to ``"world"``.
+
+        Returns True on success.
+        """
         if not modelNode:
             return False
 
@@ -1451,10 +1512,24 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return True
 
     def PublishAllMoveItObstacles(self, robotNode=None) -> None:
+        """Re-publish every known MoveIt obstacle to the ``/collision_object`` topic.
+
+        Iterates the result of ``GetMoveItObstacles()`` and calls
+        ``PublishMoveItObstacle`` for each entry.  Useful to refresh the planning
+        scene before each IK or planning request.
+        """
         for _modelID, modelNode, frameId in self.GetMoveItObstacles():
             self.PublishMoveItObstacle(modelNode, frameId, robotNode)
 
     def RemoveMoveItObstacle(self, modelNode, robotNode=None) -> bool:
+        """Remove a collision obstacle from the MoveIt planning scene and clear its MRML attributes.
+
+        Sends a removal ``CollisionObject`` message immediately and schedules a
+        second one after 250 ms.  Clears the internal MRML obstacle tags so the
+        model is no longer returned by ``GetMoveItObstacles``.
+
+        Returns True on success.
+        """
         if not modelNode:
             return False
 
@@ -1622,6 +1697,15 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return broadcaster, observerTag
 
     def GetMoveItObstacles(self):
+        """Return a list of all known MoveIt obstacle models in the current scene.
+
+        Collects models both by MRML attribute tags (set by ``AddMoveItObstacle``)
+        and by scanning active ``vtkMRMLROS2PublisherCollisionObjectNode`` nodes,
+        so it also captures obstacles that were set up outside this module.
+
+        Returns:
+            List of ``(modelID, modelNode, frameId)`` tuples.
+        """
         by_id = {}
         for modelNode in slicer.util.getNodesByClass("vtkMRMLModelNode"):
             if modelNode.GetAttribute(self.MOVEIT_OBSTACLE_ATTRIBUTE):
@@ -1645,6 +1729,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return [(modelID, modelNode, frameId) for modelID, (modelNode, frameId) in by_id.items()]
 
     def SetupRobotForMotionControl(self, parameterNode) -> bool:
+        """Initialise all motion-control subsystems for the robot described by *parameterNode*.
+
+        Steps performed:
+        1. Validate the parameter node and locate the robot node.
+        2. Auto-detect root and tip links from the URDF.
+        3. Create the goal-state robot if it does not already exist.
+        4. Create or update the ``vtkMRMLROS2MotionControlNode``.
+        5. Configure the JointState subscriber.
+        6. Set up the MoveIt planning group if requested.
+
+        Returns True on success.
+        """
         if not parameterNode or not parameterNode.robotNodeID:
             print("SetupRobotForMotionControl: Invalid parameter node or robotNodeID")
             return False
@@ -1701,6 +1797,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             print(f"Joint state: failed to cache last message: {e}")
 
     def ConfigureJointStateSubscriber(self, robotNode, topic_name: str) -> bool:
+        """Create (or reuse) a JointState subscriber on the given topic.
+
+        If a subscriber already exists on the same topic and ROS 2 node, it is
+        reused without re-creating.  Registers an internal ``ModifiedEvent``
+        observer that caches the latest message for ``GetCurrentJointState``.
+
+        Args:
+            robotNode:   ``vtkMRMLROS2RobotNode`` whose ROS 2 node hosts the subscriber.
+            topic_name:  ROS 2 topic name, e.g. ``"/joint_states"``.
+
+        Returns True on success.
+        """
         if robotNode is None:
             print("Joint state: robot node is invalid")
             return False
@@ -1743,6 +1851,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return True
 
     def ClearJointStateSubscriber(self):
+        """Remove the JointState subscriber observer and, if the subscriber was
+        created by this logic instance, delete the subscriber node from the scene.
+        """
         if self.joint_state_subscriber and self.joint_state_subscriber_observer is not None:
             try:
                 self.joint_state_subscriber.RemoveObserver(self.joint_state_subscriber_observer)
@@ -1809,6 +1920,16 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             return []
 
     def GetCurrentJointState(self, joint_names):
+        """Read the current joint positions from the latest cached JointState message.
+
+        Args:
+            joint_names: Ordered list of joint name strings to extract.
+
+        Returns:
+            Ordered list of joint positions in radians/metres matching
+            *joint_names*, or an empty list if the message is unavailable or
+            does not contain all requested joints.
+        """
         if self.joint_state_subscriber is None:
             print("Current state: JointState subscriber is not configured")
             return []
@@ -1847,9 +1968,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return [by_name[n] for n in joint_names]
 
     def getParameterNode(self):
+        """Return a typed ``ROS2MotionControlParameterNode`` wrapping the module's parameter node."""
         return ROS2MotionControlParameterNode(super().getParameterNode())
 
     def createSphereModel(self, name="ProbeSphere", radius_mm=20.0):
+        """Create a sphere ``vtkMRMLModelNode`` (the IK probe) and add it to the scene.
+
+        Args:
+            name:       Node name (default ``"ProbeSphere"``).
+            radius_mm:  Sphere radius in millimetres (default 20).
+
+        Returns the new ``vtkMRMLModelNode``.
+        """
         r = radius_mm
         src = vtk.vtkSphereSource()
         src.SetRadius(r); src.SetThetaResolution(40); src.SetPhiResolution(40); src.Update()
@@ -1864,6 +1994,14 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return model
 
     def createLinearTransform(self, name="ProbeSphere_Transform", showAxes=True):
+        """Create a ``vtkMRMLLinearTransformNode`` with an optional interactive 3D gizmo.
+
+        Args:
+            name:      Node name.
+            showAxes:  If True, enables the editor gizmo in the 3D view.
+
+        Returns the new ``vtkMRMLLinearTransformNode``.
+        """
         t = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLinearTransformNode", name)
         if not t.GetDisplayNode():
             tdisp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformDisplayNode", name+"_Display")
@@ -1875,6 +2013,10 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return t
 
     def applyTransformToModel(self, modelNode, transformNode):
+        """Parent *modelNode* under *transformNode* in the MRML hierarchy.
+
+        Raises ``ValueError`` if either argument is ``None``.
+        """
 
         if modelNode is None or transformNode is None:
             raise ValueError("modelNode and transformNode are required")
@@ -1886,6 +2028,20 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         modelNode.Modified()
 
     def EnterControlMode(self, robotmodel, rootlink, tiplink, goaltiplink, baseGoalColor=None):
+        """Set up interactive IK control: create the probe sphere, position it at the
+        current goal tip, wire IK observers, and return the transform handles.
+
+        Args:
+            robotmodel:    ``vtkMRMLROS2RobotNode``.
+            rootlink:      Name of the robot root link (TF parent frame).
+            tiplink:       Name of the live robot tip link.
+            goaltiplink:   Name of the goal robot tip link used to initialise probe position.
+            baseGoalColor: Optional ``(r, g, b)`` tuple for IK success colour.
+
+        Returns:
+            Dict ``{"fromTransform": ..., "toTransform": ...}`` on success, or
+            ``None`` on failure.
+        """
         if not robotmodel or not rootlink:
             return None
 
@@ -1939,6 +2095,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return {"fromTransform": fromtransform, "toTransform": totransform}
 
     def ExitControlMode(self, fromtransform=None):
+        """Tear down IK control mode: remove transform observers and delete the probe sphere.
+
+        Args:
+            fromtransform: Optional probe transform node to remove from the scene.
+        """
         self.removeObserver()
 
         if fromtransform:
@@ -2081,6 +2242,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return self.obsTag
 
     def printLocation(self, fromNode, toNode):
+        """Print (in debug mode) the XYZ translation from *fromNode* to *toNode* in millimetres."""
         m = vtk.vtkMatrix4x4()
         ok = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, m)
         if not ok:
@@ -2091,6 +2253,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             print(f"{fromNode.GetName()} wrt {toNode.GetName()}: x={x:.2f}, y={y:.2f}, z={z:.2f} mm")
 
     def removeObserver(self):
+        """Remove all active transform and view-interaction observers and reset observer state."""
         if self.viewObserverTags:
             for observed_object, observed_tag in self.viewObserverTags:
                 try:
@@ -2113,6 +2276,16 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.isInteracting = False
 
     def computeIK(self, robotmodel, baseGoalColor=None):
+        """Compute IK for the current probe position using either MoveIt or KDL.
+
+        Updates goal robot joint transforms and colour-codes the result
+        (base colour on success, complementary colour on failure).
+
+        Args:
+            robotmodel:    ``vtkMRMLROS2RobotNode``.
+            baseGoalColor: Optional ``(r, g, b)`` override; falls back to the
+                           colour stored on the goal robot display nodes.
+        """
         if robotmodel is None:
             return
         solution = None
@@ -2142,6 +2315,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             self.setGoalRobotColorRGB(robotNode, (1.0 - r, 1.0 - g, 1.0 - b))
 
     def setGoalRobotColorRGB(self, robotNode, rgb):
+        """Set the display colour of all goal robot model parts.
+
+        Args:
+            robotNode: ``vtkMRMLROS2RobotNode``.
+            rgb:       ``(r, g, b)`` float tuple in [0, 1].
+        """
         if robotNode is None:
             return
         r, g, b = rgb
@@ -2204,6 +2383,19 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
 
     def computeIKWithMoveIt(self, robotmodel, tipLink):
+        """Compute IK via the MoveIt ``FindIK`` interface.
+
+        Reads the current probe-to-root transform, calls ``robotmodel.FindIKMoveIt``,
+        and on success applies the joint solution to the goal robot and caches it
+        in ``last_ik_solution``.
+
+        Args:
+            robotmodel: ``vtkMRMLROS2RobotNode``.
+            tipLink:    Name of the end-effector TF link MoveIt should plan to.
+
+        Returns:
+            List of joint angles in radians, or ``None`` if no solution found.
+        """
 
     # --- Get Slicer transform nodes ---
         fromNode = self.obsNode
@@ -2250,44 +2442,56 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
 
     def computeIKWithKDL(self, robotmodel):
-            # --- Get Slicer transform nodes ---
-            fromNode = self.obsNode
-            toNode   = self.toNode
+        """Compute IK via the KDL (Kinematics and Dynamics Library) interface.
 
-            if fromNode is None or toNode is None:
-                return None
+        Reads the current probe-to-root transform, calls ``robotmodel.FindKDLIK``,
+        and on success applies the joint solution to the goal robot and caches it
+        in ``last_ik_solution``.
 
-            if DEBUG:
-                print(f"\n[IK] Computing transform from '{fromNode.GetName()}' to '{toNode.GetName()}'")
+        Args:
+            robotmodel: ``vtkMRMLROS2RobotNode``.
 
-            # --- Compute 4×4 transform between nodes ---
-            targetPose = vtk.vtkMatrix4x4()
-            success = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, targetPose)
+        Returns:
+            List of joint angles in radians, or ``None`` if no solution found.
+        """
+        # --- Get Slicer transform nodes ---
+        fromNode = self.obsNode
+        toNode   = self.toNode
 
-            if not success:
-                raise RuntimeError("Could not compute transform between nodes.")
+        if fromNode is None or toNode is None:
+            return None
 
-            # If we have no seed or a bad seed, try all zeros first
-            seed = self.last_ik_solution if self.last_ik_solution and len(self.last_ik_solution) > 0 else []
+        if DEBUG:
+            print(f"\n[IK] Computing transform from '{fromNode.GetName()}' to '{toNode.GetName()}'")
 
-            # call KDL IK
-            result_str = robotmodel.FindKDLIK(targetPose, seed)
+        # --- Compute 4×4 transform between nodes ---
+        targetPose = vtk.vtkMatrix4x4()
+        success = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, targetPose)
 
-            if result_str and result_str.strip():
-                try:
-                    data = [float(x) for x in result_str.split(",")]
-                    if DEBUG:
-                        print(f"[IK] Solution found: {data}")
-                    self.last_ik_solution = data
-                    self.updategoalTransformsFromJointsKDL(robotmodel, data)
-                    return data
-                except ValueError as e:
-                    print(f"[IK] Failed to parse solution: {e}")
-                    return None
-            else:
+        if not success:
+            raise RuntimeError("Could not compute transform between nodes.")
+
+        # If we have no seed or a bad seed, try all zeros first
+        seed = self.last_ik_solution if self.last_ik_solution and len(self.last_ik_solution) > 0 else []
+
+        # call KDL IK
+        result_str = robotmodel.FindKDLIK(targetPose, seed)
+
+        if result_str and result_str.strip():
+            try:
+                data = [float(x) for x in result_str.split(",")]
                 if DEBUG:
-                    print(f"[IK] Empty result from FindKDLIK")
+                    print(f"[IK] Solution found: {data}")
+                self.last_ik_solution = data
+                self.updategoalTransformsFromJointsKDL(robotmodel, data)
+                return data
+            except ValueError as e:
+                print(f"[IK] Failed to parse solution: {e}")
                 return None
+        else:
+            if DEBUG:
+                print(f"[IK] Empty result from FindKDLIK")
+            return None
 
     def addObserverComputeIK(self, robotmodel=None, baseGoalColor=None):
             """
@@ -2334,6 +2538,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
     # Set robot opacity
     def setOpacity(self, robotmodel, opacity):
+        """Set the display opacity of all model parts referenced by *robotmodel*.
+
+        Args:
+            robotmodel: ``vtkMRMLROS2RobotNode``.
+            opacity:    Float in [0, 1].
+        """
 
         # Get number of model nodes under robotmodel
         numModels = robotmodel.GetNumberOfNodeReferences("model")
@@ -2347,6 +2557,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
     # Set robot color
     def setGoalRobotColor(self, robotNode, color):
+        """Set the display colour of all goal robot model parts from a ``QColor``.
+
+        Args:
+            robotNode: ``vtkMRMLROS2RobotNode``.
+            color:     ``qt.QColor`` value.
+        """
         if robotNode is None:
             return
 
@@ -2361,6 +2577,10 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 displayNode.SetColor(r, g, b)
 
     def GetGoalRobotColor(self, robotNode):
+        """Return the current display colour of the goal robot as an ``(r, g, b)`` float tuple.
+
+        Returns ``None`` if *robotNode* is ``None`` or no goal model display node is found.
+        """
         if robotNode is None:
             return None
 
@@ -2423,6 +2643,16 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return goal_nodes
 
     def setJointSlidersFromUrdfLimits(self, limits_rad, sliders):
+        """Configure a list of ``QSlider`` widgets from URDF joint limit data.
+
+        Revolute joints use degrees; prismatic joints use millimetres.  Swaps
+        lo/hi if the URDF stores them in reverse order.
+
+        Args:
+            limits_rad: Ordered dict mapping joint name to ``(lo, hi, type)``
+                        where lo/hi are in radians or metres.
+            sliders:    Matching list of ``QSlider`` widgets to configure.
+        """
 
         if len(sliders) != len(limits_rad):
             print(

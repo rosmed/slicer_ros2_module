@@ -141,3 +141,8 @@ print("Obstacle published to MoveIt planning scene.")
 print(f"TF2 broadcasting: '{FIXED_FRAME}' -> '{obstacleNode.GetName()}'")
 print("Drag 'ObstacleTransform' in the 3D view – MoveIt planning scene updates live.")
 # [end: publish]
+
+# Open the ROS2 Motion Control module UI so the user can interact with the
+# planning scene immediately.  This line is intentionally outside the doc tags
+# and will not appear in the documentation.
+slicer.util.selectModule('ROS2MotionControl')
