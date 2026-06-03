@@ -1468,6 +1468,159 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         modelNode.SetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE, None)
         return True
 
+    def SetupObstacleTf2Broadcaster(self, obstacleNode, parentFrameId,
+                                     robotNode=None, existingBroadcaster=None):
+        """Wire a MRML transform node to a TF2 broadcaster so the obstacle's
+        location is streamed to ROS / MoveIt whenever the transform changes.
+
+        The method:
+        1. Resolves the obstacle's parent transform (auto-creates one if the
+           model has no transform parent yet).
+        2. Finds (or creates) the robot root transform node so it can compute
+           the between-nodes matrix.
+        3. Creates (or reuses / accepts) a Tf2BroadcasterNode with
+           parent_id=parentFrameId, child_id=obstacleNode.GetName().
+        4. Registers a TransformModifiedEvent observer that computes
+           GetMatrixTransformBetweenNodes and calls broadcaster.Broadcast().
+        5. Fires the callback immediately so MoveIt gets the initial pose.
+
+        Args:
+            obstacleNode:       vtkMRMLModelNode representing the obstacle.
+            parentFrameId:      ROS/TF frame name to use as the parent
+                                (e.g. "world"). This is what MoveIt calls the
+                                fixed frame.
+            robotNode:          Optional vtkMRMLROS2RobotNode used to look up
+                                the ROS2 node and the robot root transform.
+            existingBroadcaster: If not None, use this Tf2BroadcasterNode
+                                instead of creating / looking one up.
+
+        Returns:
+            (broadcasterNode, obstacleTransformNode, observerTag)
+            or (None, None, None) on failure.
+        """
+        if not obstacleNode:
+            print("SetupObstacleTf2Broadcaster: obstacle node is invalid")
+            return None, None, None
+
+        obstacleTransformNode = obstacleNode.GetParentTransformNode()
+        if obstacleTransformNode is None:
+            # Auto-create an identity transform and attach the model to it
+            tfName = f"{obstacleNode.GetName()}_Transform"
+            obstacleTransformNode = slicer.mrmlScene.AddNewNodeByClass(
+                "vtkMRMLLinearTransformNode", tfName
+            )
+            if not obstacleTransformNode.GetDisplayNode():
+                dispNode = slicer.mrmlScene.AddNewNodeByClass(
+                    "vtkMRMLTransformDisplayNode", tfName + "_Display"
+                )
+                dispNode.SetVisibility(True)
+                dispNode.SetEditorVisibility(True)
+                obstacleTransformNode.SetAndObserveDisplayNodeID(dispNode.GetID())
+            obstacleNode.SetAndObserveTransformNodeID(obstacleTransformNode.GetID())
+            print(f"SetupObstacleTf2Broadcaster: created transform '{tfName}' for obstacle")
+
+        ros2Node = self._getObstacleROS2Node(robotNode)
+        if ros2Node is None:
+            print("SetupObstacleTf2Broadcaster: no ROS2 node found")
+            return None, None, None
+
+        childId = obstacleNode.GetName()
+
+        # Resolve broadcaster: accept caller-supplied, reuse existing, or create
+        broadcaster = existingBroadcaster
+        if broadcaster is None:
+            broadcaster = ros2Node.GetTf2BroadcasterNodeByParentChild(parentFrameId, childId)
+        if broadcaster is None:
+            broadcaster = ros2Node.CreateAndAddTf2BroadcasterNode(parentFrameId, childId)
+        if broadcaster is None:
+            print("SetupObstacleTf2Broadcaster: failed to create TF2 broadcaster")
+            return None, obstacleTransformNode, None
+
+        # Try to find the robot root transform for computing between-nodes matrix.
+        # If we can't locate it we fall back to GetMatrixTransformToWorld on the
+        # obstacle (i.e. we assume the robot root == world origin).
+        robotRootTransformNode = None
+        if robotNode is not None:
+            try:
+                rootAndTip = robotNode.FindRootAndTipLinks()
+                if rootAndTip and len(rootAndTip) >= 1:
+                    robotRootTransformNode = self.findRobotTransforms(rootAndTip[0], goal=False)
+            except Exception:
+                pass
+
+        def _broadcastObstaclePose(caller=None, event=None):
+            m = vtk.vtkMatrix4x4()
+            if robotRootTransformNode is not None:
+                ok = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
+                    obstacleTransformNode, robotRootTransformNode, m
+                )
+                if not ok:
+                    print("SetupObstacleTf2Broadcaster: could not compute between-nodes transform")
+                    return
+            else:
+                obstacleTransformNode.GetMatrixTransformToWorld(m)
+            broadcaster.Broadcast(m)
+
+        observerTag = obstacleTransformNode.AddObserver(
+            slicer.vtkMRMLTransformNode.TransformModifiedEvent,
+            _broadcastObstaclePose
+        )
+
+        # Fire immediately so MoveIt receives the current pose before planning
+        _broadcastObstaclePose()
+
+        print(
+            f"SetupObstacleTf2Broadcaster: broadcasting '{parentFrameId}' -> '{childId}' "
+            f"from transform '{obstacleTransformNode.GetName()}'"
+        )
+        return broadcaster, obstacleTransformNode, observerTag
+
+    def AddMoveItObstacleWithTransform(self, obstacleNode, transformNode,
+                                       parentFrameId, robotNode=None,
+                                       existingBroadcaster=None):
+        """Convenience wrapper that combines transform attachment, TF2 broadcaster
+        setup, and MoveIt CollisionObject publishing in one call.
+
+        The obstacle mesh should be centred at the origin.  Its real-world
+        location is expressed entirely by *transformNode* (the registration
+        transform).  MoveIt resolves the position through the TF2 tree:
+
+            /tf:  parent=parentFrameId  child=obstacleNode.GetName()
+            CollisionObject.header.frame_id = obstacleNode.GetName()
+
+        Args:
+            obstacleNode:       vtkMRMLModelNode with mesh centred at origin.
+            transformNode:      vtkMRMLLinearTransformNode (the registration
+                                transform). Pass None to auto-detect / create.
+            parentFrameId:      ROS fixed frame (e.g. "world").
+            robotNode:          Optional vtkMRMLROS2RobotNode.
+            existingBroadcaster: Pass an existing Tf2BroadcasterNode to reuse.
+
+        Returns:
+            (broadcasterNode, observerTag) or (None, None) on failure.
+        """
+        if not obstacleNode:
+            print("AddMoveItObstacleWithTransform: obstacle node is invalid")
+            return None, None
+
+        # Attach model to the supplied transform if provided
+        if transformNode is not None:
+            obstacleNode.SetAndObserveTransformNodeID(transformNode.GetID())
+
+        # Wire the TF2 broadcaster (auto-creates transform if still None)
+        broadcaster, _tf, observerTag = self.SetupObstacleTf2Broadcaster(
+            obstacleNode, parentFrameId, robotNode, existingBroadcaster
+        )
+        if broadcaster is None:
+            return None, None
+
+        # Publish collision object with frame_id = obstacle node name so MoveIt
+        # resolves position from the TF2 tree rather than world coordinates.
+        if not self.AddMoveItObstacle(obstacleNode, obstacleNode.GetName(), robotNode):
+            return None, None
+
+        return broadcaster, observerTag
+
     def GetMoveItObstacles(self):
         by_id = {}
         for modelNode in slicer.util.getNodesByClass("vtkMRMLModelNode"):

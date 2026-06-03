@@ -101,6 +101,12 @@ This example demonstrates how to create a geometric obstacle directly in 3D Slic
 using VTK/MRML Python commands and push it to the MoveIt 2 planning scene so that
 motion planning (IK and trajectory generation) avoids it.
 
+The obstacle is positioned via a **MRML LinearTransformNode** (the *registration
+transform*), so you can move it interactively with the 3D gizmo or update it
+programmatically from a registration algorithm — MoveIt's planning scene updates
+live without re-publishing the geometry.  This mirrors the clinical workflow of
+registering anatomy to a robot coordinate system.
+
 Prerequisites
 ~~~~~~~~~~~~~
 
@@ -166,31 +172,58 @@ to switch between code and manual interaction:
 Once the code prints *"Setup complete"* you can proceed to create and
 publish obstacles.
 
-Creating the Obstacle
-~~~~~~~~~~~~~~~~~~~~~
+Creating the Obstacle Geometry
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following code creates a 200 mm × 200 mm × 200 mm box positioned in front
-of the UR5 base (400 mm along X, 300 mm up along Z — well within the robot's
-reach envelope):
+The following code creates a 200 mm × 200 mm × 200 mm box **centred at the
+origin**.  The position is intentionally not baked into the mesh — it will
+be controlled entirely by the transform node in the next step:
 
 .. literalinclude:: ../code/moveit_obstacle.py
    :language: python
    :start-after: [doc: geometry]
    :end-before: [end: geometry]
 
-You should see an orange semi-transparent cube appear in the 3D view.
+You should see an orange semi-transparent cube at the world origin.
 
 .. note::
 
    The node **name** (here ``MoveItObstacle``) becomes the collision-object ``id``
-   in MoveIt. Use a unique, descriptive name for each obstacle so that MoveIt can
-   track and remove them individually.
+   in MoveIt **and** the ``child_frame_id`` in the TF2 broadcast.  Use a unique,
+   descriptive name for each obstacle so that MoveIt can track and remove them
+   individually.
 
-Publishing the Obstacle to MoveIt
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Placing the Obstacle with a MRML Transform
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Paste the final section to mark the model as a MoveIt obstacle and publish it
-as a ``CollisionObject``:
+Instead of baking a position into the mesh, we create a
+``vtkMRMLLinearTransformNode`` (the *registration transform*) and parent the
+obstacle under it.  This is equivalent to registering a piece of anatomy to the
+robot coordinate system:
+
+.. literalinclude:: ../code/moveit_obstacle.py
+   :language: python
+   :start-after: [doc: transform]
+   :end-before: [end: transform]
+
+After running this section the cube appears at (400, 0, 300) mm in the 3D view.
+A coloured gizmo is overlaid on it — drag it to move the obstacle anywhere in
+the scene.
+
+Publishing the Obstacle and Starting the TF2 Broadcast
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The single call to ``AddMoveItObstacleWithTransform`` does everything needed
+to integrate the obstacle with MoveIt:
+
+1. **Publishes a** ``CollisionObject`` whose ``header.frame_id`` is set to the
+   obstacle's Slicer node name (``"MoveItObstacle"``).  MoveIt looks up that
+   frame in the TF2 tree to find the obstacle's location.
+2. **Creates a** ``Tf2BroadcasterNode`` with ``parent = "world"`` and
+   ``child = "MoveItObstacle"``.
+3. **Observes the MRML transform** so every time you move the gizmo (or a
+   registration algorithm writes to the transform) the new pose is broadcast
+   over ``/tf`` automatically — no re-publish needed.
 
 .. literalinclude:: ../code/moveit_obstacle.py
    :language: python
@@ -204,10 +237,15 @@ as a ``CollisionObject``:
    ``PlanningSceneMonitor`` subscribes to it and updates its internal
    planning scene upon receipt.
 
+   Setting ``frame_id`` to the obstacle name (rather than ``"world"``) lets
+   MoveIt track the obstacle through the TF2 tree.  This means dragging the
+   gizmo in Slicer's 3D view is enough to move the obstacle in MoveIt — the
+   geometry message only needs to be sent once.
+
 Running the Complete Example from the Terminal
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To run all four sections as a single unattended script (Slicer starts, loads
+To run all sections as a single unattended script (Slicer starts, loads
 the robot, creates and publishes the obstacle, then stays open):
 
 .. code-block:: bash
@@ -217,7 +255,7 @@ the robot, creates and publishes the obstacle, then stays open):
 Verifying the Obstacle in MoveIt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can verify that MoveIt received the obstacle in a third terminal:
+Verify that MoveIt received the obstacle in a third terminal:
 
 .. code-block:: bash
 
@@ -233,9 +271,19 @@ The value ``24`` requests MoveIt's ``WORLD_OBJECT_NAMES`` and
 ``1`` returns scene settings, so the ``world.collision_objects`` field may look
 empty even when the object has been received.
 
+To verify the live TF2 broadcast:
+
+.. code-block:: bash
+
+   ros2 topic echo /tf | grep -A5 "MoveItObstacle"
+
+Drag the gizmo in the Slicer 3D view and watch the translation values change
+in the terminal output.
+
 Alternatively, open RViz (``ros2 launch slicer_ros2_module ur_sim_control.launch.py launch_rviz:=true``),
 add a **PlanningScene** display, and the orange box will appear in the 3D view
-alongside the robot.
+alongside the robot.  Move it with the Slicer gizmo and watch it update live
+in RViz.
 
 From this point, any IK or trajectory-planning request issued through the
 **ROS2 Motion Control** module (or directly via MoveIt) will treat the box as a
