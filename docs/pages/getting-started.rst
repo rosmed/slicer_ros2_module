@@ -107,6 +107,17 @@ Slicer build directory ``Slicer_DIR``:
     colcon build --cmake-args -DSlicer_DIR:PATH=/home/your_user_name_here/something_something/Slicer-SuperBuild-Debug/Slicer-build -DCMAKE_BUILD_TYPE=Release
 
 
+.. hint::
+
+   If you need to recompile often, you can use ``mold`` instead of the default ``ld``.
+   Configure CMake to pass ``-fuse-ld=mold`` to the compiler driver:
+
+   .. code-block:: bash
+
+      cd ~/ros2_ws
+      colcon build --cmake-args -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold
+
+
 The option ``--cmake-args -DSlicer_DIR...`` is only needed for the
 first ``colcon`` call.  For future builds, you can just use ``colcon build``.
 
