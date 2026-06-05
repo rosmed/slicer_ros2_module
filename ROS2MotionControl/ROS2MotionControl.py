@@ -1116,6 +1116,58 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         else:
             self.ui.planButton.enabled = True
 
+    def loadPlannedTrajectory(self, trajectory, enableExecute=True) -> bool:
+        """Load a trajectory into the GUI preview/scrubber state.
+
+        This is used by the Plan button and by Python-only examples that compute
+        a trajectory without going through the widget controls.
+        """
+        if trajectory is None or not trajectory.GetJointTrajectory().GetPoints():
+            print("Error: trajectory is empty")
+            return False
+
+        self._resetTrajectoryState()
+        self.trajectoryData = trajectory
+        self.ui.previewButton.enabled = True
+        self.ui.executeButton.enabled = bool(enableExecute)
+        num_points = len(trajectory.GetJointTrajectory().GetPoints())
+
+        self.trajectorySliderWidget = qt.QWidget()
+        layout = qt.QVBoxLayout(self.trajectorySliderWidget)
+        layout.setContentsMargins(0, 10, 0, 0)
+
+        label = qt.QLabel("Trajectory Scrubber:")
+        layout.addWidget(label)
+
+        sliderLayout = qt.QHBoxLayout()
+
+        self.trajectorySlider = qt.QSlider(qt.Qt.Horizontal)
+        self.trajectorySlider.setMinimum(0)
+        self.trajectorySlider.setMaximum(num_points - 1)
+        self.trajectorySlider.setValue(0)
+        self.trajectorySlider.valueChanged.connect(self.onTrajectorySliderChanged)
+        sliderLayout.addWidget(self.trajectorySlider)
+
+        self.trajectorySpinBox = qt.QSpinBox()
+        self.trajectorySpinBox.setMinimum(0)
+        self.trajectorySpinBox.setMaximum(num_points - 1)
+        self.trajectorySpinBox.setValue(0)
+        self.trajectorySpinBox.setSuffix(f" / {num_points - 1}")
+        self.trajectorySpinBox.valueChanged.connect(lambda val: self.trajectorySlider.setValue(val))
+        sliderLayout.addWidget(self.trajectorySpinBox)
+
+        layout.addLayout(sliderLayout)
+
+        moveitLayout = self.ui.moveItTab.layout()
+        if moveitLayout:
+            moveitLayout.addWidget(self.trajectorySliderWidget)
+
+        if self.robot and num_points > 0:
+            positions = list(trajectory.GetJointTrajectory().GetPoints()[0].GetPositions())
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
+
+        return True
+
     def onPlanButton(self) -> None:
         """Handler for the *Plan* button: runs the selected trajectory generator from the current joint state to the IK goal, then displays a scrubber slider."""
         generators = TrajectoryGenerators.get_all()
@@ -1168,59 +1220,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if sol is not None and sol.GetJointTrajectory().GetPoints():
             is_moveit_gen = isinstance(generator, TrajectoryGenerators.MoveItTrajectoryGenerator)
             move_group_ready = self._parameterNode.moveGroupExists if self._parameterNode is not None else self.ui.moveGroupExistsCheckBox.checked
-            self.ui.previewButton.enabled = True
-            self.ui.executeButton.enabled = is_moveit_gen or move_group_ready
-            self.trajectoryData = sol
-            num_points = len(sol.GetJointTrajectory().GetPoints())
-
-            # Remove old slider if it exists
-            if self.trajectorySlider:
-                if self.trajectorySliderWidget:
-                    self.trajectorySliderWidget.deleteLater()
-                self.trajectorySlider = None
-                self.trajectorySliderWidget = None
-                self.trajectorySpinBox = None
-
-            # Create new trajectory scrubber slider
-            self.trajectorySliderWidget = qt.QWidget()
-            layout = qt.QVBoxLayout(self.trajectorySliderWidget)
-            layout.setContentsMargins(0, 10, 0, 0)
-
-            # Create label
-            label = qt.QLabel("Trajectory Scrubber:")
-            layout.addWidget(label)
-
-            # Create horizontal layout for slider and spinbox
-            sliderLayout = qt.QHBoxLayout()
-
-            # Create slider
-            self.trajectorySlider = qt.QSlider(qt.Qt.Horizontal)
-            self.trajectorySlider.setMinimum(0)
-            self.trajectorySlider.setMaximum(num_points - 1)
-            self.trajectorySlider.setValue(0)
-            self.trajectorySlider.valueChanged.connect(self.onTrajectorySliderChanged)
-            sliderLayout.addWidget(self.trajectorySlider)
-
-            # Create spinbox to show point number
-            self.trajectorySpinBox = qt.QSpinBox()
-            self.trajectorySpinBox.setMinimum(0)
-            self.trajectorySpinBox.setMaximum(num_points - 1)
-            self.trajectorySpinBox.setValue(0)
-            self.trajectorySpinBox.setSuffix(f" / {num_points - 1}")
-            self.trajectorySpinBox.valueChanged.connect(lambda val: self.trajectorySlider.setValue(val))
-            sliderLayout.addWidget(self.trajectorySpinBox)
-
-            layout.addLayout(sliderLayout)
-
-            # Add to the moveittab layout
-            moveitLayout = self.ui.moveItTab.layout()
-            if moveitLayout:
-                moveitLayout.addWidget(self.trajectorySliderWidget)
-
-            # Show first point of trajectory
-            if self.robot and num_points > 0:
-                positions = list(sol.GetJointTrajectory().GetPoints()[0].GetPositions())
-                self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
+            self.loadPlannedTrajectory(sol, enableExecute=is_moveit_gen or move_group_ready)
         elif sol is not None:
             print("Error: trajectory returned by generator has no points")
 
@@ -1344,6 +1344,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.MOVEIT_COLLISION_OBJECT_TOPIC = "/collision_object"
         self.MOVEIT_OBSTACLE_ATTRIBUTE = "ROS2MotionControl.MoveItObstacle"
         self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE = "ROS2MotionControl.MoveItObstacleFrame"
+        self.POSE_MARKER_ATTRIBUTE = "ROS2MotionControl.PoseMarker"
         self.obsTag = None
         self.obsNode = None
         self.callback = None
@@ -1994,23 +1995,258 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return model
 
     def createLinearTransform(self, name="ProbeSphere_Transform", showAxes=True):
-        """Create a ``vtkMRMLLinearTransformNode`` with an optional interactive 3D gizmo.
+        """Create a visible ``vtkMRMLLinearTransformNode`` marker.
 
         Args:
             name:      Node name.
-            showAxes:  If True, enables the editor gizmo in the 3D view.
+            showAxes:  If True, enables the interactive editor widget in the
+                       3D view.  The transform marker remains visible when this
+                       is False.
 
         Returns the new ``vtkMRMLLinearTransformNode``.
         """
         t = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLinearTransformNode", name)
         if not t.GetDisplayNode():
             tdisp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformDisplayNode", name+"_Display")
-            tdisp.SetVisibility(True)  # “eye” in Data
-            tdisp.SetVisibility2D(True)
             t.SetAndObserveDisplayNodeID(tdisp.GetID())
-        if showAxes:
-            t.GetDisplayNode().SetEditorVisibility(True)  # show 3D gizmo on selection
+        displayNode = t.GetDisplayNode()
+        if displayNode:
+            displayNode.SetVisibility(True)  # “eye” in Data
+            displayNode.SetVisibility2D(True)
+            if hasattr(displayNode, "SetVisibility3D"):
+                displayNode.SetVisibility3D(True)
+            displayNode.SetEditorVisibility(bool(showAxes))
         return t
+
+    def _resolveSceneNode(self, nodeOrName):
+        if nodeOrName is None:
+            return None
+        if isinstance(nodeOrName, str):
+            try:
+                return slicer.util.getNode(nodeOrName)
+            except Exception:
+                return None
+        return nodeOrName
+
+    def CreatePoseMarker(self, name="MotionControlPose", matrix=None,
+                         referenceNode=None, showAxes=False):
+        """Create a scriptable 6-DOF pose marker.
+
+        The marker is a ``vtkMRMLLinearTransformNode`` that can be passed to
+        ``PlanMoveItCartesianTrajectoryFromPoseMarkers``.  Set *showAxes* to
+        True to enable Slicer's built-in 3D transform editor for that marker.
+
+        Args:
+            name:          MRML node name.
+            matrix:        Optional vtkMatrix4x4 pose in world coordinates.
+            referenceNode: Optional MRML node whose current world transform is
+                           copied when *matrix* is not supplied.
+            showAxes:      If True, show the 3D transform editor.  The marker
+                           itself remains visible when this is False.
+
+        Returns:
+            vtkMRMLLinearTransformNode
+        """
+        marker = self.createLinearTransform(name, showAxes=showAxes)
+        marker.SetAttribute(self.POSE_MARKER_ATTRIBUTE, "1")
+
+        initialMatrix = None
+        if matrix is not None:
+            initialMatrix = matrix
+        else:
+            referenceNode = self._resolveSceneNode(referenceNode)
+            if referenceNode is not None and hasattr(referenceNode, "GetMatrixTransformToWorld"):
+                initialMatrix = vtk.vtkMatrix4x4()
+                referenceNode.GetMatrixTransformToWorld(initialMatrix)
+
+        if initialMatrix is not None:
+            marker.SetMatrixTransformToParent(initialMatrix)
+
+        return marker
+
+    def GetPoseMarkerMatrix(self, poseMarker, relativeToNode=None):
+        """Return a vtkMatrix4x4 for a pose marker.
+
+        If *relativeToNode* is supplied, the returned matrix is expressed in
+        that node's coordinate system.  This is typically the robot root
+        transform, matching MoveIt's planning frame.
+        """
+        poseNode = self._resolveSceneNode(poseMarker)
+        if poseNode is None:
+            raise ValueError("poseMarker does not resolve to a MRML node")
+        if not poseNode.IsA("vtkMRMLTransformNode"):
+            raise ValueError("poseMarker must be a vtkMRMLTransformNode")
+
+        matrix = vtk.vtkMatrix4x4()
+        relativeNode = self._resolveSceneNode(relativeToNode)
+        if relativeNode is not None:
+            ok = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
+                poseNode, relativeNode, matrix
+            )
+            if not ok:
+                raise RuntimeError("Could not compute pose marker matrix relative to reference node")
+        else:
+            poseNode.GetMatrixTransformToWorld(matrix)
+        return matrix
+
+    def GetPoseMarkerMatrices(self, poseMarkers, relativeToNode=None):
+        """Convert a Python list of pose markers or vtkMatrix4x4 objects to matrices."""
+        matrices = []
+        for poseMarker in poseMarkers:
+            if isinstance(poseMarker, vtk.vtkMatrix4x4):
+                matrix = vtk.vtkMatrix4x4()
+                matrix.DeepCopy(poseMarker)
+            else:
+                matrix = self.GetPoseMarkerMatrix(poseMarker, relativeToNode)
+            matrices.append(matrix)
+        return matrices
+
+    def BuildPoseMatrixCollection(self, poseMarkers, relativeToNode=None):
+        """Build the vtkCollection consumed by the C++ MoveIt Cartesian planner."""
+        collection = vtk.vtkCollection()
+        for matrix in self.GetPoseMarkerMatrices(poseMarkers, relativeToNode):
+            collection.AddItem(matrix)
+        return collection
+
+    def _matrixInNodeCoordinates(self, worldMatrix, relativeToNode):
+        relativeNode = self._resolveSceneNode(relativeToNode)
+        if relativeNode is None:
+            return worldMatrix
+
+        referenceWorld = vtk.vtkMatrix4x4()
+        relativeNode.GetMatrixTransformToWorld(referenceWorld)
+        worldToReference = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Invert(referenceWorld, worldToReference)
+
+        relativeMatrix = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Multiply4x4(worldToReference, worldMatrix, relativeMatrix)
+        return relativeMatrix
+
+    def GetPoseMatricesFromMarkups(self, markupsNode, orientationNode=None,
+                                   relativeToNode=None):
+        """Build pose matrices from a Slicer Markups control-point list.
+
+        Markups control points provide positions.  Orientation is copied from
+        *orientationNode* if supplied, otherwise identity orientation is used.
+        For full 6-DOF waypoints, prefer ``CreatePoseMarker`` transform nodes.
+        """
+        markupsNode = self._resolveSceneNode(markupsNode)
+        if markupsNode is None or not markupsNode.IsA("vtkMRMLMarkupsNode"):
+            raise ValueError("markupsNode must be a vtkMRMLMarkupsNode")
+
+        orientationMatrix = vtk.vtkMatrix4x4()
+        orientationMatrix.Identity()
+        orientationNode = self._resolveSceneNode(orientationNode)
+        if orientationNode is not None and hasattr(orientationNode, "GetMatrixTransformToWorld"):
+            orientationNode.GetMatrixTransformToWorld(orientationMatrix)
+
+        matrices = []
+        pos = [0.0, 0.0, 0.0]
+        for i in range(markupsNode.GetNumberOfControlPoints()):
+            markupsNode.GetNthControlPointPositionWorld(i, pos)
+            matrix = vtk.vtkMatrix4x4()
+            matrix.DeepCopy(orientationMatrix)
+            matrix.SetElement(0, 3, pos[0])
+            matrix.SetElement(1, 3, pos[1])
+            matrix.SetElement(2, 3, pos[2])
+            matrices.append(self._matrixInNodeCoordinates(matrix, relativeToNode))
+        return matrices
+
+    def PlanMoveItCartesianTrajectoryFromPoseMarkers(
+        self,
+        motionControlNode,
+        groupName,
+        poseMarkers,
+        relativeToNode=None,
+        robotNode=None,
+        eefStepMeters=0.01,
+        jumpThreshold=0.0,
+        avoidCollisions=True,
+        velocityScaling=0.5,
+        accelerationScaling=0.5,
+        planningTimeSec=5.0,
+        startJointNames=None,
+        startJointValues=None,
+    ):
+        """Plan a MoveIt Cartesian trajectory through script-created pose markers.
+
+        Args:
+            motionControlNode: vtkMRMLROS2MotionControlNode.
+            groupName:         MoveIt planning group.
+            poseMarkers:       List of vtkMRMLTransformNode/vtkMatrix4x4 objects.
+            relativeToNode:    Reference node for the marker poses, usually the
+                               robot root transform.
+            robotNode:         Optional robot node; when provided, known MoveIt
+                               obstacles are republished before planning.
+            startJointNames:   Optional joint names for *startJointValues*.
+            startJointValues:  Optional joint start state for MoveIt planning.
+                               If omitted, MoveIt uses its current robot state.
+
+        Returns:
+            vtkMoveitMsgsRobotTrajectory, or None if no usable path was planned.
+        """
+        if motionControlNode is None:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: motion control node is invalid")
+            return None
+        if not groupName:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: planning group is empty")
+            return None
+        if not poseMarkers:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: no pose markers provided")
+            return None
+
+        if robotNode is not None:
+            self.PublishAllMoveItObstacles(robotNode)
+
+        poseCollection = self.BuildPoseMatrixCollection(poseMarkers, relativeToNode)
+        if poseCollection.GetNumberOfItems() == 0:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: no pose matrices built")
+            return None
+
+        if startJointValues is not None and startJointNames is None and robotNode is not None:
+            startJointNames = list(robotNode.GetJoints())
+        if startJointValues is not None and startJointNames is None:
+            print(
+                "PlanMoveItCartesianTrajectoryFromPoseMarkers: "
+                "startJointNames are required when startJointValues are provided"
+            )
+            return None
+
+        trajectory = motionControlNode.PlanMoveItCartesianTrajectory(
+            groupName,
+            poseCollection,
+            list(startJointNames) if startJointNames is not None else [],
+            list(startJointValues) if startJointValues is not None else [],
+            float(eefStepMeters),
+            float(jumpThreshold),
+            bool(avoidCollisions),
+            float(velocityScaling),
+            float(accelerationScaling),
+            float(planningTimeSec),
+        )
+        if trajectory is None:
+            return None
+        if not trajectory.GetJointTrajectory().GetPoints():
+            fraction = motionControlNode.GetLastCartesianPathFraction()
+            print(
+                "PlanMoveItCartesianTrajectoryFromPoseMarkers: "
+                f"MoveIt returned no trajectory points (fraction={fraction:.3f})"
+            )
+            return None
+        return trajectory
+
+    def ExecuteMoveItTrajectory(self, motionControlNode, groupName, trajectory,
+                                asynchronous=True):
+        """Execute a MoveIt trajectory from Python without using the widget."""
+        if motionControlNode is None:
+            print("ExecuteMoveItTrajectory: motion control node is invalid")
+            return False
+        if trajectory is None:
+            print("ExecuteMoveItTrajectory: trajectory is invalid")
+            return False
+        if asynchronous:
+            return bool(motionControlNode.ExecuteMoveItTrajectoryAsync(groupName, trajectory))
+        return bool(motionControlNode.ExecuteMoveItTrajectory(groupName, trajectory))
 
     def applyTransformToModel(self, modelNode, transformNode):
         """Parent *modelNode* under *transformNode* in the MRML hierarchy.

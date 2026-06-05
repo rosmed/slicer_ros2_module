@@ -45,6 +45,12 @@ Once a goal pose is reached via IK, you can use the "Plan" button to generate a 
 *   **Generators**: Supports multiple planning backends, including MoveIt and basic joint interpolation.
 *   **Planning Group**: Specify the MoveIt planning group (e.g., ``ur_manipulator``) to use for planning.
 
+Python scripts can also bypass the GUI and plan a Cartesian path through a list
+of Slicer 3D pose markers.  Use
+``ROS2MotionControlLogic.CreatePoseMarker`` to create transform-node markers,
+then call ``PlanMoveItCartesianTrajectoryFromPoseMarkers``.  See
+:doc:`/pages/examples/moveit_pose_markers`.
+
 Execution
 ~~~~~~~~~
 

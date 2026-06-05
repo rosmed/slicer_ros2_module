@@ -13,6 +13,8 @@
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
 // Forward declarations
+class vtkCollection;
+class vtkMatrix4x4;
 class vtkMoveitMsgsRobotTrajectory;
 class vtkMRMLROS2MotionControlNodeInternals;
 
@@ -51,6 +53,28 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2MotionControlNode: public vt
                                                       double velocityScaling     = 0.5,
                                                       double accelerationScaling = 0.5,
                                                       double planningTimeSec     = 5.0);
+
+  /** Plan a Cartesian end-effector trajectory through *targetPoses* using
+   *  MoveIt's /compute_cartesian_path ROS service.
+   *
+   *  targetPoses is a vtkCollection of vtkMatrix4x4 objects.  Each matrix is
+   *  expressed in Slicer units (millimetres) relative to MoveIt's planning
+   *  frame / robot root.  If a start state is supplied, startJointNames and
+   *  startJointValues must have the same length.  GetLastCartesianPathFraction()
+   *  reports the fraction of requested waypoints that MoveIt could satisfy. */
+  vtkMoveitMsgsRobotTrajectory* PlanMoveItCartesianTrajectory(const std::string & groupName,
+                                                              vtkCollection* targetPoses,
+                                                              const std::vector<std::string> & startJointNames,
+                                                              const std::vector<double> & startJointValues,
+                                                              double eefStepMeters      = 0.01,
+                                                              double jumpThreshold      = 0.0,
+                                                              bool avoidCollisions      = true,
+                                                              double velocityScaling    = 0.5,
+                                                              double accelerationScaling = 0.5,
+                                                              double planningTimeSec    = 5.0);
+
+  /** Fraction returned by the most recent PlanMoveItCartesianTrajectory call. */
+  double GetLastCartesianPathFraction() const;
 
   /** Execute a trajectory (blocking). */
   bool ExecuteMoveItTrajectory(const std::string & groupName,
