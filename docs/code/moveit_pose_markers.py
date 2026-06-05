@@ -15,8 +15,9 @@ PLANNING_GROUP = "ur_manipulator"
 
 # Lower the marker path from the bent demo seed pose.
 MARKER_Z_OFFSET_MM = -200.0
-PATH_X_MM = 100.0
-PATH_Y_MM = 100.0
+PATH_X_MM = 80.0
+PATH_Y_MM = 80.0
+PLANNING_TIME_SEC = 15.0
 
 # ---------------------------------------------------------------------------
 # Robot and MotionControl setup
@@ -179,7 +180,7 @@ trajectory = motionLogic.PlanMoveItCartesianTrajectoryFromPoseMarkers(
     avoidCollisions=True,
     velocityScaling=0.5,
     accelerationScaling=0.5,
-    planningTimeSec=5.0,
+    planningTimeSec=PLANNING_TIME_SEC,
     startJointNames=startJointNamesForPlanning,
     startJointValues=startJointValues,
 )
@@ -198,6 +199,7 @@ else:
     slicer.util.selectModule("ROS2MotionControl")
     motionWidget = slicer.util.getModuleWidget("ROS2MotionControl")
 
-    if motionWidget.loadPlannedTrajectory(trajectory, enableExecute=True):
+    if motionWidget.loadPlannedTrajectory(trajectory, enableExecute=True, lockPlanning=True):
         print("Trajectory loaded into the Motion Control GUI.")
+        print("Plan controls are temporarily locked to avoid overwriting this external trajectory.")
         print("Use Preview, the scrubber, or Execute from the Motion Control module.")

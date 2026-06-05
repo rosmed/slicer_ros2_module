@@ -146,6 +146,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self._srdfEndEffectors = []  # list of {name, parent_link} dicts from SRDF
         self.obstaclePublishers = {} # modelNodeID -> modelNode
         self._syncingFromParameterNode = False
+        self._goalVisualOwner = "idle"  # idle | trajectory | ik
+        self._planningUiLockedForExternalTrajectory = False
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -1080,6 +1082,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         """Activate interactive IK control mode: create the probe sphere, attach it to the tip transform, and start observing it for IK updates."""
         if not self.isRobotLoaded or not self.robot or not self.rootlink:
             return
+        # IK interaction owns goal-robot updates; stop any trajectory playback/scrub updates.
+        self._resetTrajectoryState()
+        self._goalVisualOwner = "ik"
         if self._parameterNode is not None:
             _c = qt.QColor(self._parameterNode.goalColor)
             base_color = (_c.redF(), _c.greenF(), _c.blueF())
@@ -1104,9 +1109,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.ExitControlMode(self.fromtransform)
         self.fromtransform = None
         self.totransform = None
+        if self._goalVisualOwner == "ik":
+            self._goalVisualOwner = "idle"
 
     def onGeneratorChanged(self, index: int) -> None:
         """Enable/disable Plan button based on selected generator and MoveIt state."""
+        if self._planningUiLockedForExternalTrajectory:
+            self.ui.planButton.enabled = False
+            return
         generators = TrajectoryGenerators.get_all()
         if index < 0 or index >= len(generators):
             return
@@ -1116,7 +1126,17 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         else:
             self.ui.planButton.enabled = True
 
-    def loadPlannedTrajectory(self, trajectory, enableExecute=True) -> bool:
+    def _setPlanningUiLock(self, locked: bool) -> None:
+        self._planningUiLockedForExternalTrajectory = bool(locked)
+        self.ui.generatorComboBox.enabled = not locked
+        self.ui.planGroupComboBox.enabled = not locked
+        self.ui.planningTimeSpinBox.enabled = not locked
+        if locked:
+            self.ui.planButton.enabled = False
+        else:
+            self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
+
+    def loadPlannedTrajectory(self, trajectory, enableExecute=True, lockPlanning=False) -> bool:
         """Load a trajectory into the GUI preview/scrubber state.
 
         This is used by the Plan button and by Python-only examples that compute
@@ -1127,6 +1147,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return False
 
         self._resetTrajectoryState()
+        self._setPlanningUiLock(bool(lockPlanning))
+        self._goalVisualOwner = "trajectory"
         self.trajectoryData = trajectory
         self.ui.previewButton.enabled = True
         self.ui.executeButton.enabled = bool(enableExecute)
@@ -1164,12 +1186,15 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         if self.robot and num_points > 0:
             positions = list(trajectory.GetJointTrajectory().GetPoints()[0].GetPositions())
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
 
         return True
 
     def onPlanButton(self) -> None:
         """Handler for the *Plan* button: runs the selected trajectory generator from the current joint state to the IK goal, then displays a scrubber slider."""
+        if self._planningUiLockedForExternalTrajectory:
+            print("Plan is locked because an external trajectory is loaded. Clear or replace the loaded trajectory first.")
+            return
         generators = TrajectoryGenerators.get_all()
         idx = self.ui.generatorComboBox.currentIndex
         if idx < 0 or idx >= len(generators):
@@ -1226,10 +1251,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     def _resetTrajectoryState(self) -> None:
         """Clear planned trajectory and reset UI to pre-plan state."""
+        self._setPlanningUiLock(False)
         self.trajectoryData = None
         self.trajectoryIndex = 0
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
+        if self._goalVisualOwner == "trajectory":
+            self._goalVisualOwner = "idle"
         if self.trajectoryTimer:
             self.trajectoryTimer.stop()
             self.trajectoryTimer = None
@@ -1258,6 +1286,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     def animateTrajectoryStep(self):
         """Animate one step of the trajectory"""
+        if self._goalVisualOwner != "trajectory":
+            return
         if not self.trajectoryData or self.trajectoryIndex >= len(self.trajectoryData.GetJointTrajectory().GetPoints()):
             # Animation complete
             if self.trajectoryTimer:
@@ -1271,12 +1301,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # Apply to goal robot
         if self.robot:
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
 
         self.trajectoryIndex += 1
 
     def onTrajectorySliderChanged(self, value):
         """Called when trajectory slider is moved"""
+        if self._goalVisualOwner != "trajectory":
+            return
         if not self.trajectoryData or not self.robot:
             return
 
@@ -1289,7 +1321,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             positions = list(self.trajectoryData.GetJointTrajectory().GetPoints()[value].GetPositions())
 
             # Apply to goal robot
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
 
             # Update spinbox if it's not the source of the change
             if self.trajectorySpinBox.value != value:
@@ -2968,7 +3000,6 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 try:
                     goal_transform = self.findRobotTransforms(link_name, goal=True)
                     if goal_transform:
-                        # Apply the FK matrix to the goal transform
                         goal_transform.SetMatrixTransformToParent(fk_matrix)
                         if DEBUG:
                             print(f"[FK] Updated goal transform for '{link_name}'")
@@ -2979,3 +3010,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 print(f"[FK] Error computing FK for link '{link_name}': {e}")
 
         return True
+
+    def updategoalTransformsFromJointsKDLBatched(self, robotmodel, joint_values):
+        """Apply FK updates in a single MRML batch window for smoother playback/scrub."""
+        if not robotmodel or not joint_values:
+            return False
+
+        scene = slicer.mrmlScene
+        if scene is None:
+            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_values)
+
+        scene.StartState(scene.BatchProcessState)
+        try:
+            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_values)
+        finally:
+            scene.EndState(scene.BatchProcessState)
