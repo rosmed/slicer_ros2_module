@@ -149,6 +149,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self._moveGroupParamNode = None
         self._srdfEndEffectors = []  # list of {name, parent_link} dicts from SRDF
         self.obstaclePublishers = {} # modelNodeID -> modelNode
+        self.obstacleTfObservers = {} # modelNodeID -> (transformNode, observerTag, broadcasterNode)
         self._syncingFromParameterNode = False
         self._goalVisualOwner = "idle"  # idle | trajectory | ik
         self._planningUiLockedForExternalTrajectory = False
@@ -250,6 +251,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic:
             self.logic.removeObserver()
             self.logic.ClearJointStateSubscriber()
+        for modelID in list(self.obstacleTfObservers.keys()):
+            self._removeObstacleTfObserver(modelID)
         if self._moveGroupParamNode is not None:
             try:
                 if self._moveGroupParamObsId is not None:
@@ -825,10 +828,25 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if not frameId:
             frameId = "world"
 
-        if not self.logic.AddMoveItObstacle(modelNode, frameId, self.robot):
-            return
-
         modelID = modelNode.GetID()
+        self._removeObstacleTfObserver(modelID)
+
+        if self.ui.obstacleTrackTransformCheckBox.checked:
+            broadcaster, observerTag = self.logic.AddMoveItObstacleWithTransform(
+                modelNode,
+                modelNode.GetParentTransformNode(),
+                frameId,
+                self.robot
+            )
+            if broadcaster is None:
+                return
+            transformNode = modelNode.GetParentTransformNode()
+            if transformNode is not None and observerTag is not None:
+                self.obstacleTfObservers[modelID] = (transformNode, observerTag, broadcaster)
+        else:
+            if not self.logic.AddMoveItObstacle(modelNode, frameId, self.robot):
+                return
+
         self.obstaclePublishers[modelID] = modelNode
         self.removeObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
         self.addObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
@@ -847,10 +865,22 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if modelNode:
             self.logic.RemoveMoveItObstacle(modelNode, self.robot)
             self.removeObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+        self._removeObstacleTfObserver(modelID)
 
         if modelID in self.obstaclePublishers:
             del self.obstaclePublishers[modelID]
         self.updateObstacleTable()
+
+    def _removeObstacleTfObserver(self, modelID) -> None:
+        tfObserver = self.obstacleTfObservers.pop(modelID, None)
+        if not tfObserver:
+            return
+        transformNode, observerTag, _broadcaster = tfObserver
+        if transformNode is not None and observerTag is not None:
+            try:
+                transformNode.RemoveObserver(observerTag)
+            except Exception:
+                pass
 
     def updateObstacleTable(self) -> None:
         """Rebuild the obstacle table widget from the current set of MoveIt obstacle model nodes."""
@@ -1790,6 +1820,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         # Publish collision object with frame_id = obstacle node name so MoveIt
         # resolves position from the TF2 tree rather than world coordinates.
         if not self.AddMoveItObstacle(obstacleNode, obstacleNode.GetName(), robotNode):
+            transformNode = obstacleNode.GetParentTransformNode()
+            if transformNode is not None and observerTag is not None:
+                try:
+                    transformNode.RemoveObserver(observerTag)
+                except Exception:
+                    pass
             return None, None
 
         return broadcaster, observerTag

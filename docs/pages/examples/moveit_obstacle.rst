@@ -146,6 +146,11 @@ to integrate the obstacle with MoveIt:
    gizmo in Slicer's 3D view is enough to move the obstacle in MoveIt — the
    geometry message only needs to be sent once.
 
+   The Motion Control **Obstacles** tab provides the same behavior when
+   **Track model transform with TF2** is checked.  In that mode, the
+   **Frame ID / TF2 Parent** field is the parent frame for the broadcaster,
+   not the final collision-object frame.
+
 Running the Complete Example from the Terminal
 -----------------------------------------------
 

@@ -70,7 +70,11 @@ Adding Collision Objects
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 * **Select a Model**: Choose a ``vtkMRMLModelNode`` from the dropdown.
-* **Set Frame ID**: Specify the ROS reference frame (e.g., ``world`` or ``base_link``).
+* **Set Frame ID / TF2 Parent**: Specify the ROS reference frame, usually
+  ``world`` or ``base_link``.
+* **Track model transform with TF2**: Keep this checked for the common workflow
+  where a model is placed under a Slicer transform and moved with a transform
+  gizmo or registration result.
 * **Add to MoveIt**: Click the **Add to MoveIt** button.
 
 Once added, the obstacle is managed in the table below.
@@ -78,7 +82,18 @@ Once added, the obstacle is managed in the table below.
 Live Synchronization
 ~~~~~~~~~~~~~~~~~~~~
 
-A powerful feature of this integration is **Live Sync**. Because SlicerROS2 observes the Slicer scene, any movement of the model node (e.g., via a transform gizmo or a tracking system) is immediately pushed to the MoveIt planning scene. MoveIt will then account for these moving obstacles in all future planning requests.
+When **Track model transform with TF2** is enabled, the UI follows the same
+path as ``ROS2MotionControlLogic.AddMoveItObstacleWithTransform``.  The
+collision object is published with ``header.frame_id`` set to the obstacle
+model's Slicer node name, and the module starts a TF2 broadcaster from the
+selected parent frame to that obstacle frame.  Moving the model's parent
+transform then updates the obstacle pose in MoveIt without re-publishing the
+mesh.
+
+If **Track model transform with TF2** is disabled, the model is published as a
+static collision object in the frame typed in the **Frame ID / TF2 Parent**
+field.  Use this mode only when the model's polydata coordinates are already
+expressed in that ROS frame.
 
 Removing Obstacles
 ~~~~~~~~~~~~~~~~~~
