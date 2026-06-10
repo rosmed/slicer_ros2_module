@@ -12,6 +12,35 @@ The wrapper launches the Slicer executable through the ROS 2 launch system and
 configures the module and library paths needed by SlicerROS2. This is the
 recommended way to start Slicer for normal use.
 
+Wrapper vs Launch File
+----------------------
+
+The ``ros2 run slicer_ros2_module slicer`` command is a convenience wrapper
+around the package launch file:
+
+.. code-block:: bash
+
+   ros2 launch slicer_ros2_module slicer.launch.py
+
+Both commands start Slicer with the same ROS 2 workspace environment, module
+paths, extension paths, and library paths.  The wrapper is easier for day-to-day
+interactive use because Slicer arguments can be written directly after the
+command.  The launch file is the lower-level ROS 2 entry point and is useful for
+automation, tests, and launch compositions that need to include Slicer alongside
+other ROS 2 nodes.
+
+For normal use, prefer the wrapper:
+
+.. code-block:: bash
+
+   ros2 run slicer_ros2_module slicer
+
+Use the launch file when you specifically need ROS 2 launch-system behavior:
+
+.. code-block:: bash
+
+   ros2 launch slicer_ros2_module slicer.launch.py slicer_args:="--no-splash"
+
 Passing Arguments
 -----------------
 

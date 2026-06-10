@@ -50,6 +50,7 @@ of Slicer 3D pose markers.  Use
 ``ROS2MotionControlLogic.CreatePoseMarker`` to create transform-node markers,
 then call ``PlanMoveItCartesianTrajectoryFromPoseMarkers``.  See
 :doc:`/pages/examples/moveit_pose_markers`.
+
 After loading a planned trajectory into the module widget, scripts can call
 ``motionWidget.addPlannedTrajectoryPolyline()`` and
 ``motionWidget.removePlannedTrajectoryPolyline()`` to show or remove the same
