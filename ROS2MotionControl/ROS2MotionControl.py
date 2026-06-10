@@ -139,15 +139,20 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.trajectoryData = None
         self.trajectoryIndex = 0
         self.trajectorySlider = None
+        self.trajectorySliderWidget = None
+        self.trajectorySpinBox = None
+        self.trajectoryPolylineModelNode = None
         self.jointSliders = []
         self.jointSpinboxes = []
         self._sliderInitRetryCount = 0
         self._moveGroupParamObsId = None
+        self._moveGroupParamNode = None
         self._srdfEndEffectors = []  # list of {name, parent_link} dicts from SRDF
         self.obstaclePublishers = {} # modelNodeID -> modelNode
         self._syncingFromParameterNode = False
         self._goalVisualOwner = "idle"  # idle | trajectory | ik
         self._planningUiLockedForExternalTrajectory = False
+        self.motionControlNode = None
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -206,6 +211,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
+        self.ui.showTrajectoryPathCheckBox.connect("toggled(bool)", self.onShowTrajectoryPathToggled)
         self.ui.addObstacleButton.connect("clicked(bool)", self.onAddObstacle)
 
         # Populate generator combo box
@@ -223,6 +229,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.planButton.enabled = False
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
+        self.ui.showTrajectoryPathCheckBox.enabled = False
         self.ui.planGroupComboBox.enabled = False
         self.ui.endEffectorLinkComboBox.enabled = False
         self.ui.endEffectorLinkLabel.enabled = False
@@ -238,6 +245,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Stop trajectory animation if running
         if self.trajectoryTimer:
             self.trajectoryTimer.stop()
+        self.removePlannedTrajectoryPolyline()
         # Stop streaming and remove observers before cleanup
         if self.logic:
             self.logic.removeObserver()
@@ -319,9 +327,11 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.currentStatePushButton3DControl.enabled = False
 
             # Disable Trajectory buttons
+            self._resetTrajectoryState()
             self.ui.planButton.enabled = False
             self.ui.previewButton.enabled = False
             self.ui.executeButton.enabled = False
+            self.ui.showTrajectoryPathCheckBox.enabled = False
 
             # Remove motion control node from the scene
             if self.motionControlNode is not None:
@@ -474,6 +484,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.zeroPushButton3DControl.enabled = True
         self.ui.lastGoalPushButton3DControl.enabled = True
         self.ui.currentStatePushButton3DControl.enabled = True
+        self.ui.showTrajectoryPathCheckBox.enabled = True
 
         # Build joint limit dict from C++ robot node
         _lower_list = list(robotNode.GetJointLowerPositionLimits())
@@ -1013,6 +1024,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.tipLink = link
         if self.robot is not None:
             print(f"End effector link set to: {link}")
+        if self.trajectoryData is not None and self.ui.showTrajectoryPathCheckBox.checked:
+            self.addPlannedTrajectoryPolyline()
 
     def onTabChanged(self, index):
         """Handler for tab-widget changes: enters/exits control mode and refreshes the appropriate tab."""
@@ -1136,6 +1149,52 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         else:
             self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
 
+    def _trajectoryPolylineParentTransformNode(self):
+        if self.logic is None or not self.rootlink:
+            return None
+        try:
+            return self.logic.findRobotTransforms(self.rootlink, goal=True)
+        except Exception:
+            return None
+
+    def addPlannedTrajectoryPolyline(self):
+        """Create and display a ``vtkPolyLine`` model for the current planned trajectory.
+
+        Returns the created ``vtkMRMLModelNode`` or ``None``.
+        """
+        if self.logic is None:
+            return None
+        if self.trajectoryData is None:
+            return None
+
+        self.removePlannedTrajectoryPolyline()
+        self.trajectoryPolylineModelNode = self.logic.CreateTrajectoryPolylineModel(
+            self.trajectoryData,
+            robotNode=self.robot,
+            linkName=self.goaltiplink or self.tiplink,
+            name="PlannedTrajectoryPath",
+            parentTransformNode=self._trajectoryPolylineParentTransformNode()
+        )
+        return self.trajectoryPolylineModelNode
+
+    def removePlannedTrajectoryPolyline(self) -> bool:
+        """Remove the currently displayed planned-trajectory polyline model."""
+        if self.logic is None:
+            self.trajectoryPolylineModelNode = None
+            return False
+
+        removed = False
+        if self.trajectoryPolylineModelNode is not None:
+            removed = self.logic.RemoveTrajectoryPolylineModel(self.trajectoryPolylineModelNode)
+        self.trajectoryPolylineModelNode = None
+        return removed
+
+    def onShowTrajectoryPathToggled(self, toggled: bool) -> None:
+        if toggled:
+            self.addPlannedTrajectoryPolyline()
+        else:
+            self.removePlannedTrajectoryPolyline()
+
     def loadPlannedTrajectory(self, trajectory, enableExecute=True, lockPlanning=False) -> bool:
         """Load a trajectory into the GUI preview/scrubber state.
 
@@ -1152,6 +1211,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.trajectoryData = trajectory
         self.ui.previewButton.enabled = True
         self.ui.executeButton.enabled = bool(enableExecute)
+        self.ui.showTrajectoryPathCheckBox.enabled = True
         num_points = len(trajectory.GetJointTrajectory().GetPoints())
 
         self.trajectorySliderWidget = qt.QWidget()
@@ -1187,6 +1247,9 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.robot and num_points > 0:
             positions = list(trajectory.GetJointTrajectory().GetPoints()[0].GetPositions())
             self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+
+        if self.ui.showTrajectoryPathCheckBox.checked:
+            self.addPlannedTrajectoryPolyline()
 
         return True
 
@@ -1252,6 +1315,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
     def _resetTrajectoryState(self) -> None:
         """Clear planned trajectory and reset UI to pre-plan state."""
         self._setPlanningUiLock(False)
+        self.removePlannedTrajectoryPolyline()
         self.trajectoryData = None
         self.trajectoryIndex = 0
         self.ui.previewButton.enabled = False
@@ -1377,6 +1441,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.MOVEIT_OBSTACLE_ATTRIBUTE = "ROS2MotionControl.MoveItObstacle"
         self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE = "ROS2MotionControl.MoveItObstacleFrame"
         self.POSE_MARKER_ATTRIBUTE = "ROS2MotionControl.PoseMarker"
+        self.TRAJECTORY_PATH_ATTRIBUTE = "ROS2MotionControl.TrajectoryPath"
         self.obsTag = None
         self.obsNode = None
         self.callback = None
@@ -2003,6 +2068,138 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
     def getParameterNode(self):
         """Return a typed ``ROS2MotionControlParameterNode`` wrapping the module's parameter node."""
         return ROS2MotionControlParameterNode(super().getParameterNode())
+
+    def CreateTrajectoryPolylineModel(
+            self,
+            trajectory,
+            robotNode=None,
+            linkName=None,
+            name="PlannedTrajectoryPath",
+            parentTransformNode=None,
+            color=(0.1, 0.7, 1.0),
+            lineWidth=4.0):
+        """Create a ``vtkMRMLModelNode`` showing a trajectory's end-effector path.
+
+        The path is sampled by running FK for each joint-trajectory point and
+        connecting the end-effector positions with one ``vtkPolyLine``.
+        """
+        if trajectory is None or trajectory.GetJointTrajectory() is None:
+            print("Create trajectory path: trajectory is empty")
+            return None
+
+        jointTrajectory = trajectory.GetJointTrajectory()
+        pointsData = jointTrajectory.GetPoints()
+        if not pointsData:
+            print("Create trajectory path: trajectory has no points")
+            return None
+
+        if robotNode is None:
+            robotNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2RobotNode")
+        if robotNode is None:
+            print("Create trajectory path: no robot node available for FK")
+            return None
+
+        if not linkName:
+            linkName = self.tipLink
+        if not linkName:
+            rootAndTip = robotNode.FindRootAndTipLinks()
+            if rootAndTip and len(rootAndTip) >= 2:
+                linkName = rootAndTip[1]
+
+        pathPoints = vtk.vtkPoints()
+        for trajectoryPoint in pointsData:
+            positions = list(trajectoryPoint.GetPositions())
+            if not positions:
+                continue
+
+            fkMatrix = vtk.vtkMatrix4x4()
+            try:
+                fkResult = robotNode.ComputeKDLFK(positions, fkMatrix, linkName or "")
+            except Exception as e:
+                print(f"Create trajectory path: FK failed for link '{linkName}': {e}")
+                return None
+            if fkResult is None:
+                print(f"Create trajectory path: FK failed for link '{linkName}'")
+                return None
+
+            pathPoints.InsertNextPoint(
+                fkMatrix.GetElement(0, 3),
+                fkMatrix.GetElement(1, 3),
+                fkMatrix.GetElement(2, 3)
+            )
+
+        if pathPoints.GetNumberOfPoints() == 0:
+            print("Create trajectory path: no valid FK samples")
+            return None
+
+        polyLine = vtk.vtkPolyLine()
+        polyLine.GetPointIds().SetNumberOfIds(pathPoints.GetNumberOfPoints())
+        for pointIndex in range(pathPoints.GetNumberOfPoints()):
+            polyLine.GetPointIds().SetId(pointIndex, pointIndex)
+
+        cells = vtk.vtkCellArray()
+        cells.InsertNextCell(polyLine)
+
+        polyData = vtk.vtkPolyData()
+        polyData.SetPoints(pathPoints)
+        polyData.SetLines(cells)
+
+        modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", name)
+        modelNode.SetAndObservePolyData(polyData)
+        modelNode.SetAttribute(self.TRAJECTORY_PATH_ATTRIBUTE, "1")
+        if linkName:
+            modelNode.SetAttribute("ROS2MotionControl.TrajectoryPathLink", linkName)
+
+        displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode", name + "_Display")
+        displayNode.SetColor(color[0], color[1], color[2])
+        displayNode.SetOpacity(1.0)
+        displayNode.SetVisibility(True)
+        displayNode.SetVisibility3D(True)
+        displayNode.SetVisibility2D(False)
+        if hasattr(displayNode, "SetLineWidth"):
+            displayNode.SetLineWidth(lineWidth)
+        modelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+
+        if parentTransformNode is not None:
+            modelNode.SetAndObserveTransformNodeID(parentTransformNode.GetID())
+
+        return modelNode
+
+    def RemoveTrajectoryPolylineModel(self, modelNode=None) -> bool:
+        """Remove a trajectory path model from the MRML scene.
+
+        If *modelNode* is omitted, all Motion Control trajectory path models are
+        removed.
+        """
+        scene = slicer.mrmlScene
+        if scene is None:
+            return False
+
+        modelNodes = []
+        if modelNode is not None:
+            resolvedNode = self._resolveSceneNode(modelNode)
+            if resolvedNode is not None:
+                modelNodes.append(resolvedNode)
+        else:
+            for index in range(scene.GetNumberOfNodesByClass("vtkMRMLModelNode")):
+                candidate = scene.GetNthNodeByClass(index, "vtkMRMLModelNode")
+                if candidate and candidate.GetAttribute(self.TRAJECTORY_PATH_ATTRIBUTE):
+                    modelNodes.append(candidate)
+
+        removedAny = False
+        for node in modelNodes:
+            displayNode = node.GetDisplayNode()
+            if displayNode is not None:
+                try:
+                    scene.RemoveNode(displayNode)
+                except Exception:
+                    pass
+            try:
+                scene.RemoveNode(node)
+                removedAny = True
+            except Exception:
+                pass
+        return removedAny
 
     def createSphereModel(self, name="ProbeSphere", radius_mm=20.0):
         """Create a sphere ``vtkMRMLModelNode`` (the IK probe) and add it to the scene.

@@ -201,5 +201,8 @@ else:
 
     if motionWidget.loadPlannedTrajectory(trajectory, enableExecute=True, lockPlanning=True):
         print("Trajectory loaded into the Motion Control GUI.")
+        pathNode = motionWidget.addPlannedTrajectoryPolyline()
+        if pathNode:
+            print(f"End-effector path displayed as: {pathNode.GetName()}")
         print("Plan controls are temporarily locked to avoid overwriting this external trajectory.")
         print("Use Preview, the scrubber, or Execute from the Motion Control module.")

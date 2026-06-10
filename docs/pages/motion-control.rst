@@ -40,7 +40,7 @@ If the solver fails (e.g., the target is out of reach), the robot visualization 
 Trajectory Planning
 ~~~~~~~~~~~~~~~~~~~
 
-Once a goal pose is reached via IK, you can use the "Plan" button to generate a trajectory. Slicer will display a scrubber allowing you to preview the plan.
+Once a goal pose is reached via IK, you can use the "Plan" button to generate a trajectory. Slicer will display a scrubber allowing you to preview the plan. Enable "Show trajectory path" to display the planned end-effector path as a ``vtkPolyLine`` model in the scene.
 
 *   **Generators**: Supports multiple planning backends, including MoveIt and basic joint interpolation.
 *   **Planning Group**: Specify the MoveIt planning group (e.g., ``ur_manipulator``) to use for planning.
@@ -50,6 +50,10 @@ of Slicer 3D pose markers.  Use
 ``ROS2MotionControlLogic.CreatePoseMarker`` to create transform-node markers,
 then call ``PlanMoveItCartesianTrajectoryFromPoseMarkers``.  See
 :doc:`/pages/examples/moveit_pose_markers`.
+After loading a planned trajectory into the module widget, scripts can call
+``motionWidget.addPlannedTrajectoryPolyline()`` and
+``motionWidget.removePlannedTrajectoryPolyline()`` to show or remove the same
+end-effector path visualization.
 
 Execution
 ~~~~~~~~~
