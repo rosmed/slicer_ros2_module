@@ -779,11 +779,11 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             req.SetX(4.0)
             req.SetY(4.0)
             spawn1.SendAsyncRequest(req)
-            # wait for the response to arrive (up to 5 seconds)
-            for i in range(50):
-                if self.obs.counter > 0:
-                    break
-                ROS2TestsLogic.spin_some()
+            ros2Logic = slicer.util.getModuleLogic('ROS2')
+            self.assertTrue(
+                ros2Logic.WaitForServiceResponse(spawn1, 5.0),
+                "Timed out waiting for Spawn service response"
+            )
             res = spawn1.GetLastResponse()
             # The /spawn service allows you to spawn additional turtles.
             # When you send a spawn request, the service responds with the name of the new turtle.

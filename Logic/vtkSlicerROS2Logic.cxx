@@ -22,7 +22,13 @@
 #include <qSlicerCoreApplication.h>
 #include <algorithm>
 
+// Qt includes
+#include <QEventLoop>
+#include <QTimer>
+
 // VTK includes
+#include <vtkCallbackCommand.h>
+#include <vtkCommand.h>
 #include <vtkTimerLog.h>
 
 // MRML includes
@@ -45,6 +51,7 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 #include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2ServiceClientNode.h>
 #include <vtkMRMLROS2ServiceClientDefaultNodes.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
@@ -260,6 +267,54 @@ void vtkSlicerROS2Logic::Spin(void)
   }
   mTimerLog->StopTimer();
   // std::cout << mTimerLog->GetElapsedTime() * 1000.0 << "ms" << std::endl; - commented out for development
+}
+
+bool vtkSlicerROS2Logic::WaitForServiceResponse(vtkMRMLROS2ServiceClientNode* serviceClientNode,
+                                                double timeoutSec)
+{
+  if (serviceClientNode == nullptr) {
+    vtkWarningMacro(<< "WaitForServiceResponse: service client node is null");
+    return false;
+  }
+  if (serviceClientNode->GetLastResponseStatus()) {
+    return true;
+  }
+
+  if (qSlicerCoreApplication::application() == nullptr) {
+    vtkWarningMacro(<< "WaitForServiceResponse: no qSlicerCoreApplication is available");
+    return false;
+  }
+
+  QEventLoop eventLoop;
+  vtkNew<vtkCallbackCommand> responseCallback;
+  responseCallback->SetClientData(&eventLoop);
+  responseCallback->SetCallback(
+    [](vtkObject* caller, unsigned long, void* clientData, void*) {
+      auto* clientNode = vtkMRMLROS2ServiceClientNode::SafeDownCast(caller);
+      auto* loop = static_cast<QEventLoop*>(clientData);
+      if (clientNode != nullptr && loop != nullptr && clientNode->GetLastResponseStatus()) {
+        loop->quit();
+      }
+    });
+  const unsigned long observerTag =
+    serviceClientNode->AddObserver(vtkCommand::ModifiedEvent, responseCallback);
+
+  if (serviceClientNode->GetLastResponseStatus()) {
+    serviceClientNode->RemoveObserver(observerTag);
+    return true;
+  }
+
+  QTimer timeoutTimer;
+  timeoutTimer.setSingleShot(true);
+  QObject::connect(&timeoutTimer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
+  timeoutTimer.start(static_cast<int>(std::max(0.0, timeoutSec) * 1000.0));
+
+  while (!serviceClientNode->GetLastResponseStatus() && timeoutTimer.isActive()) {
+    eventLoop.exec(QEventLoop::AllEvents);
+  }
+
+  serviceClientNode->RemoveObserver(observerTag);
+  return serviceClientNode->GetLastResponseStatus();
 }
 
 

@@ -36,6 +36,7 @@ class vtkMRMLROS2ParameterNode;
 class vtkMRMLROS2Tf2BroadcasterNode;
 class vtkMRMLROS2RobotNode;
 class vtkMRMLROS2ServiceNode;
+class vtkMRMLROS2ServiceClientNode;
 class vtkMRMLROS2ServiceClientDefaultNode;
 
 // Slicer includes
@@ -75,6 +76,13 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
     soon as this modules logic widget is displayed.  The default
     frequency is 50Hz. */
   void Spin(void);
+
+  /*! Wait until a service client receives a valid response or the timeout
+    expires.  This method runs a nested Qt event loop so Slicer's main event
+    loop remains active and the module-level ROS2 spin timer can continue
+    processing responses.  It does not call Spin() directly. */
+  bool WaitForServiceResponse(vtkMRMLROS2ServiceClientNode* serviceClientNode,
+                              double timeoutSec = 5.0);
 
   /*! Get the default ROS node attached to the core logic.  The
     default ROS node can be used for most applications.  It is started

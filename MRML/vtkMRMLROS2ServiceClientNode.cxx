@@ -68,6 +68,11 @@ const char * vtkMRMLROS2ServiceClientNode::GetSlicerTypeOut(void) const
   return mInternals->GetSlicerTypeOut();
 }
 
+bool vtkMRMLROS2ServiceClientNode::GetLastResponseStatus(void) const
+{
+  return mInternals->GetLastResponseStatus();
+}
+
 
 void vtkMRMLROS2ServiceClientNode::WriteXML(ostream& of, int nIndent)
 {

@@ -25,6 +25,7 @@ public:
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerTypeIn(void) const = 0;
   virtual const char * GetSlicerTypeOut(void) const = 0;
+  virtual bool GetLastResponseStatus(void) const = 0;
 protected:
   vtkMRMLROS2ServiceClientNode * mMRMLNode;
   std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
@@ -115,6 +116,10 @@ protected:
     return typeid(_slicer_type_out).name();
   }
 
+  bool GetLastResponseStatus(void) const override
+  {
+    return false;
+  }
 
 };
 
@@ -166,7 +171,7 @@ public:
   }
 
 
-  bool GetLastResponseStatus(void) const
+  bool GetLastResponseStatus(void) const override
   {
     // if no request is pending and the last response was successful
     return !this->mRequestInProgress && this->mLastResponseSuccess;
