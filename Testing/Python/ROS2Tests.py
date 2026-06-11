@@ -772,9 +772,12 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_service_client(self):
             print("\nTesting service client - Starting..")
             spawn1 = self.ros2Node.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSpawnNode', '/spawn')
-            # Attach observer to ensure Modified event is emitted when response arrives
+            # Attach observer to ensure ResponseReceivedEvent is emitted when response arrives
             self.obs = TestObserverServiceClient()
-            self.obsId = spawn1.AddObserver("ModifiedEvent", self.obs.Callback)
+            self.obsId = spawn1.AddObserver(
+                slicer.vtkMRMLROS2ServiceClientNode.ResponseReceivedEvent,
+                self.obs.Callback
+            )
             req = spawn1.CreateBlankRequest()
             req.SetX(4.0)
             req.SetY(4.0)

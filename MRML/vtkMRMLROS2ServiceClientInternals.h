@@ -8,6 +8,7 @@
 #include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
+#include <vtkMRMLROS2ServiceClientNode.h>
 
 class vtkMRMLROS2ServiceClientInternals
 {
@@ -193,9 +194,9 @@ public:
       this->mRequestInProgress = false;
       vtkROS2ToSlicer(*service_response_, this->mLastMessageSlicer);
       this->mLastResponseSuccess = true;
-      // Notify observers that a new response has been received
       if (this->mMRMLNode)
       {
+        this->mMRMLNode->InvokeCustomModifiedEvent(vtkMRMLROS2ServiceClientNode::ResponseReceivedEvent);
         this->mMRMLNode->Modified();
       }
     }

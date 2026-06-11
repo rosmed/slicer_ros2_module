@@ -3,6 +3,7 @@
 
 // MRML includes
 #include <vtkMRMLNode.h>
+#include <vtkCommand.h>
 
 #include <vtkSlicerROS2ModuleMRMLExport.h>
 
@@ -19,6 +20,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
     friend class vtkMRMLROS2ServiceClientTemplatedInternals;
 
  public:
+  enum Events
+  {
+    ResponseReceivedEvent = vtkCommand::UserEvent + 55
+  };
+
   vtkTypeMacro(vtkMRMLROS2ServiceClientNode, vtkMRMLNode);
 
   bool AddToROS2Node(const char * nodeId,

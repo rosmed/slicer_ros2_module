@@ -297,7 +297,7 @@ bool vtkSlicerROS2Logic::WaitForServiceResponse(vtkMRMLROS2ServiceClientNode* se
       }
     });
   const unsigned long observerTag =
-    serviceClientNode->AddObserver(vtkCommand::ModifiedEvent, responseCallback);
+    serviceClientNode->AddObserver(vtkMRMLROS2ServiceClientNode::ResponseReceivedEvent, responseCallback);
 
   if (serviceClientNode->GetLastResponseStatus()) {
     serviceClientNode->RemoveObserver(observerTag);

@@ -34,6 +34,11 @@ reading ``GetLastResponse``.  The helper keeps Slicer's Qt event loop active so
 the module-level ROS 2 spin timer can process the response; user scripts do not
 need to call ``Spin`` directly.
 
+For non-blocking workflows, observe
+``vtkMRMLROS2ServiceClientNode.ResponseReceivedEvent`` on the service client
+node.  This event is emitted when a valid response has been received and
+``GetLastResponse`` is ready.
+
 The example below calls turtlesim's ``Spawn`` service.  The request creates a
 new turtle, and the response contains the name assigned to that turtle.
 
@@ -81,6 +86,19 @@ new turtle, and the response contains the name assigned to that turtle.
              raise TimeoutError(f"Timed out waiting for response from {spawn2.GetService()}")
          res = spawn2.GetLastResponse()
          print(res.GetName())
+
+         # Optional non-blocking pattern: attach the observer before sending.
+         req = spawn2.CreateBlankRequest()
+         req.SetX(8.0)
+         req.SetY(4.0)
+
+         def onSpawnResponse(caller, event):
+             print(caller.GetLastResponse().GetName())
+
+         observerId = spawn2.AddObserver(
+             slicer.vtkMRMLROS2ServiceClientNode.ResponseReceivedEvent,
+             onSpawnResponse)
+         spawn2.SendAsyncRequest(req)
 
    .. tab:: **C++**
 
