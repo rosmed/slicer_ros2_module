@@ -109,6 +109,9 @@ class ROS2MotionControlParameterNode:
     # Goal-state robot display color as hex string (e.g. "#FF8000" = orange)
     goalColor: str = "#FF8000"
 
+    # Planned trajectory path display color as hex string
+    trajectoryPathColor: str = "#FF8000"
+
 
 #
 # ROS2MotionControlWidget
@@ -213,7 +216,11 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
         self.ui.showTrajectoryPathCheckBox.connect("toggled(bool)", self.onShowTrajectoryPathToggled)
+        self.ui.trajectoryPathColorButton.connect("colorChanged(QColor)", self.onTrajectoryPathColorChanged)
         self.ui.addObstacleButton.connect("clicked(bool)", self.onAddObstacle)
+
+        trajectoryPathColor = qt.QColor("#FF8000")
+        self.ui.trajectoryPathColorButton.color = trajectoryPathColor
 
         # Populate generator combo box
         for gen in TrajectoryGenerators.get_all():
@@ -231,6 +238,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
         self.ui.showTrajectoryPathCheckBox.enabled = False
+        self.ui.trajectoryPathColorLabel.enabled = False
+        self.ui.trajectoryPathColorButton.enabled = False
         self.ui.planGroupComboBox.enabled = False
         self.ui.endEffectorLinkComboBox.enabled = False
         self.ui.endEffectorLinkLabel.enabled = False
@@ -335,6 +344,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.previewButton.enabled = False
             self.ui.executeButton.enabled = False
             self.ui.showTrajectoryPathCheckBox.enabled = False
+            self.ui.trajectoryPathColorLabel.enabled = False
+            self.ui.trajectoryPathColorButton.enabled = False
 
             # Remove motion control node from the scene
             if self.motionControlNode is not None:
@@ -447,6 +458,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             if self._parameterNode is not None:
                 self._parameterNode.goalColor = color.name()
 
+        if self._parameterNode is not None:
+            trajectoryPathColor = qt.QColor(self._parameterNode.trajectoryPathColor)
+            if not trajectoryPathColor.isValid():
+                trajectoryPathColor = qt.QColor("#FF8000")
+            self.ui.trajectoryPathColorButton.blockSignals(True)
+            self.ui.trajectoryPathColorButton.color = trajectoryPathColor
+            self.ui.trajectoryPathColorButton.blockSignals(False)
+
         # Seed initial joint positions from /joint_states; fall back to zeros.
         initial_joint_pos = self.logic.GetCurrentJointState(joint_names)
         if not initial_joint_pos:
@@ -487,7 +506,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.zeroPushButton3DControl.enabled = True
         self.ui.lastGoalPushButton3DControl.enabled = True
         self.ui.currentStatePushButton3DControl.enabled = True
-        self.ui.showTrajectoryPathCheckBox.enabled = True
+        self.refreshTrajectoryUi()
 
         # Build joint limit dict from C++ robot node
         _lower_list = list(robotNode.GetJointLowerPositionLimits())
@@ -635,6 +654,17 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Persist the new goal color in the parameter node
         if self._parameterNode is not None:
             self._parameterNode.goalColor = color.name()
+
+    def onTrajectoryPathColorChanged(self) -> None:
+        """Handler for the trajectory path color button."""
+        color = self.ui.trajectoryPathColorButton.color
+        if self._parameterNode is not None:
+            self._parameterNode.trajectoryPathColor = color.name()
+        if self.trajectoryPolylineModelNode is None:
+            return
+        displayNode = self.trajectoryPolylineModelNode.GetDisplayNode()
+        if displayNode is not None:
+            displayNode.SetColor(color.redF(), color.greenF(), color.blueF())
 
     # Joint slider change handler
     def onJointSliderChanged(self, idx: int, value: float) -> None:
@@ -1187,14 +1217,39 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         except Exception:
             return None
 
+    def _trajectoryPathColorRGB(self):
+        color = self.ui.trajectoryPathColorButton.color
+        return (color.redF(), color.greenF(), color.blueF())
+
+    def _refreshTrajectoryUi(self) -> None:
+        """Synchronize trajectory UI controls with widget-owned trajectory state."""
+        hasTrajectory = self.trajectoryData is not None
+        if self.trajectoryPolylineModelNode is not None and self.trajectoryPolylineModelNode.GetScene() is None:
+            self.trajectoryPolylineModelNode = None
+        hasPolyline = self.trajectoryPolylineModelNode is not None
+
+        self.ui.showTrajectoryPathCheckBox.blockSignals(True)
+        self.ui.showTrajectoryPathCheckBox.enabled = hasTrajectory
+        self.ui.showTrajectoryPathCheckBox.checked = hasPolyline
+        self.ui.showTrajectoryPathCheckBox.blockSignals(False)
+
+        self.ui.trajectoryPathColorLabel.enabled = hasTrajectory
+        self.ui.trajectoryPathColorButton.enabled = hasTrajectory
+
+    def refreshTrajectoryUi(self) -> None:
+        """Public API for scripts that need to resynchronize trajectory controls."""
+        self._refreshTrajectoryUi()
+
     def addPlannedTrajectoryPolyline(self):
         """Create and display a ``vtkPolyLine`` model for the current planned trajectory.
 
         Returns the created ``vtkMRMLModelNode`` or ``None``.
         """
         if self.logic is None:
+            self._refreshTrajectoryUi()
             return None
         if self.trajectoryData is None:
+            self._refreshTrajectoryUi()
             return None
 
         self.removePlannedTrajectoryPolyline()
@@ -1203,20 +1258,24 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             robotNode=self.robot,
             linkName=self.goaltiplink or self.tiplink,
             name="PlannedTrajectoryPath",
-            parentTransformNode=self._trajectoryPolylineParentTransformNode()
+            parentTransformNode=self._trajectoryPolylineParentTransformNode(),
+            color=self._trajectoryPathColorRGB()
         )
+        self._refreshTrajectoryUi()
         return self.trajectoryPolylineModelNode
 
     def removePlannedTrajectoryPolyline(self) -> bool:
         """Remove the currently displayed planned-trajectory polyline model."""
         if self.logic is None:
             self.trajectoryPolylineModelNode = None
+            self._refreshTrajectoryUi()
             return False
 
         removed = False
         if self.trajectoryPolylineModelNode is not None:
             removed = self.logic.RemoveTrajectoryPolylineModel(self.trajectoryPolylineModelNode)
         self.trajectoryPolylineModelNode = None
+        self._refreshTrajectoryUi()
         return removed
 
     def onShowTrajectoryPathToggled(self, toggled: bool) -> None:
@@ -1235,13 +1294,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print("Error: trajectory is empty")
             return False
 
+        showTrajectoryPath = self.ui.showTrajectoryPathCheckBox.checked
         self._resetTrajectoryState()
         self._setPlanningUiLock(bool(lockPlanning))
         self._goalVisualOwner = "trajectory"
         self.trajectoryData = trajectory
         self.ui.previewButton.enabled = True
         self.ui.executeButton.enabled = bool(enableExecute)
-        self.ui.showTrajectoryPathCheckBox.enabled = True
         num_points = len(trajectory.GetJointTrajectory().GetPoints())
 
         self.trajectorySliderWidget = qt.QWidget()
@@ -1278,8 +1337,10 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             positions = list(trajectory.GetJointTrajectory().GetPoints()[0].GetPositions())
             self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
 
-        if self.ui.showTrajectoryPathCheckBox.checked:
+        if showTrajectoryPath:
             self.addPlannedTrajectoryPolyline()
+        else:
+            self._refreshTrajectoryUi()
 
         return True
 
@@ -1361,6 +1422,18 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.trajectorySlider = None
             self.trajectorySliderWidget = None
             self.trajectorySpinBox = None
+        self._refreshTrajectoryUi()
+
+    def _setTrajectoryScrubberValue(self, value: int) -> None:
+        """Set trajectory slider/spinbox without triggering manual scrub callbacks."""
+        if self.trajectorySlider is not None:
+            self.trajectorySlider.blockSignals(True)
+            self.trajectorySlider.setValue(value)
+            self.trajectorySlider.blockSignals(False)
+        if self.trajectorySpinBox is not None:
+            self.trajectorySpinBox.blockSignals(True)
+            self.trajectorySpinBox.setValue(value)
+            self.trajectorySpinBox.blockSignals(False)
 
     def onPreviewButton(self) -> None:
         """Preview the planned trajectory on the goal robot"""
@@ -1374,6 +1447,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # Start animating the trajectory
         self.trajectoryIndex = 0
+        self._setTrajectoryScrubberValue(0)
         self.trajectoryTimer = qt.QTimer()
         self.trajectoryTimer.timeout.connect(self.animateTrajectoryStep)
         self.trajectoryTimer.start(50)  # Update every 50ms
@@ -1390,14 +1464,16 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
 
         # Get current point
-        point = self.trajectoryData.GetJointTrajectory().GetPoints()[self.trajectoryIndex]
+        currentIndex = self.trajectoryIndex
+        self._setTrajectoryScrubberValue(currentIndex)
+        point = self.trajectoryData.GetJointTrajectory().GetPoints()[currentIndex]
         positions = list(point.GetPositions())
 
         # Apply to goal robot
         if self.robot:
             self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
 
-        self.trajectoryIndex += 1
+        self.trajectoryIndex = currentIndex + 1
 
     def onTrajectorySliderChanged(self, value):
         """Called when trajectory slider is moved"""
@@ -1417,11 +1493,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             # Apply to goal robot
             self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
 
-            # Update spinbox if it's not the source of the change
-            if self.trajectorySpinBox.value != value:
-                self.trajectorySpinBox.blockSignals(True)
-                self.trajectorySpinBox.setValue(value)
-                self.trajectorySpinBox.blockSignals(False)
+            self._setTrajectoryScrubberValue(value)
 
     def onExecuteButton(self) -> None:
         """Handler for the *Execute* button: sends the last planned trajectory to the robot controller via MoveIt's async execution interface."""
@@ -2112,7 +2184,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             linkName=None,
             name="PlannedTrajectoryPath",
             parentTransformNode=None,
-            color=(0.1, 0.7, 1.0),
+            color=(1.0, 0.5, 0.0),
             lineWidth=4.0):
         """Create a ``vtkMRMLModelNode`` showing a trajectory's end-effector path.
 

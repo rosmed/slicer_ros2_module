@@ -40,7 +40,7 @@ If the solver fails (e.g., the target is out of reach), the robot visualization 
 Trajectory Planning
 ~~~~~~~~~~~~~~~~~~~
 
-Once a goal pose is reached via IK, you can use the "Plan" button to generate a trajectory. Slicer will display a scrubber allowing you to preview the plan. Enable "Show trajectory path" to display the planned end-effector path as a ``vtkPolyLine`` model in the scene.
+Once a goal pose is reached via IK, you can use the "Plan" button to generate a trajectory. Slicer will display a scrubber allowing you to preview the plan. Enable "Show trajectory path" to display the planned end-effector path as a ``vtkPolyLine`` model in the scene, and use the adjacent color selector to choose the path color.
 
 *   **Generators**: Supports multiple planning backends, including MoveIt and basic joint interpolation.
 *   **Planning Group**: Specify the MoveIt planning group (e.g., ``ur_manipulator``) to use for planning.
