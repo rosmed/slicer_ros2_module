@@ -17,16 +17,12 @@ jobs:
     name: Build & Test (ROS2 Jazzy / Slicer 5.10)
     runs-on: ubuntu-latest
 
-    # Pull the pre-built CI image from GHCR.
-    # The image contains Ubuntu 24.04 + ROS2 Jazzy + Slicer 5.10 (from source).
-    # Rebuild it locally and push a new tag only when Ubuntu/ROS2/Slicer versions change.
+    # The pre-built CI image (Ubuntu 24.04 + ROS2 Jazzy + Slicer 5.10 from source)
+    # is pulled explicitly after freeing disk space so it fits on the runner.
+    # Rebuild and push a new tag only when Ubuntu/ROS2/Slicer versions change.
     # See docker/build-and-push.sh for instructions.
-    container:
-      image: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
-      # GITHUB_TOKEN has read:packages on public repos — no extra secrets needed
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      CI_IMAGE: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
 
     # GitHub Actions defaults to /bin/sh — force bash so 'source' works
     defaults:
@@ -34,6 +30,28 @@ jobs:
         shell: bash
 
     steps:
+      # -----------------------------------------------------------------------
+      # 0. Free disk space
+      #
+      # The CI image is large (~10 GB extracted). The ubuntu-latest runner
+      # ships with pre-installed tools (Android SDK, .NET, Haskell, CodeQL,
+      # …) that consume most of the available disk.  Remove them first so
+      # 'docker pull' has enough room to extract all image layers.
+      # -----------------------------------------------------------------------
+      - name: Free disk space
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h /
+          # Remove large pre-installed toolchains not needed for this job
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          docker image prune --all --force
+          echo "Disk usage after cleanup:"
+          df -h /
+
       # -----------------------------------------------------------------------
       # 1. Check out the module source into a colcon workspace layout
       # -----------------------------------------------------------------------
@@ -45,22 +63,34 @@ jobs:
           path: ws/src/slicer_ros2_module
 
       # -----------------------------------------------------------------------
-      # 2. Build the module with colcon
+      # 2. Pull the CI image (public image, no login required)
       # -----------------------------------------------------------------------
-      - name: Build
-        working-directory: ws
-        run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          colcon build \
-            --cmake-args \
-              -DSlicer_DIR:PATH=$Slicer_DIR \
-              -DCMAKE_BUILD_TYPE=Release \
-            --event-handlers console_cohesion+
+      - name: Pull CI image
+        run: docker pull ${{ env.CI_IMAGE }}
 
       # -----------------------------------------------------------------------
-      # 3. Start virtual display (needed by ROS2 subprocess nodes, e.g. turtlesim)
-      #    Slicer itself runs with --no-main-window (set in Testing CMakeLists)
-      #    so it does not need a real display — but its subprocess children do.
+      # 3. Build the module with colcon (inside the CI container)
+      # -----------------------------------------------------------------------
+      - name: Build
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/ws:/ws" \
+            ${{ env.CI_IMAGE }} \
+            bash -c "
+              set -e
+              source /opt/ros/\$ROS_DISTRO/setup.bash
+              cd /ws
+              colcon build \
+                --cmake-args \
+                  -DSlicer_DIR:PATH=\$Slicer_DIR \
+                  -DCMAKE_BUILD_TYPE=Release \
+                --event-handlers console_cohesion+
+            "
+
+      # -----------------------------------------------------------------------
+      # 4. Start virtual display
+      #    Needed by some ROS2 subprocess nodes; Slicer itself uses
+      #    --no-main-window (set in Testing CMakeLists) but its children may not.
       # -----------------------------------------------------------------------
       - name: Start Xvfb
         run: |
@@ -68,17 +98,26 @@ jobs:
           echo "DISPLAY=:99" >> $GITHUB_ENV
 
       # -----------------------------------------------------------------------
-      # 4. Run tests using Slicer with the test module
+      # 5. Run tests using Slicer with the test module (inside the CI container)
+      #    The X11 socket directory is shared from the host (started in step 4)
+      #    into the container via -v /tmp/.X11-unix:/tmp/.X11-unix and DISPLAY.
       # -----------------------------------------------------------------------
       - name: Test
-        working-directory: ws
         run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          source install/setup.bash
-          ros2 run slicer_ros2_module test_ci
+          docker run --rm \
+            -e DISPLAY=:99 \
+            -v /tmp/.X11-unix:/tmp/.X11-unix \
+            -v "${{ github.workspace }}/ws:/ws" \
+            ${{ env.CI_IMAGE }} \
+            bash -c "
+              set -e
+              source /opt/ros/\$ROS_DISTRO/setup.bash
+              source /ws/install/setup.bash
+              ros2 run slicer_ros2_module test_ci
+            "
 
       # -----------------------------------------------------------------------
-      # 4. Upload build/test logs as an artifact (visible even on failure)
+      # 6. Upload build/test logs as an artifact (visible even on failure)
       # -----------------------------------------------------------------------
       - name: Upload logs
         if: always()
