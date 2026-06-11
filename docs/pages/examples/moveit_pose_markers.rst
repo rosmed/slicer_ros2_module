@@ -30,10 +30,22 @@ Then run the example script:
 
    ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_pose_markers.py
 
+Script Setup
+------------
+
+The complete script starts by importing Slicer/VTK modules, defining the robot
+and MoveIt configuration, creating the robot node, and initializing the Motion
+Control logic.  If you are copying sections into Slicer's Python console, run
+this setup block first:
+
+.. literalinclude:: ../../code/moveit_pose_markers.py
+   :language: python
+   :end-before: # Build a Python list
+
 Planning Through Markers
 ------------------------
 
-The relevant script section is:
+After setup, the script builds the pose marker list and plans through it:
 
 .. literalinclude:: ../../code/moveit_pose_markers.py
    :language: python
