@@ -104,6 +104,8 @@ jobs:
 
       # -----------------------------------------------------------------------
       # 5. Run tests using Slicer with the test module (inside the CI container)
+      #    The X11 socket directory is shared from the host (started in step 4)
+      #    into the container via -v /tmp/.X11-unix:/tmp/.X11-unix and DISPLAY.
       # -----------------------------------------------------------------------
       - name: Test
         run: |
