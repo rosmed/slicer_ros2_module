@@ -1,0 +1,30 @@
+# Files to exclude from the Docker build context.
+# None of these are needed to build the image — excluding them prevents
+# accidentally invalidating the Docker layer cache.
+
+# ROS2 colcon workspace artifacts
+build/
+install/
+log/
+
+# Git metadata (not needed in image)
+.git/
+.gitignore
+
+# Editor / IDE
+.vscode/
+*.swp
+*.swo
+
+# Python byte-compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Documentation build outputs
+docs/_build/
+docs/venv/
+
+# OS metadata
+.DS_Store
+Thumbs.db
