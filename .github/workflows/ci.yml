@@ -63,13 +63,8 @@ jobs:
           path: ws/src/slicer_ros2_module
 
       # -----------------------------------------------------------------------
-      # 2. Log in to GHCR and pull the CI image
+      # 2. Pull the CI image (public image, no login required)
       # -----------------------------------------------------------------------
-      - name: Log in to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | \
-            docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
       - name: Pull CI image
         run: docker pull ${{ env.CI_IMAGE }}
 
