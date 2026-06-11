@@ -123,7 +123,7 @@ to integrate the obstacle with MoveIt:
 1. **Publishes a** ``CollisionObject`` whose ``header.frame_id`` is set to the
    obstacle's Slicer node name (``"MoveItObstacle"``).  MoveIt looks up that
    frame in the TF2 tree to find the obstacle's location.
-2. **Creates a** ``Tf2BroadcasterNode`` with ``parent = "world"`` and
+2. **Creates a** TF2 broadcaster node with ``parent = "world"`` and
    ``child = "MoveItObstacle"``.
 3. **Observes the MRML transform** so every time you move the gizmo (or a
    registration algorithm writes to the transform) the new pose is broadcast
@@ -147,7 +147,7 @@ to integrate the obstacle with MoveIt:
    geometry message only needs to be sent once.
 
    The Motion Control **Obstacles** tab provides the same behavior when
-   **Track model transform with TF2** is checked.  In that mode, the
+   **Track Model Transform with TF2** is checked.  In that mode, the
    **Frame ID / TF2 Parent** field is the parent frame for the broadcaster,
    not the final collision-object frame.
 

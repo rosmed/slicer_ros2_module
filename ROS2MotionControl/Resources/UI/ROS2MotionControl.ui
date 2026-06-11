@@ -71,7 +71,7 @@
           <bool>true</bool>
          </property>
          <property name="text" stdset="0">
-          <string>Robot Appearance </string>
+          <string>Robot Appearance</string>
          </property>
          <property name="collapsed" stdset="0">
           <bool>false</bool>
@@ -80,7 +80,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_2">
             <property name="text">
-                   <string>Robot opacity:</string>
+                   <string>Robot Opacity:</string>
             </property>
            </widget>
           </item>
@@ -109,7 +109,7 @@
           <item row="1" column="0">
            <widget class="QLabel" name="label_3">
             <property name="text">
-                 <string>Goal color:</string>
+                 <string>Goal Color:</string>
             </property>
            </widget>
           </item>
@@ -267,7 +267,7 @@
         <bool>false</bool>
          </property>
          <property name="text">
-        <string>Current state</string>
+        <string>Current State</string>
          </property>
         </widget>
        </item>
@@ -311,7 +311,7 @@
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Last goal</string>
+              <string>Last Goal</string>
              </property>
             </widget>
            </item>
@@ -321,7 +321,7 @@
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Current state</string>
+              <string>Current State</string>
              </property>
             </widget>
            </item>
@@ -408,14 +408,14 @@
              <bool>false</bool>
             </property>
             <property name="text">
-             <string>Show trajectory path</string>
+             <string>Show Trajectory Path</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QLabel" name="trajectoryPathColorLabel">
             <property name="text">
-             <string>Color:</string>
+             <string>Trajectory Color:</string>
             </property>
            </widget>
           </item>
@@ -487,7 +487,7 @@
             <bool>true</bool>
            </property>
            <property name="text">
-            <string>Track model transform with TF2</string>
+            <string>Track Model Transform with TF2</string>
            </property>
           </widget>
          </item>

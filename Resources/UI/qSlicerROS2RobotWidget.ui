@@ -17,7 +17,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="label_3">
      <property name="text">
-      <string>Robot name:</string>
+      <string>Robot Name:</string>
      </property>
     </widget>
    </item>
@@ -31,7 +31,7 @@
    <item row="1" column="0">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Parameter node name:</string>
+      <string>Parameter Node Name:</string>
      </property>
     </widget>
    </item>
@@ -45,7 +45,7 @@
    <item row="2" column="0">
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>Parameter name:</string>
+      <string>Parameter Name:</string>
      </property>
     </widget>
    </item>
@@ -59,7 +59,7 @@
    <item row="3" column="0">
     <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>Fixed frame:</string>
+      <string>Fixed Frame:</string>
      </property>
     </widget>
    </item>
@@ -73,7 +73,7 @@
    <item row="4" column="0">
     <widget class="QLabel" name="label_5">
      <property name="text">
-      <string>Tf2 prefix:</string>
+      <string>TF2 Prefix:</string>
      </property>
     </widget>
    </item>
@@ -87,14 +87,14 @@
    <item row="5" column="0" colspan="2">
     <widget class="QPushButton" name="loadRobotButton">
      <property name="text">
-      <string>Load robot</string>
+      <string>Load Robot</string>
      </property>
     </widget>
    </item>
    <item row="6" column="0" colspan="2">
     <widget class="QPushButton" name="removeRobotButton">
      <property name="text">
-      <string>Remove robot</string>
+      <string>Remove Robot</string>
      </property>
     </widget>
    </item>

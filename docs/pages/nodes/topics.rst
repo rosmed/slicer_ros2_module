@@ -80,7 +80,7 @@ publisher or subscriber classes available.
 Publishers
 ----------
 
-To create a new publisher, one should use the MRML ROS2 Node method
+To create a new publisher, one should use the MRML ROS 2 node method
 ``vtkMRMLROS2NodeNode::CreateAndAddPublisherNode``.  This method takes
 two parameters:
 
@@ -137,14 +137,14 @@ one parameter:
 Subscribers
 -----------
 
-To create a new subscriber, one should use the MRML ROS2 Node method
+To create a new subscriber, one should use the MRML ROS 2 node method
 ``vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode``.  This method
 takes two parameters:
 
 * the class (type) of subscriber to be used.  See ::ref:`publishers`.
 * the topic name (``std::string``).
 
-Subscriber nodes get updated when the ROS2 node is spun.  Users can
+Subscriber nodes get updated when the ROS 2 node is spun.  Users can
 set their own callback to act on newly received messages using an
 observer on the MRML ROS subscriber node.  The last message received
 can be retrieved using ``GetLastMessage``.
@@ -238,7 +238,7 @@ The following QoS settings are configurable:
          pub.SetQoSReliability(pub.Reliable)
          pub.SetQoSDurability(pub.TransientLocal)
          
-         # Activate the publisher on the ROS2 Node
+         # Activate the publisher on the ROS 2 node
          pub.AddToROS2Node(rosNode.GetID(), topic)
          pub.Publish("Hello with custom QoS!")
 
@@ -248,7 +248,7 @@ The following QoS settings are configurable:
          sub.SetQoSReliability(sub.Reliable)
          sub.SetQoSDurability(sub.TransientLocal)
          
-         # Activate the subscriber on the ROS2 Node
+         # Activate the subscriber on the ROS 2 node
          sub.AddToROS2Node(rosNode.GetID(), topic)
 
    .. tab:: **C++**
@@ -271,7 +271,7 @@ The following QoS settings are configurable:
            pub->SetQoSReliability(vtkMRMLROS2PublisherNode::Reliable);
            pub->SetQoSDurability(vtkMRMLROS2PublisherNode::TransientLocal);
            
-           // Activate the publisher on the ROS2 Node
+           // Activate the publisher on the ROS 2 node
            pub->AddToROS2Node(rosNode->GetID(), topic);
            pub->Publish("Hello with custom QoS!");
          }
@@ -286,6 +286,6 @@ The following QoS settings are configurable:
            sub->SetQoSReliability(vtkMRMLROS2SubscriberNode::Reliable);
            sub->SetQoSDurability(vtkMRMLROS2SubscriberNode::TransientLocal);
            
-           // Activate the subscriber on the ROS2 Node
+           // Activate the subscriber on the ROS 2 node
            sub->AddToROS2Node(rosNode->GetID(), topic);
          }

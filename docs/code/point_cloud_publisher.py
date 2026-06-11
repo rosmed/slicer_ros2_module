@@ -60,7 +60,7 @@ print("Animated point cloud publisher started at 10 Hz on /slicer_point_cloud.")
 print("The model will also republish automatically if you edit it in Slicer.")
 # [end: code]
 
-# Open the ROS2 module UI so the user can interact with the scene immediately.
+# Open the ROS 2 module UI so the user can interact with the scene immediately.
 # This line is intentionally outside the doc tags and will not appear in
 # the documentation.
 slicer.util.selectModule('ROS2')

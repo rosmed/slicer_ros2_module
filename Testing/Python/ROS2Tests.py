@@ -302,7 +302,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
             self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node still running")
 
-    # It creates a ROS2 node, adds a publisher and subscriber to it, and publishes a message
+    # It creates a ROS 2 node, adds a publisher and subscriber to it, and publishes a message
     class TestCreateAndAddPubSub(unittest.TestCase):
         def setUp(self):
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
@@ -642,7 +642,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestParameterNode(unittest.TestCase):
         def setUp(self):
-            print("\nCreating ROS2 node for parameter tests..")
+            print("\nCreating ROS 2 node for parameter tests...")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeParameter_" + uuid.uuid4().hex[:4])
             ROS2TestsLogic.spin_some()
@@ -722,13 +722,13 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestTf2BroadcasterAndLookupNode(unittest.TestCase):
         def setUp(self):
-            print("\nCreating ROS2 node to test broadcaster nodes..")
+            print("\nCreating ROS 2 node to test broadcaster nodes...")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeBroadcaster_" + uuid.uuid4().hex[:4])
             ROS2TestsLogic.spin_some()
 
         def test_broadcaster_functioning(self):
-            print("\nTesting tf2 broadcaster - Starting..")
+            print("\nTesting TF2 broadcaster - Starting...")
             broadcaster = self.ros2Node.CreateAndAddTf2BroadcasterNode("Parent", "Child")
             lookupNode = self.ros2Node.CreateAndAddTf2LookupNode("Parent", "Child")
             observer = TestObserverTf2Lookup()
@@ -752,7 +752,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2LookupNode("Parent", "Child"))
             self.assertTrue(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
             self.assertFalse(self.ros2Node.RemoveAndDeleteTf2BroadcasterNode("Parent", "Child"))
-            print("\nTesting tf2 broadcaster - Done")
+            print("\nTesting TF2 broadcaster - Done")
 
         def tearDown(self):
             self.ros2Node.Destroy()
@@ -760,7 +760,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestServiceClient(unittest.TestCase):
         def setUp(self):
-            print("\nCreating ROS2 node to test service clients ..")
+            print("\nCreating ROS 2 node to test service clients...")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeServiceClient_" + uuid.uuid4().hex[:4])
             print("Start turtlesim node to test services")
@@ -1108,7 +1108,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             topic = "/slicer_test_transient_local_qos_" + uuid.uuid4().hex[:4]
             sentString = "TransientLocalLateJoiner"
             
-            # Start background publisher process using ROS2 CLI
+            # Start background publisher process using ROS 2 CLI
             # We use --rate 0.01 (once every 100 seconds) so it publishes the first message immediately,
             # and stays alive without publishing a second message during our test window.
             pub_cmd = f"topic pub --rate 0.01 --qos-reliability reliable --qos-durability transient_local {topic} std_msgs/msg/String \"{{data: '{sentString}'}}\""

@@ -29,11 +29,11 @@ The robot node creates an observer on the parameter node that contains
 the robot description. If the parameter node is modified (indicating
 that the robot description is available), it begins the process of
 loading the visuals for the robot into the scene. This process
-involves: parsing the URDF file, creating a list of Tf2 lookups in the
+involves: parsing the URDF file, creating a list of TF2 lookups in the
 scene, creating the models for each link of the robot and applying the
 correct color and offset position relative to the base of the
-robot. Once the visuals have been created, the Tf2 lookups start to
-check the Tf2 buffer and update the position of the model according to
+robot. Once the visuals have been created, the TF2 lookups start to
+check the TF2 buffer and update the position of the model according to
 the joint state publisher.
 
 To remove the robot, use the "Remove robot" button on the UI or the

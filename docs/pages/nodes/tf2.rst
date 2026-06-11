@@ -1,24 +1,24 @@
 ===
-Tf2
+TF2
 ===
 
-For Tf2, there is no need to support multiple data types since Tf2's
+For TF2, there is no need to support multiple data types since TF2's
 API exclusively uses ``geometry_msgs::msg::TransformStamped``.  On the
 Slicer side, the classes ``vtkMRMLROS2Tf2BroadcasterNode`` and
 ``vtkMRMLROS2Tf2LookupNode`` support both ``vtkMatrix4x4`` and
 ``vtkMRMLTransformNode``.
 
-Tf2 lookups use a Tf2 buffer to store all the Tf2 messages
+TF2 lookups use a TF2 buffer to store all the TF2 messages
 (broadcasts) sent by all the ROS nodes.  For the SlicerROS2 module, we
-decided to add a Tf2 buffer as a private data member of the
+decided to add a TF2 buffer as a private data member of the
 ``vtkMRMLROS2NodeNode`` since most users will never need a direct
-access to the Tf2 buffer.  The Tf2 lookups are performed when the node
+access to the TF2 buffer.  The TF2 lookups are performed when the node
 node is spun.
 
 Broadcasts
 ----------
 
-To create a new Tf2 broadcaster, one should use the MRML ROS2 Node
+To create a new TF2 broadcaster, one should use the MRML ROS 2 node
 method ``vtkMRMLROS2NodeNode::CreateAndAddTf2BroadcasterNode``.  This
 method takes two parameters:
 
@@ -26,7 +26,7 @@ method takes two parameters:
 * the child ID (``std::string``)
 
 Broadcasters are triggered by calling the ``Broadcast`` method.  It is
-also possible to set the Tf2 broadcast as an observer for an existing
+also possible to set the TF2 broadcast as an observer for an existing
 ``vtkMRMLTransformNode`` using the method ``ObserveTransformNode``.
 The broadcast will then automatically occur when the observed transform
 node is modified.
@@ -65,7 +65,7 @@ method takes two parameters:
 Lookups
 -------
 
-To create a new Tf2 lookup, one should use the MRML ROS2 Node method
+To create a new TF2 lookup, one should use the MRML ROS 2 node method
 ``vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode``.  This method takes
 two parameters:
 
@@ -76,7 +76,7 @@ The class ``vtkMRMLROS2Tf2LookupNode`` is derived from
 ``vtkMRMLTransformNode`` so it can be used as any other transformation
 in the MRML scene.
 
-Lookup nodes get updated when the ROS2 node is spun.  Users can set
+Lookup nodes get updated when the ROS 2 node is spun.  Users can set
 their own callback to act on updated transformations using an observer
 on the MRML ROS subscriber node.  The last transformation received can
 be retrieved using ``GetMatrixTransformToParent``.

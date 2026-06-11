@@ -39,12 +39,12 @@ To retrieve the default ROS node:
 
          vtkMRMLAbstractLogic * logic = this->GetModuleLogic("ROS2");
          if (logic == nullptr) {
-           vtkErrorMacro(<< "ROS2 logic not found");
+           vtkErrorMacro(<< "ROS 2 logic not found");
          } else {
           vtkSlicerROS2Logic * rosLogic =
                vtkSlicerROS2Logic::SafeDownCast(logic);
            if (rosLogic == nullptr) {
-             vtkErrorMacro(<< "Found what should be the default ROS2 logic but the type is wrong");
+             vtkErrorMacro(<< "Found what should be the default ROS 2 logic but the type is wrong");
            } else {
              vtkMRMLROS2NodeNode * rosNode = rosLogic->GetDefaultROS2Node();
              // now we can use the node
@@ -59,12 +59,12 @@ To retrieve the default ROS node:
 
          vtkMRMLNode * node = scene->GetNodeByID("vtkMRMLROS2NodeNode1");
          if (node == nullptr) {
-           vtkErrorMacro(<< "ROS2 default node not in scene");
+           vtkErrorMacro(<< "ROS 2 default node not in scene");
          } else {
            vtkMRMLROS2NodeNode * rosNode =
                vtkMRMLROS2NodeNode::SafeDownCast(node);
            if (rosNode == nullptr) {
-             vtkErrorMacro(<< "Found what should be the default ROS2 node but the type is wrong");
+             vtkErrorMacro(<< "Found what should be the default ROS 2 node but the type is wrong");
            } else {
              // now we can use the node
            }

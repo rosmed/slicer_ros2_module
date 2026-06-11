@@ -49,7 +49,7 @@ qSlicerROS2Module::~qSlicerROS2Module()
 //-----------------------------------------------------------------------------
 QString qSlicerROS2Module::helpText() const
 {
-  return "ROS2 Slicer Module.  See https://github.com/rosmed/slicer_ros2_module";
+  return "ROS 2 Slicer Module. See https://github.com/rosmed/slicer_ros2_module";
 }
 
 //-----------------------------------------------------------------------------
@@ -122,4 +122,3 @@ void qSlicerROS2Module::stopTimer(void) // Shouldn't be on quit - look here: htt
 {
   mTimer->stop();
 }
-

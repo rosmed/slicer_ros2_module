@@ -39,11 +39,11 @@ you start compiling Slicer:
 
 * Qt installed using Ubuntu. The build instructions for Slicer
   sometimes recommend installing Qt from the Qt site, but that leads
-  to major issues when compiling against ROS2.  So don't re-install
+  to major issues when compiling against ROS 2.  So don't re-install
   Qt from the Qt site.  Use ``apt install``!
 
 * Make sure you use the system/native OpenSSL and bzip2 libraries
-  otherwise you'll get some errors when compiling the Slicer ROS2
+  otherwise you'll get some errors when compiling the SlicerROS2
   module (as opposed to the Slicer super build ones).  You will need
   to do the following after you ran CMake for the first time.  In the
   Slicer build directory, set ``Slicer_USE_SYSTEM_OpenSSL`` and
@@ -62,7 +62,7 @@ you start compiling Slicer:
   clone https://github.com/slicer/slicer`` and then checkout the
   version using ``git checkout v5.10.0``.
 
-If you are comfortable with Docker, you can also use the provided docker image used for continuous integration to build SlicerROS2 module in a containerized environment. The docker file is based on Ubuntu 24.04 and ROS2 Jazzy.  It comes with Slicer pre-installed. It is available on GitHub as a package:
+If you are comfortable with Docker, you can also use the provided docker image used for continuous integration to build SlicerROS2 module in a containerized environment. The docker file is based on Ubuntu 24.04 and ROS 2 Jazzy.  It comes with Slicer pre-installed. It is available on GitHub as a package:
 
 .. code-block:: bash
 

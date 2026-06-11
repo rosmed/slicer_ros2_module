@@ -9,7 +9,7 @@ displayNode = modelNode.GetDisplayNode()
 displayNode.SetPointSize(5.0)
 displayNode.SetColor(0.2, 0.6, 1.0) # Sleek blue color
 
-# 2. Retrieve the default ROS 2 Node from Slicer
+# 2. Retrieve the default ROS 2 node from Slicer
 rosLogic = slicer.util.getModuleLogic('ROS2')
 rosNode = rosLogic.GetDefaultROS2Node()
 
@@ -22,7 +22,7 @@ sub.SetTargetNodeID(modelNode.GetID())
 print("Point cloud subscriber successfully initialized!")
 # [end: code]
 
-# Open the ROS2 module UI so the user can interact with the scene immediately.
+# Open the ROS 2 module UI so the user can interact with the scene immediately.
 # This line is intentionally outside the doc tags and will not appear in
 # the documentation.
 slicer.util.selectModule('ROS2')

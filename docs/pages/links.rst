@@ -5,7 +5,7 @@ General
 * ROS for Medical Robotics: https://rosmed.github.io/
 * ROS Med on YouTube: https://www.youtube.com/@ROSForMedicalRobots
 * Slicer: https://www.slicer.org/
-* ROS2: https://www.ros.org/
+* ROS 2: https://www.ros.org/
 
 Workshops
 ---------

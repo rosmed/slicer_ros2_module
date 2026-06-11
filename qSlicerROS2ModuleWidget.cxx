@@ -115,10 +115,10 @@ void qSlicerROS2ModuleWidget::setup(void)
   // Parameters
   this->connect(d->parameterNodeTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(parameterNodeRowSelected(int, int)));
 
-  // Tf2
+  // TF2
   this->connect(d->tf2LookupTableWidget, SIGNAL(cellClicked(int,int)), this, SLOT(tf2LookupRowSelected(int, int)));
   
-  // Display mode menu for Tf2
+  // Display mode menu for TF2
   QMenu* tf2Menu = new QMenu(this);
   QAction* actionMatrix = tf2Menu->addAction("Matrix 4x4");
   QAction* actionRPY = tf2Menu->addAction("RPY + XYZ");
@@ -503,7 +503,7 @@ void qSlicerROS2ModuleWidget::updateParameterDetail()
   }
 }
 
-// ── Tf2 ─────────────────────────────────────────────────────────────────────
+// ── TF2 ─────────────────────────────────────────────────────────────────────
 
 void qSlicerROS2ModuleWidget::refreshTf2Tables()
 {

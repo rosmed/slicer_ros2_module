@@ -7,7 +7,7 @@ configure a robot in ROS 2. The default ROS approach requires:
 * A robot state publisher node which will make the URDF description
   available as a ROS parameter for other nodes.  The robot state
   publisher will also compute the forward kinematics and broadcast the
-  3D position of each link to tf2.
+  3D position of each link to TF2.
 
 * A source (publisher) for the current joint positions.  This can be
   an actual robot driver or a script emulating the robot.
@@ -17,10 +17,10 @@ correct and works with RViz.
 
 Once the ROS robot is set up properly, the SlicerROS2 robot node can be
 used to visualize the robot in Slicer.  Internally, the robot node
-will use a parameter node to retrieve the URDF description and tf2
+will use a parameter node to retrieve the URDF description and TF2
 lookups to refresh the position of each link.
 
-Robot visualization uses the ROS parameter and tf2 features described in
+Robot visualization uses the ROS parameter and TF2 features described in
 :doc:`/pages/nodes/parameters` and :doc:`/pages/nodes/tf2`.  If your
 robot also has a MoveIt configuration, see :doc:`/pages/motion-control`
 after loading the robot.
@@ -263,7 +263,7 @@ All cartesian poses used to display the robot's links are defined with
 respect to a base frame, also know as "Fixed Frame" in RViz. The
 default in RViz is "map". This default is often ignored in URDFs. When
 the "fixed frame" is not correctly defined, you will get some warnings
-regarding lookups in Tf2 not found. For example, the Phantom Omni URDF
+regarding lookups in TF2 not found. For example, the Phantom Omni URDF
 uses the reference frame ``base``.
 
 The UI for SlicerROS2 robot also has a field to specify the fixed

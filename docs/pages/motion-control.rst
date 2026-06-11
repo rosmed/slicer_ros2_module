@@ -40,7 +40,7 @@ If the solver fails (e.g., the target is out of reach), the robot visualization 
 Trajectory Planning
 ~~~~~~~~~~~~~~~~~~~
 
-Once a goal pose is reached via IK, you can use the "Plan" button to generate a trajectory. Slicer will display a scrubber allowing you to preview the plan. Enable "Show trajectory path" to display the planned end-effector path as a ``vtkPolyLine`` model in the scene, and use the adjacent color selector to choose the path color.
+Once a goal pose is reached via IK, you can use the "Plan" button to generate a trajectory. Slicer will display a scrubber allowing you to preview the plan. Enable "Show Trajectory Path" to display the planned end-effector path as a ``vtkPolyLine`` model in the scene, and use the adjacent color selector to choose the path color.
 
 *   **Generators**: Supports multiple planning backends, including MoveIt and basic joint interpolation.
 *   **Planning Group**: Specify the MoveIt planning group (e.g., ``ur_manipulator``) to use for planning.
@@ -72,7 +72,7 @@ Adding Collision Objects
 * **Select a Model**: Choose a ``vtkMRMLModelNode`` from the dropdown.
 * **Set Frame ID / TF2 Parent**: Specify the ROS reference frame, usually
   ``world`` or ``base_link``.
-* **Track model transform with TF2**: Keep this checked for the common workflow
+* **Track Model Transform with TF2**: Keep this checked for the common workflow
   where a model is placed under a Slicer transform and moved with a transform
   gizmo or registration result.
 * **Add to MoveIt**: Click the **Add to MoveIt** button.
@@ -82,7 +82,7 @@ Once added, the obstacle is managed in the table below.
 Live Synchronization
 ~~~~~~~~~~~~~~~~~~~~
 
-When **Track model transform with TF2** is enabled, the UI follows the same
+When **Track Model Transform with TF2** is enabled, the UI follows the same
 path as ``ROS2MotionControlLogic.AddMoveItObstacleWithTransform``.  The
 collision object is published with ``header.frame_id`` set to the obstacle
 model's Slicer node name, and the module starts a TF2 broadcaster from the
@@ -90,7 +90,7 @@ selected parent frame to that obstacle frame.  Moving the model's parent
 transform then updates the obstacle pose in MoveIt without re-publishing the
 mesh.
 
-If **Track model transform with TF2** is disabled, the model is published as a
+If **Track Model Transform with TF2** is disabled, the model is published as a
 static collision object in the frame typed in the **Frame ID / TF2 Parent**
 field.  Use this mode only when the model's polydata coordinates are already
 expressed in that ROS frame.

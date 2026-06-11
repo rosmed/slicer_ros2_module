@@ -24,10 +24,10 @@ Missing features
 
   + Actions
 
-* The current implementation assumes that all ROS2 nodes
+* The current implementation assumes that all ROS 2 nodes
   (``vtkMRMLROS2NodeNode``) added to the scene should be spun by the
   module's logic.  This doesn't provide an option for users to control
-  how their ROS2 nodes spin (including rate).
+  how their ROS 2 nodes spin (including rate).
 
 * Saving and reloading the scene as a MRML scene has not been
   extensively tested and might not work.

@@ -44,7 +44,7 @@ class Q_SLICER_QTMODULES_ROS2_EXPORT qSlicerROS2ModuleWidget :
 {
   Q_OBJECT
 
-  /// Current display mode for the Tf2 detail panel.
+  /// Current display mode for the TF2 detail panel.
   enum class Tf2DisplayMode { Matrix, RPY, Quaternion };
 
 public:
@@ -103,7 +103,7 @@ protected slots:
   void parameterNodeRowSelected(int row, int col);
   void updateParameterDetail(void);   // driven by MRML observer
 
-  // ── Tf2 tab ───────────────────────────────────────────────────────────────
+  // ── TF2 tab ───────────────────────────────────────────────────────────────
   void refreshTf2Tables(void);
   void tf2LookupRowSelected(int row, int col);
   void updateTf2Detail(void);         // driven by MRML observer
@@ -120,7 +120,7 @@ private:
   vtkMRMLROS2ParameterNode  * mObservedParameter  = nullptr;
   vtkMRMLROS2Tf2LookupNode  * mObservedTf2Lookup  = nullptr;
 
-  // Tf2 detail display mode
+  // TF2 detail display mode
   Tf2DisplayMode mTf2DisplayMode = Tf2DisplayMode::Matrix;
 
   Q_DECLARE_PRIVATE(qSlicerROS2ModuleWidget);

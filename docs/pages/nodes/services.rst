@@ -19,7 +19,7 @@ the services client classes available.
 Clients
 -------
 
-To create a new service client, one should use the MRML ROS2 Node method
+To create a new service client, one should use the MRML ROS 2 node method
 ``vtkMRMLROS2NodeNode::CreateAndAddServiceClientNode``.  This method takes
 two parameters:
 
@@ -29,7 +29,7 @@ two parameters:
 * the service name (``std::string``).
 
 Service requests are sent asynchronously with ``SendAsyncRequest``.  After
-sending a request, use ``ROS2`` logic's ``WaitForServiceResponse`` helper before
+sending a request, use the ROS 2 logic's ``WaitForServiceResponse`` helper before
 reading ``GetLastResponse``.  The helper keeps Slicer's Qt event loop active so
 the module-level ROS 2 spin timer can process the response; user scripts do not
 need to call ``Spin`` directly.

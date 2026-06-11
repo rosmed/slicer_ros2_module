@@ -43,7 +43,7 @@
            <item row="0" column="0">
             <widget class="QToolButton" name="addNewRobotButton">
              <property name="text">
-              <string>+ Add new robot</string>
+              <string>+ Add New Robot</string>
              </property>
             </widget>
            </item>
@@ -327,7 +327,7 @@
          <!-- ─────────────────── TF2 TAB ─────────────────── -->
          <widget class="QWidget" name="tab_tf2">
           <attribute name="title">
-           <string>Tf2</string>
+           <string>TF2</string>
           </attribute>
           <layout class="QVBoxLayout" name="tf2OuterLayout">
            <item>

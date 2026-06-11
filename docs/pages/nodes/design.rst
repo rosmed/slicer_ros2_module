@@ -2,14 +2,14 @@
 Design
 ======
 
-The high level ROS functionalities (publisher, subscriber, Tf2
-broadcast, Tf2 lookup or parameter client) are all encapsulated as
+The high level ROS functionalities (publisher, subscriber, TF2
+broadcast, TF2 lookup or parameter client) are all encapsulated as
 Slicer MRML nodes, i.e. derived from the class ``vtkMRMLNode`` and
 added to the MRML Scene.  This allows to leverage some of the Slicer
 features:
 
 * Using Slicer node observer pattern to trigger user code when a new
-  ROS message has been received (subscribers, parameters or Tf2
+  ROS message has been received (subscribers, parameters or TF2
   lookups).
 
 * Data visualization using the MRML scene.
@@ -48,7 +48,7 @@ Ubuntu binary packages.
 
 We ultimately decided to implement the SlicerROS2 module in C++ and
 rely on the VTK/Slicer build to provide the Python bindings.  The
-SlicerROS2 module is compiled against the Slicer and ROS2 libraries
+SlicerROS2 module is compiled against the Slicer and ROS 2 libraries
 which is a bit challenging since both packages have their own CMake
 macros and have different Python version requirements.  The
 ``CMakeLists.txt`` provided along SlicerROS2 works but you'll have to
@@ -79,10 +79,10 @@ decisions.  Meanwhile, ROS heavily relies on templates and type traits
 which are handled at compilation time.  Most ROS communication
 mechanisms only support a finite number of data types (e.g. parameters
 are booleans, integers, floating points, strings or vector of
-aforementioned types, tf2 uses transforms only...) so this is not a
+aforementioned types, TF2 uses transforms only...) so this is not a
 major issue.
 
-The main difficulty lies in supporting many ROS topics and services
+The main difficulty lies in supporting many ROS topics and services.
 For our code, we ended up using templates for our internal data
 structures and add some macros to generate the VTK user classes.  These
 macros use template specialization and add some methods to create a

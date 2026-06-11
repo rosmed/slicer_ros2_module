@@ -19,7 +19,7 @@ by a single node, we decided to require one MRML ROS node per ROS node
 observed.  This MRML ROS node can then observe all the parameters held
 by the ROS node.
 
-To create a new parameter node, one should use the MRML ROS2 Node
+To create a new parameter node, one should use the MRML ROS 2 node
 method ``vtkMRMLROS2NodeNode::CreateAndAddParameterNode``.  This
 method takes one parameter:
 
@@ -31,11 +31,11 @@ Once the `vtkMRMLROS2ParameterNode` observing the ROS node *n1* is
 added, one needs to specify which parameters to observe using the
 method `vtkMRMLROS2ParameterNode::AddParameter`.
 
-Parameter nodes get updated when the ROS2 node is spun.  Users can
+Parameter nodes get updated when the ROS 2 node is spun.  Users can
 set their own callback to act on newly received messages using an
 observer on the MRML ROS parameter node.
 
-ROS supports a limited number of types to encode parameters (`ROS2
+ROS supports a limited number of types to encode parameters (`ROS 2
 parameters
 <https://docs.ros.org/en/jazzy/Concepts/About-ROS-2-Parameters.html>`_).
 Most types are supported in SlicerROS2 and we provide methods to

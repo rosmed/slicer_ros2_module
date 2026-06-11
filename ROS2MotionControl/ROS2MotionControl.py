@@ -174,10 +174,10 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         uiWidget.setMRMLScene(slicer.mrmlScene)
         self.ui.obstacleModelComboBox.setMRMLScene(slicer.mrmlScene)
 
-        # Embed Slicer ROS2 module widget
+        # Embed Slicer ROS 2 module widget
         import ctk
         self.ros2CollapsibleButton = ctk.ctkCollapsibleButton()
-        self.ros2CollapsibleButton.text = "Slicer ROS2"
+        self.ros2CollapsibleButton.text = "Slicer ROS 2"
         self.ros2CollapsibleButton.collapsed = True
         try:
             self.ros2Widget = slicer.modules.ros2.createNewWidgetRepresentation()
@@ -186,7 +186,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             layout.addWidget(self.ros2Widget)
             self.layout.addWidget(self.ros2CollapsibleButton)
         except Exception as e:
-            print(f"Warning: Could not embed Slicer ROS2 widget: {e}")
+            print(f"Warning: could not embed Slicer ROS 2 widget: {e}")
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -1702,7 +1702,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         pub = self._getCollisionObjectPublisher(robotNode, create=True)
         if not pub:
-            print("Add obstacle: no ROS2 node found to host the CollisionObject publisher")
+            print("Add obstacle: no ROS 2 node found to host the CollisionObject publisher")
             return False
 
         frameId = frameId or modelNode.GetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE) or "world"
@@ -1753,7 +1753,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
            model has no transform parent yet).
         2. Finds (or creates) the robot root transform node so it can compute
            the between-nodes matrix.
-        3. Creates (or reuses / accepts) a Tf2BroadcasterNode with
+        3. Creates (or reuses / accepts) a TF2 broadcaster node with
            parent_id=parentFrameId, child_id=obstacleNode.GetName().
         4. Registers a TransformModifiedEvent observer that computes
            GetMatrixTransformBetweenNodes and calls broadcaster.Broadcast().
@@ -1765,8 +1765,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                                 (e.g. "world"). This is what MoveIt calls the
                                 fixed frame.
             robotNode:          Optional vtkMRMLROS2RobotNode used to look up
-                                the ROS2 node and the robot root transform.
-            existingBroadcaster: If not None, use this Tf2BroadcasterNode
+                                the ROS 2 node and the robot root transform.
+            existingBroadcaster: If not None, use this TF2 broadcaster node
                                 instead of creating / looking one up.
 
         Returns:
@@ -1774,7 +1774,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             or (None, None, None) on failure.
         """
         if not obstacleNode:
-            print("SetupObstacleTf2Broadcaster: obstacle node is invalid")
+            print("Setup obstacle TF2 broadcaster: obstacle node is invalid")
             return None, None, None
 
         obstacleTransformNode = obstacleNode.GetParentTransformNode()
@@ -1792,11 +1792,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 dispNode.SetEditorVisibility(True)
                 obstacleTransformNode.SetAndObserveDisplayNodeID(dispNode.GetID())
             obstacleNode.SetAndObserveTransformNodeID(obstacleTransformNode.GetID())
-            print(f"SetupObstacleTf2Broadcaster: created transform '{tfName}' for obstacle")
+            print(f"Setup obstacle TF2 broadcaster: created transform '{tfName}' for obstacle")
 
         ros2Node = self._getObstacleROS2Node(robotNode)
         if ros2Node is None:
-            print("SetupObstacleTf2Broadcaster: no ROS2 node found")
+            print("Setup obstacle TF2 broadcaster: no ROS 2 node found")
             return None, None, None
 
         childId = obstacleNode.GetName()
@@ -1808,7 +1808,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if broadcaster is None:
             broadcaster = ros2Node.CreateAndAddTf2BroadcasterNode(parentFrameId, childId)
         if broadcaster is None:
-            print("SetupObstacleTf2Broadcaster: failed to create TF2 broadcaster")
+            print("Setup obstacle TF2 broadcaster: failed to create TF2 broadcaster")
             return None, obstacleTransformNode, None
 
         # Try to find the robot root transform for computing between-nodes matrix.
@@ -1830,7 +1830,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     obstacleTransformNode, robotRootTransformNode, m
                 )
                 if not ok:
-                    print("SetupObstacleTf2Broadcaster: could not compute between-nodes transform")
+                    print("Setup obstacle TF2 broadcaster: could not compute between-nodes transform")
                     return
             else:
                 obstacleTransformNode.GetMatrixTransformToWorld(m)
@@ -1845,7 +1845,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         _broadcastObstaclePose()
 
         print(
-            f"SetupObstacleTf2Broadcaster: broadcasting '{parentFrameId}' -> '{childId}' "
+            f"Setup obstacle TF2 broadcaster: broadcasting '{parentFrameId}' -> '{childId}' "
             f"from transform '{obstacleTransformNode.GetName()}'"
         )
         return broadcaster, obstacleTransformNode, observerTag
@@ -1869,7 +1869,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                                 transform). Pass None to auto-detect / create.
             parentFrameId:      ROS fixed frame (e.g. "world").
             robotNode:          Optional vtkMRMLROS2RobotNode.
-            existingBroadcaster: Pass an existing Tf2BroadcasterNode to reuse.
+            existingBroadcaster: Pass an existing TF2 broadcaster node to reuse.
 
         Returns:
             (broadcasterNode, observerTag) or (None, None) on failure.
@@ -2021,7 +2021,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         ros2_node = robotNode.GetNodeReference("node")
         if ros2_node is None:
-            print("Joint state: robot has no ROS2 node reference")
+            print("Joint state: robot has no ROS 2 node reference")
             return False
 
         topic = self._NormalizeJointStateTopic(topic_name)

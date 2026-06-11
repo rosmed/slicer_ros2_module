@@ -21,7 +21,7 @@ MOVE_GROUP_EXISTS  = True                    # set False to skip MoveIt IK setup
 # Set up the robot and MoveIt
 # ---------------------------------------------------------------------------
 
-# 1. Get the default ROS2 node (created automatically by the ROS2 module)
+# 1. Get the default ROS 2 node (created automatically by the ROS 2 module)
 rosLogic = slicer.util.getModuleLogic('ROS2')
 rosNode  = rosLogic.GetDefaultROS2Node()
 
@@ -124,7 +124,7 @@ print("Drag the gizmo in the 3D view to reposition the obstacle.")
 # AddMoveItObstacleWithTransform does three things in one call:
 #   1. Publishes a CollisionObject whose header.frame_id = "MoveItObstacle"
 #      (the obstacle's node name).  MoveIt resolves the position via TF2.
-#   2. Creates a Tf2BroadcasterNode: parent="world", child="MoveItObstacle".
+#   2. Creates a TF2 broadcaster node: parent="world", child="MoveItObstacle".
 #   3. Observes ObstacleTransform so every change is re-broadcast over /tf
 #      automatically and in real time.
 
@@ -132,7 +132,7 @@ broadcaster, observerTag = motionLogic.AddMoveItObstacleWithTransform(
     obstacleNode,
     obstacleTransform,
     FIXED_FRAME,       # parent TF2 frame, e.g. "world"
-    robotNode          # used to locate the robot root transform and ROS2 node
+    robotNode          # used to locate the robot root transform and ROS 2 node
 )
 if broadcaster is None:
     raise RuntimeError("Failed to publish obstacle to MoveIt.")
