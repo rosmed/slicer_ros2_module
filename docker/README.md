@@ -55,5 +55,5 @@ export GITHUB_TOKEN=<your_token>
   --push
 ```
 
-After pushing a new tag, update `.github/workflows/ci.yml` so the `container`
-image points to the new versioned image.
+After pushing a new tag, update the `CI_IMAGE` environment variable in
+`.github/workflows/ci.yml` to reference the new versioned image tag.

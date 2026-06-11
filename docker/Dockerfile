@@ -175,6 +175,10 @@ RUN set -e; \
   find /opt/slicer -name "*.pyc" -delete 2>/dev/null || true; \
   find /opt/slicer -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true; \
   \
+  echo "==> Deleting Python test data (not needed to compile or run the module)..."; \
+  find "$SB" -type d -name "test" -path "*/python*/lib/python*/*" \
+    -exec rm -rf {} + 2>/dev/null || true; \
+  \
   echo "==> Done."
 
 # Make Slicer_DIR available to colcon / cmake without needing -D flags
