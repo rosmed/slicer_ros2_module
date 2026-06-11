@@ -284,6 +284,19 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             time.sleep(0.5)
         return False
 
+    @classmethod
+    def wait_for_service_client_ready(self, serviceClient, timeout=10.0):
+        """
+        Wait until a Slicer ROS 2 service client has discovered its server.
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            ROS2TestsLogic.spin_some()
+            if serviceClient.PreRequestCheck():
+                return True
+            time.sleep(0.1)
+        return serviceClient.PreRequestCheck()
+
     # It creates a turtlesim node, checks if it's running, and then kills it
     class TestTurtlesimNode(unittest.TestCase):
         def setUp(self):
@@ -772,6 +785,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         def test_service_client(self):
             print("\nTesting service client - Starting..")
             spawn1 = self.ros2Node.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSpawnNode', '/spawn')
+            self.assertTrue(
+                ROS2TestsLogic.wait_for_service_client_ready(spawn1, 10.0),
+                "Spawn service client did not become ready"
+            )
             # Attach observer to ensure ResponseReceivedEvent is emitted when response arrives
             self.obs = TestObserverServiceClient()
             self.obsId = spawn1.AddObserver(
@@ -781,10 +798,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             req = spawn1.CreateBlankRequest()
             req.SetX(4.0)
             req.SetY(4.0)
-            spawn1.SendAsyncRequest(req)
+            self.assertEqual(spawn1.SendAsyncRequest(req), 1, "Spawn service request was not sent")
             ros2Logic = slicer.util.getModuleLogic('ROS2')
             self.assertTrue(
-                ros2Logic.WaitForServiceResponse(spawn1, 5.0),
+                ros2Logic.WaitForServiceResponse(spawn1, 10.0),
                 "Timed out waiting for Spawn service response"
             )
             res = spawn1.GetLastResponse()
@@ -793,7 +810,7 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             # The names are automatically assigned in the sequence: "turtle2", "turtle3", etc.
             self.assertEqual(res.GetName(), "turtle2")
             # Verify observer received exactly one notification
-            self.assertEqual(self.obs.counter, 1, "Observer did not receive Modified event exactly once")
+            self.assertEqual(self.obs.counter, 1, "Observer did not receive ResponseReceivedEvent exactly once")
             if self.obs.lastResponse:
                 self.assertEqual(self.obs.lastResponse.GetName(), "turtle2")
             print("\nTesting service client - Done")
