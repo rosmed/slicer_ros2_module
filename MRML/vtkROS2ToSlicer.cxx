@@ -41,7 +41,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
   const size_t numElements = input.data.size();
   // if input is not a 1D array raise an error
   if (input.layout.dim.size() != 1) {
-    std::cerr << "Input is not a 1D array" << std::endl;
+    vtkGenericWarningMacro(<< "Input is not a 1D array");
     return;
   }
   result->SetNumberOfValues(numElements);
@@ -56,7 +56,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
   const size_t numElements = input.data.size();
   // if input is not a 1D array raise an error
   if (input.layout.dim.size() != 1) {
-    std::cerr << "Input is not a 1D array" << std::endl;
+    vtkGenericWarningMacro(<< "Input is not a 1D array");
     return;
   }
   result->SetNumberOfValues(numElements);
@@ -70,7 +70,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Int64MultiArray & input, vtkSmartPoint
 {
   // if input is not a 2D array raise an error
   if (input.layout.dim.size() != 2) {
-    std::cerr << "Input is not a 2D array" << std::endl;
+    vtkGenericWarningMacro(<< "Input is not a 2D array");
     return;
   }
   const size_t numRows = input.layout.dim[0].size;
@@ -90,7 +90,7 @@ void vtkROS2ToSlicer(const std_msgs::msg::Float64MultiArray & input, vtkSmartPoi
 {
   // if input is not a 2D array raise an error
   if (input.layout.dim.size() != 2) {
-    std::cerr << "Input is not a 2D array" << std::endl;
+    vtkGenericWarningMacro(<< "Input is not a 2D array");
     return;
   }
   const size_t numRows = input.layout.dim[0].size;
@@ -199,21 +199,61 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkT
     }
 }
 
+void vtkROS2ToSlicer(const sensor_msgs::msg::Image & input, vtkSmartPointer<vtkImageData> result)
+{
+  if (!result) {
+    return;
+  }
+
+  int numberOfComponents = 1;
+  int vtkDataType = VTK_UNSIGNED_CHAR;
+
+  if (input.encoding == "rgb8" || input.encoding == "bgr8") {
+    numberOfComponents = 3;
+  } else if (input.encoding == "rgba8" || input.encoding == "bgra8") {
+    numberOfComponents = 4;
+  } else if (input.encoding == "mono8") {
+    numberOfComponents = 1;
+  } else if (input.encoding == "mono16" || input.encoding == "16UC1") {
+    numberOfComponents = 1;
+    vtkDataType = VTK_UNSIGNED_SHORT;
+  } else if (input.encoding == "32FC1") {
+    numberOfComponents = 1;
+    vtkDataType = VTK_FLOAT;
+  }
+
+  result->SetDimensions(input.width, input.height, 1);
+  result->AllocateScalars(vtkDataType, numberOfComponents);
+
+  size_t expectedSize = input.width * input.height * numberOfComponents * (vtkDataType == VTK_UNSIGNED_SHORT ? 2 : (vtkDataType == VTK_FLOAT ? 4 : 1));
+  if (input.data.size() < expectedSize) {
+    vtkGenericWarningMacro(<< "vtkROS2ToSlicer(Image): input data size mismatch. Expected " << expectedSize << " got " << input.data.size());
+    return;
+  }
+
+  void* pVtk = result->GetScalarPointer();
+  std::memcpy(pVtk, input.data.data(), expectedSize);
+
+  // Note: ROS images are top-down, VTK are bottom-up by default, but we'll leave it to the user/logic
+  // to apply a flip if needed, or we could do it here if we want to be opinionated.
+  result->Modified();
+}
+
 
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer<vtkPoints> result)
 {
     if (!result) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud): null result" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud): null result");
         return;
     }
-    
+
     const size_t n = input.points.size();
     if (n > kMaxPoints) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud): refusing " << n << " points (max " 
-                  << kMaxPoints << ")" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud): refusing " << n << " points (max "
+                  << kMaxPoints << ")");
         return;
     }
-    
+
     try {
         result->SetNumberOfPoints(static_cast<vtkIdType>(n));
         for (vtkIdType i = 0; i < static_cast<vtkIdType>(n); ++i) {
@@ -221,7 +261,7 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer
             result->SetPoint(i, p.x, p.y, p.z);
         }
     } catch (const std::bad_alloc &) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud): allocation failed for " << n << " points" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud): allocation failed for " << n << " points");
         result->Reset();
     }
 }
@@ -229,45 +269,66 @@ void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud & input, vtkSmartPointer
 void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPoints> result)
 {
     if (!result) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud2): null result" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud2): null result");
         return;
     }
-    
+
     result->Reset();
-    
+
     if (input.data.empty() || input.width == 0 || input.height == 0) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud2): empty input" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud2): empty input");
         return;
     }
-    
+
     const size_t num_points = static_cast<size_t>(input.width) * input.height;
     if (num_points > kMaxPoints) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud2): refusing " << num_points << " points (max "
-                  << kMaxPoints << ")" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud2): refusing " << num_points << " points (max "
+                  << kMaxPoints << ")");
         return;
     }
-    
+
     try {
         auto vtkArray = vtkSmartPointer<vtkFloatArray>::New();
         vtkArray->SetNumberOfComponents(3);
         vtkArray->Allocate(num_points * 3);
-        
+
         sensor_msgs::PointCloud2ConstIterator<float> iter_x(input, "x");
         sensor_msgs::PointCloud2ConstIterator<float> iter_y(input, "y");
         sensor_msgs::PointCloud2ConstIterator<float> iter_z(input, "z");
-        
+
         for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
             if (std::isfinite(*iter_x) && std::isfinite(*iter_y) && std::isfinite(*iter_z)) {
                 float xyz[3] = { *iter_x, *iter_y, *iter_z };
                 vtkArray->InsertNextTuple(xyz);
             }
         }
-        
+
         result->SetData(vtkArray);
     } catch (const std::bad_alloc &) {
-        std::cerr << "vtkROS2ToSlicer(PointCloud2): allocation failed for " << num_points << " points" << std::endl;
+        vtkGenericWarningMacro(<< "vtkROS2ToSlicer(PointCloud2): allocation failed for " << num_points << " points");
         result->Reset();
     }
+}
+
+void vtkROS2ToSlicer(const sensor_msgs::msg::PointCloud2 & input, vtkSmartPointer<vtkPolyData> result)
+{
+  if (!result) {
+    return;
+  }
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  vtkROS2ToSlicer(input, points);
+  result->SetPoints(points);
+
+  vtkIdType numPoints = points->GetNumberOfPoints();
+  if (numPoints > 0) {
+    auto vertices = vtkSmartPointer<vtkCellArray>::New();
+    vertices->AllocateEstimate(numPoints, 1);
+    for (vtkIdType i = 0; i < numPoints; ++i) {
+      vertices->InsertNextCell(1, &i);
+    }
+    result->SetVerts(vertices);
+  }
+  result->Modified();
 }
 
 

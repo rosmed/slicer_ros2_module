@@ -7,6 +7,7 @@
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
 
 // KDL includes
 #include <kdl/chain.hpp>
@@ -55,10 +56,8 @@ class vtkMRMLROS2RobotNodeInternals
   std::unique_ptr<robot_model_loader::RobotModelLoader> RobotModelLoaderPtr;
   std::shared_ptr<moveit::core::RobotModel> RobotModelPtr;
   const moveit::core::JointModelGroup* JointModelGroupPtr = nullptr;
+  planning_scene_monitor::PlanningSceneMonitorPtr PlanningSceneMonitorPtr;
   std::string IKGroupName;
-
-  // Cached trajectory for execution after planning
-  moveit_msgs::msg::RobotTrajectory CachedTrajectory;
 
   // KDL solvers
   std::unique_ptr<KDL::Chain> KDLChain;

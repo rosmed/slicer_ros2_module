@@ -1,12 +1,11 @@
 import logging
 import os, time, sys
 import subprocess
-from typing import Annotated, Optional
+from typing import Optional
 import xml.etree.ElementTree as ET
 import math
 import re
 import qt
-import json
 
 # TrajectoryGenerators.py lives in a subdirectory to prevent Slicer from
 # treating it as a scripted module.  Add that directory to sys.path once.
@@ -28,14 +27,7 @@ from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
-    WithinRange,
 )
-
-
-
-
-
-from slicer import vtkMRMLScalarVolumeNode
 
 # Set to True to enable verbose debug prints
 DEBUG = False
@@ -78,58 +70,7 @@ class ROS2MotionControl(ScriptedLoadableModule):
     Integrated from the MedicalRobotMotionPlanner project and adapted for this repository.
 """)
 
-        # Additional initialization step after application startup is complete
-        slicer.app.connect("startupCompleted()", registerSampleData)
-
-
-#
-# Register sample data sets in Sample Data module
-#
-
-
-def registerSampleData():
-    """Add data sets to Sample Data module."""
-    # It is always recommended to provide sample data for users to make it easy to try the module,
-    # but if no sample data is available then this method (and associated startupCompeted signal connection) can be removed.
-
-    import SampleData
-
-    iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
-
-    # To ensure that the source code repository remains small (can be downloaded and installed quickly)
-    # it is recommended to store data sets that are larger than a few MB in a Github release.
-
-    # ROS2MotionControl1
-    SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Category and sample name displayed in Sample Data module
-        category="ROS2MotionControl",
-        sampleName="ROS2MotionControl1",
-        # Thumbnail should have size of approximately 260x280 pixels and stored in Resources/Icons folder.
-        # It can be created by Screen Capture module, "Capture all views" option enabled, "Number of images" set to "Single".
-        thumbnailFileName=os.path.join(iconsPath, "ROS2MotionControl1.png"),
-        # Download URL and target file name
-        uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        fileNames="ROS2MotionControl1.nrrd",
-        # Checksum to ensure file integrity. Can be computed by this command:
-        #  import hashlib; print(hashlib.sha256(open(filename, "rb").read()).hexdigest())
-        checksums="SHA256:998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        # This node name will be used when the data set is loaded
-        nodeNames="ROS2MotionControl1",
-    )
-
-    # ROS2MotionControl2
-    SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Category and sample name displayed in Sample Data module
-        category="ROS2MotionControl",
-        sampleName="ROS2MotionControl2",
-        thumbnailFileName=os.path.join(iconsPath, "ROS2MotionControl2.png"),
-        # Download URL and target file name
-        uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        fileNames="ROS2MotionControl2.nrrd",
-        checksums="SHA256:1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        # This node name will be used when the data set is loaded
-        nodeNames="ROS2MotionControl2",
-    )
+        pass  # no startup work needed
 
 
 #
@@ -139,21 +80,37 @@ def registerSampleData():
 
 @parameterNodeWrapper
 class ROS2MotionControlParameterNode:
-    """
-    The parameters needed by module.
+    """Persistent settings for the ROS2MotionControl module.
 
-    inputVolume - The volume to threshold.
-    imageThreshold - The value at which to threshold the input volume.
-    invertThreshold - If true, will invert the threshold.
-    thresholdedVolume - The output volume that will contain the thresholded volume.
-    invertedVolume - The output volume that will contain the inverted thresholded volume.
+    All fields are saved with the MRML scene and restored on reload,
+    so user configuration survives module reload and .mrb save/open.
     """
 
-    inputVolume: vtkMRMLScalarVolumeNode
-    imageThreshold: Annotated[float, WithinRange(-100, 500)] = 100
-    invertThreshold: bool = False
-    thresholdedVolume: vtkMRMLScalarVolumeNode
-    invertedVolume: vtkMRMLScalarVolumeNode
+    # Joint state subscriber topic (without leading /)
+    jointStateTopic: str = "joint_states"
+
+    # MRML Node IDs
+    robotNodeID: str = ""
+    motionControlNodeID: str = ""
+
+    # MoveIt planning group name last selected by the user
+    planningGroup: str = ""
+
+    # Whether the /move_group node is expected to be running
+    moveGroupExists: bool = False
+
+    # Maximum time budget for MoveIt motion planning (seconds)
+    planningTimeSec: float = 5.0
+
+    # Velocity / acceleration scaling sent to MoveIt
+    velocityScaling: float = 0.5
+    accelerationScaling: float = 0.5
+
+    # Goal-state robot display color as hex string (e.g. "#FF8000" = orange)
+    goalColor: str = "#FF8000"
+
+    # Planned trajectory path display color as hex string
+    trajectoryPathColor: str = "#FF8000"
 
 
 #
@@ -180,16 +137,26 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.rootlink = None
         self.tiplink = None
         self.goaltiplink = None
-        self.urdf_xml = ""
         self.isRobotLoaded = False
         self.trajectoryTimer = None
         self.trajectoryData = None
         self.trajectoryIndex = 0
         self.trajectorySlider = None
+        self.trajectorySliderWidget = None
+        self.trajectorySpinBox = None
+        self.trajectoryPolylineModelNode = None
         self.jointSliders = []
         self.jointSpinboxes = []
-        self._moveGroupParamNode = None
+        self._sliderInitRetryCount = 0
         self._moveGroupParamObsId = None
+        self._moveGroupParamNode = None
+        self._srdfEndEffectors = []  # list of {name, parent_link} dicts from SRDF
+        self.obstaclePublishers = {} # modelNodeID -> modelNode
+        self.obstacleTfObservers = {} # modelNodeID -> (transformNode, observerTag, broadcasterNode)
+        self._syncingFromParameterNode = False
+        self._goalVisualOwner = "idle"  # idle | trajectory | ik
+        self._planningUiLockedForExternalTrajectory = False
+        self.motionControlNode = None
 
     def setup(self) -> None:
         """Called when the user opens the module the first time and the widget is initialized."""
@@ -205,6 +172,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
         # "setMRMLScene(vtkMRMLScene*)" slot.
         uiWidget.setMRMLScene(slicer.mrmlScene)
+        self.ui.obstacleModelComboBox.setMRMLScene(slicer.mrmlScene)
 
         # Embed Slicer ROS2 module widget
         import ctk
@@ -231,7 +199,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
         self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAboutToBeRemovedEvent, self.onNodeAboutToBeRemoved)
         self.ui.tabWidget.currentChanged.connect(self.onTabChanged)
-        
+
         # Buttons
         self.ui.useButton.connect("clicked(bool)", self.onUseButton)
         self.ui.opacitySlider.connect("valueChanged(int)", self.onOpacitySliderChanged)
@@ -243,15 +211,22 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.currentStatePushButton3DControl.connect("clicked(bool)", self.onCurrentStateButton)
         self.ui.moveGroupExistsCheckBox.connect("toggled(bool)", self.onMoveGroupExistsToggled)
         self.ui.planGroupComboBox.connect("activated(int)", self.onPlanGroupActivated)
+        self.ui.endEffectorLinkComboBox.connect("activated(int)", self.onEndEffectorLinkActivated)
         self.ui.planButton.connect("clicked(bool)", self.onPlanButton)
         self.ui.previewButton.connect("clicked(bool)", self.onPreviewButton)
         self.ui.executeButton.connect("clicked(bool)", self.onExecuteButton)
+        self.ui.showTrajectoryPathCheckBox.connect("toggled(bool)", self.onShowTrajectoryPathToggled)
+        self.ui.trajectoryPathColorButton.connect("colorChanged(QColor)", self.onTrajectoryPathColorChanged)
+        self.ui.addObstacleButton.connect("clicked(bool)", self.onAddObstacle)
+
+        trajectoryPathColor = qt.QColor("#FF8000")
+        self.ui.trajectoryPathColorButton.color = trajectoryPathColor
 
         # Populate generator combo box
         for gen in TrajectoryGenerators.get_all():
             self.ui.generatorComboBox.addItem(gen.name)
         self.ui.generatorComboBox.currentIndexChanged.connect(self.onGeneratorChanged)
-                
+
         # Set appearance collapsible button to be collapsed and disabled initially
         self.ui.appCollapsibleButton.collapsed = True
         self.ui.appCollapsibleButton.enabled = False
@@ -259,14 +234,19 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.ui.jointStateCollapsibleButton.enabled = False
         self.ui.moveitCollapsibleButton.collapsed = True
         self.ui.moveitCollapsibleButton.enabled = False
-        if not self.ui.jointStateTopicLineEdit.text:
-            self.ui.jointStateTopicLineEdit.text = "joint_states"
         self.ui.planButton.enabled = False
         self.ui.previewButton.enabled = False
         self.ui.executeButton.enabled = False
+        self.ui.showTrajectoryPathCheckBox.enabled = False
+        self.ui.trajectoryPathColorLabel.enabled = False
+        self.ui.trajectoryPathColorButton.enabled = False
         self.ui.planGroupComboBox.enabled = False
+        self.ui.endEffectorLinkComboBox.enabled = False
+        self.ui.endEffectorLinkLabel.enabled = False
+        self.ui.planningTimeSpinBox.enabled = False
+        self.ui.planningTimeLabel.enabled = False
         self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
-        
+
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
 
@@ -275,10 +255,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Stop trajectory animation if running
         if self.trajectoryTimer:
             self.trajectoryTimer.stop()
+        self.removePlannedTrajectoryPolyline()
         # Stop streaming and remove observers before cleanup
         if self.logic:
             self.logic.removeObserver()
             self.logic.ClearJointStateSubscriber()
+        for modelID in list(self.obstacleTfObservers.keys()):
+            self._removeObstacleTfObserver(modelID)
         if self._moveGroupParamNode is not None:
             try:
                 if self._moveGroupParamObsId is not None:
@@ -304,10 +287,11 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self._parameterNode:
             self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
             self._parameterNodeGuiTag = None
-            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
+            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._onParameterNodeModified)
 
     @vtk.calldata_type(vtk.VTK_OBJECT)
     def onNodeAboutToBeRemoved(self, caller, event, callData) -> None:
+        """MRML scene callback: clean up and disable the UI when the active robot node is removed."""
         if self.robot and callData == self.robot:
             print("Motion Control: Robot node about to be removed. Disabling UI and cleaning up.")
             if self.logic:
@@ -318,7 +302,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.ui.moveitCollapsibleButton.enabled = False
             self.isRobotLoaded = False
             self.robot = None
-            
+
             # Clean up dynamic sliders
             container = self.ui.JointTab.layout()
             if container is not None:
@@ -348,16 +332,28 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             # Disable Joint Control buttons
             self.ui.zeroPushButton.enabled = False
             self.ui.currentStatePushButton.enabled = False
-            
+
             # Disable 3D Control buttons
             self.ui.zeroPushButton3DControl.enabled = False
             self.ui.lastGoalPushButton3DControl.enabled = False
             self.ui.currentStatePushButton3DControl.enabled = False
 
             # Disable Trajectory buttons
+            self._resetTrajectoryState()
             self.ui.planButton.enabled = False
             self.ui.previewButton.enabled = False
             self.ui.executeButton.enabled = False
+            self.ui.showTrajectoryPathCheckBox.enabled = False
+            self.ui.trajectoryPathColorLabel.enabled = False
+            self.ui.trajectoryPathColorButton.enabled = False
+
+            # Remove motion control node from the scene
+            if self.motionControlNode is not None:
+                try:
+                    slicer.mrmlScene.RemoveNode(self.motionControlNode)
+                except Exception:
+                    pass
+                self.motionControlNode = None
 
     def onSceneStartClose(self, caller, event) -> None:
         """Called just before the scene is closed."""
@@ -372,280 +368,313 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
     def initializeParameterNode(self) -> None:
         """Ensure parameter node exists and observed."""
-        # Parameter node stores all user choices in parameter values, node selections, etc.
-        # so that when the scene is saved and reloaded, these settings are restored.
-
         self.setParameterNode(self.logic.getParameterNode())
 
-        # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._parameterNode.inputVolume:
-            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
-            if firstVolumeNode:
-                self._parameterNode.inputVolume = firstVolumeNode
-
     def setParameterNode(self, inputParameterNode: Optional[ROS2MotionControlParameterNode]) -> None:
-        """
-        Set and observe parameter node.
-        Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
-        """
-
+        """Set and observe parameter node."""
         if self._parameterNode:
             self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
-            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
+            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._onParameterNodeModified)
         self._parameterNode = inputParameterNode
         if self._parameterNode:
-            # Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each
-            # ui element that needs connection.
             self._parameterNodeGuiTag = self._parameterNode.connectGui(self.ui)
-            self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
-            self._checkCanApply()
+            self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._onParameterNodeModified)
+            self._syncUiFromParameterNode()
+
+    def _onParameterNodeModified(self, caller=None, event=None) -> None:
+        """Called whenever the parameter node changes; keeps derived UI state in sync."""
+        if self._parameterNode is None:
+            return
+        # Propagate moveGroupExists flag to logic
+        if self.logic:
+            self.logic.useMoveItIK = self._parameterNode.moveGroupExists
+        self._syncUiFromParameterNode()
+
+    def _syncUiFromParameterNode(self) -> None:
+        """Push parameter-node values into widgets that are not auto-connected via SlicerParameterName."""
+        if self._syncingFromParameterNode or not self.logic or not self._parameterNode or not self._parameterNode.robotNodeID:
+            return
+
+        # If UI hasn't been activated for this robot yet, do it now.
+        if self.robot is None or self.robot.GetID() != self._parameterNode.robotNodeID:
+            robotNode = slicer.mrmlScene.GetNodeByID(self._parameterNode.robotNodeID)
+            if robotNode:
+                self._syncingFromParameterNode = True
+                try:
+                    # Ensure the backend logic is fully set up (idempotent)
+                    if self.logic.SetupRobotForMotionControl(self._parameterNode):
+                        self._activateRobotUi(robotNode)
+                finally:
+                    self._syncingFromParameterNode = False
 
     def _checkCanApply(self, caller=None, event=None) -> None:
         pass
 
     def onUseButton(self) -> None:
-            
-            # Stop any prior streaming callbacks
-            self.logic.removeObserver()
-            self.logic.ClearJointStateSubscriber()
-            
-            # Get robot node
-            robotNode = self.ui.ikrobotcombobox.currentNode()
-            if not robotNode:
-                print("Error: No robot selected.")
+        """Handler for the *Use Robot* button: initialises motion control for the selected robot and activates the UI."""
+        # Stop any prior streaming callbacks
+        self.logic.removeObserver()
+        self.logic.ClearJointStateSubscriber()
+
+        # Get robot node
+        robotNode = self.ui.ikrobotcombobox.currentNode()
+        if not robotNode:
+            print("Error: No robot selected.")
+            return
+
+        if self._parameterNode:
+            self._syncingFromParameterNode = True
+            try:
+                # Update topic from UI if necessary before setup
+                self._parameterNode.jointStateTopic = self.ui.jointStateTopicLineEdit.text.strip() or "joint_states"
+                self._parameterNode.robotNodeID = robotNode.GetID()
+            finally:
+                self._syncingFromParameterNode = False
+            if not self.logic.SetupRobotForMotionControl(self._parameterNode):
                 return
 
-            # Extract URDF XML
-            pnode = robotNode.GetNthNodeReference("parameter", 0)
-            if not pnode:
-                print("Error: No parameter node found for robot.")
-                return
-            urdf_xml = pnode.GetParameterAsString("robot_description")
-            self.urdf_xml = urdf_xml
+        self._activateRobotUi(robotNode)
 
-            # Auto-detect Root and Tip Links
-            rootandtip = robotNode.FindRootAndTipLinks()
-            if rootandtip and len(rootandtip) >= 2:
-                self.rootlink, self.tiplink = rootandtip[0], rootandtip[1]
-            else:
-                print("Error: Could not auto-detect root and tip links from URDF.")
-                return
-            
-            # Load in goal robot and set parameters
-            status = robotNode.CreateGoalStateRobot(robotNode)
-            if not status:
-                print("Error: Failed to create goal state robot.")
-                return
-            print("Goal robot created successfully.")
-            # Keep plain link name; resolver will map link -> model node for goal robot.
+    def _activateRobotUi(self, robotNode) -> None:
+        """Initializes the UI state (sliders, buttons) for the given robot."""
+        self.robot = robotNode
+        rootandtip = robotNode.FindRootAndTipLinks()
+        if rootandtip and len(rootandtip) >= 2:
+            self.rootlink, self.tiplink = rootandtip[0], rootandtip[1]
             self.goaltiplink = self.tiplink
-        
-            # Print current postiion
-            currentjointpos =self.logic.getCurrentJointPositions(robotNode)
 
-            # Get joint names & store initial joint positions
-            joint_names = robotNode.GetJoints()
-            self.logic.joint_names = joint_names
-            self.logic.last_ik_solution = currentjointpos
-            self.jointPositionsRad = currentjointpos.copy() if currentjointpos else [0.0] * len(joint_names)
-            self.robot = robotNode
+        if self._parameterNode:
+            self.motionControlNode = slicer.mrmlScene.GetNodeByID(self._parameterNode.motionControlNodeID)
 
-            goal_rgb = self.logic.getGoalRobotColor(self.robot)
-            if goal_rgb is not None:
-                color = qt.QColor()
-                color.setRgbF(goal_rgb[0], goal_rgb[1], goal_rgb[2])
-                self.ui.robotColorButton.blockSignals(True)
-                self.ui.robotColorButton.color = color
-                self.ui.robotColorButton.blockSignals(False)
+        joint_names = self.logic.joint_names
 
-            topic_name = self.ui.jointStateTopicLineEdit.text.strip()
-            if not self.logic.ConfigureJointStateSubscriber(robotNode, topic_name):
-                print("Warning: Failed to configure JointState subscriber.")
-            
-            # Print results
-            if DEBUG:
-                print(f"CURRENT: Root link={self.rootlink}, Tip link={self.tiplink}, Goal Tip Link={self.goaltiplink}")
-                print(f"Current Joint Positions (rad): {[f'{j:.4f}' for j in currentjointpos]}")
-            
-            # Enable buttons
-            self.ui.appCollapsibleButton.collapsed = False
-            self.ui.appCollapsibleButton.enabled = True
-            self.ui.jointStateCollapsibleButton.collapsed = False
-            self.ui.jointStateCollapsibleButton.enabled = True
-            self.ui.moveitCollapsibleButton.collapsed = False
-            self.ui.moveitCollapsibleButton.enabled = True
-            
-            # Check if /move_group node exists and goal robot in ROS
-            # if so enable MoveIt buttons
-            # is_running = _check_ros2_node_running("/move_group")
-            # if is_running:
-            #     self.ui.planButton.enabled = True
-            #     self.ui.previewButton.enabled = True
-            #     self.ui.checkBox.enabled = True
-            #     self.ui.planGroupLabel.enabled = True
-            #     self.ui.planGroupLineEdit.enabled = True
-            #     print(f"/move_group node is running")
-            #     print(f"User must enter planning group name before using MoveIt IK")
-            # else:
-            #     if not is_running:
-            #         print(f"/move_group node is NOT running")
-            
-            # If the user previously checked the box, we can trigger the logic explicitly, 
-            # but since it's a checkbox, they can just check it manually now if they want.
+        goal_rgb = self.logic.GetGoalRobotColor(self.robot)
+        if goal_rgb is not None:
+            color = qt.QColor()
+            color.setRgbF(goal_rgb[0], goal_rgb[1], goal_rgb[2])
+            self.ui.robotColorButton.blockSignals(True)
+            self.ui.robotColorButton.color = color
+            self.ui.robotColorButton.blockSignals(False)
+            if self._parameterNode is not None:
+                self._parameterNode.goalColor = color.name()
 
-            # Try to populate planning group dropdown from /move_group's SRDF parameter
-            self._setupMoveGroupDropdown(robotNode)
+        if self._parameterNode is not None:
+            trajectoryPathColor = qt.QColor(self._parameterNode.trajectoryPathColor)
+            if not trajectoryPathColor.isValid():
+                trajectoryPathColor = qt.QColor("#FF8000")
+            self.ui.trajectoryPathColorButton.blockSignals(True)
+            self.ui.trajectoryPathColorButton.color = trajectoryPathColor
+            self.ui.trajectoryPathColorButton.blockSignals(False)
 
-            # Create Joint Sliders Dynamically (only if goal model exists)
-            self.ui.zeroPushButton.enabled = True
-            self.ui.currentStatePushButton.enabled = True
-            self.ui.zeroPushButton3DControl.enabled = True
-            self.ui.lastGoalPushButton3DControl.enabled = True
-            self.ui.currentStatePushButton3DControl.enabled = True
-            limits = self.logic.findJointLimitsFromURDF(urdf_xml)
-            container = self.ui.JointTab.layout()
-            if container is not None:
-                # FIX: Iterate backwards to delete dynamic items but KEEP the zero button
-                for i in reversed(range(container.count())):
-                    item = container.itemAt(i)
-                    widget = item.widget()
-                    
-                    # If this is your specific button, skip it!
-                    if widget == self.ui.zeroPushButton:
-                        continue
-                        
-                    # Otherwise, remove from layout and destroy
-                    if widget is not None:
-                        container.takeAt(i)
-                        widget.deleteLater()
+        # Seed initial joint positions from /joint_states; fall back to zeros.
+        initial_joint_pos = self.logic.GetCurrentJointState(joint_names)
+        if not initial_joint_pos:
+            print("Warning: No joint state message received yet; initializing to zeros. Sliders will update automatically.")
+            initial_joint_pos = [0.0] * len(joint_names)
+            self._sliderInitRetryCount = 0
+            qt.QTimer.singleShot(200, self._trySyncSlidersFromJointState)
+        self.logic.last_ik_solution = initial_joint_pos
+        self.jointPositionsRad = list(initial_joint_pos)
 
-                # Create sliders dynamically
-                self.jointSliders = []
-                self.jointSpinboxes = []
-                for i, joint_name in enumerate(joint_names):
-                    # --- 1. SETUP MAIN CONTAINER (Vertical: Label Top, Controls Bottom) ---
-                    joint_block_widget = qt.QWidget()
-                    joint_block_layout = qt.QVBoxLayout(joint_block_widget)
-                    joint_block_layout.setContentsMargins(0, 5, 0, 5) # Add small vertical spacing between joints
-                    joint_block_layout.setSpacing(2) # Reduce gap between label and slider
+        if DEBUG:
+            print(f"CURRENT: Root link={self.rootlink}, Tip link={self.tiplink}, Goal Tip Link={self.goaltiplink}")
+            print(f"Initial Joint Positions (rad): {[f'{j:.4f}' for j in initial_joint_pos]}")
 
-                    # --- 2. SETUP CONTROLS CONTAINER (Horizontal: Slider Left, Spinbox Right) ---
-                    controls_layout = qt.QHBoxLayout()
-                    controls_layout.setContentsMargins(0, 0, 0, 0)
+        # Enable buttons
+        self.ui.appCollapsibleButton.collapsed = False
+        self.ui.appCollapsibleButton.enabled = True
+        self.ui.jointStateCollapsibleButton.collapsed = False
+        self.ui.jointStateCollapsibleButton.enabled = True
+        self.ui.moveitCollapsibleButton.collapsed = False
+        self.ui.moveitCollapsibleButton.enabled = True
 
-                    # Create Widgets
-                    joint_label = qt.QLabel(joint_name)
-                    # Optional: Make label bold or smaller if you want
-                    # joint_label.setStyleSheet("font-weight: bold;")
-                    
-                    joint_slider = qt.QSlider(qt.Qt.Horizontal)
-                    joint_spinbox = qt.QDoubleSpinBox()
+        # Try to populate planning group dropdown from /move_group's SRDF parameter
+        self._setupMoveGroupDropdown(robotNode)
+        if self._parameterNode is not None:
+            move_group_exists = self._parameterNode.moveGroupExists
+            if self.ui.moveGroupExistsCheckBox.checked != move_group_exists:
+                was_blocked = self.ui.moveGroupExistsCheckBox.blockSignals(True)
+                self.ui.moveGroupExistsCheckBox.checked = move_group_exists
+                self.ui.moveGroupExistsCheckBox.blockSignals(was_blocked)
+            self.onMoveGroupExistsToggled(move_group_exists)
 
-                    # --- 3. CALCULATE LIMITS ---
-                    lo_hi = limits.get(joint_name)
-                    if lo_hi:
-                        jtype = lo_hi[2] if len(lo_hi) > 2 else "revolute"
-                        if jtype == "prismatic":
-                            lo_ui = lo_hi[0] * 1000.0
-                            hi_ui = lo_hi[1] * 1000.0
-                        else:
-                            lo_ui = math.degrees(lo_hi[0])
-                            hi_ui = math.degrees(lo_hi[1])
+        self.updateObstacleTable()
 
-                        if lo_ui > hi_ui:
-                            lo_ui, hi_ui = hi_ui, lo_ui
-                    else:
-                        jtype = "revolute"
-                        lo_ui, hi_ui = -180.0, 180.0
+        # Create Joint Sliders Dynamically
+        self.ui.zeroPushButton.enabled = True
+        self.ui.currentStatePushButton.enabled = True
+        self.ui.zeroPushButton3DControl.enabled = True
+        self.ui.lastGoalPushButton3DControl.enabled = True
+        self.ui.currentStatePushButton3DControl.enabled = True
+        self.refreshTrajectoryUi()
 
-                    lo_ui_int = int(round(lo_ui))
-                    hi_ui_int = int(round(hi_ui))
+        # Build joint limit dict from C++ robot node
+        _lower_list = list(robotNode.GetJointLowerPositionLimits())
+        _upper_list = list(robotNode.GetJointUpperPositionLimits())
+        _type_list  = list(robotNode.GetJointTypes())
+        limits = {
+            name: (_lower_list[i], _upper_list[i], _type_list[i])
+            for i, name in enumerate(joint_names)
+            if i < len(_lower_list)
+        }
+        container = self.ui.JointTab.layout()
+        if container is not None:
+            # FIX: Iterate backwards to delete dynamic items but KEEP the zero button
+            for i in reversed(range(container.count())):
+                item = container.itemAt(i)
+                widget = item.widget()
 
-                    # Determine initial value
-                    initial_val_rad = currentjointpos[i] if currentjointpos and i < len(currentjointpos) else 0.0
-                    
+                # If this is your specific button, skip it!
+                if widget == self.ui.zeroPushButton:
+                    continue
+
+                # Otherwise, remove from layout and destroy
+                if widget is not None:
+                    container.takeAt(i)
+                    widget.deleteLater()
+
+            # Create sliders dynamically
+            self.jointSliders = []
+            self.jointSpinboxes = []
+            for i, joint_name in enumerate(joint_names):
+                # --- 1. SETUP MAIN CONTAINER (Vertical: Label Top, Controls Bottom) ---
+                joint_block_widget = qt.QWidget()
+                joint_block_layout = qt.QVBoxLayout(joint_block_widget)
+                joint_block_layout.setContentsMargins(0, 5, 0, 5) # Add small vertical spacing between joints
+                joint_block_layout.setSpacing(2) # Reduce gap between label and slider
+
+                # --- 2. SETUP CONTROLS CONTAINER (Horizontal: Slider Left, Spinbox Right) ---
+                controls_layout = qt.QHBoxLayout()
+                controls_layout.setContentsMargins(0, 0, 0, 0)
+
+                # Create Widgets
+                joint_label = qt.QLabel(joint_name)
+                # Optional: Make label bold or smaller if you want
+                # joint_label.setStyleSheet("font-weight: bold;")
+
+                joint_slider = qt.QSlider(qt.Qt.Horizontal)
+                joint_spinbox = qt.QDoubleSpinBox()
+
+                # --- 3. CALCULATE LIMITS ---
+                lo_hi = limits.get(joint_name)
+                if lo_hi:
+                    jtype = lo_hi[2] if len(lo_hi) > 2 else "revolute"
                     if jtype == "prismatic":
-                        initial_val_ui = initial_val_rad * 1000.0
+                        lo_ui = lo_hi[0] * 1000.0
+                        hi_ui = lo_hi[1] * 1000.0
                     else:
-                        initial_val_ui = math.degrees(initial_val_rad)
-                        
-                    initial_val_ui_int = int(round(initial_val_ui))
-                    initial_val_ui_int = max(lo_ui_int, min(hi_ui_int, initial_val_ui_int))
-                    
-                    # Store jtype on UI elements for later use
-                    joint_slider.setProperty("jtype", jtype)
-                    joint_spinbox.setProperty("jtype", jtype)
+                        lo_ui = math.degrees(lo_hi[0])
+                        hi_ui = math.degrees(lo_hi[1])
 
-                    # --- 4. CONFIGURE SLIDER ---
-                    joint_slider.setMinimum(lo_ui_int)
-                    joint_slider.setMaximum(hi_ui_int)
-                    joint_slider.setValue(initial_val_ui_int)
-                    joint_slider.setTickInterval(10)
-                    joint_slider.setTickPosition(qt.QSlider.TicksBelow)
+                    if lo_ui > hi_ui:
+                        lo_ui, hi_ui = hi_ui, lo_ui
+                else:
+                    jtype = "revolute"
+                    lo_ui, hi_ui = -180.0, 180.0
 
-                    # --- 5. CONFIGURE SPINBOX ---
-                    joint_spinbox.setMinimum(lo_ui)
-                    joint_spinbox.setMaximum(hi_ui)
-                    
-                    if jtype == "prismatic":
-                        joint_spinbox.setSingleStep(1.0)
-                        joint_spinbox.setSuffix(" mm")
-                    else:
-                        joint_spinbox.setSingleStep(1.0)
-                        joint_spinbox.setSuffix(" deg")
-                        
-                    joint_spinbox.setValue(initial_val_ui)
+                lo_ui_int = int(round(lo_ui))
+                hi_ui_int = int(round(hi_ui))
 
-                    # --- 6. SYNC LOGIC ---
-                    # A. Slider moves -> Update Spinbox
-                    joint_slider.valueChanged.connect(lambda val, sb=joint_spinbox: sb.setValue(val))
+                # Determine initial value
+                initial_val_rad = self.jointPositionsRad[i] if self.jointPositionsRad and i < len(self.jointPositionsRad) else 0.0
 
-                    # B. Spinbox changes -> Update Slider AND IK Logic
-                    joint_spinbox.valueChanged.connect(lambda val, sl=joint_slider: sl.setValue(int(round(val))))
-                    joint_spinbox.valueChanged.connect(lambda value, idx=i: self.onJointSliderChanged(idx, value))
+                if jtype == "prismatic":
+                    initial_val_ui = initial_val_rad * 1000.0
+                else:
+                    initial_val_ui = math.degrees(initial_val_rad)
 
-                    # --- 7. ADD TO LAYOUTS ---
-                    
-                    # Add Slider + Spinbox to the Horizontal controls layout
-                    controls_layout.addWidget(joint_slider)
-                    controls_layout.addWidget(joint_spinbox)
-                    
-                    # Add Label and the Controls Layout to the Main Vertical Block
-                    joint_block_layout.addWidget(joint_label)
-                    joint_block_layout.addLayout(controls_layout)
-                    
-                    # Add the whole block to your main container
-                    container.addWidget(joint_block_widget)
-                    self.jointSliders.append(joint_slider)
-                    self.jointSpinboxes.append(joint_spinbox)
-            
-            # Set robot true
-            self.isRobotLoaded = True
+                initial_val_ui_int = int(round(initial_val_ui))
+                initial_val_ui_int = max(lo_ui_int, min(hi_ui_int, initial_val_ui_int))
+
+                # Store jtype on UI elements for later use
+                joint_slider.setProperty("jtype", jtype)
+                joint_spinbox.setProperty("jtype", jtype)
+
+                # --- 4. CONFIGURE SLIDER ---
+                joint_slider.setMinimum(lo_ui_int)
+                joint_slider.setMaximum(hi_ui_int)
+                joint_slider.setValue(initial_val_ui_int)
+                joint_slider.setTickInterval(10)
+                joint_slider.setTickPosition(qt.QSlider.TicksBelow)
+
+                # --- 5. CONFIGURE SPINBOX ---
+                joint_spinbox.setMinimum(lo_ui)
+                joint_spinbox.setMaximum(hi_ui)
+
+                if jtype == "prismatic":
+                    joint_spinbox.setSingleStep(1.0)
+                    joint_spinbox.setSuffix(" mm")
+                else:
+                    joint_spinbox.setSingleStep(1.0)
+                    joint_spinbox.setSuffix(" deg")
+
+                joint_spinbox.setValue(initial_val_ui)
+
+                # --- 6. SYNC LOGIC ---
+                # A. Slider moves -> Update Spinbox
+                joint_slider.valueChanged.connect(lambda val, sb=joint_spinbox: sb.setValue(val))
+
+                # B. Spinbox changes -> Update Slider AND IK Logic
+                joint_spinbox.valueChanged.connect(lambda val, sl=joint_slider: sl.setValue(int(round(val))))
+                joint_spinbox.valueChanged.connect(lambda value, idx=i: self.onJointSliderChanged(idx, value))
+
+                # --- 7. ADD TO LAYOUTS ---
+
+                # Add Slider + Spinbox to the Horizontal controls layout
+                controls_layout.addWidget(joint_slider)
+                controls_layout.addWidget(joint_spinbox)
+
+                # Add Label and the Controls Layout to the Main Vertical Block
+                joint_block_layout.addWidget(joint_label)
+                joint_block_layout.addLayout(controls_layout)
+
+                # Add the whole block to your main container
+                container.addWidget(joint_block_widget)
+                self.jointSliders.append(joint_slider)
+                self.jointSpinboxes.append(joint_spinbox)
+
+        # Set robot true
+        self.isRobotLoaded = True
 
     # Opacity slider handler
     def onOpacitySliderChanged(self, value: int) -> None:
+        """Handler for the opacity slider: updates the display opacity of all robot model parts."""
         if self.logic is None or self.robot is None:
             return
         opacity = value / 100.0
         self.logic.setOpacity(self.robot, opacity)
-    
-    # Robot color button handler    
+
+    # Robot color button handler
     def onRobotColorChanged(self) -> None:
+        """Handler for the goal-robot color button: applies the new colour to all goal model parts and persists it in the parameter node."""
         if self.logic is None or self.robot is None:
             return
         color = self.ui.robotColorButton.color
         self.logic.setGoalRobotColor(self.robot, color)
-        # Update logic's base color cache so it doesn't snap back to old color
-        self.logic.baseGoalColor = (color.redF(), color.greenF(), color.blueF())
-        
+        # Persist the new goal color in the parameter node
+        if self._parameterNode is not None:
+            self._parameterNode.goalColor = color.name()
+
+    def onTrajectoryPathColorChanged(self) -> None:
+        """Handler for the trajectory path color button."""
+        color = self.ui.trajectoryPathColorButton.color
+        if self._parameterNode is not None:
+            self._parameterNode.trajectoryPathColor = color.name()
+        if self.trajectoryPolylineModelNode is None:
+            return
+        displayNode = self.trajectoryPolylineModelNode.GetDisplayNode()
+        if displayNode is not None:
+            displayNode.SetColor(color.redF(), color.greenF(), color.blueF())
+
     # Joint slider change handler
     def onJointSliderChanged(self, idx: int, value: float) -> None:
+        """Handler for joint slider / spinbox changes: converts the UI value (deg or mm) to radians/metres, stores it, and updates the goal robot."""
         # Ensure array is large enough
         while len(self.jointPositionsRad) <= idx:
             self.jointPositionsRad.append(0.0)
-            
+
         jtype = self.jointSliders[idx].property("jtype") if idx < len(self.jointSliders) else "revolute"
-        
+
         if jtype == "prismatic":
             self.jointPositionsRad[idx] = value / 1000.0
         else:
@@ -654,12 +683,15 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         # Update goal robot transforms with new joint positions
         if self.logic is not None and self.robot is not None:
             self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
+            # Keep last_ik_solution in sync so onPlanButton uses the slider-driven goal
+            self.logic.last_ik_solution = self.jointPositionsRad.copy()
         if DEBUG:
             print(f"All joint values (rad/m): {[f'{j:.4f}' for j in self.jointPositionsRad]}")
-    
+
     # Zero button handler
     def onZeroButton(self) -> None:
-        
+        """Handler for the *Zero* button: resets all joint sliders and the goal robot to the zero configuration."""
+
         print("Resetting joint sliders to zero.")
 
         container = self.ui.JointTab.layout()
@@ -667,21 +699,21 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
 
         sliders_found = []
-        
+
         # 1. Iterate through the main layout to find the Row Widgets
         for i in range(container.count()):
             item = container.itemAt(i)
             widget = item.widget()
-            
+
             # Skip empty items or the zero button itself
             if widget is None or widget == self.ui.zeroPushButton:
                 continue
-            
+
             # 2. Look INSIDE the widget for the Slider and Spinbox
             # findChild searches the children of the widget
             slider = widget.findChild(qt.QSlider)
             spinbox = widget.findChild(qt.QDoubleSpinBox)
-            
+
             # If both exist, this is a valid joint row
             if slider and spinbox:
                 sliders_found.append((slider, spinbox))
@@ -692,14 +724,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # 3. Reset values
         for slider, spinbox in sliders_found:
-            # Block signals on BOTH so we don't trigger 6 separate IK updates 
+            # Block signals on BOTH so we don't trigger 6 separate IK updates
             # or cause the two widgets to fight each other
             slider.blockSignals(True)
             spinbox.blockSignals(True)
-            
+
             slider.setValue(0)
             spinbox.setValue(0)
-            
+
             slider.blockSignals(False)
             spinbox.blockSignals(False)
 
@@ -720,7 +752,29 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if DEBUG:
             print("Probe (Last Goal) snapped to goal robot tip.")
 
+    def _trySyncSlidersFromJointState(self) -> None:
+        """Retry syncing sliders from the joint state subscriber.
+        Called by a QTimer when the subscriber had no data at slider-build time.
+        Retries every 200 ms for up to 5 seconds."""
+        if not self.jointSliders or self.logic is None or self.robot is None:
+            return  # sliders were torn down or module unloaded
+        joint_names = list(self.robot.GetJoints())
+        live = self.logic.GetCurrentJointState(joint_names)
+        if live:
+            self.jointPositionsRad = live
+            self.logic.last_ik_solution = live.copy()
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, live)
+            self._setJointUi_SIToSlicer(live)
+            self._syncProbeToCurrentTipPose()
+            print("Joint sliders initialized from live /joint_states.")
+        elif self._sliderInitRetryCount < 25:  # up to ~5 s
+            self._sliderInitRetryCount += 1
+            qt.QTimer.singleShot(200, self._trySyncSlidersFromJointState)
+        else:
+            print("Warning: /joint_states not received after 5 s; sliders remain at zero.")
+
     def onCurrentStateButton(self) -> None:
+        """Handler for the *Current State* button: reads live joint positions from the JointState subscriber and synchronises sliders and the goal robot."""
         if self.logic is None or self.robot is None:
             print("Current state: robot is not initialized")
             return
@@ -730,7 +784,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print("Current state: no joints found on robot")
             return
 
-        joint_values = self.logic.CurrentJointState(joint_names)
+        joint_values = self.logic.GetCurrentJointState(joint_names)
         if not joint_values:
             print("Current state: failed to read positions from JointState subscriber")
             return
@@ -773,20 +827,20 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 break
             slider = self.jointSliders[i]
             spinbox = self.jointSpinboxes[i]
-            
+
             jtype = slider.property("jtype")
             if jtype == "prismatic":
                 ui_val = val * 1000.0
             else:
                 ui_val = math.degrees(val)
-                
+
             ui_val_int = int(round(ui_val))
-            
+
             lo = slider.minimum
             hi = slider.maximum
             clamped_int = max(lo, min(hi, ui_val_int))
             clamped_float = max(spinbox.minimum, min(spinbox.maximum, ui_val))
-            
+
             slider.blockSignals(True)
             spinbox.blockSignals(True)
             slider.setValue(clamped_int)
@@ -794,21 +848,128 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             slider.blockSignals(False)
             spinbox.blockSignals(False)
 
+    def onAddObstacle(self) -> None:
+        """Handler for the *Add Obstacle* button: publishes the selected model to the MoveIt planning scene and registers a ModifiedEvent observer to keep it in sync."""
+        modelNode = self.ui.obstacleModelComboBox.currentNode()
+        if not modelNode:
+            return
+
+        frameId = self.ui.obstacleFrameLineEdit.text.strip()
+        if not frameId:
+            frameId = "world"
+
+        modelID = modelNode.GetID()
+        self._removeObstacleTfObserver(modelID)
+
+        if self.ui.obstacleTrackTransformCheckBox.checked:
+            broadcaster, observerTag = self.logic.AddMoveItObstacleWithTransform(
+                modelNode,
+                modelNode.GetParentTransformNode(),
+                frameId,
+                self.robot
+            )
+            if broadcaster is None:
+                return
+            transformNode = modelNode.GetParentTransformNode()
+            if transformNode is not None and observerTag is not None:
+                self.obstacleTfObservers[modelID] = (transformNode, observerTag, broadcaster)
+        else:
+            if not self.logic.AddMoveItObstacle(modelNode, frameId, self.robot):
+                return
+
+        self.obstaclePublishers[modelID] = modelNode
+        self.removeObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+        self.addObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+
+        self.updateObstacleTable()
+        print(f"Obstacle {modelNode.GetName()} added to MoveIt planning scene.")
+
+    def onObstacleModified(self, caller, event) -> None:
+        """MRML ModifiedEvent callback: re-publishes a collision object to MoveIt whenever its source model node changes."""
+        if caller and caller.GetAttribute(self.logic.MOVEIT_OBSTACLE_ATTRIBUTE):
+            self.logic.PublishMoveItObstacle(caller, robotNode=self.robot)
+
+    def removeObstacle(self, modelID) -> None:
+        """Remove an obstacle from the MoveIt planning scene, stop observing it, and refresh the obstacle table."""
+        modelNode = slicer.mrmlScene.GetNodeByID(modelID)
+        if modelNode:
+            self.logic.RemoveMoveItObstacle(modelNode, self.robot)
+            self.removeObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+        self._removeObstacleTfObserver(modelID)
+
+        if modelID in self.obstaclePublishers:
+            del self.obstaclePublishers[modelID]
+        self.updateObstacleTable()
+
+    def _removeObstacleTfObserver(self, modelID) -> None:
+        tfObserver = self.obstacleTfObservers.pop(modelID, None)
+        if not tfObserver:
+            return
+        transformNode, observerTag, _broadcaster = tfObserver
+        if transformNode is not None and observerTag is not None:
+            try:
+                transformNode.RemoveObserver(observerTag)
+            except Exception:
+                pass
+
+    def updateObstacleTable(self) -> None:
+        """Rebuild the obstacle table widget from the current set of MoveIt obstacle model nodes."""
+        self.ui.obstaclesTable.setRowCount(0)
+        self.obstaclePublishers = {
+            modelID: modelNode
+            for modelID, modelNode, _frameId in self.logic.GetMoveItObstacles()
+        }
+        for modelID, modelNode in self.obstaclePublishers.items():
+            self.removeObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+            self.addObserver(modelNode, vtk.vtkCommand.ModifiedEvent, self.onObstacleModified)
+            row = self.ui.obstaclesTable.rowCount
+            self.ui.obstaclesTable.insertRow(row)
+
+            # Model Name
+            name = modelNode.GetName() if modelNode else modelID
+            self.ui.obstaclesTable.setItem(row, 0, qt.QTableWidgetItem(name))
+
+            # Frame ID
+            frameId = modelNode.GetAttribute(self.logic.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE) or "world"
+            self.ui.obstaclesTable.setItem(row, 1, qt.QTableWidgetItem(frameId))
+
+            # Action Button
+            removeBtn = qt.QPushButton("Remove")
+            removeBtn.clicked.connect(lambda checked, mID=modelID: self.removeObstacle(mID))
+            self.ui.obstaclesTable.setCellWidget(row, 2, removeBtn)
+
     def onMoveGroupExistsToggled(self, toggled: bool) -> None:
+        """Handler for the *Move Group Exists* checkbox: enables or disables the MoveIt-specific UI controls and IK backend."""
         self.ui.planGroupLabel.enabled = toggled
         self.ui.planGroupComboBox.enabled = toggled
-
+        self.ui.endEffectorLinkLabel.enabled = toggled
+        self.ui.endEffectorLinkComboBox.enabled = toggled
+        self.ui.planningTimeLabel.enabled = toggled
+        self.ui.planningTimeSpinBox.enabled = toggled
+        # Persist to parameter node
+        if self._parameterNode is not None:
+            self._parameterNode.moveGroupExists = toggled
         if toggled:
             print("Move Group Exists checked: MoveIt functionality enabled")
             self.logic.useMoveItIK = True
             group = self.ui.planGroupComboBox.currentText
             if group and self.robot:
-                self.robot.setupIKmoveit(group)
+                self.logic.SetupMoveItPlanningGroup(self.robot, group)
             self.ui.planButton.enabled = True
         else:
             self.logic.useMoveItIK = False
             self.ui.planButton.enabled = False
             self.ui.previewButton.enabled = False
+            self.ui.executeButton.enabled = False
+
+        # If a simple-generator trajectory is already planned, update execute availability
+        if self.trajectoryData is not None:
+            generators = TrajectoryGenerators.get_all()
+            idx = self.ui.generatorComboBox.currentIndex
+            if 0 <= idx < len(generators):
+                is_moveit_gen = isinstance(generators[idx], TrajectoryGenerators.MoveItTrajectoryGenerator)
+                if not is_moveit_gen:
+                    self.ui.executeButton.enabled = toggled
 
     def onPlanGroupActivated(self, index: int) -> None:
         """Called when the user selects or confirms a planning group from the combobox."""
@@ -816,29 +977,18 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
         group = self.ui.planGroupComboBox.currentText
         if group:
-            self.robot.setupIKmoveit(group)
+            if self._parameterNode is not None:
+                self._parameterNode.planningGroup = group
+            self.logic.SetupMoveItPlanningGroup(self.robot, group)
             print(f"Planning group set to: {group}")
 
     def _setupMoveGroupDropdown(self, robotNode) -> None:
         """Fetch robot_description_semantic from /move_group and populate planGroupComboBox."""
         self._moveGroupParamNode = None
-
-        # The robot node holds a reference to its vtkMRMLROS2NodeNode under role "node"
-        ros2Node = robotNode.GetNodeReference("node")
-        if ros2Node is None:
-            # Fall back: first ROS2 node in the scene
-            ros2Node = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2NodeNode")
-
-        if ros2Node is None:
-            return
-
-        nodeId = ros2Node.GetID()
-
         try:
-            paramNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2ParameterNode")
-            paramNode.SetName("_moveGroupSRDFParam")
-            paramNode.AddToROS2Node(nodeId, "/move_group")
-            paramNode.AddParameter("robot_description_semantic")
+            paramNode = self.logic.CreateMoveGroupSRDFParameterNode(robotNode)
+            if paramNode is None:
+                return
             self._moveGroupParamNode = paramNode
 
             # If already available (e.g. cached), populate immediately
@@ -853,36 +1003,62 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print(f"Warning: Could not set up move group parameter monitoring: {e}")
 
     def _onMoveGroupSRDFReceived(self, caller=None, event=None) -> None:
-        """Parse SRDF XML from /move_group and populate planGroupComboBox."""
+        """Parse SRDF XML from /move_group, populate planGroupComboBox and endEffectorLinkComboBox."""
         if self._moveGroupParamNode is None:
             return
         srdf_xml = self._moveGroupParamNode.GetParameterAsString("robot_description_semantic")
-        if not srdf_xml:
-            return
-
-        try:
-            root = ET.fromstring(srdf_xml)
-            groups = [g.get("name") for g in root.findall("group") if g.get("name")]
-        except ET.ParseError as e:
-            print(f"Warning: Failed to parse SRDF XML: {e}")
-            return
+        groups, end_effectors = self.logic.ParseMoveGroupSRDF(srdf_xml)
 
         if not groups:
             return
 
+        # --- Planning group combo ---
         combo = self.ui.planGroupComboBox
-        current = combo.currentText
+        current = self._parameterNode.planningGroup if self._parameterNode is not None else combo.currentText
         combo.blockSignals(True)
         combo.clear()
         for g in groups:
             combo.addItem(g)
-        # Restore previous selection if it's still valid, otherwise take first
         idx = combo.findText(current)
         combo.setCurrentIndex(idx if idx >= 0 else 0)
         combo.blockSignals(False)
+        if self._parameterNode is not None:
+            selected = combo.currentText
+            if selected:
+                self._parameterNode.planningGroup = selected
         print(f"Planning groups available: {groups}")
 
-        # Remove the observer — no need to keep listening once groups are populated
+        # --- End effector link combo ---
+        self._srdfEndEffectors = end_effectors
+        eeCombo = self.ui.endEffectorLinkComboBox
+        eeCombo.blockSignals(True)
+        eeCombo.clear()
+        for ee in end_effectors:
+            # Display as "name (parent_link)" so the user sees both pieces of info
+            eeCombo.addItem(f"{ee['name']} ({ee['parent_link']})", ee["parent_link"])
+        # Pre-select the entry whose parent_link matches the current tiplink (from URDF traversal)
+        preselect_idx = -1
+        if self.tiplink:
+            for i, ee in enumerate(end_effectors):
+                if ee["parent_link"] == self.tiplink:
+                    preselect_idx = i
+                    break
+        eeCombo.setCurrentIndex(preselect_idx if preselect_idx >= 0 else 0)
+        eeCombo.blockSignals(False)
+        if end_effectors:
+            # Apply the selected entry immediately so tiplink is authoritative
+            selected_link = eeCombo.itemData(eeCombo.currentIndex)
+            if selected_link:
+                self.tiplink = selected_link
+                self.goaltiplink = selected_link
+                if self.logic is not None:
+                    self.logic.tipLink = selected_link
+            print(f"End effectors available: {[ee['name'] for ee in end_effectors]}")
+            print(f"Active end effector link: {self.tiplink}")
+        else:
+            print("No end_effector elements found in SRDF; tip link unchanged.")
+
+        # Remove the observer — no need to keep listening once populated
         if self._moveGroupParamObsId is not None:
             try:
                 self._moveGroupParamNode.RemoveObserver(self._moveGroupParamObsId)
@@ -890,28 +1066,74 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 pass
             self._moveGroupParamObsId = None
 
-            
-    def onTabChanged(self, index):
-            if not self.isRobotLoaded:
-                return
-            
-            # 1. Get the widget that is currently visible
-            current_widget = self.ui.tabWidget.widget(index)
-            
-            # 2. Check: Is this widget MY control tab?
-            if current_widget == self.ui.controlTab:
-                # Call your start function here
-                self.enterControlMode()
-                
-            else:
-                self.exitControlMode()
-                # Restore goal robot color to normal when leaving control mode
-                if self.logic and self.robot and self.logic.baseGoalColor:
-                    self.logic.setGoalRobotColorRGB(self.robot, self.logic.baseGoalColor)
 
-                # Keep joint control synchronized with the latest IK pose from 3D control.
-                if current_widget == self.ui.JointTab:
-                    self._syncJointUiFromLatestSolution()
+    def onEndEffectorLinkActivated(self, index: int) -> None:
+        """Called when the user selects an end-effector link from the dropdown.
+        Updates tiplink/goaltiplink so subsequent IK calls use the correct frame.
+        """
+        eeCombo = self.ui.endEffectorLinkComboBox
+        link = eeCombo.itemData(index)
+        if not link:
+            # Editable combo: user may have typed a raw link name
+            link = eeCombo.currentText.strip()
+        if not link:
+            return
+        self.tiplink = link
+        self.goaltiplink = link
+        if self.logic is not None:
+            self.logic.tipLink = link
+        if self.robot is not None:
+            print(f"End effector link set to: {link}")
+        if self.trajectoryData is not None and self.ui.showTrajectoryPathCheckBox.checked:
+            self.addPlannedTrajectoryPolyline()
+
+    def onTabChanged(self, index):
+        """Handler for tab-widget changes: enters/exits control mode and refreshes the appropriate tab."""
+        if not self.isRobotLoaded:
+            return
+
+        current_widget = self.ui.tabWidget.widget(index)
+        if current_widget == self.ui.controlTab:
+            self.enterControlMode()
+        else:
+            self.exitControlMode()
+            self._restoreGoalRobotColor()
+
+        if current_widget == self.ui.loadtab:
+            self._refreshRobotTab()
+        elif current_widget == self.ui.JointTab:
+            self._refreshJointTab()
+        elif current_widget == self.ui.moveItTab:
+            self._refreshMoveItTab()
+        elif current_widget == self.ui.obstaclesTab:
+            self._refreshObstaclesTab()
+
+    def _restoreGoalRobotColor(self) -> None:
+        if self.logic and self.robot and self._parameterNode is not None:
+            c = qt.QColor(self._parameterNode.goalColor)
+            base = (c.redF(), c.greenF(), c.blueF())
+            self.logic.setGoalRobotColorRGB(self.robot, base)
+
+    def _refreshRobotTab(self) -> None:
+        self._syncUiFromParameterNode()
+
+    def _refreshJointTab(self) -> None:
+        self._syncJointUiFromLatestSolution()
+
+    def _refreshMoveItTab(self) -> None:
+        if self._parameterNode is not None:
+            move_group_exists = self._parameterNode.moveGroupExists
+            if self.ui.moveGroupExistsCheckBox.checked != move_group_exists:
+                was_blocked = self.ui.moveGroupExistsCheckBox.blockSignals(True)
+                self.ui.moveGroupExistsCheckBox.checked = move_group_exists
+                self.ui.moveGroupExistsCheckBox.blockSignals(was_blocked)
+            self.onMoveGroupExistsToggled(move_group_exists)
+
+        if self.robot is not None and self.ui.planGroupComboBox.count == 0:
+            self._setupMoveGroupDropdown(self.robot)
+
+    def _refreshObstaclesTab(self) -> None:
+        self.updateObstacleTable()
 
     def _syncJointUiFromLatestSolution(self) -> None:
         if self.logic is None or self.robot is None:
@@ -930,87 +1152,44 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self._setJointUi_SIToSlicer(self.jointPositionsRad)
 
     def enterControlMode(self):
-                # 1. Check if Robot is Loaded
-                if not self.isRobotLoaded: return
-                if not self.robot or not self.rootlink: return
-                # 2. Find Goal Robot Root Transform
-                try:
-                    self.totransform = self.logic.findRobotTransforms(self.rootlink, goal=True)
-                except RuntimeError:
-                    print("Error: Could not find goal robot root transform.")
-                    return
+        """Activate interactive IK control mode: create the probe sphere, attach it to the tip transform, and start observing it for IK updates."""
+        if not self.isRobotLoaded or not self.robot or not self.rootlink:
+            return
+        # IK interaction owns goal-robot updates; stop any trajectory playback/scrub updates.
+        self._resetTrajectoryState()
+        self._goalVisualOwner = "ik"
+        if self._parameterNode is not None:
+            _c = qt.QColor(self._parameterNode.goalColor)
+            base_color = (_c.redF(), _c.greenF(), _c.blueF())
+        else:
+            base_color = None
+        state = self.logic.EnterControlMode(
+            self.robot,
+            self.rootlink,
+            self.tiplink,
+            self.goaltiplink,
+            baseGoalColor=base_color
+        )
+        if state:
+            self.fromtransform = state["fromTransform"]
+            self.totransform = state["toTransform"]
 
-                # 3. Create Sphere (Probe) if missing
-                try:
-                    model = slicer.util.getNode("ProbeSphere")
-                except slicer.util.MRMLNodeNotFoundException:
-                    model = None
-
-                if model is None:
-                    model = self.logic.createSphereModel()
-                    self.fromtransform = self.logic.createLinearTransform()
-                    self.fromtransform.GetDisplayNode().SetEditorVisibility(True)
-                    self.logic.applyTransformToModel(model, self.fromtransform)
-                else:
-                    self.fromtransform = slicer.util.getNode("ProbeSphere_Transform")
-                    if self.fromtransform.GetDisplayNode():
-                        self.fromtransform.GetDisplayNode().SetEditorVisibility(True)
-
-                # 4. Snap probe to goal tip on start
-                try:
-                    if self.goaltiplink:
-                        # Find goal tip transform
-                        tip_transform_node = self.logic.findRobotTransforms(self.goaltiplink, goal=True)
-                        
-                        if tip_transform_node:
-                            # Get full 4x4 matrix and apply to probe
-                            tipMatrix = vtk.vtkMatrix4x4()
-                            tip_transform_node.GetMatrixTransformToWorld(tipMatrix)
-                            self.fromtransform.SetMatrixTransformToParent(tipMatrix)
-                            # print(f"✅ Snapped Probe to Goal Tip: {self.goaltiplink}")
-                            
-                except Exception as e:
-                    print(f"Warning: Could not snap sphere to goal tip. Error: {e}")
-
-                # 5. Link probe to goal root for IK
-                self.logic.setIKSourceTransforms(
-                    self.fromtransform.GetName(), 
-                    self.totransform.GetName()
-                )
-                
-                if DEBUG:
-                    print(f"\n=== TIP LINK CONFIGURATION ===")
-                    print(f"rootlink (base): {self.rootlink}")
-                    print(f"tiplink (target): {self.tiplink}")
-                    print(f"goaltiplink: {self.goaltiplink}")
-                    print(f"================================\n")
-                    
-                self.logic.tipLink = self.tiplink
-                
-                # 6. START OBSERVER
-                self.logic.addObserverComputeIK(self.robot)
-            
     def exitControlMode(self):
-        if not self.isRobotLoaded: return
-                
-        # 1. Stop Observer (Stop calculating IK)
-        # This effectively replaces the "Stop" button
+        """Deactivate IK control mode: remove the probe sphere and stop all transform observers."""
+        if not self.isRobotLoaded:
+            return
         if self.logic:
-            self.logic.removeObserver()
-        
-        # 2. Delete Sphere Transform
-        if self.fromtransform:
-            slicer.mrmlScene.RemoveNode(self.fromtransform)
-            self.fromtransform = None
-        
-        # 3. Delete Sphere Model
-        try:
-            model = slicer.util.getNode("ProbeSphere")
-            if model: slicer.mrmlScene.RemoveNode(model)
-        except: pass
+            self.logic.ExitControlMode(self.fromtransform)
+        self.fromtransform = None
+        self.totransform = None
+        if self._goalVisualOwner == "ik":
+            self._goalVisualOwner = "idle"
 
     def onGeneratorChanged(self, index: int) -> None:
         """Enable/disable Plan button based on selected generator and MoveIt state."""
+        if self._planningUiLockedForExternalTrajectory:
+            self.ui.planButton.enabled = False
+            return
         generators = TrajectoryGenerators.get_all()
         if index < 0 or index >= len(generators):
             return
@@ -1020,7 +1199,156 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         else:
             self.ui.planButton.enabled = True
 
+    def _setPlanningUiLock(self, locked: bool) -> None:
+        self._planningUiLockedForExternalTrajectory = bool(locked)
+        self.ui.generatorComboBox.enabled = not locked
+        self.ui.planGroupComboBox.enabled = not locked
+        self.ui.planningTimeSpinBox.enabled = not locked
+        if locked:
+            self.ui.planButton.enabled = False
+        else:
+            self.onGeneratorChanged(self.ui.generatorComboBox.currentIndex)
+
+    def _trajectoryPolylineParentTransformNode(self):
+        if self.logic is None or not self.rootlink:
+            return None
+        try:
+            return self.logic.findRobotTransforms(self.rootlink, goal=True)
+        except Exception:
+            return None
+
+    def _trajectoryPathColorRGB(self):
+        color = self.ui.trajectoryPathColorButton.color
+        return (color.redF(), color.greenF(), color.blueF())
+
+    def _refreshTrajectoryUi(self) -> None:
+        """Synchronize trajectory UI controls with widget-owned trajectory state."""
+        hasTrajectory = self.trajectoryData is not None
+        if self.trajectoryPolylineModelNode is not None and self.trajectoryPolylineModelNode.GetScene() is None:
+            self.trajectoryPolylineModelNode = None
+        hasPolyline = self.trajectoryPolylineModelNode is not None
+
+        self.ui.showTrajectoryPathCheckBox.blockSignals(True)
+        self.ui.showTrajectoryPathCheckBox.enabled = hasTrajectory
+        self.ui.showTrajectoryPathCheckBox.checked = hasPolyline
+        self.ui.showTrajectoryPathCheckBox.blockSignals(False)
+
+        self.ui.trajectoryPathColorLabel.enabled = hasTrajectory
+        self.ui.trajectoryPathColorButton.enabled = hasTrajectory
+
+    def refreshTrajectoryUi(self) -> None:
+        """Public API for scripts that need to resynchronize trajectory controls."""
+        self._refreshTrajectoryUi()
+
+    def addPlannedTrajectoryPolyline(self):
+        """Create and display a ``vtkPolyLine`` model for the current planned trajectory.
+
+        Returns the created ``vtkMRMLModelNode`` or ``None``.
+        """
+        if self.logic is None:
+            self._refreshTrajectoryUi()
+            return None
+        if self.trajectoryData is None:
+            self._refreshTrajectoryUi()
+            return None
+
+        self.removePlannedTrajectoryPolyline()
+        self.trajectoryPolylineModelNode = self.logic.CreateTrajectoryPolylineModel(
+            self.trajectoryData,
+            robotNode=self.robot,
+            linkName=self.goaltiplink or self.tiplink,
+            name="PlannedTrajectoryPath",
+            parentTransformNode=self._trajectoryPolylineParentTransformNode(),
+            color=self._trajectoryPathColorRGB()
+        )
+        self._refreshTrajectoryUi()
+        return self.trajectoryPolylineModelNode
+
+    def removePlannedTrajectoryPolyline(self) -> bool:
+        """Remove the currently displayed planned-trajectory polyline model."""
+        if self.logic is None:
+            self.trajectoryPolylineModelNode = None
+            self._refreshTrajectoryUi()
+            return False
+
+        removed = False
+        if self.trajectoryPolylineModelNode is not None:
+            removed = self.logic.RemoveTrajectoryPolylineModel(self.trajectoryPolylineModelNode)
+        self.trajectoryPolylineModelNode = None
+        self._refreshTrajectoryUi()
+        return removed
+
+    def onShowTrajectoryPathToggled(self, toggled: bool) -> None:
+        if toggled:
+            self.addPlannedTrajectoryPolyline()
+        else:
+            self.removePlannedTrajectoryPolyline()
+
+    def loadPlannedTrajectory(self, trajectory, enableExecute=True, lockPlanning=False) -> bool:
+        """Load a trajectory into the GUI preview/scrubber state.
+
+        This is used by the Plan button and by Python-only examples that compute
+        a trajectory without going through the widget controls.
+        """
+        if trajectory is None or not trajectory.GetJointTrajectory().GetPoints():
+            print("Error: trajectory is empty")
+            return False
+
+        showTrajectoryPath = self.ui.showTrajectoryPathCheckBox.checked
+        self._resetTrajectoryState()
+        self._setPlanningUiLock(bool(lockPlanning))
+        self._goalVisualOwner = "trajectory"
+        self.trajectoryData = trajectory
+        self.ui.previewButton.enabled = True
+        self.ui.executeButton.enabled = bool(enableExecute)
+        num_points = len(trajectory.GetJointTrajectory().GetPoints())
+
+        self.trajectorySliderWidget = qt.QWidget()
+        layout = qt.QVBoxLayout(self.trajectorySliderWidget)
+        layout.setContentsMargins(0, 10, 0, 0)
+
+        label = qt.QLabel("Trajectory Scrubber:")
+        layout.addWidget(label)
+
+        sliderLayout = qt.QHBoxLayout()
+
+        self.trajectorySlider = qt.QSlider(qt.Qt.Horizontal)
+        self.trajectorySlider.setMinimum(0)
+        self.trajectorySlider.setMaximum(num_points - 1)
+        self.trajectorySlider.setValue(0)
+        self.trajectorySlider.valueChanged.connect(self.onTrajectorySliderChanged)
+        sliderLayout.addWidget(self.trajectorySlider)
+
+        self.trajectorySpinBox = qt.QSpinBox()
+        self.trajectorySpinBox.setMinimum(0)
+        self.trajectorySpinBox.setMaximum(num_points - 1)
+        self.trajectorySpinBox.setValue(0)
+        self.trajectorySpinBox.setSuffix(f" / {num_points - 1}")
+        self.trajectorySpinBox.valueChanged.connect(lambda val: self.trajectorySlider.setValue(val))
+        sliderLayout.addWidget(self.trajectorySpinBox)
+
+        layout.addLayout(sliderLayout)
+
+        moveitLayout = self.ui.moveItTab.layout()
+        if moveitLayout:
+            moveitLayout.addWidget(self.trajectorySliderWidget)
+
+        if self.robot and num_points > 0:
+            positions = list(trajectory.GetJointTrajectory().GetPoints()[0].GetPositions())
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+
+        if showTrajectoryPath:
+            self.addPlannedTrajectoryPolyline()
+        else:
+            self._refreshTrajectoryUi()
+
+        return True
+
     def onPlanButton(self) -> None:
+        """Handler for the *Plan* button: runs the selected trajectory generator from the current joint state to the IK goal, then displays a scrubber slider."""
+        if self._planningUiLockedForExternalTrajectory:
+            print("Plan is locked because an external trajectory is loaded. Clear or replace the loaded trajectory first.")
+            return
         generators = TrajectoryGenerators.get_all()
         idx = self.ui.generatorComboBox.currentIndex
         if idx < 0 or idx >= len(generators):
@@ -1029,148 +1357,169 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         generator = generators[idx]
 
         joint_names = list(self.robot.GetJoints()) if self.robot else []
+        # Always read the latest joint state from the subscriber so the trajectory
+        # starts from the true current robot position, not a stale cached value.
+        live_positions = self.logic.GetCurrentJointState(joint_names)
+        if live_positions:
+            self.jointPositionsRad = live_positions
         start_positions = self.jointPositionsRad if self.jointPositionsRad else [0.0] * len(joint_names)
         goal_positions = self.logic.last_ik_solution if self.logic.last_ik_solution else start_positions
+
+        self.logic.PublishAllMoveItObstacles(self.robot)
 
         sol = generator.plan(
             joint_names=joint_names,
             start_positions=start_positions,
             goal_positions=goal_positions,
-            urdf_xml=self.urdf_xml,
             robot=self.robot,
-            plan_group=self.ui.planGroupComboBox.currentText,
+            motion_control_node=self.motionControlNode,
+            plan_group=(
+                self._parameterNode.planningGroup
+                if self._parameterNode is not None
+                else self.ui.planGroupComboBox.currentText
+            ),
+            planning_time=(
+                self._parameterNode.planningTimeSec
+                if self._parameterNode is not None
+                else self.ui.planningTimeSpinBox.value
+            ),
+            velocity_scaling=(
+                self._parameterNode.velocityScaling
+                if self._parameterNode is not None
+                else 0.5
+            ),
+            acceleration_scaling=(
+                self._parameterNode.accelerationScaling
+                if self._parameterNode is not None
+                else 0.5
+            ),
         )
 
-        # Parse and store the trajectory
-        if sol:
-            self.ui.previewButton.enabled = True
-            self.ui.executeButton.enabled = True
-            try:
-                trajectory = json.loads(sol)
-                if "points" in trajectory:
-                    self.trajectoryData = trajectory
-                    num_points = len(trajectory['points'])
-                    
-                    # Remove old slider if it exists
-                    if self.trajectorySlider:
-                        if self.trajectorySliderWidget:
-                            self.trajectorySliderWidget.deleteLater()
-                        self.trajectorySlider = None
-                        self.trajectorySliderWidget = None
-                        self.trajectorySpinBox = None
-                    
-                    # Create new trajectory scrubber slider
-                    self.trajectorySliderWidget = qt.QWidget()
-                    layout = qt.QVBoxLayout(self.trajectorySliderWidget)
-                    layout.setContentsMargins(0, 10, 0, 0)
-                    
-                    # Create label
-                    label = qt.QLabel("Trajectory Scrubber:")
-                    layout.addWidget(label)
-                    
-                    # Create horizontal layout for slider and spinbox
-                    sliderLayout = qt.QHBoxLayout()
-                    
-                    # Create slider
-                    self.trajectorySlider = qt.QSlider(qt.Qt.Horizontal)
-                    self.trajectorySlider.setMinimum(0)
-                    self.trajectorySlider.setMaximum(num_points - 1)
-                    self.trajectorySlider.setValue(0)
-                    self.trajectorySlider.valueChanged.connect(self.onTrajectorySliderChanged)
-                    sliderLayout.addWidget(self.trajectorySlider)
-                    
-                    # Create spinbox to show point number
-                    self.trajectorySpinBox = qt.QSpinBox()
-                    self.trajectorySpinBox.setMinimum(0)
-                    self.trajectorySpinBox.setMaximum(num_points - 1)
-                    self.trajectorySpinBox.setValue(0)
-                    self.trajectorySpinBox.setSuffix(f" / {num_points - 1}")
-                    self.trajectorySpinBox.valueChanged.connect(lambda val: self.trajectorySlider.setValue(val))
-                    sliderLayout.addWidget(self.trajectorySpinBox)
-                    
-                    layout.addLayout(sliderLayout)
-                    
-                    # Add to the moveittab layout
-                    moveitLayout = self.ui.moveItTab.layout()
-                    if moveitLayout:
-                        moveitLayout.addWidget(self.trajectorySliderWidget)
-                    
-                    # Show first point of trajectory
-                    if self.robot and num_points > 0:
-                        positions = trajectory['points'][0]['positions']
-                        self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
-                else:
-                    print("Error: No points found in trajectory")
-            except json.JSONDecodeError as e:
-                print(f"Error parsing trajectory JSON: {e}")
-        
+        # Store and display the trajectory
+        if sol is not None and sol.GetJointTrajectory().GetPoints():
+            is_moveit_gen = isinstance(generator, TrajectoryGenerators.MoveItTrajectoryGenerator)
+            move_group_ready = self._parameterNode.moveGroupExists if self._parameterNode is not None else self.ui.moveGroupExistsCheckBox.checked
+            self.loadPlannedTrajectory(sol, enableExecute=is_moveit_gen or move_group_ready)
+        elif sol is not None:
+            print("Error: trajectory returned by generator has no points")
+
+    def _resetTrajectoryState(self) -> None:
+        """Clear planned trajectory and reset UI to pre-plan state."""
+        self._setPlanningUiLock(False)
+        self.removePlannedTrajectoryPolyline()
+        self.trajectoryData = None
+        self.trajectoryIndex = 0
+        self.ui.previewButton.enabled = False
+        self.ui.executeButton.enabled = False
+        if self._goalVisualOwner == "trajectory":
+            self._goalVisualOwner = "idle"
+        if self.trajectoryTimer:
+            self.trajectoryTimer.stop()
+            self.trajectoryTimer = None
+        if self.trajectorySlider:
+            if self.trajectorySliderWidget:
+                self.trajectorySliderWidget.deleteLater()
+            self.trajectorySlider = None
+            self.trajectorySliderWidget = None
+            self.trajectorySpinBox = None
+        self._refreshTrajectoryUi()
+
+    def _setTrajectoryScrubberValue(self, value: int) -> None:
+        """Set trajectory slider/spinbox without triggering manual scrub callbacks."""
+        if self.trajectorySlider is not None:
+            self.trajectorySlider.blockSignals(True)
+            self.trajectorySlider.setValue(value)
+            self.trajectorySlider.blockSignals(False)
+        if self.trajectorySpinBox is not None:
+            self.trajectorySpinBox.blockSignals(True)
+            self.trajectorySpinBox.setValue(value)
+            self.trajectorySpinBox.blockSignals(False)
+
     def onPreviewButton(self) -> None:
         """Preview the planned trajectory on the goal robot"""
         if not self.trajectoryData:
             print("No trajectory to preview. Run Plan first.")
             return
-        
+
         # Stop any existing animation
         if self.trajectoryTimer:
             self.trajectoryTimer.stop()
-        
+
         # Start animating the trajectory
         self.trajectoryIndex = 0
+        self._setTrajectoryScrubberValue(0)
         self.trajectoryTimer = qt.QTimer()
         self.trajectoryTimer.timeout.connect(self.animateTrajectoryStep)
         self.trajectoryTimer.start(50)  # Update every 50ms
-    
+
     def animateTrajectoryStep(self):
         """Animate one step of the trajectory"""
-        if not self.trajectoryData or self.trajectoryIndex >= len(self.trajectoryData['points']):
+        if self._goalVisualOwner != "trajectory":
+            return
+        if not self.trajectoryData or self.trajectoryIndex >= len(self.trajectoryData.GetJointTrajectory().GetPoints()):
             # Animation complete
             if self.trajectoryTimer:
                 self.trajectoryTimer.stop()
             print("Trajectory preview complete")
             return
-        
+
         # Get current point
-        point = self.trajectoryData['points'][self.trajectoryIndex]
-        positions = point['positions']
-        
+        currentIndex = self.trajectoryIndex
+        self._setTrajectoryScrubberValue(currentIndex)
+        point = self.trajectoryData.GetJointTrajectory().GetPoints()[currentIndex]
+        positions = list(point.GetPositions())
+
         # Apply to goal robot
         if self.robot:
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
-        
-        self.trajectoryIndex += 1
-    
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+
+        self.trajectoryIndex = currentIndex + 1
+
     def onTrajectorySliderChanged(self, value):
         """Called when trajectory slider is moved"""
+        if self._goalVisualOwner != "trajectory":
+            return
         if not self.trajectoryData or not self.robot:
             return
-        
+
         # Stop any running animation
         if self.trajectoryTimer:
             self.trajectoryTimer.stop()
-        
+
         # Get the trajectory point at this index
-        if 0 <= value < len(self.trajectoryData['points']):
-            point = self.trajectoryData['points'][value]
-            positions = point['positions']
-            
+        if 0 <= value < len(self.trajectoryData.GetJointTrajectory().GetPoints()):
+            positions = list(self.trajectoryData.GetJointTrajectory().GetPoints()[value].GetPositions())
+
             # Apply to goal robot
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, positions)
-            
-            # Update spinbox if it's not the source of the change
-            if self.trajectorySpinBox.value != value:
-                self.trajectorySpinBox.blockSignals(True)
-                self.trajectorySpinBox.setValue(value)
-                self.trajectorySpinBox.blockSignals(False)
-                
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+
+            self._setTrajectoryScrubberValue(value)
+
     def onExecuteButton(self) -> None:
-        success = self.robot.ExecuteCachedMoveItTrajectory(self.ui.planGroupComboBox.currentText)
-        
+        """Handler for the *Execute* button: sends the last planned trajectory to the robot controller via MoveIt's async execution interface."""
+        if self.motionControlNode is None:
+            print("No motion control node available. Please use the robot first.")
+            return
+        if self.trajectoryData is None:
+            print("No trajectory planned. Please plan a trajectory first.")
+            return
+        group = (
+            self._parameterNode.planningGroup
+            if self._parameterNode is not None
+            else self.ui.planGroupComboBox.currentText
+        )
+        # Always execute from the stored vtk trajectory (works for both MoveIt and Simple generators).
+        # ExecuteMoveItTrajectoryAsync returns True as soon as the thread is launched — the actual
+        # MoveIt result is not known here. We therefore keep the plan loaded so the user can
+        # see what was sent and re-execute if needed.
+        success = self.motionControlNode.ExecuteMoveItTrajectoryAsync(group, self.trajectoryData)
+
         if success:
-            print("Execute command sent successfully.")
+            print("Trajectory sent to controller (async). Check robot / MoveIt output for result.")
         else:
-            print("Failed to send execute command.")
-        
-    
+            print("Failed to send trajectory (pre-flight check failed — see console).")
+
+
 
 #
 # ROS2MotionControlLogic
@@ -1190,13 +1539,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
     def __init__(self) -> None:
         """Called when the logic class is instantiated. Can be used for initializing member variables."""
         ScriptedLoadableModuleLogic.__init__(self)
+        self.MOVEIT_COLLISION_OBJECT_TOPIC = "/collision_object"
+        self.MOVEIT_OBSTACLE_ATTRIBUTE = "ROS2MotionControl.MoveItObstacle"
+        self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE = "ROS2MotionControl.MoveItObstacleFrame"
+        self.POSE_MARKER_ATTRIBUTE = "ROS2MotionControl.PoseMarker"
+        self.TRAJECTORY_PATH_ATTRIBUTE = "ROS2MotionControl.TrajectoryPath"
         self.obsTag = None
         self.obsNode = None
-        self.callback = None  
+        self.callback = None
         self.viewObserverTags = []
         self.isInteracting = False
         self.toNode = None
-        self.planGroup = None
         self.tipLink = None  # Will be set from widget
         self.last_ik_solution = []  # Will be sized based on actual joint count
         self.joint_names = []  # Will be populated from URDF
@@ -1206,8 +1559,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.joint_state_topic = None
         self.joint_state_ros2_node = None
         self.joint_state_subscriber_owned = False
-        self.useMoveItIK = False  # Flag to toggle between KDL and MoveIt IK
-        self.baseGoalColor = None
+        self.useMoveItIK = False  # Runtime flag; kept in sync with param node by widget
+        self._last_moveit_obstacle_publish_time = 0.0
 
     def _NormalizeJointStateTopic(self, topic_name: str) -> str:
         topic = (topic_name or "").strip()
@@ -1216,6 +1569,430 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if not topic.startswith("/"):
             topic = f"/{topic}"
         return topic
+
+    def _getObstacleROS2Node(self, robotNode=None):
+        if robotNode is not None and robotNode.GetNodeReference("node"):
+            return robotNode.GetNodeReference("node")
+        return slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2NodeNode")
+
+    def _getCollisionObjectPublisher(self, robotNode=None, create=True):
+        ros2Node = self._getObstacleROS2Node(robotNode)
+        if not ros2Node:
+            return None
+
+        pub = ros2Node.GetPublisherNodeByTopic(self.MOVEIT_COLLISION_OBJECT_TOPIC)
+        if pub:
+            return pub
+
+        if not create:
+            return None
+        return ros2Node.CreateAndAddPublisherNode("CollisionObject", self.MOVEIT_COLLISION_OBJECT_TOPIC)
+
+    def SetupMoveItPlanningGroup(self, robotNode, groupName) -> bool:
+        """Configure MoveIt IK for the given planning group on *robotNode*.
+
+        Returns True on success, False if either argument is missing or the
+        underlying C++ call fails.
+        """
+        if not robotNode or not groupName:
+            return False
+        return bool(robotNode.SetupIKMoveIt(groupName))
+
+    def CreateMoveGroupSRDFParameterNode(self, robotNode):
+        """Create a ROS 2 parameter node connected to ``/move_group`` that subscribes
+        to ``robot_description_semantic`` (the SRDF).
+
+        Returns the new ``vtkMRMLROS2ParameterNode`` or ``None`` on failure.
+        """
+        if not robotNode:
+            return None
+
+        ros2Node = robotNode.GetNodeReference("node")
+        if ros2Node is None:
+            ros2Node = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2NodeNode")
+        if ros2Node is None:
+            return None
+
+        paramNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2ParameterNode")
+        paramNode.SetName("_moveGroupSRDFParam")
+        paramNode.AddToROS2Node(ros2Node.GetID(), "/move_group")
+        paramNode.AddParameter("robot_description_semantic")
+        return paramNode
+
+    def ParseMoveGroupSRDF(self, srdf_xml):
+        """Parse a SRDF XML string and extract planning group names and end-effector definitions.
+
+        Args:
+            srdf_xml: Raw SRDF XML string from the ``robot_description_semantic`` parameter.
+
+        Returns:
+            (groups, end_effectors) where *groups* is a list of planning group name
+            strings and *end_effectors* is a list of dicts with keys ``name`` and
+            ``parent_link``.
+        """
+        if not srdf_xml:
+            return [], []
+
+        try:
+            root = ET.fromstring(srdf_xml)
+        except Exception as e:
+            print(f"Warning: Could not parse SRDF: {e}")
+            return [], []
+
+        groups = []
+        for group in root.findall("group"):
+            name = group.get("name")
+            if name:
+                groups.append(name)
+
+        end_effectors = []
+        for ee in root.findall("end_effector"):
+            name = ee.get("name")
+            parent_link = ee.get("parent_link")
+            if name and parent_link:
+                end_effectors.append({"name": name, "parent_link": parent_link})
+
+        return groups, end_effectors
+
+    def AddMoveItObstacle(self, modelNode, frameId="world", robotNode=None) -> bool:
+        """Mark *modelNode* as a MoveIt collision obstacle and publish it.
+
+        Tags the model with internal MRML attributes so it is re-published on
+        future calls to ``PublishAllMoveItObstacles``.  Schedules two deferred
+        re-publishes (at 250 ms and 1 s) to compensate for move_group startup
+        latency.
+
+        Args:
+            modelNode:  ``vtkMRMLModelNode`` whose polydata is the obstacle geometry.
+            frameId:    TF frame in which the mesh coordinates are expressed
+                        (default ``"world"``).  Pass the obstacle's node name to
+                        use a TF2-broadcasted frame instead.
+            robotNode:  Optional ``vtkMRMLROS2RobotNode`` used to locate the
+                        correct ROS 2 node for the publisher.
+
+        Returns True on success.
+        """
+        if not modelNode:
+            print("Add obstacle: model node is invalid")
+            return False
+
+        frameId = (frameId or "world").strip() or "world"
+        modelNode.SetAttribute(self.MOVEIT_OBSTACLE_ATTRIBUTE, "1")
+        modelNode.SetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE, frameId)
+        if not self.PublishMoveItObstacle(modelNode, frameId, robotNode):
+            return False
+
+        for delay_ms in (250, 1000):
+            qt.QTimer.singleShot(
+                delay_ms,
+                lambda node=modelNode, frame=frameId, robot=robotNode: self.PublishMoveItObstacle(node, frame, robot)
+            )
+        return True
+
+    def PublishMoveItObstacle(self, modelNode, frameId=None, robotNode=None) -> bool:
+        """Publish a single collision object to the ``/collision_object`` topic.
+
+        If *frameId* is ``None`` the value stored on the model node's MRML
+        attribute is used, falling back to ``"world"``.
+
+        Returns True on success.
+        """
+        if not modelNode:
+            return False
+
+        pub = self._getCollisionObjectPublisher(robotNode, create=True)
+        if not pub:
+            print("Add obstacle: no ROS2 node found to host the CollisionObject publisher")
+            return False
+
+        frameId = frameId or modelNode.GetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE) or "world"
+        pub.SetFrameId(frameId)
+        pub.SetSourceNodeID(modelNode.GetID())
+        pub.Publish()
+        return True
+
+    def PublishAllMoveItObstacles(self, robotNode=None) -> None:
+        """Re-publish every known MoveIt obstacle to the ``/collision_object`` topic.
+
+        Iterates the result of ``GetMoveItObstacles()`` and calls
+        ``PublishMoveItObstacle`` for each entry.  Useful to refresh the planning
+        scene before each IK or planning request.
+        """
+        for _modelID, modelNode, frameId in self.GetMoveItObstacles():
+            self.PublishMoveItObstacle(modelNode, frameId, robotNode)
+
+    def RemoveMoveItObstacle(self, modelNode, robotNode=None) -> bool:
+        """Remove a collision obstacle from the MoveIt planning scene and clear its MRML attributes.
+
+        Sends a removal ``CollisionObject`` message immediately and schedules a
+        second one after 250 ms.  Clears the internal MRML obstacle tags so the
+        model is no longer returned by ``GetMoveItObstacles``.
+
+        Returns True on success.
+        """
+        if not modelNode:
+            return False
+
+        pub = self._getCollisionObjectPublisher(robotNode, create=False)
+        if pub:
+            pub.SetFrameId(modelNode.GetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE) or "world")
+            pub.PublishRemove(modelNode)
+            qt.QTimer.singleShot(250, lambda node=modelNode, publisher=pub: publisher.PublishRemove(node))
+
+        modelNode.SetAttribute(self.MOVEIT_OBSTACLE_ATTRIBUTE, None)
+        modelNode.SetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE, None)
+        return True
+
+    def SetupObstacleTf2Broadcaster(self, obstacleNode, parentFrameId,
+                                     robotNode=None, existingBroadcaster=None):
+        """Wire a MRML transform node to a TF2 broadcaster so the obstacle's
+        location is streamed to ROS / MoveIt whenever the transform changes.
+
+        The method:
+        1. Resolves the obstacle's parent transform (auto-creates one if the
+           model has no transform parent yet).
+        2. Finds (or creates) the robot root transform node so it can compute
+           the between-nodes matrix.
+        3. Creates (or reuses / accepts) a Tf2BroadcasterNode with
+           parent_id=parentFrameId, child_id=obstacleNode.GetName().
+        4. Registers a TransformModifiedEvent observer that computes
+           GetMatrixTransformBetweenNodes and calls broadcaster.Broadcast().
+        5. Fires the callback immediately so MoveIt gets the initial pose.
+
+        Args:
+            obstacleNode:       vtkMRMLModelNode representing the obstacle.
+            parentFrameId:      ROS/TF frame name to use as the parent
+                                (e.g. "world"). This is what MoveIt calls the
+                                fixed frame.
+            robotNode:          Optional vtkMRMLROS2RobotNode used to look up
+                                the ROS2 node and the robot root transform.
+            existingBroadcaster: If not None, use this Tf2BroadcasterNode
+                                instead of creating / looking one up.
+
+        Returns:
+            (broadcasterNode, obstacleTransformNode, observerTag)
+            or (None, None, None) on failure.
+        """
+        if not obstacleNode:
+            print("SetupObstacleTf2Broadcaster: obstacle node is invalid")
+            return None, None, None
+
+        obstacleTransformNode = obstacleNode.GetParentTransformNode()
+        if obstacleTransformNode is None:
+            # Auto-create an identity transform and attach the model to it
+            tfName = f"{obstacleNode.GetName()}_Transform"
+            obstacleTransformNode = slicer.mrmlScene.AddNewNodeByClass(
+                "vtkMRMLLinearTransformNode", tfName
+            )
+            if not obstacleTransformNode.GetDisplayNode():
+                dispNode = slicer.mrmlScene.AddNewNodeByClass(
+                    "vtkMRMLTransformDisplayNode", tfName + "_Display"
+                )
+                dispNode.SetVisibility(True)
+                dispNode.SetEditorVisibility(True)
+                obstacleTransformNode.SetAndObserveDisplayNodeID(dispNode.GetID())
+            obstacleNode.SetAndObserveTransformNodeID(obstacleTransformNode.GetID())
+            print(f"SetupObstacleTf2Broadcaster: created transform '{tfName}' for obstacle")
+
+        ros2Node = self._getObstacleROS2Node(robotNode)
+        if ros2Node is None:
+            print("SetupObstacleTf2Broadcaster: no ROS2 node found")
+            return None, None, None
+
+        childId = obstacleNode.GetName()
+
+        # Resolve broadcaster: accept caller-supplied, reuse existing, or create
+        broadcaster = existingBroadcaster
+        if broadcaster is None:
+            broadcaster = ros2Node.GetTf2BroadcasterNodeByParentChild(parentFrameId, childId)
+        if broadcaster is None:
+            broadcaster = ros2Node.CreateAndAddTf2BroadcasterNode(parentFrameId, childId)
+        if broadcaster is None:
+            print("SetupObstacleTf2Broadcaster: failed to create TF2 broadcaster")
+            return None, obstacleTransformNode, None
+
+        # Try to find the robot root transform for computing between-nodes matrix.
+        # If we can't locate it we fall back to GetMatrixTransformToWorld on the
+        # obstacle (i.e. we assume the robot root == world origin).
+        robotRootTransformNode = None
+        if robotNode is not None:
+            try:
+                rootAndTip = robotNode.FindRootAndTipLinks()
+                if rootAndTip and len(rootAndTip) >= 1:
+                    robotRootTransformNode = self.findRobotTransforms(rootAndTip[0], goal=False)
+            except Exception:
+                pass
+
+        def _broadcastObstaclePose(caller=None, event=None):
+            m = vtk.vtkMatrix4x4()
+            if robotRootTransformNode is not None:
+                ok = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
+                    obstacleTransformNode, robotRootTransformNode, m
+                )
+                if not ok:
+                    print("SetupObstacleTf2Broadcaster: could not compute between-nodes transform")
+                    return
+            else:
+                obstacleTransformNode.GetMatrixTransformToWorld(m)
+            broadcaster.Broadcast(m)
+
+        observerTag = obstacleTransformNode.AddObserver(
+            slicer.vtkMRMLTransformNode.TransformModifiedEvent,
+            _broadcastObstaclePose
+        )
+
+        # Fire immediately so MoveIt receives the current pose before planning
+        _broadcastObstaclePose()
+
+        print(
+            f"SetupObstacleTf2Broadcaster: broadcasting '{parentFrameId}' -> '{childId}' "
+            f"from transform '{obstacleTransformNode.GetName()}'"
+        )
+        return broadcaster, obstacleTransformNode, observerTag
+
+    def AddMoveItObstacleWithTransform(self, obstacleNode, transformNode,
+                                       parentFrameId, robotNode=None,
+                                       existingBroadcaster=None):
+        """Convenience wrapper that combines transform attachment, TF2 broadcaster
+        setup, and MoveIt CollisionObject publishing in one call.
+
+        The obstacle mesh should be centred at the origin.  Its real-world
+        location is expressed entirely by *transformNode* (the registration
+        transform).  MoveIt resolves the position through the TF2 tree:
+
+            /tf:  parent=parentFrameId  child=obstacleNode.GetName()
+            CollisionObject.header.frame_id = obstacleNode.GetName()
+
+        Args:
+            obstacleNode:       vtkMRMLModelNode with mesh centred at origin.
+            transformNode:      vtkMRMLLinearTransformNode (the registration
+                                transform). Pass None to auto-detect / create.
+            parentFrameId:      ROS fixed frame (e.g. "world").
+            robotNode:          Optional vtkMRMLROS2RobotNode.
+            existingBroadcaster: Pass an existing Tf2BroadcasterNode to reuse.
+
+        Returns:
+            (broadcasterNode, observerTag) or (None, None) on failure.
+        """
+        if not obstacleNode:
+            print("AddMoveItObstacleWithTransform: obstacle node is invalid")
+            return None, None
+
+        # Attach model to the supplied transform if provided
+        if transformNode is not None:
+            obstacleNode.SetAndObserveTransformNodeID(transformNode.GetID())
+
+        # Wire the TF2 broadcaster (auto-creates transform if still None)
+        broadcaster, _tf, observerTag = self.SetupObstacleTf2Broadcaster(
+            obstacleNode, parentFrameId, robotNode, existingBroadcaster
+        )
+        if broadcaster is None:
+            return None, None
+
+        # Publish collision object with frame_id = obstacle node name so MoveIt
+        # resolves position from the TF2 tree rather than world coordinates.
+        if not self.AddMoveItObstacle(obstacleNode, obstacleNode.GetName(), robotNode):
+            transformNode = obstacleNode.GetParentTransformNode()
+            if transformNode is not None and observerTag is not None:
+                try:
+                    transformNode.RemoveObserver(observerTag)
+                except Exception:
+                    pass
+            return None, None
+
+        return broadcaster, observerTag
+
+    def GetMoveItObstacles(self):
+        """Return a list of all known MoveIt obstacle models in the current scene.
+
+        Collects models both by MRML attribute tags (set by ``AddMoveItObstacle``)
+        and by scanning active ``vtkMRMLROS2PublisherCollisionObjectNode`` nodes,
+        so it also captures obstacles that were set up outside this module.
+
+        Returns:
+            List of ``(modelID, modelNode, frameId)`` tuples.
+        """
+        by_id = {}
+        for modelNode in slicer.util.getNodesByClass("vtkMRMLModelNode"):
+            if modelNode.GetAttribute(self.MOVEIT_OBSTACLE_ATTRIBUTE):
+                by_id[modelNode.GetID()] = (
+                    modelNode,
+                    modelNode.GetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE) or "world"
+                )
+
+        for pub in slicer.util.getNodesByClass("vtkMRMLROS2PublisherCollisionObjectNode"):
+            if pub.GetTopic() != self.MOVEIT_COLLISION_OBJECT_TOPIC:
+                continue
+            modelNode = pub.GetSourceNode()
+            if not modelNode:
+                continue
+            if modelNode.GetID() not in by_id:
+                frameId = pub.GetFrameId() or "world"
+                modelNode.SetAttribute(self.MOVEIT_OBSTACLE_ATTRIBUTE, "1")
+                modelNode.SetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE, frameId)
+                by_id[modelNode.GetID()] = (modelNode, frameId)
+
+        return [(modelID, modelNode, frameId) for modelID, (modelNode, frameId) in by_id.items()]
+
+    def SetupRobotForMotionControl(self, parameterNode) -> bool:
+        """Initialise all motion-control subsystems for the robot described by *parameterNode*.
+
+        Steps performed:
+        1. Validate the parameter node and locate the robot node.
+        2. Auto-detect root and tip links from the URDF.
+        3. Create the goal-state robot if it does not already exist.
+        4. Create or update the ``vtkMRMLROS2MotionControlNode``.
+        5. Configure the JointState subscriber.
+        6. Set up the MoveIt planning group if requested.
+
+        Returns True on success.
+        """
+        if not parameterNode or not parameterNode.robotNodeID:
+            print("SetupRobotForMotionControl: Invalid parameter node or robotNodeID")
+            return False
+
+        robotNode = slicer.mrmlScene.GetNodeByID(parameterNode.robotNodeID)
+        if not robotNode:
+            print("SetupRobotForMotionControl: Could not find robot node in scene")
+            return False
+
+        # Auto-detect Root and Tip Links
+        rootandtip = robotNode.FindRootAndTipLinks()
+        if not rootandtip or len(rootandtip) < 2:
+            print("Error: Could not auto-detect root and tip links from URDF.")
+            return False
+
+        # Load in goal robot if it does not already exist
+        if robotNode.GetNumberOfNodeReferences("goal_model") == 0:
+            if not robotNode.CreateGoalStateRobot(robotNode):
+                print("Error: Failed to create goal state robot.")
+                return False
+            print("Goal robot created successfully.")
+
+        # Get joint names
+        self.joint_names = robotNode.GetJoints()
+
+        # Create or update MotionControl node
+        motionControlNode = slicer.mrmlScene.GetNodeByID(parameterNode.motionControlNodeID)
+        if not motionControlNode:
+            motionControlNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2MotionControlNode")
+            parameterNode.motionControlNodeID = motionControlNode.GetID()
+
+        ros2NodeRef = robotNode.GetNodeReference("node")
+        if ros2NodeRef is None:
+            ros2NodeRef = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2NodeNode")
+        if ros2NodeRef is not None:
+            motionControlNode.SetROS2NodeID(ros2NodeRef.GetID())
+        motionControlNode.SetRobotNodeID(robotNode.GetID())
+
+        topic_name = parameterNode.jointStateTopic if parameterNode.jointStateTopic else "joint_states"
+        if not self.ConfigureJointStateSubscriber(robotNode, topic_name):
+            print("Warning: Failed to configure JointState subscriber.")
+
+        if parameterNode.moveGroupExists and parameterNode.planningGroup:
+            self.SetupMoveItPlanningGroup(robotNode, parameterNode.planningGroup)
+
+        return True
 
     def _onJointStateModified(self, caller=None, event=None):
         if self.joint_state_subscriber is None:
@@ -1226,8 +2003,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             print(f"Joint state: failed to cache last message: {e}")
 
     def ConfigureJointStateSubscriber(self, robotNode, topic_name: str) -> bool:
-        self.ClearJointStateSubscriber()
+        """Create (or reuse) a JointState subscriber on the given topic.
 
+        If a subscriber already exists on the same topic and ROS 2 node, it is
+        reused without re-creating.  Registers an internal ``ModifiedEvent``
+        observer that caches the latest message for ``GetCurrentJointState``.
+
+        Args:
+            robotNode:   ``vtkMRMLROS2RobotNode`` whose ROS 2 node hosts the subscriber.
+            topic_name:  ROS 2 topic name, e.g. ``"/joint_states"``.
+
+        Returns True on success.
+        """
         if robotNode is None:
             print("Joint state: robot node is invalid")
             return False
@@ -1238,6 +2025,13 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             return False
 
         topic = self._NormalizeJointStateTopic(topic_name)
+        if (self.joint_state_subscriber is not None and
+                self.joint_state_topic == topic and
+                self.joint_state_ros2_node == ros2_node):
+            return True
+
+        self.ClearJointStateSubscriber()
+
         subscriber = ros2_node.GetSubscriberNodeByTopic(topic)
         self.joint_state_subscriber_owned = False
         if subscriber is None:
@@ -1263,6 +2057,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         return True
 
     def ClearJointStateSubscriber(self):
+        """Remove the JointState subscriber observer and, if the subscriber was
+        created by this logic instance, delete the subscriber node from the scene.
+        """
         if self.joint_state_subscriber and self.joint_state_subscriber_observer is not None:
             try:
                 self.joint_state_subscriber.RemoveObserver(self.joint_state_subscriber_observer)
@@ -1328,7 +2125,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         except Exception:
             return []
 
-    def CurrentJointState(self, joint_names):
+    def GetCurrentJointState(self, joint_names):
+        """Read the current joint positions from the latest cached JointState message.
+
+        Args:
+            joint_names: Ordered list of joint name strings to extract.
+
+        Returns:
+            Ordered list of joint positions in radians/metres matching
+            *joint_names*, or an empty list if the message is unavailable or
+            does not contain all requested joints.
+        """
         if self.joint_state_subscriber is None:
             print("Current state: JointState subscriber is not configured")
             return []
@@ -1365,50 +2172,152 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             return []
 
         return [by_name[n] for n in joint_names]
-        
+
     def getParameterNode(self):
+        """Return a typed ``ROS2MotionControlParameterNode`` wrapping the module's parameter node."""
         return ROS2MotionControlParameterNode(super().getParameterNode())
 
-    def process(self,
-                inputVolume: vtkMRMLScalarVolumeNode,
-                outputVolume: vtkMRMLScalarVolumeNode,
-                imageThreshold: float,
-                invert: bool = False,
-                showResult: bool = True) -> None:
+    def CreateTrajectoryPolylineModel(
+            self,
+            trajectory,
+            robotNode=None,
+            linkName=None,
+            name="PlannedTrajectoryPath",
+            parentTransformNode=None,
+            color=(1.0, 0.5, 0.0),
+            lineWidth=4.0):
+        """Create a ``vtkMRMLModelNode`` showing a trajectory's end-effector path.
+
+        The path is sampled by running FK for each joint-trajectory point and
+        connecting the end-effector positions with one ``vtkPolyLine``.
         """
-        Run the processing algorithm.
-        Can be used without GUI widget.
-        :param inputVolume: volume to be thresholded
-        :param outputVolume: thresholding result
-        :param imageThreshold: values above/below this threshold will be set to 0
-        :param invert: if True then values above the threshold will be set to 0, otherwise values below are set to 0
-        :param showResult: show output volume in slice viewers
+        if trajectory is None or trajectory.GetJointTrajectory() is None:
+            print("Create trajectory path: trajectory is empty")
+            return None
+
+        jointTrajectory = trajectory.GetJointTrajectory()
+        pointsData = jointTrajectory.GetPoints()
+        if not pointsData:
+            print("Create trajectory path: trajectory has no points")
+            return None
+
+        if robotNode is None:
+            robotNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLROS2RobotNode")
+        if robotNode is None:
+            print("Create trajectory path: no robot node available for FK")
+            return None
+
+        if not linkName:
+            linkName = self.tipLink
+        if not linkName:
+            rootAndTip = robotNode.FindRootAndTipLinks()
+            if rootAndTip and len(rootAndTip) >= 2:
+                linkName = rootAndTip[1]
+
+        pathPoints = vtk.vtkPoints()
+        for trajectoryPoint in pointsData:
+            positions = list(trajectoryPoint.GetPositions())
+            if not positions:
+                continue
+
+            fkMatrix = vtk.vtkMatrix4x4()
+            try:
+                fkResult = robotNode.ComputeKDLFK(positions, fkMatrix, linkName or "")
+            except Exception as e:
+                print(f"Create trajectory path: FK failed for link '{linkName}': {e}")
+                return None
+            if fkResult is None:
+                print(f"Create trajectory path: FK failed for link '{linkName}'")
+                return None
+
+            pathPoints.InsertNextPoint(
+                fkMatrix.GetElement(0, 3),
+                fkMatrix.GetElement(1, 3),
+                fkMatrix.GetElement(2, 3)
+            )
+
+        if pathPoints.GetNumberOfPoints() == 0:
+            print("Create trajectory path: no valid FK samples")
+            return None
+
+        polyLine = vtk.vtkPolyLine()
+        polyLine.GetPointIds().SetNumberOfIds(pathPoints.GetNumberOfPoints())
+        for pointIndex in range(pathPoints.GetNumberOfPoints()):
+            polyLine.GetPointIds().SetId(pointIndex, pointIndex)
+
+        cells = vtk.vtkCellArray()
+        cells.InsertNextCell(polyLine)
+
+        polyData = vtk.vtkPolyData()
+        polyData.SetPoints(pathPoints)
+        polyData.SetLines(cells)
+
+        modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", name)
+        modelNode.SetAndObservePolyData(polyData)
+        modelNode.SetAttribute(self.TRAJECTORY_PATH_ATTRIBUTE, "1")
+        if linkName:
+            modelNode.SetAttribute("ROS2MotionControl.TrajectoryPathLink", linkName)
+
+        displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode", name + "_Display")
+        displayNode.SetColor(color[0], color[1], color[2])
+        displayNode.SetOpacity(1.0)
+        displayNode.SetVisibility(True)
+        displayNode.SetVisibility3D(True)
+        displayNode.SetVisibility2D(False)
+        if hasattr(displayNode, "SetLineWidth"):
+            displayNode.SetLineWidth(lineWidth)
+        modelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+
+        if parentTransformNode is not None:
+            modelNode.SetAndObserveTransformNodeID(parentTransformNode.GetID())
+
+        return modelNode
+
+    def RemoveTrajectoryPolylineModel(self, modelNode=None) -> bool:
+        """Remove a trajectory path model from the MRML scene.
+
+        If *modelNode* is omitted, all Motion Control trajectory path models are
+        removed.
         """
+        scene = slicer.mrmlScene
+        if scene is None:
+            return False
 
-        if not inputVolume or not outputVolume:
-            raise ValueError("Input or output volume is invalid")
+        modelNodes = []
+        if modelNode is not None:
+            resolvedNode = self._resolveSceneNode(modelNode)
+            if resolvedNode is not None:
+                modelNodes.append(resolvedNode)
+        else:
+            for index in range(scene.GetNumberOfNodesByClass("vtkMRMLModelNode")):
+                candidate = scene.GetNthNodeByClass(index, "vtkMRMLModelNode")
+                if candidate and candidate.GetAttribute(self.TRAJECTORY_PATH_ATTRIBUTE):
+                    modelNodes.append(candidate)
 
-        import time
+        removedAny = False
+        for node in modelNodes:
+            displayNode = node.GetDisplayNode()
+            if displayNode is not None:
+                try:
+                    scene.RemoveNode(displayNode)
+                except Exception:
+                    pass
+            try:
+                scene.RemoveNode(node)
+                removedAny = True
+            except Exception:
+                pass
+        return removedAny
 
-        startTime = time.time()
-        logging.info("Processing started")
-
-        # Compute the thresholded output volume using the "Threshold Scalar Volume" CLI module
-        cliParams = {
-            "InputVolume": inputVolume.GetID(),
-            "OutputVolume": outputVolume.GetID(),
-            "ThresholdValue": imageThreshold,
-            "ThresholdType": "Above" if invert else "Below",
-        }
-        cliNode = slicer.cli.run(slicer.modules.thresholdscalarvolume, None, cliParams, wait_for_completion=True, update_display=showResult)
-        # We don't need the CLI module node anymore, remove it to not clutter the scene with it
-        slicer.mrmlScene.RemoveNode(cliNode)
-
-        stopTime = time.time()
-        logging.info(f"Processing completed in {stopTime-startTime:.2f} seconds")
-        
-    
     def createSphereModel(self, name="ProbeSphere", radius_mm=20.0):
+        """Create a sphere ``vtkMRMLModelNode`` (the IK probe) and add it to the scene.
+
+        Args:
+            name:       Node name (default ``"ProbeSphere"``).
+            radius_mm:  Sphere radius in millimetres (default 20).
+
+        Returns the new ``vtkMRMLModelNode``.
+        """
         r = radius_mm
         src = vtk.vtkSphereSource()
         src.SetRadius(r); src.SetThetaResolution(40); src.SetPhiResolution(40); src.Update()
@@ -1421,19 +2330,266 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         disp.SetColor(0.9,0.3,0.3)
         model.SetAndObserveDisplayNodeID(disp.GetID())
         return model
-    
+
     def createLinearTransform(self, name="ProbeSphere_Transform", showAxes=True):
+        """Create a visible ``vtkMRMLLinearTransformNode`` marker.
+
+        Args:
+            name:      Node name.
+            showAxes:  If True, enables the interactive editor widget in the
+                       3D view.  The transform marker remains visible when this
+                       is False.
+
+        Returns the new ``vtkMRMLLinearTransformNode``.
+        """
         t = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLinearTransformNode", name)
         if not t.GetDisplayNode():
             tdisp = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformDisplayNode", name+"_Display")
-            tdisp.SetVisibility(True)  # “eye” in Data
-            tdisp.SetVisibility2D(True)
             t.SetAndObserveDisplayNodeID(tdisp.GetID())
-        if showAxes:
-            t.GetDisplayNode().SetEditorVisibility(True)  # show 3D gizmo on selection
+        displayNode = t.GetDisplayNode()
+        if displayNode:
+            displayNode.SetVisibility(True)  # “eye” in Data
+            displayNode.SetVisibility2D(True)
+            if hasattr(displayNode, "SetVisibility3D"):
+                displayNode.SetVisibility3D(True)
+            displayNode.SetEditorVisibility(bool(showAxes))
         return t
 
+    def _resolveSceneNode(self, nodeOrName):
+        if nodeOrName is None:
+            return None
+        if isinstance(nodeOrName, str):
+            try:
+                return slicer.util.getNode(nodeOrName)
+            except Exception:
+                return None
+        return nodeOrName
+
+    def CreatePoseMarker(self, name="MotionControlPose", matrix=None,
+                         referenceNode=None, showAxes=False):
+        """Create a scriptable 6-DOF pose marker.
+
+        The marker is a ``vtkMRMLLinearTransformNode`` that can be passed to
+        ``PlanMoveItCartesianTrajectoryFromPoseMarkers``.  Set *showAxes* to
+        True to enable Slicer's built-in 3D transform editor for that marker.
+
+        Args:
+            name:          MRML node name.
+            matrix:        Optional vtkMatrix4x4 pose in world coordinates.
+            referenceNode: Optional MRML node whose current world transform is
+                           copied when *matrix* is not supplied.
+            showAxes:      If True, show the 3D transform editor.  The marker
+                           itself remains visible when this is False.
+
+        Returns:
+            vtkMRMLLinearTransformNode
+        """
+        marker = self.createLinearTransform(name, showAxes=showAxes)
+        marker.SetAttribute(self.POSE_MARKER_ATTRIBUTE, "1")
+
+        initialMatrix = None
+        if matrix is not None:
+            initialMatrix = matrix
+        else:
+            referenceNode = self._resolveSceneNode(referenceNode)
+            if referenceNode is not None and hasattr(referenceNode, "GetMatrixTransformToWorld"):
+                initialMatrix = vtk.vtkMatrix4x4()
+                referenceNode.GetMatrixTransformToWorld(initialMatrix)
+
+        if initialMatrix is not None:
+            marker.SetMatrixTransformToParent(initialMatrix)
+
+        return marker
+
+    def GetPoseMarkerMatrix(self, poseMarker, relativeToNode=None):
+        """Return a vtkMatrix4x4 for a pose marker.
+
+        If *relativeToNode* is supplied, the returned matrix is expressed in
+        that node's coordinate system.  This is typically the robot root
+        transform, matching MoveIt's planning frame.
+        """
+        poseNode = self._resolveSceneNode(poseMarker)
+        if poseNode is None:
+            raise ValueError("poseMarker does not resolve to a MRML node")
+        if not poseNode.IsA("vtkMRMLTransformNode"):
+            raise ValueError("poseMarker must be a vtkMRMLTransformNode")
+
+        matrix = vtk.vtkMatrix4x4()
+        relativeNode = self._resolveSceneNode(relativeToNode)
+        if relativeNode is not None:
+            ok = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
+                poseNode, relativeNode, matrix
+            )
+            if not ok:
+                raise RuntimeError("Could not compute pose marker matrix relative to reference node")
+        else:
+            poseNode.GetMatrixTransformToWorld(matrix)
+        return matrix
+
+    def GetPoseMarkerMatrices(self, poseMarkers, relativeToNode=None):
+        """Convert a Python list of pose markers or vtkMatrix4x4 objects to matrices."""
+        matrices = []
+        for poseMarker in poseMarkers:
+            if isinstance(poseMarker, vtk.vtkMatrix4x4):
+                matrix = vtk.vtkMatrix4x4()
+                matrix.DeepCopy(poseMarker)
+            else:
+                matrix = self.GetPoseMarkerMatrix(poseMarker, relativeToNode)
+            matrices.append(matrix)
+        return matrices
+
+    def BuildPoseMatrixCollection(self, poseMarkers, relativeToNode=None):
+        """Build the vtkCollection consumed by the C++ MoveIt Cartesian planner."""
+        collection = vtk.vtkCollection()
+        for matrix in self.GetPoseMarkerMatrices(poseMarkers, relativeToNode):
+            collection.AddItem(matrix)
+        return collection
+
+    def _matrixInNodeCoordinates(self, worldMatrix, relativeToNode):
+        relativeNode = self._resolveSceneNode(relativeToNode)
+        if relativeNode is None:
+            return worldMatrix
+
+        referenceWorld = vtk.vtkMatrix4x4()
+        relativeNode.GetMatrixTransformToWorld(referenceWorld)
+        worldToReference = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Invert(referenceWorld, worldToReference)
+
+        relativeMatrix = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Multiply4x4(worldToReference, worldMatrix, relativeMatrix)
+        return relativeMatrix
+
+    def GetPoseMatricesFromMarkups(self, markupsNode, orientationNode=None,
+                                   relativeToNode=None):
+        """Build pose matrices from a Slicer Markups control-point list.
+
+        Markups control points provide positions.  Orientation is copied from
+        *orientationNode* if supplied, otherwise identity orientation is used.
+        For full 6-DOF waypoints, prefer ``CreatePoseMarker`` transform nodes.
+        """
+        markupsNode = self._resolveSceneNode(markupsNode)
+        if markupsNode is None or not markupsNode.IsA("vtkMRMLMarkupsNode"):
+            raise ValueError("markupsNode must be a vtkMRMLMarkupsNode")
+
+        orientationMatrix = vtk.vtkMatrix4x4()
+        orientationMatrix.Identity()
+        orientationNode = self._resolveSceneNode(orientationNode)
+        if orientationNode is not None and hasattr(orientationNode, "GetMatrixTransformToWorld"):
+            orientationNode.GetMatrixTransformToWorld(orientationMatrix)
+
+        matrices = []
+        pos = [0.0, 0.0, 0.0]
+        for i in range(markupsNode.GetNumberOfControlPoints()):
+            markupsNode.GetNthControlPointPositionWorld(i, pos)
+            matrix = vtk.vtkMatrix4x4()
+            matrix.DeepCopy(orientationMatrix)
+            matrix.SetElement(0, 3, pos[0])
+            matrix.SetElement(1, 3, pos[1])
+            matrix.SetElement(2, 3, pos[2])
+            matrices.append(self._matrixInNodeCoordinates(matrix, relativeToNode))
+        return matrices
+
+    def PlanMoveItCartesianTrajectoryFromPoseMarkers(
+        self,
+        motionControlNode,
+        groupName,
+        poseMarkers,
+        relativeToNode=None,
+        robotNode=None,
+        eefStepMeters=0.01,
+        jumpThreshold=0.0,
+        avoidCollisions=True,
+        velocityScaling=0.5,
+        accelerationScaling=0.5,
+        planningTimeSec=5.0,
+        startJointNames=None,
+        startJointValues=None,
+    ):
+        """Plan a MoveIt Cartesian trajectory through script-created pose markers.
+
+        Args:
+            motionControlNode: vtkMRMLROS2MotionControlNode.
+            groupName:         MoveIt planning group.
+            poseMarkers:       List of vtkMRMLTransformNode/vtkMatrix4x4 objects.
+            relativeToNode:    Reference node for the marker poses, usually the
+                               robot root transform.
+            robotNode:         Optional robot node; when provided, known MoveIt
+                               obstacles are republished before planning.
+            startJointNames:   Optional joint names for *startJointValues*.
+            startJointValues:  Optional joint start state for MoveIt planning.
+                               If omitted, MoveIt uses its current robot state.
+
+        Returns:
+            vtkMoveitMsgsRobotTrajectory, or None if no usable path was planned.
+        """
+        if motionControlNode is None:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: motion control node is invalid")
+            return None
+        if not groupName:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: planning group is empty")
+            return None
+        if not poseMarkers:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: no pose markers provided")
+            return None
+
+        if robotNode is not None:
+            self.PublishAllMoveItObstacles(robotNode)
+
+        poseCollection = self.BuildPoseMatrixCollection(poseMarkers, relativeToNode)
+        if poseCollection.GetNumberOfItems() == 0:
+            print("PlanMoveItCartesianTrajectoryFromPoseMarkers: no pose matrices built")
+            return None
+
+        if startJointValues is not None and startJointNames is None and robotNode is not None:
+            startJointNames = list(robotNode.GetJoints())
+        if startJointValues is not None and startJointNames is None:
+            print(
+                "PlanMoveItCartesianTrajectoryFromPoseMarkers: "
+                "startJointNames are required when startJointValues are provided"
+            )
+            return None
+
+        trajectory = motionControlNode.PlanMoveItCartesianTrajectory(
+            groupName,
+            poseCollection,
+            list(startJointNames) if startJointNames is not None else [],
+            list(startJointValues) if startJointValues is not None else [],
+            float(eefStepMeters),
+            float(jumpThreshold),
+            bool(avoidCollisions),
+            float(velocityScaling),
+            float(accelerationScaling),
+            float(planningTimeSec),
+        )
+        if trajectory is None:
+            return None
+        if not trajectory.GetJointTrajectory().GetPoints():
+            fraction = motionControlNode.GetLastCartesianPathFraction()
+            print(
+                "PlanMoveItCartesianTrajectoryFromPoseMarkers: "
+                f"MoveIt returned no trajectory points (fraction={fraction:.3f})"
+            )
+            return None
+        return trajectory
+
+    def ExecuteMoveItTrajectory(self, motionControlNode, groupName, trajectory,
+                                asynchronous=True):
+        """Execute a MoveIt trajectory from Python without using the widget."""
+        if motionControlNode is None:
+            print("ExecuteMoveItTrajectory: motion control node is invalid")
+            return False
+        if trajectory is None:
+            print("ExecuteMoveItTrajectory: trajectory is invalid")
+            return False
+        if asynchronous:
+            return bool(motionControlNode.ExecuteMoveItTrajectoryAsync(groupName, trajectory))
+        return bool(motionControlNode.ExecuteMoveItTrajectory(groupName, trajectory))
+
     def applyTransformToModel(self, modelNode, transformNode):
+        """Parent *modelNode* under *transformNode* in the MRML hierarchy.
+
+        Raises ``ValueError`` if either argument is ``None``.
+        """
 
         if modelNode is None or transformNode is None:
             raise ValueError("modelNode and transformNode are required")
@@ -1443,7 +2599,91 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         # Nudge MRML/3D view to update
         modelNode.Modified()
-        
+
+    def EnterControlMode(self, robotmodel, rootlink, tiplink, goaltiplink, baseGoalColor=None):
+        """Set up interactive IK control: create the probe sphere, position it at the
+        current goal tip, wire IK observers, and return the transform handles.
+
+        Args:
+            robotmodel:    ``vtkMRMLROS2RobotNode``.
+            rootlink:      Name of the robot root link (TF parent frame).
+            tiplink:       Name of the live robot tip link.
+            goaltiplink:   Name of the goal robot tip link used to initialise probe position.
+            baseGoalColor: Optional ``(r, g, b)`` tuple for IK success colour.
+
+        Returns:
+            Dict ``{"fromTransform": ..., "toTransform": ...}`` on success, or
+            ``None`` on failure.
+        """
+        if not robotmodel or not rootlink:
+            return None
+
+        try:
+            totransform = self.findRobotTransforms(rootlink, goal=True)
+        except RuntimeError:
+            print("Error: Could not find goal robot root transform.")
+            return None
+
+        try:
+            model = slicer.util.getNode("ProbeSphere")
+        except Exception:
+            model = None
+
+        if model is None:
+            model = self.createSphereModel()
+            fromtransform = self.createLinearTransform()
+            if fromtransform.GetDisplayNode():
+                fromtransform.GetDisplayNode().SetEditorVisibility(True)
+            self.applyTransformToModel(model, fromtransform)
+        else:
+            try:
+                fromtransform = slicer.util.getNode("ProbeSphere_Transform")
+            except Exception:
+                fromtransform = self.createLinearTransform()
+                self.applyTransformToModel(model, fromtransform)
+            if fromtransform.GetDisplayNode():
+                fromtransform.GetDisplayNode().SetEditorVisibility(True)
+
+        try:
+            if goaltiplink:
+                tip_transform_node = self.findRobotTransforms(goaltiplink, goal=True)
+                if tip_transform_node:
+                    tip_matrix = vtk.vtkMatrix4x4()
+                    tip_transform_node.GetMatrixTransformToWorld(tip_matrix)
+                    fromtransform.SetMatrixTransformToParent(tip_matrix)
+        except Exception as e:
+            print(f"Warning: Could not snap sphere to goal tip. Error: {e}")
+
+        self.setIKSourceTransforms(fromtransform.GetName(), totransform.GetName())
+
+        if DEBUG:
+            print(f"\n=== TIP LINK CONFIGURATION ===")
+            print(f"rootlink (base): {rootlink}")
+            print(f"tiplink (target): {tiplink}")
+            print(f"goaltiplink: {goaltiplink}")
+            print(f"================================\n")
+
+        self.tipLink = tiplink
+        self.addObserverComputeIK(robotmodel, baseGoalColor=baseGoalColor)
+        return {"fromTransform": fromtransform, "toTransform": totransform}
+
+    def ExitControlMode(self, fromtransform=None):
+        """Tear down IK control mode: remove transform observers and delete the probe sphere.
+
+        Args:
+            fromtransform: Optional probe transform node to remove from the scene.
+        """
+        self.removeObserver()
+
+        if fromtransform:
+            slicer.mrmlScene.RemoveNode(fromtransform)
+
+        try:
+            model = slicer.util.getNode("ProbeSphere")
+            if model:
+                slicer.mrmlScene.RemoveNode(model)
+        except Exception:
+            pass
 
     def _allTransforms(self):
         s = slicer.mrmlScene
@@ -1474,7 +2714,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         print(f"Attached '{probeTransformName}' under leaf transform '{leaf.GetName()}'")
         return dict(leafTransform=leaf, probeTransform=probeT)
-    
+
     def findRobotTransforms(self, link_name, goal=False):
         """
         Locate the transform for a link/model name using multi-part model naming only:
@@ -1547,7 +2787,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         """
         fromNode = slicer.util.getNode(fromTransformName)
         toNode   = slicer.util.getNode(toTransformName)
-        
+
         if fromNode is None or toNode is None:
             raise RuntimeError("Transform nodes not found in scene.")
 
@@ -1573,8 +2813,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.toNode = toNode
         self.obsRobotNode = robotmodel
         return self.obsTag
-        
+
     def printLocation(self, fromNode, toNode):
+        """Print (in debug mode) the XYZ translation from *fromNode* to *toNode* in millimetres."""
         m = vtk.vtkMatrix4x4()
         ok = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, m)
         if not ok:
@@ -1585,6 +2826,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             print(f"{fromNode.GetName()} wrt {toNode.GetName()}: x={x:.2f}, y={y:.2f}, z={z:.2f} mm")
 
     def removeObserver(self):
+        """Remove all active transform and view-interaction observers and reset observer state."""
         if self.viewObserverTags:
             for observed_object, observed_tag in self.viewObserverTags:
                 try:
@@ -1606,7 +2848,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self.callback = None
         self.isInteracting = False
 
-    def computeIK(self, robotmodel):
+    def computeIK(self, robotmodel, baseGoalColor=None):
+        """Compute IK for the current probe position using either MoveIt or KDL.
+
+        Updates goal robot joint transforms and colour-codes the result
+        (base colour on success, complementary colour on failure).
+
+        Args:
+            robotmodel:    ``vtkMRMLROS2RobotNode``.
+            baseGoalColor: Optional ``(r, g, b)`` override; falls back to the
+                           colour stored on the goal robot display nodes.
+        """
         if robotmodel is None:
             return
         solution = None
@@ -1617,34 +2869,31 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         else:
             solution = self.computeIKWithKDL(robotmodel=robotmodel)
 
-        # Update robot color based on whether solution was found
-        # If isInteracting is False, we typically want to RESTORE the color.
-        # However, _runIk is also called at the end of interaction.
-        if self.isInteracting:
-            self._updateRobotColorForIKResult(robotmodel, solution is not None)
-        else:
-            # Restore base color when interaction ends or for non-interactive updates (like typing values)
-            # Actually, if we are NOT interacting, we still want to show if the typed value is valid.
-            # But the requirement was "toggle the goal state robot color... when IK is not working".
-            # Let's show the feedback regardless of interaction mode for consistency.
-            self._updateRobotColorForIKResult(robotmodel, solution is not None)
+        # Resolve base color: prefer caller-supplied value, fall back to reading from the robot
+        if baseGoalColor is None:
+            baseGoalColor = self.GetGoalRobotColor(robotmodel)
 
-    def _updateRobotColorForIKResult(self, robotNode, success):
-        """Changes goal robot color to complementary if IK fails during interaction."""
-        if self.baseGoalColor is None:
-            self.baseGoalColor = self.getGoalRobotColor(robotNode)
-        
-        if self.baseGoalColor is None:
+        self._updateRobotColorForIKResult(robotmodel, solution is not None, baseGoalColor)
+
+    def _updateRobotColorForIKResult(self, robotNode, success, baseGoalColor=None):
+        """Changes goal robot color to complementary if IK fails, restores it on success."""
+        if baseGoalColor is None:
+            baseGoalColor = self.GetGoalRobotColor(robotNode)
+        if baseGoalColor is None:
             return
-
         if success:
-            self.setGoalRobotColorRGB(robotNode, self.baseGoalColor)
+            self.setGoalRobotColorRGB(robotNode, baseGoalColor)
         else:
-            # Complementary color in RGB: (1-r, 1-g, 1-b)
-            r, g, b = self.baseGoalColor
+            r, g, b = baseGoalColor
             self.setGoalRobotColorRGB(robotNode, (1.0 - r, 1.0 - g, 1.0 - b))
 
     def setGoalRobotColorRGB(self, robotNode, rgb):
+        """Set the display colour of all goal robot model parts.
+
+        Args:
+            robotNode: ``vtkMRMLROS2RobotNode``.
+            rgb:       ``(r, g, b)`` float tuple in [0, 1].
+        """
         if robotNode is None:
             return
         r, g, b = rgb
@@ -1654,7 +2903,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if displayNode:
                 displayNode.SetColor(r, g, b)
 
-    def _addViewInteractionObservers(self, robotmodel):
+    def _addViewInteractionObservers(self, robotmodel, baseGoalColor=None):
         layout_manager = slicer.app.layoutManager()
         if layout_manager is None:
             return
@@ -1662,10 +2911,10 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         def onInteractionEvent(caller, eventId):
             if eventId == vtk.vtkCommand.InteractionEvent:
                 self.isInteracting = True
-                self.computeIK(robotmodel)
+                self.computeIK(robotmodel, baseGoalColor=baseGoalColor)
             elif eventId == vtk.vtkCommand.EndInteractionEvent:
                 self.isInteracting = False
-                self.computeIK(robotmodel)
+                self.computeIK(robotmodel, baseGoalColor=baseGoalColor)
 
         interaction_events = (vtk.vtkCommand.InteractionEvent, vtk.vtkCommand.EndInteractionEvent)
 
@@ -1704,28 +2953,46 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     self.viewObserverTags.append((style, tag))
         except Exception:
             pass
-    
-    
+
+
     def computeIKWithMoveIt(self, robotmodel, tipLink):
+        """Compute IK via the MoveIt ``FindIK`` interface.
+
+        Reads the current probe-to-root transform, calls ``robotmodel.FindIKMoveIt``,
+        and on success applies the joint solution to the goal robot and caches it
+        in ``last_ik_solution``.
+
+        Args:
+            robotmodel: ``vtkMRMLROS2RobotNode``.
+            tipLink:    Name of the end-effector TF link MoveIt should plan to.
+
+        Returns:
+            List of joint angles in radians, or ``None`` if no solution found.
+        """
 
     # --- Get Slicer transform nodes ---
         fromNode = self.obsNode
         toNode   = self.toNode
-        
+
         # --- Compute 4×4 transform between nodes ---
         targetPose = vtk.vtkMatrix4x4()
         if not slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, targetPose):
             raise RuntimeError("Could not compute transform between nodes.")
-        
+
         if DEBUG:
             print(f"\n[MoveIt IK] Target Pose Matrix (4x4):")
             print(f"  [{targetPose.GetElement(0,0):.3f}, {targetPose.GetElement(0,1):.3f}, {targetPose.GetElement(0,2):.3f}, {targetPose.GetElement(0,3):.2f}]")
             print(f"  [{targetPose.GetElement(1,0):.3f}, {targetPose.GetElement(1,1):.3f}, {targetPose.GetElement(1,2):.3f}, {targetPose.GetElement(1,3):.2f}]")
             print(f"  [{targetPose.GetElement(2,0):.3f}, {targetPose.GetElement(2,1):.3f}, {targetPose.GetElement(2,2):.3f}, {targetPose.GetElement(2,3):.2f}]")
             print(f"  [{targetPose.GetElement(3,0):.3f}, {targetPose.GetElement(3,1):.3f}, {targetPose.GetElement(3,2):.3f}, {targetPose.GetElement(3,3):.3f}]")
-        
+
+        now = time.time()
+        if now - self._last_moveit_obstacle_publish_time > 1.0:
+            self.PublishAllMoveItObstacles(robotmodel)
+            self._last_moveit_obstacle_publish_time = now
+
         seed = self.last_ik_solution
-        result_str = robotmodel.FindIKmoveit(targetPose, tipLink, seed, 0.05)
+        result_str = robotmodel.FindIKMoveIt(targetPose, tipLink, seed, 0.05)
 
         if result_str and result_str.strip():
             # Parse comma-separated string into list of floats
@@ -1745,68 +3012,81 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if DEBUG:
                 print(f"[IK] Empty result from FindIK")
             return None
-    
-    
-    def computeIKWithKDL(self, robotmodel):            
-            # --- Get Slicer transform nodes ---
-            fromNode = self.obsNode
-            toNode   = self.toNode
-            
-            if fromNode is None or toNode is None:
-                return None
 
-            if DEBUG:
-                print(f"\n[IK] Computing transform from '{fromNode.GetName()}' to '{toNode.GetName()}'")
 
-            # --- Compute 4×4 transform between nodes ---
-            targetPose = vtk.vtkMatrix4x4()
-            success = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, targetPose)
-            
-            if not success:
-                raise RuntimeError("Could not compute transform between nodes.")
+    def computeIKWithKDL(self, robotmodel):
+        """Compute IK via the KDL (Kinematics and Dynamics Library) interface.
 
-            # If we have no seed or a bad seed, try all zeros first
-            seed = self.last_ik_solution if self.last_ik_solution and len(self.last_ik_solution) > 0 else []
+        Reads the current probe-to-root transform, calls ``robotmodel.FindKDLIK``,
+        and on success applies the joint solution to the goal robot and caches it
+        in ``last_ik_solution``.
 
-            # call KDL IK
-            result_str = robotmodel.FindKDLIK(targetPose, seed)
+        Args:
+            robotmodel: ``vtkMRMLROS2RobotNode``.
 
-            if result_str and result_str.strip():
-                try:
-                    data = [float(x) for x in result_str.split(",")]
-                    if DEBUG:
-                        print(f"[IK] Solution found: {data}")
-                    self.last_ik_solution = data
-                    self.updategoalTransformsFromJointsKDL(robotmodel, data)
-                    return data
-                except ValueError as e:
-                    print(f"[IK] Failed to parse solution: {e}")
-                    return None
-            else:
+        Returns:
+            List of joint angles in radians, or ``None`` if no solution found.
+        """
+        # --- Get Slicer transform nodes ---
+        fromNode = self.obsNode
+        toNode   = self.toNode
+
+        if fromNode is None or toNode is None:
+            return None
+
+        if DEBUG:
+            print(f"\n[IK] Computing transform from '{fromNode.GetName()}' to '{toNode.GetName()}'")
+
+        # --- Compute 4×4 transform between nodes ---
+        targetPose = vtk.vtkMatrix4x4()
+        success = slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(fromNode, toNode, targetPose)
+
+        if not success:
+            raise RuntimeError("Could not compute transform between nodes.")
+
+        # If we have no seed or a bad seed, try all zeros first
+        seed = self.last_ik_solution if self.last_ik_solution and len(self.last_ik_solution) > 0 else []
+
+        # call KDL IK
+        result_str = robotmodel.FindKDLIK(targetPose, seed)
+
+        if result_str and result_str.strip():
+            try:
+                data = [float(x) for x in result_str.split(",")]
                 if DEBUG:
-                    print(f"[IK] Empty result from FindKDLIK")
+                    print(f"[IK] Solution found: {data}")
+                self.last_ik_solution = data
+                self.updategoalTransformsFromJointsKDL(robotmodel, data)
+                return data
+            except ValueError as e:
+                print(f"[IK] Failed to parse solution: {e}")
                 return None
-    
-    def addObserverComputeIK(self, robotmodel=None):
+        else:
+            if DEBUG:
+                print(f"[IK] Empty result from FindKDLIK")
+            return None
+
+    def addObserverComputeIK(self, robotmodel=None, baseGoalColor=None):
             """
             Observe transform changes. Uses self.obsNode and self.toNode that should be
             set by setupikforRobot(). Each transform update triggers IK computation.
             Uses either KDL (default) or MoveIt IK based on useMoveItIK flag.
-            
+
             Args:
-                robotmodel: The robot model for KDL IK
-                Planning group name is read from self.planGroup (updated by widget)
+                robotmodel: The robot model for IK
+                baseGoalColor: (r, g, b) tuple used to color-code IK success/failure.
+                               Comes from the module parameter node via the widget.
             """
             fromNode = self.obsNode
             toNode   = self.toNode
-            
+
             if fromNode is None or toNode is None:
                 raise RuntimeError("Transform nodes not found. Call setupikforRobot() first.")
-            
+
             # Remove previous observer if any to prevent duplicates
             # (but this will clear self.obsNode, so we restore it below)
             self.removeObserver()
-            
+
             # Restore the node references that removeObserver() cleared
             self.obsNode = fromNode
             self.toNode = toNode
@@ -1814,36 +3094,48 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             def onModified(caller, eventId):
                 # Update XYZ label/print even during interaction
                 self.printLocation(fromNode, toNode)
-                
+
                 # Only compute IK if NOT interacting via view.
                 # If interacting, the InteractorStyle observers handle _runIk.
                 # If NOT interacting (e.g. typing values), handle it here.
                 if self.isInteracting:
                     return
-                self.computeIK(robotmodel)
+                self.computeIK(robotmodel, baseGoalColor=baseGoalColor)
 
             self.callback = onModified
             eventId = slicer.vtkMRMLTransformNode.TransformModifiedEvent
             self.obsTag  = fromNode.AddObserver(eventId, self.callback)
-            self._addViewInteractionObservers(robotmodel)
+            self._addViewInteractionObservers(robotmodel, baseGoalColor=baseGoalColor)
 
             return self.obsTag
-    
+
     # Set robot opacity
     def setOpacity(self, robotmodel, opacity):
-        
+        """Set the display opacity of all model parts referenced by *robotmodel*.
+
+        Args:
+            robotmodel: ``vtkMRMLROS2RobotNode``.
+            opacity:    Float in [0, 1].
+        """
+
         # Get number of model nodes under robotmodel
-        numModels = robotmodel.GetNumberOfNodeReferences("model")  
+        numModels = robotmodel.GetNumberOfNodeReferences("model")
 
         # Loop through each model node and set opacity
-        for i in range(numModels):  
-            modelNode = robotmodel.GetNthNodeReference("model", i)  
-            displayNode = modelNode.GetDisplayNode()  
-            if displayNode:  
+        for i in range(numModels):
+            modelNode = robotmodel.GetNthNodeReference("model", i)
+            displayNode = modelNode.GetDisplayNode()
+            if displayNode:
                 displayNode.SetOpacity(opacity)
 
     # Set robot color
     def setGoalRobotColor(self, robotNode, color):
+        """Set the display colour of all goal robot model parts from a ``QColor``.
+
+        Args:
+            robotNode: ``vtkMRMLROS2RobotNode``.
+            color:     ``qt.QColor`` value.
+        """
         if robotNode is None:
             return
 
@@ -1857,7 +3149,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if displayNode:
                 displayNode.SetColor(r, g, b)
 
-    def getGoalRobotColor(self, robotNode):
+    def GetGoalRobotColor(self, robotNode):
+        """Return the current display colour of the goal robot as an ``(r, g, b)`` float tuple.
+
+        Returns ``None`` if *robotNode* is ``None`` or no goal model display node is found.
+        """
         if robotNode is None:
             return None
 
@@ -1918,90 +3214,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     seen_names.add(modelName)
 
         return goal_nodes
-    
-    # Parse urdf to get joint limits. parses only non-fixed joints
-    def findJointLimitsFromURDF(self, urdf_xml: str):        
-        root = ET.fromstring(urdf_xml)
-        limits = {} 
 
-        for joint in root.findall("joint"):
-            jtype = joint.get("type", "")
-            name = joint.get("name", "")
-            if jtype == "fixed" or not name:
-                continue
-
-            limit = joint.find("limit")
-            if limit is None:
-                continue
-
-            lo = limit.get("lower")
-            hi = limit.get("upper")
-            if lo is None or hi is None:
-                continue
-
-            limits[name] = (float(lo), float(hi), jtype)
-
-        return limits
-    
-    
-    def findJointStructureFromURDF(self, urdf_xml: str):
-            """
-            Returns a dict mapping joint_name -> {'parent', 'child', 'axis', 'type', 'origin_rpy'}
-            """
-            import xml.etree.ElementTree as ET
-            root = ET.fromstring(urdf_xml)
-            joint_info = {}
-
-            for joint in root.findall("joint"):
-                name = joint.get("name", "")
-                jtype = joint.get("type", "")
-                
-                # Skip if no name or fixed (unless you need fixed joints later)
-                if not name or jtype == "fixed":
-                    continue
-
-                parent_elem = joint.find("parent")
-                child_elem = joint.find("child")
-                axis_elem = joint.find("axis")
-                origin_elem = joint.find("origin")  # <--- NEW: Find the origin tag
-                
-                if parent_elem is None or child_elem is None:
-                    continue
-                    
-                parent_link = parent_elem.get("link", "")
-                child_link = child_elem.get("link", "")
-                
-                # Default axis
-                axis = [0.0, 0.0, 1.0]
-                if axis_elem is not None:
-                    xyz = axis_elem.get("xyz", "0 0 1")
-                    try:
-                        axis = [float(x) for x in xyz.split()]
-                    except ValueError:
-                        pass
-                
-                # --- NEW: Extract Origin RPY ---
-                origin_rpy = [0.0, 0.0, 0.0]
-                if origin_elem is not None:
-                    rpy_str = origin_elem.get("rpy", "0 0 0")
-                    try:
-                        origin_rpy = [float(x) for x in rpy_str.split()]
-                    except ValueError:
-                        pass
-                # -------------------------------
-                
-                joint_info[name] = {
-                    'parent': parent_link,
-                    'child': child_link,
-                    'axis': axis,
-                    'type': jtype,
-                    'origin_rpy': origin_rpy  # <--- Store it here
-                }
-
-            return joint_info
-
-    
     def setJointSlidersFromUrdfLimits(self, limits_rad, sliders):
+        """Configure a list of ``QSlider`` widgets from URDF joint limit data.
+
+        Revolute joints use degrees; prismatic joints use millimetres.  Swaps
+        lo/hi if the URDF stores them in reverse order.
+
+        Args:
+            limits_rad: Ordered dict mapping joint name to ``(lo, hi, type)``
+                        where lo/hi are in radians or metres.
+            sliders:    Matching list of ``QSlider`` widgets to configure.
+        """
 
         if len(sliders) != len(limits_rad):
             print(
@@ -2013,7 +3237,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             lo_rad = limit_info[0]
             hi_rad = limit_info[1]
             jtype = limit_info[2] if len(limit_info) > 2 else "revolute"
-            
+
             if jtype == "prismatic":
                 lo_ui = int(round(lo_rad * 1000.0))
                 hi_ui = int(round(hi_rad * 1000.0))
@@ -2030,7 +3254,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             slider.setValue(0)
 
             print(f"[ROS2MotionControl] {jointName}: {lo_ui}..{hi_ui} {unit_str}")
-            
+
     def setIKSourceTransforms(self, fromtransformname, totransformname):
             """
             Links the specific visual nodes (Sphere Transform -> Robot Root Transform)
@@ -2038,7 +3262,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             """
             fromNode = slicer.util.getNode(fromtransformname)
             toNode   = slicer.util.getNode(totransformname)
-            
+
             if fromNode and toNode:
                 self.obsNode = fromNode
                 self.toNode = toNode
@@ -2046,215 +3270,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     print(f"Logic Linked: '{fromtransformname}' -> '{totransformname}'")
             else:
                 print("Error: Could not link IK transforms (Nodes missing)")
-                
-    def getCurrentJointPositions(self, robotmodel):
-            """
-            Calculate current joint values by subtracting the fixed URDF origin 
-            from the measured link transforms.
-            """
 
-            if not robotmodel:
-                print("Error: No robot model provided")
-                return []
-            
-            # Get joint names
-            joint_names = robotmodel.GetJoints()
-            if not joint_names:
-                print("Error: No joints found in robot model")
-                return []
-            
-            # Get URDF to parse joint structure
-            pnode = robotmodel.GetNthNodeReference("parameter", 0)
-            if not pnode:
-                print("Error: No parameter node found for robot")
-                return []
-            urdf_xml = pnode.GetParameterAsString("robot_description")
-            
-            # Parse joint structure (Must include origin_rpy logic!)
-            joint_info = self.findJointStructureFromURDF(urdf_xml)
-            
-            joint_positions = []
-            
-            for joint_name in joint_names:
-                try:
-                    # 1. Validation
-                    if joint_name not in joint_info:
-                        print(f"Warning: Joint '{joint_name}' not found in URDF")
-                        joint_positions.append(0.0)
-                        continue
-                    
-                    info = joint_info[joint_name]
-                    parent_link = info['parent']
-                    child_link = info['child']
-                    axis = info['axis']
-                    # Default to [0,0,0] if not found
-                    origin_rpy = info.get('origin_rpy', [0.0, 0.0, 0.0]) 
-                    
-                    # 2. Find Slicer Nodes for Parent and Child
-                    real_parent_model = f"{parent_link}"
-                    real_child_model = f"{child_link}"
-                    
-                    try:
-                        parent_transform = self.findRobotTransforms(real_parent_model, goal=False)
-                        child_transform = self.findRobotTransforms(real_child_model, goal=False)
-                    except Exception:
-                        # If transforms aren't in the scene, assume 0.0
-                        joint_positions.append(0.0)
-                        continue
-                    
-                    # 3. Get Measured Matrix (Total Transform = Origin * JointRotation)
-                    # This calculates the transform of Child relative to Parent
-                    measured_matrix = vtk.vtkMatrix4x4()
-                    slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
-                        child_transform, parent_transform, measured_matrix
-                    )
-                    
-                    # 4. Create the Structural Origin Matrix
-                    # We apply rotations in Z, Y, X order which corresponds to URDF Euler RPY
-                    origin_transform = vtk.vtkTransform()
-                    origin_transform.RotateZ(math.degrees(origin_rpy[2]))
-                    origin_transform.RotateY(math.degrees(origin_rpy[1]))
-                    origin_transform.RotateX(math.degrees(origin_rpy[0]))
-                    
-                    origin_matrix = origin_transform.GetMatrix()
-                    
-                    # 5. Isolate the Joint Rotation
-                    # Math: T_rotation = (T_origin)^-1 * T_measured
-                    origin_matrix.Invert() 
-                    
-                    pure_joint_matrix = vtk.vtkMatrix4x4()
-                    vtk.vtkMatrix4x4.Multiply4x4(origin_matrix, measured_matrix, pure_joint_matrix)
-                    
-                    # 6. Extract the Angle from the Pure Matrix
-                    final_transform = vtk.vtkTransform()
-                    final_transform.SetMatrix(pure_joint_matrix)
-                    rotation = final_transform.GetOrientation()  # Returns [rx, ry, rz] in degrees
-                    
-                    # 7. Select the correct axis
-                    # Find the dominant axis (largest absolute value in the axis vector)
-                    abs_axis = [abs(a) for a in axis]
-                    max_idx = abs_axis.index(max(abs_axis))
-                    
-                    angle_deg = rotation[max_idx]
-                    
-                    # Flip sign if the axis definition is negative (e.g., [0, 0, -1])
-                    if axis[max_idx] < 0:
-                        angle_deg = -angle_deg
-                        
-                    # Clamp tiny noise to 0.0 to prevent flickering
-                    if abs(angle_deg) < 0.1:
-                        angle_deg = 0.0
-
-                    angle_rad = math.radians(angle_deg)
-                    
-                    # Debug print (Optional)
-                    jtype = info.get('type', 'revolute')
-                    if jtype == "prismatic":
-                        # We would extract translation here, but we are just printing
-                        pass
-                    # print(f"Joint {joint_name}: raw={rotation}, fixed={angle_deg}")
-
-                    joint_positions.append(angle_rad)
-                        
-                except Exception as e:
-                    print(f"Error reading real robot joint '{joint_name}': {e}")
-                    joint_positions.append(0.0)
-            
-            return joint_positions
-    
-    def getCurrentGoalJointPositions(self, robotmodel):
-        """
-        Calculate current joint values from the goal robot's link transforms.
-        Returns a list of joint angles in radians.
-        """
-        if not robotmodel:
-            print("Error: No robot model provided")
-            return []
-        
-        # Get joint names
-        joint_names = robotmodel.GetJoints()
-        if not joint_names:
-            print("Error: No joints found in robot model")
-            return []
-        
-        # Get URDF to parse joint structure
-        pnode = robotmodel.GetNthNodeReference("parameter", 0)
-        if not pnode:
-            print("Error: No parameter node found for robot")
-            return []
-        urdf_xml = pnode.GetParameterAsString("robot_description")
-        
-        # Parse joint structure from URDF
-        joint_info = self.findJointStructureFromURDF(urdf_xml)
-        
-        joint_positions = []
-        
-        # For each joint, compute the relative rotation between parent and child links
-        # goal links have "_goal" suffix in their model names
-        for joint_name in joint_names:
-            try:
-                if joint_name not in joint_info:
-                    print(f"Warning: Joint '{joint_name}' not found in URDF")
-                    joint_positions.append(0.0)
-                    continue
-                
-                info = joint_info[joint_name]
-                parent_link = info['parent']
-                child_link = info['child']
-                axis = info['axis']
-                
-                # goal links have model names with "_goal" suffix
-                # When goal=True, findRobotTransforms expects the full model node name
-                # Get transform nodes for goal parent and child links
-                try:
-                    parent_transform = self.findRobotTransforms(parent_link, goal=True)
-                    child_transform = self.findRobotTransforms(child_link, goal=True)
-                except RuntimeError as e:
-                    print(f"Warning: Could not find goal transforms for joint '{joint_name}': {e}")
-                    joint_positions.append(0.0)
-                    continue
-                
-                # Compute relative transform from child to parent
-                rel_matrix = vtk.vtkMatrix4x4()
-                slicer.vtkMRMLTransformNode.GetMatrixTransformBetweenNodes(
-                    child_transform, parent_transform, rel_matrix
-                )
-                
-                # Extract rotation angle around the joint axis
-                transform = vtk.vtkTransform()
-                transform.SetMatrix(rel_matrix)
-                rotation = transform.GetOrientation()  # Returns [rx, ry, rz] in degrees
-                
-                # Determine which axis component to use based on joint axis
-                # Find the dominant axis (largest absolute value)
-                abs_axis = [abs(a) for a in axis]
-                max_idx = abs_axis.index(max(abs_axis))
-                
-                angle_deg = rotation[max_idx]
-                # If axis is negative, flip the angle
-                if axis[max_idx] < 0:
-                    angle_deg = -angle_deg
-                    
-                angle_rad = math.radians(angle_deg)
-                
-                jtype = info.get('type', 'revolute')
-                if jtype == "prismatic":
-                    print(f"[goal] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_ui={angle_deg:.1f}, rad_or_m={angle_rad:.4f}")
-                else:
-                    print(f"[goal] {joint_name}: axis={axis}, rotation_deg={[f'{r:.1f}' for r in rotation]}, extracted_deg={angle_deg:.1f}, rad={angle_rad:.4f}")
-                joint_positions.append(angle_rad)
-                    
-            except Exception as e:
-                print(f"Error reading goal joint '{joint_name}': {e}")
-                joint_positions.append(0.0)
-        
-        return joint_positions
-    
     def updategoalTransformsFromJointsKDL(self, robotmodel, joint_values):
         """
         Update all goal robot link transforms using KDL FK computation.
         For each link, calls ComputeKDLFK to get the transform and applies it to the goal link.
-        
+
         Args:
             robotmodel: The robot model node with ComputeLocalTransform method
             joint_values: List of joint angles in radians
@@ -2263,105 +3284,49 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if DEBUG:
                 print("[updategoalTransformsFromJointsKDL] No robot model or joint values")
             return False
-        
+
         seg = robotmodel.GetSegments()
-        
+
         # For each link, compute FK and update goal transform
         for link_name in seg:
             try:
                 # Create a matrix to hold the FK result
                 fk_matrix = vtk.vtkMatrix4x4()
-                
+
                 # Call the C++ ComputeLocalTransform function
                 # It takes: joint_values (as list), output matrix, and link name
                 result = robotmodel.ComputeLocalTransform(joint_values, fk_matrix, link_name)
-                
+
                 if result is None:
                     print(f"[FK] Failed to compute FK for link '{link_name}'")
                     continue
-                
+
                 # Find the goal link's transform node
                 try:
                     goal_transform = self.findRobotTransforms(link_name, goal=True)
                     if goal_transform:
-                        # Apply the FK matrix to the goal transform
                         goal_transform.SetMatrixTransformToParent(fk_matrix)
                         if DEBUG:
                             print(f"[FK] Updated goal transform for '{link_name}'")
                 except Exception:
                     print(f"[FK] Could not find or update goal transform for '{link_name}'")
-                    
+
             except Exception as e:
                 print(f"[FK] Error computing FK for link '{link_name}': {e}")
-        
+
         return True
-        
 
+    def updategoalTransformsFromJointsKDLBatched(self, robotmodel, joint_values):
+        """Apply FK updates in a single MRML batch window for smoother playback/scrub."""
+        if not robotmodel or not joint_values:
+            return False
 
-#
-# ROS2MotionControlTest
-#
+        scene = slicer.mrmlScene
+        if scene is None:
+            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_values)
 
-
-class ROS2MotionControlTest(ScriptedLoadableModuleTest):
-    """
-    This is the test case for your scripted module.
-    Uses ScriptedLoadableModuleTest base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
-
-    def setUp(self):
-        """Do whatever is needed to reset the state - typically a scene clear will be enough."""
-        slicer.mrmlScene.Clear()
-
-    def runTest(self):
-        """Run as few or as many tests as needed here."""
-        self.setUp()
-        self.test_ROS2MotionControl1()
-
-    def test_ROS2MotionControl1(self):
-        """Ideally you should have several levels of tests.  At the lowest level
-        tests should exercise the functionality of the logic with different inputs
-        (both valid and invalid).  At higher levels your tests should emulate the
-        way the user would interact with your code and confirm that it still works
-        the way you intended.
-        One of the most important features of the tests is that it should alert other
-        developers when their changes will have an impact on the behavior of your
-        module.  For example, if a developer removes a feature that you depend on,
-        your test should break so they know that the feature is needed.
-        """
-
-        self.delayDisplay("Starting the test")
-
-        # Get/create input data
-
-        import SampleData
-
-        registerSampleData()
-        inputVolume = SampleData.downloadSample("ROS2MotionControl1")
-        self.delayDisplay("Loaded test data set")
-
-        inputScalarRange = inputVolume.GetImageData().GetScalarRange()
-        self.assertEqual(inputScalarRange[0], 0)
-        self.assertEqual(inputScalarRange[1], 695)
-
-        outputVolume = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
-        threshold = 100
-
-        # Test the module logic
-
-        logic = ROS2MotionControlLogic()
-
-        # Test algorithm with non-inverted threshold
-        logic.process(inputVolume, outputVolume, threshold, True)
-        outputScalarRange = outputVolume.GetImageData().GetScalarRange()
-        self.assertEqual(outputScalarRange[0], inputScalarRange[0])
-        self.assertEqual(outputScalarRange[1], threshold)
-
-        # Test algorithm with inverted threshold
-        logic.process(inputVolume, outputVolume, threshold, False)
-        outputScalarRange = outputVolume.GetImageData().GetScalarRange()
-        self.assertEqual(outputScalarRange[0], inputScalarRange[0])
-        self.assertEqual(outputScalarRange[1], inputScalarRange[1])
-
-        self.delayDisplay("Test passed")
+        scene.StartState(scene.BatchProcessState)
+        try:
+            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_values)
+        finally:
+            scene.EndState(scene.BatchProcessState)

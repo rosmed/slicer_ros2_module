@@ -37,6 +37,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
 
   const char * GetSlicerTypeOut(void) const;
 
+  bool GetLastResponseStatus(void) const;
+
   size_t GetNumberOfCalls(void) const {
     return mNumberOfCalls;
   }

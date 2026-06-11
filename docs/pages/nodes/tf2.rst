@@ -16,7 +16,7 @@ access to the Tf2 buffer.  The Tf2 lookups are performed when the node
 node is spun.
 
 Broadcasts
-==========
+----------
 
 To create a new Tf2 broadcaster, one should use the MRML ROS2 Node
 method ``vtkMRMLROS2NodeNode::CreateAndAddTf2BroadcasterNode``.  This
@@ -63,7 +63,7 @@ method takes two parameters:
 * the child ID (``std::string``)
 
 Lookups
-=======
+-------
 
 To create a new Tf2 lookup, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddTf2LookupNode``.  This method takes

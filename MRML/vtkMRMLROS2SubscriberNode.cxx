@@ -4,6 +4,12 @@
 #include <vtkMRMLROS2SubscriberInternals.h>
 
 
+vtkMRMLROS2SubscriberNode::vtkMRMLROS2SubscriberNode()
+{
+  this->AddNodeReferenceRole("target");
+}
+
+
 void vtkMRMLROS2SubscriberNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
@@ -53,6 +59,24 @@ bool vtkMRMLROS2SubscriberNode::IsAddedToROS2Node(void) const
 }
 
 
+const char* vtkMRMLROS2SubscriberNode::GetTargetNodeID()
+{
+  return this->GetNodeReferenceID("target");
+}
+
+
+void vtkMRMLROS2SubscriberNode::SetTargetNodeID(const char* targetNodeID)
+{
+  this->SetAndObserveNodeReferenceID("target", targetNodeID);
+}
+
+
+vtkMRMLNode* vtkMRMLROS2SubscriberNode::GetTargetNode()
+{
+  return this->GetNodeReference("target");
+}
+
+
 const char * vtkMRMLROS2SubscriberNode::GetROSType(void) const
 {
   return mInternals->GetROSType();
@@ -76,6 +100,9 @@ void vtkMRMLROS2SubscriberNode::WriteXML(std::ostream& of, int nIndent)
   Superclass::WriteXML(of, nIndent); // This will take care of referenced nodes
   vtkMRMLWriteXMLBeginMacro(of);
   vtkMRMLWriteXMLStdStringMacro(topicName, Topic);
+  vtkMRMLWriteXMLIntMacro(QoSHistoryDepth, QoSHistoryDepth);
+  vtkMRMLWriteXMLIntMacro(QoSReliability, QoSReliability);
+  vtkMRMLWriteXMLIntMacro(QoSDurability, QoSDurability);
   vtkMRMLWriteXMLEndMacro();
 }
 
@@ -86,6 +113,9 @@ void vtkMRMLROS2SubscriberNode::ReadXMLAttributes(const char** atts)
   Superclass::ReadXMLAttributes(atts); // This will take care of referenced nodes
   vtkMRMLReadXMLBeginMacro(atts);
   vtkMRMLReadXMLStdStringMacro(topicName, Topic);
+  vtkMRMLReadXMLIntMacro(QoSHistoryDepth, QoSHistoryDepth);
+  vtkMRMLReadXMLIntMacro(QoSReliability, QoSReliability);
+  vtkMRMLReadXMLIntMacro(QoSDurability, QoSDurability);
   vtkMRMLReadXMLEndMacro();
   this->EndModify(wasModifying);
 }

@@ -1,7 +1,8 @@
 import os
 import json
+import shlex
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 
 def append_existing_path(paths, path):
@@ -24,14 +25,12 @@ def append_runtime_registry_paths(module_paths, library_paths, registry_path):
         for path in entry.get("library_paths", []):
             append_existing_path(library_paths, path)
 
-def generate_launch_description():
-    slicer_args = LaunchConfiguration('slicer_args')
-
+def launch_setup(context, *args, **kwargs):
     # The Slicer executable path is substituted by CMake during configuration.
     slicer_executable = "@Slicer_DIR@/Slicer"
 
-    # Module paths are baked in at build time by CMake configure_file.  The
-    # package prefix contains this module.  Third-party extension build-tree
+    # Module paths are baked in at build time by CMake configure_file. The
+    # package prefix contains this module. Third-party extension build-tree
     # paths are read from the runtime registry below.
     install_prefixes = [
         "@CMAKE_INSTALL_PREFIX@",
@@ -71,7 +70,6 @@ def generate_launch_description():
     append_runtime_registry_paths(module_paths, library_paths, runtime_registry_path)
 
     current_ld_library_path = os.environ.get('LD_LIBRARY_PATH', '')
-#    current_python_path = os.environ.get('PYTHONPATH', '')
     custom_paths = module_paths + [p for p in library_paths if p not in module_paths]
     custom_paths_str = ":".join(custom_paths) + ":@Slicer_DIR@/bin"
 
@@ -80,30 +78,34 @@ def generate_launch_description():
     else:
         new_ld_library_path = custom_paths_str
 
-    # if current_python_path:
-    #     new_python_path = f"{custom_paths_str}:{current_python_path}"
-    # else:
-    #     new_python_path = custom_paths_str
-
     # Build the base command
     cmd = [slicer_executable]
     cmd.extend(["--additional-module-paths"])
     cmd.extend(module_paths)
 
+    # Safely perform and split the launch argument configuration string
+    slicer_args_str = LaunchConfiguration('slicer_args').perform(context)
+    if slicer_args_str:
+        extra_args = shlex.split(slicer_args_str)
+        cmd.extend(extra_args)
+
+    process = ExecuteProcess(
+        cmd=cmd,
+        additional_env={
+            'LD_LIBRARY_PATH': new_ld_library_path
+        },
+        shell=False,
+        output='screen'
+    )
+    return [process]
+
+def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'slicer_args',
             default_value='',
             description='Additional arguments to pass to Slicer'
         ),
-
-        ExecuteProcess(
-            cmd=cmd,
-            additional_env={
-                'LD_LIBRARY_PATH': new_ld_library_path
-#                'PYTHONPATH': new_python_path
-            },
-            shell=False,
-            output='screen'
-        )
+        OpaqueFunction(function=launch_setup)
     ])
+

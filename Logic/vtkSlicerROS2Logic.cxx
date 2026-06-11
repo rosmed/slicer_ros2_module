@@ -20,8 +20,15 @@
 #include <SlicerROS2Config.h>
 #include <vtkSlicerROS2Logic.h>
 #include <qSlicerCoreApplication.h>
+#include <algorithm>
+
+// Qt includes
+#include <QEventLoop>
+#include <QTimer>
 
 // VTK includes
+#include <vtkCallbackCommand.h>
+#include <vtkCommand.h>
 #include <vtkTimerLog.h>
 
 // MRML includes
@@ -33,6 +40,10 @@
 #include <vtkMRMLModelStorageNode.h>
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLModelDisplayNode.h>
+#include <vtkMRMLScalarVolumeNode.h>
+#include <vtkMRMLScalarVolumeDisplayNode.h>
+#include <vtkMRMLVectorVolumeNode.h>
+#include <vtkMRMLVectorVolumeDisplayNode.h>
 
 // MRMLROS2
 #include <vtkMRMLROS2Utils.h>
@@ -40,10 +51,13 @@
 #include <vtkMRMLROS2SubscriberDefaultNodes.h>
 #include <vtkMRMLROS2PublisherDefaultNodes.h>
 #include <vtkMRMLROS2ParameterNode.h>
+#include <vtkMRMLROS2ServiceClientNode.h>
 #include <vtkMRMLROS2ServiceClientDefaultNodes.h>
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#include <vtkMRMLROS2MotionControlNode.h>
+#include <vtkMRMLROS2PublisherCollisionObjectNode.h>
 
 // Automatically generated nodes
 #include <vtkMRMLROS2GeneratedNodes.h>
@@ -117,8 +131,10 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPoseNode>::New());
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberUInt8ImageNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberImageNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloudNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPointCloud2Node>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberPolyDataNode>::New());
 
   // Publishers
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherEmptyNode>::New());
@@ -130,13 +146,16 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleArrayNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntTableNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleTableNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCollisionObjectNode>::New());
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherUInt8ImageNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherImageNode>::New());
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloudNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloud2Node>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPolyDataNode>::New());
 
 #if USE_CISST_MSGS
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
@@ -150,6 +169,9 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 
   // Robot
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
+
+  // Motion control
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2MotionControlNode>::New());
 
   // Services
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolStringNode>::New());
@@ -168,11 +190,29 @@ void vtkSlicerROS2Logic::UpdateFromMRMLScene(void)
 //---------------------------------------------------------------------------
 void vtkSlicerROS2Logic::OnMRMLSceneNodeAdded(vtkMRMLNode * node)
 {
-  vtkMRMLROS2NodeNode * rosNode = dynamic_cast<vtkMRMLROS2NodeNode *>(node);
+  if (!node || !this->GetMRMLScene()) {
+    return;
+  }
+
+  vtkMRMLROS2NodeNode * rosNode = vtkMRMLROS2NodeNode::SafeDownCast(node);
   if (rosNode != nullptr) {
     if (std::find(mROS2Nodes.begin(), mROS2Nodes.end(), node) == mROS2Nodes.end()) {
       mROS2Nodes.push_back(rosNode);
     }
+    return;
+  }
+
+  vtkMRMLROS2SubscriberImageNode * imageSub = vtkMRMLROS2SubscriberImageNode::SafeDownCast(node);
+  if (imageSub) {
+    // Set up observation
+    imageSub->AddObserver(vtkCommand::ModifiedEvent, this, &vtkSlicerROS2Logic::OnSubscriberModified);
+  }
+
+  // Automatic bridging for PolyData subscribers
+  vtkMRMLROS2SubscriberPolyDataNode * polySub = vtkMRMLROS2SubscriberPolyDataNode::SafeDownCast(node);
+  if (polySub) {
+    // Set up observation
+    polySub->AddObserver(vtkCommand::ModifiedEvent, this, &vtkSlicerROS2Logic::OnSubscriberModified);
   }
 }
 
@@ -190,6 +230,34 @@ void vtkSlicerROS2Logic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 }
 
 
+void vtkSlicerROS2Logic::OnSubscriberModified(vtkObject* caller, unsigned long event, void* vtkNotUsed(callData))
+{
+  if (event != vtkCommand::ModifiedEvent || !this->GetMRMLScene()) {
+    return;
+  }
+
+  // Handle Image data update
+  vtkMRMLROS2SubscriberImageNode* imageSub = vtkMRMLROS2SubscriberImageNode::SafeDownCast(caller);
+  if (imageSub) {
+    vtkMRMLScalarVolumeNode* volumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(imageSub->GetTargetNode());
+    if (volumeNode) {
+      volumeNode->SetAndObserveImageData(imageSub->GetLastMessage());
+    }
+    return;
+  }
+
+  // Handle PolyData data update
+  vtkMRMLROS2SubscriberPolyDataNode* polySub = vtkMRMLROS2SubscriberPolyDataNode::SafeDownCast(caller);
+  if (polySub) {
+    vtkMRMLModelNode* modelNode = vtkMRMLModelNode::SafeDownCast(polySub->GetTargetNode());
+    if (modelNode) {
+      modelNode->SetAndObservePolyData(polySub->GetLastMessage());
+    }
+    return;
+  }
+}
+
+
 void vtkSlicerROS2Logic::Spin(void)
 {
   mTimerLog->StartTimer();
@@ -199,6 +267,54 @@ void vtkSlicerROS2Logic::Spin(void)
   }
   mTimerLog->StopTimer();
   // std::cout << mTimerLog->GetElapsedTime() * 1000.0 << "ms" << std::endl; - commented out for development
+}
+
+bool vtkSlicerROS2Logic::WaitForServiceResponse(vtkMRMLROS2ServiceClientNode* serviceClientNode,
+                                                double timeoutSec)
+{
+  if (serviceClientNode == nullptr) {
+    vtkWarningMacro(<< "WaitForServiceResponse: service client node is null");
+    return false;
+  }
+  if (serviceClientNode->GetLastResponseStatus()) {
+    return true;
+  }
+
+  if (qSlicerCoreApplication::application() == nullptr) {
+    vtkWarningMacro(<< "WaitForServiceResponse: no qSlicerCoreApplication is available");
+    return false;
+  }
+
+  QEventLoop eventLoop;
+  vtkNew<vtkCallbackCommand> responseCallback;
+  responseCallback->SetClientData(&eventLoop);
+  responseCallback->SetCallback(
+    [](vtkObject* caller, unsigned long, void* clientData, void*) {
+      auto* clientNode = vtkMRMLROS2ServiceClientNode::SafeDownCast(caller);
+      auto* loop = static_cast<QEventLoop*>(clientData);
+      if (clientNode != nullptr && loop != nullptr && clientNode->GetLastResponseStatus()) {
+        loop->quit();
+      }
+    });
+  const unsigned long observerTag =
+    serviceClientNode->AddObserver(vtkCommand::ModifiedEvent, responseCallback);
+
+  if (serviceClientNode->GetLastResponseStatus()) {
+    serviceClientNode->RemoveObserver(observerTag);
+    return true;
+  }
+
+  QTimer timeoutTimer;
+  timeoutTimer.setSingleShot(true);
+  QObject::connect(&timeoutTimer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
+  timeoutTimer.start(static_cast<int>(std::max(0.0, timeoutSec) * 1000.0));
+
+  while (!serviceClientNode->GetLastResponseStatus() && timeoutTimer.isActive()) {
+    eventLoop.exec(QEventLoop::AllEvents);
+  }
+
+  serviceClientNode->RemoveObserver(observerTag);
+  return serviceClientNode->GetLastResponseStatus();
 }
 
 

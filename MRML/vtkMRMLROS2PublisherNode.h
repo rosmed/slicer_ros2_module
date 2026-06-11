@@ -45,10 +45,35 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
 
   void PrintSelf(std::ostream& os, vtkIndent indent) override;
 
+  // Frame ID configuration
+  virtual void SetFrameId(const std::string& frameId) { mFrameId = frameId; }
+  virtual std::string GetFrameId() const { return mFrameId; }
+
   // Save and load
   virtual void ReadXMLAttributes(const char** atts) override;
   virtual void WriteXML(std::ostream& of, int indent) override;
   void UpdateScene(vtkMRMLScene *scene) override;
+
+  enum QoSReliabilityPolicy {
+    ReliabilitySystemDefault = 0,
+    Reliable,
+    BestEffort
+  };
+
+  enum QoSDurabilityPolicy {
+    DurabilitySystemDefault = 0,
+    TransientLocal,
+    Volatile
+  };
+
+  vtkSetMacro(QoSHistoryDepth, int);
+  vtkGetMacro(QoSHistoryDepth, int);
+
+  vtkSetMacro(QoSReliability, int);
+  vtkGetMacro(QoSReliability, int);
+
+  vtkSetMacro(QoSDurability, int);
+  vtkGetMacro(QoSDurability, int);
 
  protected:
   vtkMRMLROS2PublisherNode() = default;
@@ -60,6 +85,12 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
 
   size_t mNumberOfCalls = 0;
   size_t mNumberOfMessagesSent = 0;
+
+  int QoSHistoryDepth = 10;
+  int QoSReliability = ReliabilitySystemDefault;
+  int QoSDurability = DurabilitySystemDefault;
+
+  std::string mFrameId = "";
 
   // For ReadXMLAttributes
   inline void SetTopic(const std::string & topic) {

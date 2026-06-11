@@ -25,6 +25,7 @@ public:
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerTypeIn(void) const = 0;
   virtual const char * GetSlicerTypeOut(void) const = 0;
+  virtual bool GetLastResponseStatus(void) const = 0;
 protected:
   vtkMRMLROS2ServiceClientNode * mMRMLNode;
   std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
@@ -115,6 +116,10 @@ protected:
     return typeid(_slicer_type_out).name();
   }
 
+  bool GetLastResponseStatus(void) const override
+  {
+    return false;
+  }
 
 };
 
@@ -166,7 +171,7 @@ public:
   }
 
 
-  bool GetLastResponseStatus(void) const
+  bool GetLastResponseStatus(void) const override
   {
     // if no request is pending and the last response was successful
     return !this->mRequestInProgress && this->mLastResponseSuccess;
@@ -195,7 +200,7 @@ public:
       }
     }
     catch (const std::exception& e) {
-      std::cerr << "ServiceNode::ServiceCallback: Exception: " << e.what() << std::endl;
+      vtkGenericWarningMacro(<< "ServiceNode::ServiceCallback: Exception: " << e.what());
       this->mLastResponseSuccess = false;
       // Still notify observers so that they can react to failure states
       if (this->mMRMLNode)
@@ -239,7 +244,7 @@ public:
   bool WaitForServer(const std::chrono::duration<double>& timeout = std::chrono::seconds(5))
   {
     if (!this->mServiceClient) {
-      std::cerr << "Service client is not initialized" << std::endl;
+      vtkGenericWarningMacro(<< "Service client is not initialized");
       return false;
     }
     return this->mServiceClient->wait_for_service(timeout);

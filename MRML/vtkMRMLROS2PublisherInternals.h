@@ -8,6 +8,24 @@
 #include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeNode.h>
 #include <vtkMRMLROS2NodeInternals.h>
+#include <type_traits>
+
+namespace SlicerROS2Internal {
+  template <typename T, typename = void>
+  struct has_header : std::false_type {};
+
+  template <typename T>
+  struct has_header<T, std::void_t<decltype(std::declval<T>().header.frame_id)>> : std::true_type {};
+
+  template <typename T>
+  void SetFrameId(T & msg, const std::string & frameId) {
+    if constexpr (has_header<T>::value) {
+      if (!frameId.empty()) {
+        msg.header.frame_id = frameId;
+      }
+    }
+  }
+}
 
 class vtkMRMLROS2PublisherInternals
 {
@@ -24,6 +42,7 @@ public:
   virtual bool IsAddedToROS2Node(void) const = 0;
   virtual const char * GetROSType(void) const = 0;
   virtual const char * GetSlicerType(void) const = 0;
+  virtual std::shared_ptr<rclcpp::Node> GetROSNode() const = 0;
 protected:
   vtkMRMLROS2PublisherNode * mMRMLNode;
   std::shared_ptr<rclcpp::Node> mROSNode = nullptr;
@@ -40,6 +59,19 @@ public:
   vtkMRMLROS2PublisherTemplatedInternals(vtkMRMLROS2PublisherNode *  mrmlNode):
     vtkMRMLROS2PublisherInternals(mrmlNode)
   {}
+
+  size_t PublishDirect(const _ros_type & rosMessage)
+  {
+    if (!mPublisher) return 0;
+    const auto nbSubscriber = mPublisher->get_subscription_count();
+    mPublisher->publish(rosMessage);
+    return nbSubscriber;
+  }
+
+  std::shared_ptr<rclcpp::Node> GetROSNode() const override
+  {
+    return mROSNode;
+  }
 
 protected:
   std::shared_ptr<rclcpp::Publisher<_ros_type>> mPublisher = nullptr;
@@ -61,7 +93,30 @@ protected:
       return false;
     }
     mROSNode = mrmlROSNodePtr->mInternals->mNodePointer;
-    mPublisher = mROSNode->create_publisher<_ros_type>(topic, 10);
+
+    rclcpp::QoS qos_profile(mMRMLNode->GetQoSHistoryDepth());
+    switch (mMRMLNode->GetQoSReliability()) {
+      case vtkMRMLROS2PublisherNode::Reliable:
+        qos_profile.reliable();
+        break;
+      case vtkMRMLROS2PublisherNode::BestEffort:
+        qos_profile.best_effort();
+        break;
+      default:
+        break;
+    }
+    switch (mMRMLNode->GetQoSDurability()) {
+      case vtkMRMLROS2PublisherNode::TransientLocal:
+        qos_profile.transient_local();
+        break;
+      case vtkMRMLROS2PublisherNode::Volatile:
+        qos_profile.durability_volatile();
+        break;
+      default:
+        break;
+    }
+
+    mPublisher = mROSNode->create_publisher<_ros_type>(topic, qos_profile);
     mrmlROSNodePtr->SetNthNodeReferenceID("publisher",
                                           mrmlROSNodePtr->GetNumberOfNodeReferences("publisher"),
                                           mMRMLNode->GetID());
@@ -129,6 +184,7 @@ public:
     if (nbSubscriber != 0) {
       _ros_type rosMessage;
       vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
+      SlicerROS2Internal::SetFrameId(rosMessage, this->mMRMLNode->GetFrameId());
       this->mPublisher->publish(rosMessage);
     }
     return nbSubscriber;
@@ -158,6 +214,7 @@ public:
     if (nbSubscriber != 0) {
       _ros_type rosMessage;
       vtkSlicerToROS2(message, rosMessage, BaseType::mROSNode);
+      SlicerROS2Internal::SetFrameId(rosMessage, this->mMRMLNode->GetFrameId());
       this->mPublisher->publish(rosMessage);
     }
     return nbSubscriber;

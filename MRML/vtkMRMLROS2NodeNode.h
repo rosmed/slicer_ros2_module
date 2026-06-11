@@ -29,6 +29,7 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode: public vtkMRMLNode
   friend class vtkMRMLROS2Tf2BroadcasterNode;
   friend class vtkMRMLROS2Tf2LookupNode;
   friend class vtkMRMLROS2RobotNode;
+  friend class vtkMRMLROS2MotionControlNode;
   template <typename _slicer_type_in, typename _slicer_type_out, typename _ros_type> friend class vtkMRMLROS2ServiceClientTemplatedInternals;
 
  public:

@@ -135,10 +135,16 @@ set(${KIT}_SRCS
   vtkMRMLROS2Tf2LookupNode.cxx
   vtkMRMLROS2RobotNode.h
   vtkMRMLROS2RobotNode.cxx
+  vtkMRMLROS2MotionControlNode.h
+  vtkMRMLROS2MotionControlNode.cxx
   vtkMRMLROS2ServiceClientNode.h
   vtkMRMLROS2ServiceClientNode.cxx
   vtkMRMLROS2ServiceClientDefaultNodes.h
   vtkMRMLROS2ServiceClientDefaultNodes.cxx
+  vtkMRMLROS2PublisherCollisionObjectNode.h
+  vtkMRMLROS2PublisherCollisionObjectNode.cxx
+  vtkSlicerToROS2.h
+  vtkSlicerToROS2.cxx
   vtkCustomTypes.h
   vtkCustomTypes.cxx
   )
@@ -154,6 +160,7 @@ set(${KIT}_TARGET_LIBRARIES
   assimp::assimp
   moveit_ros_planning_interface::moveit_move_group_interface
   moveit_ros_planning::moveit_robot_model_loader
+  moveit_ros_planning::moveit_planning_scene_monitor
   ${kdl_parser_LIBRARIES}
   kdl_parser::kdl_parser
   )

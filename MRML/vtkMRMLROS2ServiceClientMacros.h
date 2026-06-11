@@ -17,7 +17,7 @@
     bool PreRequestCheck(void);                      \
     size_t SendAsyncRequest(vtkSmartPointer<slicer_type_in> message);	\
     slicer_type_out * GetLastResponse(void);				\
-    bool GetLastResponseStatus(void);					\
+    bool GetLastResponseStatus(void) const;				\
     									\
   protected:								\
     vtkMRMLROS2ServiceClient##name##Node();				\
@@ -90,7 +90,7 @@
     return result;							\
   }									\
    									\
-  bool vtkMRMLROS2ServiceClient##name##Node::GetLastResponseStatus(void) \
+  bool vtkMRMLROS2ServiceClient##name##Node::GetLastResponseStatus(void) const \
   {									\
     return (reinterpret_cast<vtkMRMLROS2ServiceClient##name##Internals *>(mInternals))->GetLastResponseStatus(); \
   }

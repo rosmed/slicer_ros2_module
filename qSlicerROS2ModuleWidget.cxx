@@ -334,10 +334,24 @@ void qSlicerROS2ModuleWidget::updateSubscriberTable(vtkMRMLROS2SubscriberNode* s
   if (!d->rosSubscriberTableWidget->item(row, 0)) d->rosSubscriberTableWidget->setItem(row, 0, new QTableWidgetItem);
   if (!d->rosSubscriberTableWidget->item(row, 1)) d->rosSubscriberTableWidget->setItem(row, 1, new QTableWidgetItem);
   if (!d->rosSubscriberTableWidget->item(row, 2)) d->rosSubscriberTableWidget->setItem(row, 2, new QTableWidgetItem);
+  if (!d->rosSubscriberTableWidget->item(row, 3)) d->rosSubscriberTableWidget->setItem(row, 3, new QTableWidgetItem);
+  if (!d->rosSubscriberTableWidget->item(row, 4)) d->rosSubscriberTableWidget->setItem(row, 4, new QTableWidgetItem);
+  if (!d->rosSubscriberTableWidget->item(row, 5)) d->rosSubscriberTableWidget->setItem(row, 5, new QTableWidgetItem);
   
   d->rosSubscriberTableWidget->item(row, 0)->setText(QString::fromStdString(sub->GetTopic()));
   d->rosSubscriberTableWidget->item(row, 1)->setText(QString::fromStdString(sub->GetROSType()));
   d->rosSubscriberTableWidget->item(row, 2)->setText(QString::number(sub->GetNumberOfMessages()));
+  d->rosSubscriberTableWidget->item(row, 3)->setText(QString::number(sub->GetQoSHistoryDepth()));
+
+  QString reliability = "Default";
+  if (sub->GetQoSReliability() == vtkMRMLROS2SubscriberNode::Reliable) reliability = "Reliable";
+  else if (sub->GetQoSReliability() == vtkMRMLROS2SubscriberNode::BestEffort) reliability = "Best Effort";
+  d->rosSubscriberTableWidget->item(row, 4)->setText(reliability);
+
+  QString durability = "Default";
+  if (sub->GetQoSDurability() == vtkMRMLROS2SubscriberNode::TransientLocal) durability = "Transient Local";
+  else if (sub->GetQoSDurability() == vtkMRMLROS2SubscriberNode::Volatile) durability = "Volatile";
+  d->rosSubscriberTableWidget->item(row, 5)->setText(durability);
 }
 
 void qSlicerROS2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* pub, size_t row)
@@ -346,10 +360,24 @@ void qSlicerROS2ModuleWidget::updatePublisherTable(vtkMRMLROS2PublisherNode* pub
   if (!d->rosPublisherTableWidget->item(row, 0)) d->rosPublisherTableWidget->setItem(row, 0, new QTableWidgetItem);
   if (!d->rosPublisherTableWidget->item(row, 1)) d->rosPublisherTableWidget->setItem(row, 1, new QTableWidgetItem);
   if (!d->rosPublisherTableWidget->item(row, 2)) d->rosPublisherTableWidget->setItem(row, 2, new QTableWidgetItem);
+  if (!d->rosPublisherTableWidget->item(row, 3)) d->rosPublisherTableWidget->setItem(row, 3, new QTableWidgetItem);
+  if (!d->rosPublisherTableWidget->item(row, 4)) d->rosPublisherTableWidget->setItem(row, 4, new QTableWidgetItem);
+  if (!d->rosPublisherTableWidget->item(row, 5)) d->rosPublisherTableWidget->setItem(row, 5, new QTableWidgetItem);
   
   d->rosPublisherTableWidget->item(row, 0)->setText(QString::fromStdString(pub->GetTopic()));
   d->rosPublisherTableWidget->item(row, 1)->setText(QString::fromStdString(pub->GetROSType()));
   d->rosPublisherTableWidget->item(row, 2)->setText(QString::number(pub->GetNumberOfMessagesSent()));
+  d->rosPublisherTableWidget->item(row, 3)->setText(QString::number(pub->GetQoSHistoryDepth()));
+
+  QString reliability = "Default";
+  if (pub->GetQoSReliability() == vtkMRMLROS2PublisherNode::Reliable) reliability = "Reliable";
+  else if (pub->GetQoSReliability() == vtkMRMLROS2PublisherNode::BestEffort) reliability = "Best Effort";
+  d->rosPublisherTableWidget->item(row, 4)->setText(reliability);
+
+  QString durability = "Default";
+  if (pub->GetQoSDurability() == vtkMRMLROS2PublisherNode::TransientLocal) durability = "Transient Local";
+  else if (pub->GetQoSDurability() == vtkMRMLROS2PublisherNode::Volatile) durability = "Volatile";
+  d->rosPublisherTableWidget->item(row, 5)->setText(durability);
 }
 
 void qSlicerROS2ModuleWidget::subscriberRowSelected(int row, int col)

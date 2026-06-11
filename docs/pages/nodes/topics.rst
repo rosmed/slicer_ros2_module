@@ -78,7 +78,7 @@ publisher or subscriber classes available.
 .. _publishers:
 
 Publishers
-==========
+----------
 
 To create a new publisher, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddPublisherNode``.  This method takes
@@ -135,7 +135,7 @@ one parameter:
 
 
 Subscribers
-===========
+-----------
 
 To create a new subscriber, one should use the MRML ROS2 Node method
 ``vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode``.  This method
@@ -203,3 +203,89 @@ To remove the subscriber node, use the method ``vtkMRMLROS2NodeNode::RemoveAndDe
 one parameter:
 
 * the topic name (``std::string``)
+
+
+Quality of Service (QoS)
+------------------------
+
+SlicerROS2 supports custom Quality of Service (QoS) settings for both publishers and subscribers. This allows you to configure reliability, durability, and history depth to match the requirements of your application (e.g., ensuring message delivery or supporting late-joining nodes).
+
+The following QoS settings are configurable:
+
+* **History Depth**: Specifies how many messages to queue.
+* **Reliability Policy**:
+  * ``ReliabilitySystemDefault`` (0): Uses the default reliability policy of the underlying DDS.
+  * ``Reliable`` (1): Guarantees delivery of messages (may retry/block).
+  * ``BestEffort`` (2): Prioritizes transmission speed over reliability (may drop messages).
+* **Durability Policy**:
+  * ``DurabilitySystemDefault`` (0): Uses the default durability policy of the underlying DDS.
+  * ``TransientLocal`` (1): Caches published messages in local history to deliver them to late-joining subscribers.
+  * ``Volatile`` (2): Discards messages immediately after transmission; does not retain history for late-joining subscribers.
+
+.. tabs::
+
+   .. tab:: **Python**
+
+      .. code-block:: python
+
+         rosLogic = slicer.util.getModuleLogic('ROS2')
+         rosNode = rosLogic.GetDefaultROS2Node()
+         topic = "/slicer_qos_demo"
+
+         # --- Publisher QoS Configuration ---
+         pub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2PublisherStringNode")
+         pub.SetQoSHistoryDepth(15)
+         pub.SetQoSReliability(pub.Reliable)
+         pub.SetQoSDurability(pub.TransientLocal)
+         
+         # Activate the publisher on the ROS2 Node
+         pub.AddToROS2Node(rosNode.GetID(), topic)
+         pub.Publish("Hello with custom QoS!")
+
+         # --- Subscriber QoS Configuration ---
+         sub = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+         sub.SetQoSHistoryDepth(10)
+         sub.SetQoSReliability(sub.Reliable)
+         sub.SetQoSDurability(sub.TransientLocal)
+         
+         # Activate the subscriber on the ROS2 Node
+         sub.AddToROS2Node(rosNode.GetID(), topic)
+
+   .. tab:: **C++**
+
+      .. code-block:: C++
+
+         #include <vtkMRMLROS2PublisherNode.h>
+         #include <vtkMRMLROS2SubscriberNode.h>
+         #include <vtkMRMLROS2GeneratedNodes.h>
+
+         std::string topic = "/slicer_qos_demo";
+
+         // --- Publisher QoS Configuration ---
+         auto pub = vtkMRMLROS2PublisherStringNode::SafeDownCast(
+           scene->AddNewNodeByClass("vtkMRMLROS2PublisherStringNode")
+         );
+         if (pub)
+         {
+           pub->SetQoSHistoryDepth(15);
+           pub->SetQoSReliability(vtkMRMLROS2PublisherNode::Reliable);
+           pub->SetQoSDurability(vtkMRMLROS2PublisherNode::TransientLocal);
+           
+           // Activate the publisher on the ROS2 Node
+           pub->AddToROS2Node(rosNode->GetID(), topic);
+           pub->Publish("Hello with custom QoS!");
+         }
+
+         // --- Subscriber QoS Configuration ---
+         auto sub = vtkMRMLROS2SubscriberStringNode::SafeDownCast(
+           scene->AddNewNodeByClass("vtkMRMLROS2SubscriberStringNode")
+         );
+         if (sub)
+         {
+           sub->SetQoSHistoryDepth(10);
+           sub->SetQoSReliability(vtkMRMLROS2SubscriberNode::Reliable);
+           sub->SetQoSDurability(vtkMRMLROS2SubscriberNode::TransientLocal);
+           
+           // Activate the subscriber on the ROS2 Node
+           sub->AddToROS2Node(rosNode->GetID(), topic);
+         }

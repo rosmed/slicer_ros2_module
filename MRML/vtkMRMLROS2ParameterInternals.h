@@ -121,7 +121,7 @@ protected:
       }
       mMRMLNode->InvokeCustomModifiedEvent(ParameterModifiedEvent);
     } catch (std::exception &e) {
-      std::cerr << "Exception: " << e.what() << std::endl;
+      vtkGenericWarningMacro(<< "Exception: " << e.what());
     }
   }
 

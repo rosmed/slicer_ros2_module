@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>slicer_ros2_module</name>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
   <description>Slicer ROS 2 Module</description>
   <maintainer email="anton.deguet@jhu.edu">Anton Deguet</maintainer>
   <license>MIT</license>
@@ -11,7 +11,13 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>object_recognition_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>rosbag2_interfaces</depend>
   <depend>kdl_parser</depend>
+  <depend>urdf</depend>
+  <depend>orocos_kdl</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>cisst_msgs</depend>
@@ -21,6 +27,8 @@
   <depend>moveit_ros_planning</depend>
   <depend>moveit_ros_planning_interface</depend>
   <depend>rcl_interfaces</depend>
+  <depend>shape_msgs</depend>
+  <depend>moveit_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

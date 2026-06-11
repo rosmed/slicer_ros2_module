@@ -1,3 +1,15 @@
+v1.2
+====
+
+* Added GitHub Actions CI using a reusable Docker image with ROS2 Jazzy and Slicer 5.10
+* Added Docker image build and push instructions for maintaining the CI image
+* Added command-line wrappers to launch Slicer and run the SlicerROS2 test suite from ROS2
+* Added support for running Python scripts through the Slicer ROS2 launcher
+* Added documentation examples for point cloud publishing/subscribing and MoveIt obstacle publishing
+* Improved ROS2MotionControl trajectory generation, end-effector selection, and UI parameters
+* Added and documented QoS tests for compatible and incompatible publisher/subscriber settings
+* Updated release metadata, package dependencies, and documentation links
+
 v1.1
 ====
 

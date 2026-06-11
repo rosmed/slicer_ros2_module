@@ -56,10 +56,8 @@
                                                                         \
   slicer_type vtkMRMLROS2Subscriber##name##Node::GetLastMessage(void) const \
   {                                                                     \
-    slicer_type result;                                                 \
-    this->GetLastMessage(result);                                       \
-    return result;                                                      \
-}                                                                       \
+    return (reinterpret_cast<vtkMRMLROS2Subscriber##name##Internals *>(mInternals))->GetLastMessage(); \
+  }                                                                     \
                                                                         \
   vtkVariant vtkMRMLROS2Subscriber##name##Node::GetLastMessageVariant(void) \
   {                                                                     \
@@ -124,9 +122,7 @@
                                                                         \
   slicer_type * vtkMRMLROS2Subscriber##name##Node::GetLastMessage(void) const \
   {                                                                     \
-    vtkSmartPointer<slicer_type> result = slicer_type::New();           \
-    this->GetLastMessage(result);                                       \
-    return result;                                                      \
+    return (reinterpret_cast<vtkMRMLROS2Subscriber##name##Internals *>(mInternals))->GetLastMessage(); \
   }                                                                     \
                                                                         \
   slicer_type * vtkMRMLROS2Subscriber##name##Node::GetBlankMessage(void) const \

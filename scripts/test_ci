@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+import subprocess
+import sys
+import base64
+
+
+def main():
+    slicer_test_script = """
+import sys
+import traceback
+import slicer
+import vtk
+
+exit_code = 1
+print('\\n' + '=' * 70, flush=True)
+print('RUNNING TESTS', flush=True)
+print('=' * 70 + '\\n', flush=True)
+
+try:
+    tests = slicer.util.getModuleLogic('ROS2Tests')
+    tests.run()
+    print('\\n' + '=' * 70, flush=True)
+    print('ALL TESTS PASSED', flush=True)
+    print('=' * 70, flush=True)
+    exit_code = 0
+except Exception as e:
+    print('\\n' + '=' * 70, flush=True)
+    print('TEST EXECUTION FAILED', flush=True)
+    print('=' * 70, flush=True)
+    print(type(e).__name__ + ': ' + str(e), flush=True)
+    traceback.print_exc()
+finally:
+    # Prevent vtkDebugLeaks from forcing a nonzero exit after quit().
+    # Leaks are still printed to stderr for diagnostics.
+    vtk.vtkDebugLeaks.SetExitError(False)
+    slicer.app.quit()
+    sys.exit(exit_code)
+"""
+    encoded_script = base64.b64encode(slicer_test_script.encode('utf-8')).decode('ascii')
+    slicer_test_code = f"import base64; exec(base64.b64decode('{encoded_script}').decode('utf-8'))"
+
+    cmd = [
+        "ros2",
+        "launch",
+        "slicer_ros2_module",
+        "slicer.launch.py",
+        f"slicer_args:=--no-main-window --python-code \"{slicer_test_code}\"",
+    ]
+
+    try:
+        result = subprocess.run(cmd)
+        sys.exit(result.returncode)
+    except KeyboardInterrupt:
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

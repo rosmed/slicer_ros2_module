@@ -27,6 +27,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
 					     const std::string & topic);
 
   bool IsAddedToROS2Node(void) const;
+  
+  const char* GetTargetNodeID();
+  void SetTargetNodeID(const char* targetNodeID);
+  vtkMRMLNode* GetTargetNode();
 
   const std::string & GetTopic(void) const {
     return mTopic;
@@ -61,14 +65,39 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
   virtual void WriteXML(std::ostream& of, int indent) override;
   void UpdateScene(vtkMRMLScene *scene) override;
 
+  enum QoSReliabilityPolicy {
+    ReliabilitySystemDefault = 0,
+    Reliable,
+    BestEffort
+  };
+
+  enum QoSDurabilityPolicy {
+    DurabilitySystemDefault = 0,
+    TransientLocal,
+    Volatile
+  };
+
+  vtkSetMacro(QoSHistoryDepth, int);
+  vtkGetMacro(QoSHistoryDepth, int);
+
+  vtkSetMacro(QoSReliability, int);
+  vtkGetMacro(QoSReliability, int);
+
+  vtkSetMacro(QoSDurability, int);
+  vtkGetMacro(QoSDurability, int);
+
  protected:
-  vtkMRMLROS2SubscriberNode() = default;
+  vtkMRMLROS2SubscriberNode();
   ~vtkMRMLROS2SubscriberNode() = default;
 
   vtkMRMLROS2SubscriberInternals * mInternals = nullptr;
   std::string mTopic = "undefined";
   std::string mMRMLNodeName = "ros2:sub:undefined";
   size_t mNumberOfMessages = 0;
+
+  int QoSHistoryDepth = 10;
+  int QoSReliability = ReliabilitySystemDefault;
+  int QoSDurability = DurabilitySystemDefault;
 
   // For ReadXMLAttributes
   inline void SetTopic(const std::string & topic) {

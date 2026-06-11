@@ -116,6 +116,7 @@ bool vtkMRMLROS2ParameterNode::RemoveFromROS2Node(const char *nodeId)
     rosNodePtr->RemoveNthNodeReferenceID("parameter", index);
   }
 
+  mInternals->mParameterEventSubscriber.reset();
   mInternals->mParameterClient.reset();
   return true;
 }
