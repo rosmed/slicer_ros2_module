@@ -103,6 +103,52 @@ Once the robot is visible, you can use it for motion planning in
 :doc:`/pages/motion-control`.
 
 
+Kinova Gen3 Lite
+~~~~~~~~~~~~~~~~
+
+Kinova provides the official ROS 2 Kortex packages for the Gen3 and
+Gen3 Lite arms in
+`ros2_kortex <https://github.com/Kinovarobotics/ros2_kortex>`_.
+Follow the repository instructions to clone the packages, import the
+ROS 2 dependencies with ``vcs``, install dependencies with ``rosdep``,
+build the workspace, and source the resulting ``install/setup.bash``.
+Compilation may take a few minutes.
+
+To test SlicerROS2 robot visualization, use the provided launch file:
+
+.. code-block:: bash
+
+   ros2 launch slicer_ros2_module kinova_description.launch.py
+
+This starts ``robot_state_publisher`` from an arm-only Gen3 Lite URDF
+and opens ``joint_state_publisher_gui`` with six arm joints. It
+provides ``robot_description`` and TF2 link transforms, which is enough
+to load and move the robot in SlicerROS2.
+
+.. code-block:: bash
+
+   cd ~/ros2_ws
+   source install/setup.bash
+   ros2 run slicer_ros2_module slicer
+
+After these steps you should be able to load the Kinova robot in
+SlicerROS2.
+
+To test MoveIt integration, stop ``kinova_description.launch.py`` and
+launch the Kinova fake-hardware MoveIt helper instead:
+
+.. code-block:: bash
+
+   ros2 launch slicer_ros2_module kinova_sim_control.launch.py
+
+This launch also uses the arm-only model, so MoveIt exposes a single
+planning group named ``arm``. Wait for ``move_group`` to report that
+planning can start. Then load the robot in SlicerROS2 using the same
+defaults as above, open **ROS2 Motion Control**, and use ``arm`` as the
+MoveIt planning group. Dragging the motion-control gizmo should run IK,
+and the **Plan** button should produce a preview trajectory.
+
+
 Phantom Omni
 ~~~~~~~~~~~~
 
