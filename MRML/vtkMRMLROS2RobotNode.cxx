@@ -850,7 +850,8 @@ std::vector<double> vtkMRMLROS2RobotNode::ComputeMoveItIK(vtkMatrix4x4* targetPo
     // Create robot state for solving
     moveit::core::RobotState robot_state(mInternals->RobotModelPtr);
 
-    if (!seedJointValues.empty()) {
+    if (!seedJointValues.empty() &&
+        seedJointValues.size() == mInternals->JointModelGroupPtr->getVariableCount()) {
       robot_state.setJointGroupPositions(mInternals->JointModelGroupPtr, seedJointValues);
     } else {
       robot_state.setToDefaultValues();

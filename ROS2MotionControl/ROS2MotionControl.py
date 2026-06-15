@@ -1,6 +1,5 @@
 import logging
 import os, time, sys
-import subprocess
 from typing import Optional
 import xml.etree.ElementTree as ET
 import math
@@ -13,11 +12,6 @@ _tg_dir = os.path.join(os.path.dirname(__file__), "ROS2MotionControl")
 if _tg_dir not in sys.path:
     sys.path.insert(0, _tg_dir)
 import TrajectoryGenerators
-try:
-    from ROS2Tests import ROS2TestsLogic
-except ImportError:
-    ROS2TestsLogic = None
-
 import vtk
 
 import slicer
@@ -31,21 +25,6 @@ from slicer.parameterNodeWrapper import (
 
 # Set to True to enable verbose debug prints
 DEBUG = False
-
-
-def _check_ros2_node_running(node_name: str) -> bool:
-    if ROS2TestsLogic is not None:
-        try:
-            return ROS2TestsLogic.check_ros2_node_running(node_name)
-        except Exception:
-            pass
-    try:
-        output = subprocess.check_output("ros2 node list", shell=True, stderr=subprocess.DEVNULL)
-        nodes = output.decode("utf-8").splitlines()
-        return node_name in nodes
-    except Exception:
-        return False
-
 
 #
 # ROS2MotionControl
@@ -407,9 +386,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 finally:
                     self._syncingFromParameterNode = False
 
-    def _checkCanApply(self, caller=None, event=None) -> None:
-        pass
-
     def onUseButton(self) -> None:
         """Handler for the *Use Robot* button: initialises motion control for the selected robot and activates the UI."""
         # Stop any prior streaming callbacks
@@ -549,8 +525,6 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
                 # Create Widgets
                 joint_label = qt.QLabel(joint_name)
-                # Optional: Make label bold or smaller if you want
-                # joint_label.setStyleSheet("font-weight: bold;")
 
                 joint_slider = qt.QSlider(qt.Qt.Horizontal)
                 joint_spinbox = qt.QDoubleSpinBox()
@@ -1725,9 +1699,13 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if goalModel:
                 return goalModel
         try:
-            return slicer.util.getNode(f"{modelNode.GetName()}_goal")
+            goalModel = slicer.util.getNode(f"{modelNode.GetName()}_goal")
         except Exception:
             return None
+        if goalModel and goalModel.GetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ATTRIBUTE):
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ID_ATTRIBUTE, goalModel.GetID())
+            return goalModel
+        return None
 
     def _syncAttachedToolGoalModel(self, modelNode, robotNode=None):
         if not modelNode:
@@ -3098,36 +3076,6 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         except Exception:
             pass
 
-    def _allTransforms(self):
-        s = slicer.mrmlScene
-        return [s.GetNthNodeByClass(i, "vtkMRMLTransformNode")
-                for i in range(s.GetNumberOfNodesByClass("vtkMRMLTransformNode"))]
-
-    def attachProbeTransformUnderLeaf(self, probeTransformName="ProbeSphere_Transform",
-                                    prefix="ros2:tf2lookup:"):
-        """
-        Find robot leaf transform and parent `probeTransformName` under it.
-        Creates a display node for the probe transform if needed.
-        """
-        # 1) find (or get) the probe transform node
-        probeT = slicer.util.getNode(probeTransformName)
-        if probeT is None:
-            # create if missing
-            probeT = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLinearTransformNode", probeTransformName)
-        if not probeT.GetDisplayNode():
-            d = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformDisplayNode", probeTransformName + "_Display")
-            d.SetVisibility(True)
-            probeT.SetAndObserveDisplayNodeID(d.GetID())
-
-        # 2) find robot leaf
-        leaf = self.findLeafRobotTransform(prefix=prefix)
-
-        # 3) parent probe under the leaf
-        probeT.SetAndObserveTransformNodeID(leaf.GetID())
-
-        print(f"Attached '{probeTransformName}' under leaf transform '{leaf.GetName()}'")
-        return dict(leafTransform=leaf, probeTransform=probeT)
-
     def findRobotTransforms(self, link_name, goal=False):
         """
         Locate the transform for a link/model name using multi-part model naming only:
@@ -3624,46 +3572,6 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                     seen_names.add(modelName)
 
         return goal_nodes
-
-    def setJointSlidersFromUrdfLimits(self, limits_rad, sliders):
-        """Configure a list of ``QSlider`` widgets from URDF joint limit data.
-
-        Revolute joints use degrees; prismatic joints use millimetres.  Swaps
-        lo/hi if the URDF stores them in reverse order.
-
-        Args:
-            limits_rad: Ordered dict mapping joint name to ``(lo, hi, type)``
-                        where lo/hi are in radians or metres.
-            sliders:    Matching list of ``QSlider`` widgets to configure.
-        """
-
-        if len(sliders) != len(limits_rad):
-            print(
-                f"[ROS2MotionControl] Slider count ({len(sliders)}) "
-                f"!= joint count ({len(limits_rad)})"
-            )
-
-        for slider, (jointName, limit_info) in zip(sliders, limits_rad.items()):
-            lo_rad = limit_info[0]
-            hi_rad = limit_info[1]
-            jtype = limit_info[2] if len(limit_info) > 2 else "revolute"
-
-            if jtype == "prismatic":
-                lo_ui = int(round(lo_rad * 1000.0))
-                hi_ui = int(round(hi_rad * 1000.0))
-                unit_str = "mm"
-            else:
-                lo_ui = int(round(math.degrees(lo_rad)))
-                hi_ui = int(round(math.degrees(hi_rad)))
-                unit_str = "deg"
-
-            if lo_ui > hi_ui:
-                lo_ui, hi_ui = hi_ui, lo_ui
-
-            slider.setRange(lo_ui, hi_ui)
-            slider.setValue(0)
-
-            print(f"[ROS2MotionControl] {jointName}: {lo_ui}..{hi_ui} {unit_str}")
 
     def setIKSourceTransforms(self, fromtransformname, totransformname):
             """
