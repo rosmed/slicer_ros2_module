@@ -20,7 +20,6 @@
   <depend>orocos_kdl</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
-  <depend>cisst_msgs</depend>
   <depend>turtlesim</depend>
   <depend>std_srvs</depend>
   <depend>moveit_core</depend>

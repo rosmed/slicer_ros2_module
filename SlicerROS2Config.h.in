@@ -1,8 +1,0 @@
-#pragma once
-
-#ifndef _SlicerROS2Config_h
-#define _SlicerROS2Config_h
-
-#cmakedefine01 USE_CISST_MSGS
-
-#endif // _SlicerROS2Config_h

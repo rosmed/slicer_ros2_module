@@ -17,7 +17,6 @@
 
 
 // SlicerROS2 Logic includes
-#include <SlicerROS2Config.h>
 #include <vtkSlicerROS2Logic.h>
 #include <qSlicerCoreApplication.h>
 #include <algorithm>
@@ -62,10 +61,6 @@
 
 // Automatically generated nodes
 #include <vtkMRMLROS2GeneratedNodes.h>
-
-#if USE_CISST_MSGS
-#include <vtkMRMLROS2CISST.h>
-#endif
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerROS2Logic);
@@ -159,9 +154,6 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPointCloud2Node>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPolyDataNode>::New());
 
-#if USE_CISST_MSGS
-  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCartesianImpedanceGainsNode>::New());
-#endif
   // Parameters
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ParameterNode>::New());
 

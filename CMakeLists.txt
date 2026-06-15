@@ -41,13 +41,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 endif()
 
-option (USE_CISST_MSGS "Add topics for cisst messages (https://github.com/jhu-cisst/ros2_cisst_msgs)" OFF)
-
-configure_file (
-  "${slicer_ros2_module_SOURCE_DIR}/SlicerROS2Config.h.in"
-  "${slicer_ros2_module_BINARY_DIR}/include/SlicerROS2Config.h")
-include_directories ("${slicer_ros2_module_BINARY_DIR}/include")
-
 # set list of required packages
 set (
   SlicerROS2_ROS_DEPENDENCIES

@@ -1,6 +1,15 @@
 v1.2
 ====
 
+* Added trajectory path visualization with display toggles and configurable path colors
+* Added obstacle transform tracking and TF2 broadcasting for live MoveIt planning scene updates
+* Added MoveIt attached tool support with planning scene tool publishing and a custom tool example
+* Added Kinova Gen3 Lite launch files for robot visualization, simulation, and control
+* Improved service clients with response events, wait helpers, and non-blocking workflow documentation
+* Improved MoveIt IK helpers with clearer return values and seed joint validation
+* Added extension manager support for updating and recompiling installed extensions
+* Added compatibility, common errors, launching Slicer, and expanded example documentation
+* Fixed CI setup to free disk space before pulling the large Docker image
 * Added GitHub Actions CI using a reusable Docker image with ROS2 Jazzy and Slicer 5.10
 * Added Docker image build and push instructions for maintaining the CI image
 * Added command-line wrappers to launch Slicer and run the SlicerROS2 test suite from ROS2

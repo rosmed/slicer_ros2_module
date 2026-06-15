@@ -8,7 +8,6 @@ set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT"
 
 set(${KIT}_INCLUDE_DIRECTORIES
   ${Slicer_Base_INCLUDE_DIRS}
-  ${cisst_msgs_INCLUDE_DIRS}
   ${turtlesim_INCLUDE_DIRS}
   ${std_srvs_INCLUDE_DIRS}
   ${rcl_interfaces_INCLUDE_DIRS}
