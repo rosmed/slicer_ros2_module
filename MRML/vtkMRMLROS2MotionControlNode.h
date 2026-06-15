@@ -20,8 +20,8 @@ class vtkMRMLROS2MotionControlNodeInternals;
 
 /**
  * MRML node that owns MoveIt motion-planning and trajectory-execution for a
- * robot.  The robot's vtkMRMLROS2RobotNode provides IK (FindIKmoveit /
- * setupIKmoveit); this node provides the heavier planning workflow so that the
+ * robot.  The robot's vtkMRMLROS2RobotNode provides IK (ComputeMoveItIK /
+ * SetupIKMoveIt); this node provides the heavier planning workflow so that the
  * two concerns stay separate.
  *
  * Required node references (set before calling planning methods):

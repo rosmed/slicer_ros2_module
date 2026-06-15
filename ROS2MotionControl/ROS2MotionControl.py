@@ -3369,9 +3369,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
 
     def computeIKWithMoveIt(self, robotmodel, tipLink):
-        """Compute IK via the MoveIt ``FindIK`` interface.
+        """Compute IK via the MoveIt IK interface.
 
-        Reads the current probe-to-root transform, calls ``robotmodel.FindIKMoveIt``,
+        Reads the current probe-to-root transform, calls ``robotmodel.ComputeMoveItIK``,
         and on success applies the joint solution to the goal robot and caches it
         in ``last_ik_solution``.
 
@@ -3406,32 +3406,23 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         ikLink, ikTargetPose = self.ConvertTipTargetToIKTarget(targetPose, tipLink)
         seed = self.last_ik_solution
-        result_str = robotmodel.FindIKMoveIt(ikTargetPose, ikLink, seed, 0.05)
-
-        if result_str and result_str.strip():
-            # Parse comma-separated string into list of floats
-            try:
-                data = [float(x) for x in result_str.split(",")]
-                if DEBUG:
-                    print(f"[IK] Joint Solution: {data}")
-                self.last_ik_solution = data
-                # Publish the joint state solution
-                self.updategoalTransformsFromJointsKDL(robotmodel, data)
-                return data
-
-            except ValueError as e:
-                print(f"[IK] Failed to parse solution: {e}")
-                return None
-        else:
+        data = list(robotmodel.ComputeMoveItIK(ikTargetPose, ikLink, seed, 0.05))
+        if not data:
             if DEBUG:
-                print(f"[IK] Empty result from FindIK")
+                print(f"[IK] Empty result from ComputeMoveItIK")
             return None
+
+        if DEBUG:
+            print(f"[IK] Joint Solution: {data}")
+        self.last_ik_solution = data
+        self.updategoalTransformsFromJointsKDL(robotmodel, data)
+        return data
 
 
     def computeIKWithKDL(self, robotmodel):
         """Compute IK via the KDL (Kinematics and Dynamics Library) interface.
 
-        Reads the current probe-to-root transform, calls ``robotmodel.FindKDLIK``,
+        Reads the current probe-to-root transform, calls ``robotmodel.ComputeKDLIK``,
         and on success applies the joint solution to the goal robot and caches it
         in ``last_ik_solution``.
 
@@ -3462,23 +3453,16 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         seed = self.last_ik_solution if self.last_ik_solution and len(self.last_ik_solution) > 0 else []
 
         # call KDL IK
-        result_str = robotmodel.FindKDLIK(targetPose, seed)
-
-        if result_str and result_str.strip():
-            try:
-                data = [float(x) for x in result_str.split(",")]
-                if DEBUG:
-                    print(f"[IK] Solution found: {data}")
-                self.last_ik_solution = data
-                self.updategoalTransformsFromJointsKDL(robotmodel, data)
-                return data
-            except ValueError as e:
-                print(f"[IK] Failed to parse solution: {e}")
-                return None
-        else:
+        data = list(robotmodel.ComputeKDLIK(targetPose, seed))
+        if not data:
             if DEBUG:
-                print(f"[IK] Empty result from FindKDLIK")
+                print(f"[IK] Empty result from ComputeKDLIK")
             return None
+        if DEBUG:
+            print(f"[IK] Solution found: {data}")
+        self.last_ik_solution = data
+        self.updategoalTransformsFromJointsKDL(robotmodel, data)
+        return data
 
     def addObserverComputeIK(self, robotmodel=None, baseGoalColor=None):
             """

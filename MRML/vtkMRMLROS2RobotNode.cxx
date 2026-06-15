@@ -26,7 +26,6 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <eigen3/Eigen/Geometry>
-#include <sstream>
 #include <unordered_map>
 #include <algorithm>
 #include <map>
@@ -834,17 +833,17 @@ bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
   }
 }
 
-std::string vtkMRMLROS2RobotNode::FindIKMoveIt(vtkMatrix4x4* targetPose, const std::string& tipLink, const std::vector<double>& seedJointValues, double timeout)
+std::vector<double> vtkMRMLROS2RobotNode::ComputeMoveItIK(vtkMatrix4x4* targetPose, const std::string& tipLink, const std::vector<double>& seedJointValues, double timeout)
 {
   if (!targetPose) {
-    vtkErrorMacro(<< "FindIK: target pose is null");
-    return "";
+    vtkErrorMacro(<< "ComputeMoveItIK: target pose is null");
+    return {};
   }
 
   // Setup IK if needed (only once, since we auto-discover the group)
   if (!mInternals->RobotModelPtr || !mInternals->JointModelGroupPtr) {
-      vtkErrorMacro(<< "FindIK: SetupIKMoveIt failed");
-      return "";
+      vtkErrorMacro(<< "ComputeMoveItIK: SetupIKMoveIt failed");
+      return {};
   }
 
   try {
@@ -910,26 +909,17 @@ std::string vtkMRMLROS2RobotNode::FindIKMoveIt(vtkMatrix4x4* targetPose, const s
     // Call IK using setFromIK and reject candidate states that collide with the current planning scene.
     bool found_ik = robot_state.setFromIK(mInternals->JointModelGroupPtr, pose_msg, tipLink, timeout, validity_callback);
     if (!found_ik) {
-      // vtkWarningMacro(<< "FindIK: IK solution not found for group '" << mInternals->IKGroupName << "'");
-      return "";
+      // vtkWarningMacro(<< "ComputeMoveItIK: IK solution not found for group '" << mInternals->IKGroupName << "'");
+      return {};
     }
 
-    // Extract joint values (or create NaN values if no solution found)
     std::vector<double> solution;
     robot_state.copyJointGroupPositions(mInternals->JointModelGroupPtr, solution);
-
-    // Convert to comma-separated string
-    std::ostringstream oss;
-    for (size_t i = 0; i < solution.size(); ++i) {
-      if (i > 0) oss << ",";
-      oss << solution[i];
-    }
-
-    return oss.str();
+    return solution;
   }
   catch (const std::exception& e) {
-    vtkErrorMacro(<< "FindIK: exception - " << e.what());
-    return "";
+    vtkErrorMacro(<< "ComputeMoveItIK: exception - " << e.what());
+    return {};
   }
 }
 
@@ -1095,22 +1085,22 @@ std::vector<std::string> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
 }
 
 
-std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose, 
-                                             const std::vector<double>& seedJointValues)
+std::vector<double> vtkMRMLROS2RobotNode::ComputeKDLIK(vtkMatrix4x4* targetPose,
+                                                       const std::vector<double>& seedJointValues)
 {
   if (!targetPose) {
-    vtkErrorMacro(<< "FindKDLIK: target pose is null");
-    return "";
+    vtkErrorMacro(<< "ComputeKDLIK: target pose is null");
+    return {};
   }
 
   if (!mInternals->KDLUseJointLimits && !mInternals->KDLIkSolver) {
-    vtkErrorMacro(<< "FindKDLIK: KDL IK solver not initialized. Call setupKDLIK or setupKDLIKWithLimits first");
-    return "";
+    vtkErrorMacro(<< "ComputeKDLIK: KDL IK solver not initialized. Call setupKDLIK or setupKDLIKWithLimits first");
+    return {};
   }
 
   if (mInternals->KDLUseJointLimits && !mInternals->KDLIkSolverJL) {
-    vtkErrorMacro(<< "FindKDLIK: KDL IK solver with joint limits not initialized. Call setupKDLIKWithLimits first");
-    return "";
+    vtkErrorMacro(<< "ComputeKDLIK: KDL IK solver with joint limits not initialized. Call setupKDLIKWithLimits first");
+    return {};
   }
 
   try {
@@ -1142,7 +1132,7 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
       }
     } else {
       // Use zeros as default seed
-      vtkInfoMacro(<< "FindKDLIK: Using zero joint angles as seed");
+      vtkInfoMacro(<< "ComputeKDLIK: Using zero joint angles as seed");
       qSeed.data.setZero();
     }
 
@@ -1157,22 +1147,20 @@ std::string vtkMRMLROS2RobotNode::FindKDLIK(vtkMatrix4x4* targetPose,
     }
 
     if (result < 0) {
-      // vtkWarningMacro(<< "FindKDLIK: IK solution not found (error code: " << result << ")");
-      return "";
+      // vtkWarningMacro(<< "ComputeKDLIK: IK solution not found (error code: " << result << ")");
+      return {};
     }
 
-    // Convert solution to comma-separated string
-    std::ostringstream oss;
+    std::vector<double> solution;
+    solution.reserve(qSolution.rows());
     for (unsigned int i = 0; i < qSolution.rows(); i++) {
-      if (i > 0) oss << ",";
-      oss << qSolution(i);
+      solution.push_back(qSolution(i));
     }
-
-    return oss.str();
+    return solution;
   }
   catch (const std::exception& e) {
-    vtkErrorMacro(<< "FindKDLIK: exception - " << e.what());
-    return "";
+    vtkErrorMacro(<< "ComputeKDLIK: exception - " << e.what());
+    return {};
   }
 }
 
