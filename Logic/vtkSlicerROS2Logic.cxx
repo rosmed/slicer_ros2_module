@@ -58,6 +58,7 @@
 #include <vtkMRMLROS2RobotNode.h>
 #include <vtkMRMLROS2MotionControlNode.h>
 #include <vtkMRMLROS2PublisherCollisionObjectNode.h>
+#include <vtkMRMLROS2PublisherPlanningSceneToolNode.h>
 
 // Automatically generated nodes
 #include <vtkMRMLROS2GeneratedNodes.h>
@@ -147,6 +148,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntTableNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleTableNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCollisionObjectNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPlanningSceneToolNode>::New());
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());

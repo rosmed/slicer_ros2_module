@@ -71,7 +71,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2MotionControlNode: public vt
                                                               bool avoidCollisions      = true,
                                                               double velocityScaling    = 0.5,
                                                               double accelerationScaling = 0.5,
-                                                              double planningTimeSec    = 5.0);
+                                                              double planningTimeSec    = 5.0,
+                                                              const std::string & linkName = "");
 
   /** Fraction returned by the most recent PlanMoveItCartesianTrajectory call. */
   double GetLastCartesianPathFraction() const;

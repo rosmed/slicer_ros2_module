@@ -147,7 +147,8 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItCartesianT
     bool avoidCollisions,
     double velocityScaling,
     double accelerationScaling,
-    double planningTimeSec)
+    double planningTimeSec,
+    const std::string & linkName)
 {
   vtkMoveitMsgsRobotTrajectory* traj = vtkMoveitMsgsRobotTrajectory::New();
   mInternals->LastCartesianPathFraction = 0.0;
@@ -199,6 +200,9 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItCartesianT
   request->avoid_collisions = avoidCollisions;
   request->max_velocity_scaling_factor = velScale > 0.0 ? velScale : 1.0;
   request->max_acceleration_scaling_factor = accScale > 0.0 ? accScale : 1.0;
+  if (!linkName.empty()) {
+    request->link_name = linkName;
+  }
 
   if (!startJointValues.empty()) {
     request->start_state.joint_state.name = startJointNames;

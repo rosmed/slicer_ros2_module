@@ -14,4 +14,5 @@ For background on the APIs used by these examples, see
    examples/pointcloud_subscriber
    examples/pointcloud_publisher
    examples/moveit_obstacle
+   examples/moveit_custom_tool
    examples/moveit_pose_markers

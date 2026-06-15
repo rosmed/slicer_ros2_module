@@ -890,14 +890,20 @@ std::string vtkMRMLROS2RobotNode::FindIKMoveIt(vtkMatrix4x4* targetPose, const s
           if (!state || !joint_group || !joint_group_variable_values) {
             return false;
           }
-          state->setJointGroupPositions(joint_group, joint_group_variable_values);
-          state->update();
-
           planning_scene_monitor::LockedPlanningSceneRO planning_scene(mInternals->PlanningSceneMonitorPtr);
           if (!planning_scene) {
             return true;
           }
-          return !planning_scene->isStateColliding(*state, joint_group->getName());
+
+          // Check collisions against the planning scene's current robot state so
+          // attached collision objects, such as runtime tools, are included.
+          moveit::core::RobotState collision_state(planning_scene->getCurrentState());
+          collision_state.setJointGroupPositions(joint_group, joint_group_variable_values);
+          collision_state.update();
+
+          state->setJointGroupPositions(joint_group, joint_group_variable_values);
+          state->update();
+          return !planning_scene->isStateColliding(collision_state, joint_group->getName());
         };
     }
 

@@ -806,19 +806,14 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
 
         # Work only with goal tree
-        tip_transform_node = None
         try:
-            if self.goaltiplink:
-                tip_transform_node = self.logic.findRobotTransforms(self.goaltiplink, goal=True)
+            tip_matrix = self.logic.GetMoveItTipWorldMatrix(self.goaltiplink, goal=True)
         except Exception as e:
             print(f"Could not find goal tip transform: {e}")
             return
 
-        if tip_transform_node is None:
+        if tip_matrix is None:
             return
-
-        tip_matrix = vtk.vtkMatrix4x4()
-        tip_transform_node.GetMatrixTransformToWorld(tip_matrix)
         self.fromtransform.SetMatrixTransformToParent(tip_matrix)
 
     def _setJointUi_SIToSlicer(self, joint_values_rad) -> None:
@@ -1028,35 +1023,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
                 self._parameterNode.planningGroup = selected
         print(f"Planning groups available: {groups}")
 
-        # --- End effector link combo ---
         self._srdfEndEffectors = end_effectors
-        eeCombo = self.ui.endEffectorLinkComboBox
-        eeCombo.blockSignals(True)
-        eeCombo.clear()
-        for ee in end_effectors:
-            # Display as "name (parent_link)" so the user sees both pieces of info
-            eeCombo.addItem(f"{ee['name']} ({ee['parent_link']})", ee["parent_link"])
-        # Pre-select the entry whose parent_link matches the current tiplink (from URDF traversal)
-        preselect_idx = -1
-        if self.tiplink:
-            for i, ee in enumerate(end_effectors):
-                if ee["parent_link"] == self.tiplink:
-                    preselect_idx = i
-                    break
-        eeCombo.setCurrentIndex(preselect_idx if preselect_idx >= 0 else 0)
-        eeCombo.blockSignals(False)
-        if end_effectors:
-            # Apply the selected entry immediately so tiplink is authoritative
-            selected_link = eeCombo.itemData(eeCombo.currentIndex)
-            if selected_link:
-                self.tiplink = selected_link
-                self.goaltiplink = selected_link
-                if self.logic is not None:
-                    self.logic.tipLink = selected_link
-            print(f"End effectors available: {[ee['name'] for ee in end_effectors]}")
-            print(f"Active end effector link: {self.tiplink}")
-        else:
-            print("No end_effector elements found in SRDF; tip link unchanged.")
+        self.refreshEndEffectorLinkComboBox()
 
         # Remove the observer — no need to keep listening once populated
         if self._moveGroupParamObsId is not None:
@@ -1065,6 +1033,63 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             except Exception:
                 pass
             self._moveGroupParamObsId = None
+
+    def refreshEndEffectorLinkComboBox(self, selectLink=None) -> None:
+        """Populate the end-effector selector from SRDF and runtime tools."""
+        if self.logic is None:
+            return
+
+        eeCombo = self.ui.endEffectorLinkComboBox
+        current = selectLink or self.tiplink or eeCombo.itemData(eeCombo.currentIndex) or eeCombo.currentText.strip()
+
+        entries = []
+        for ee in self._srdfEndEffectors:
+            entries.append({
+                "display": f"{ee['name']} ({ee['parent_link']})",
+                "link": ee["parent_link"],
+                "name": ee["name"],
+                "type": "srdf",
+            })
+
+        for tool in self.logic.GetMoveItAttachedTools():
+            tipLinkName = tool.get("tipLinkName") or ""
+            if not tipLinkName:
+                continue
+            parentLink = tool.get("linkName") or "attached link"
+            modelNode = tool.get("modelNode")
+            toolName = modelNode.GetName() if modelNode else tipLinkName
+            entries.append({
+                "display": f"{tipLinkName} (attached to {parentLink})",
+                "link": tipLinkName,
+                "name": toolName,
+                "type": "attached_tool",
+            })
+
+        eeCombo.blockSignals(True)
+        eeCombo.clear()
+        for entry in entries:
+            eeCombo.addItem(entry["display"], entry["link"])
+
+        preselect_idx = -1
+        if current:
+            for i, entry in enumerate(entries):
+                if entry["link"] == current:
+                    preselect_idx = i
+                    break
+        eeCombo.setCurrentIndex(preselect_idx if preselect_idx >= 0 else 0)
+        eeCombo.blockSignals(False)
+
+        if entries:
+            selected_link = eeCombo.itemData(eeCombo.currentIndex)
+            if selected_link:
+                self.tiplink = selected_link
+                self.goaltiplink = selected_link
+                if self.logic is not None:
+                    self.logic.tipLink = selected_link
+            print(f"End effectors available: {[entry['name'] for entry in entries]}")
+            print(f"Active end effector link: {self.tiplink}")
+        else:
+            print("No SRDF end effectors or attached tool tips found; tip link unchanged.")
 
 
     def onEndEffectorLinkActivated(self, index: int) -> None:
@@ -1084,6 +1109,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             self.logic.tipLink = link
         if self.robot is not None:
             print(f"End effector link set to: {link}")
+        self._syncProbeToCurrentTipPose()
         if self.trajectoryData is not None and self.ui.showTrajectoryPathCheckBox.checked:
             self.addPlannedTrajectoryPolyline()
 
@@ -1365,7 +1391,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         start_positions = self.jointPositionsRad if self.jointPositionsRad else [0.0] * len(joint_names)
         goal_positions = self.logic.last_ik_solution if self.logic.last_ik_solution else start_positions
 
-        self.logic.PublishAllMoveItObstacles(self.robot)
+        self.logic.RefreshMoveItPlanningScene(self.robot)
 
         sol = generator.plan(
             joint_names=joint_names,
@@ -1540,8 +1566,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         """Called when the logic class is instantiated. Can be used for initializing member variables."""
         ScriptedLoadableModuleLogic.__init__(self)
         self.MOVEIT_COLLISION_OBJECT_TOPIC = "/collision_object"
+        self.MOVEIT_PLANNING_SCENE_TOPIC = "/planning_scene"
         self.MOVEIT_OBSTACLE_ATTRIBUTE = "ROS2MotionControl.MoveItObstacle"
         self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE = "ROS2MotionControl.MoveItObstacleFrame"
+        self.MOVEIT_ATTACHED_TOOL_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedTool"
+        self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolLink"
+        self.MOVEIT_ATTACHED_TOOL_TOUCH_LINKS_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolTouchLinks"
+        self.MOVEIT_ATTACHED_TOOL_TIP_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolTip"
+        self.MOVEIT_ATTACHED_TOOL_TIP_SUBFRAME_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolTipSubframe"
+        self.MOVEIT_ATTACHED_TOOL_TIP_POSE_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolTipPose"
+        self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolGoalModel"
+        self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ID_ATTRIBUTE = "ROS2MotionControl.MoveItAttachedToolGoalModelID"
         self.POSE_MARKER_ATTRIBUTE = "ROS2MotionControl.PoseMarker"
         self.TRAJECTORY_PATH_ATTRIBUTE = "ROS2MotionControl.TrajectoryPath"
         self.obsTag = None
@@ -1587,6 +1622,222 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if not create:
             return None
         return ros2Node.CreateAndAddPublisherNode("CollisionObject", self.MOVEIT_COLLISION_OBJECT_TOPIC)
+
+    def _getPlanningSceneToolPublisher(self, robotNode=None, create=True):
+        ros2Node = self._getObstacleROS2Node(robotNode)
+        if not ros2Node:
+            return None
+
+        pub = ros2Node.GetPublisherNodeByTopic(self.MOVEIT_PLANNING_SCENE_TOPIC)
+        if pub:
+            return pub
+
+        if not create:
+            return None
+        return ros2Node.CreateAndAddPublisherNode("PlanningSceneTool", self.MOVEIT_PLANNING_SCENE_TOPIC)
+
+    def CreateToolTipPose(self, xMm=0.0, yMm=0.0, zMm=0.0,
+                          rollDeg=0.0, pitchDeg=0.0, yawDeg=0.0):
+        """Return a vtkMatrix4x4 pose for a MoveIt attached-object subframe.
+
+        The pose is expressed in Slicer units (millimetres) relative to the
+        attached tool object's frame.  It is converted to metres by the C++
+        publisher before being sent to MoveIt.
+        """
+        transform = vtk.vtkTransform()
+        transform.PostMultiply()
+        transform.RotateX(float(rollDeg))
+        transform.RotateY(float(pitchDeg))
+        transform.RotateZ(float(yawDeg))
+        transform.Translate(float(xMm), float(yMm), float(zMm))
+        matrix = vtk.vtkMatrix4x4()
+        transform.GetMatrix(matrix)
+        return matrix
+
+    def _matrixToAttribute(self, matrix) -> str:
+        if matrix is None:
+            return ""
+        values = []
+        for row in range(4):
+            for col in range(4):
+                values.append(f"{matrix.GetElement(row, col):.17g}")
+        return ",".join(values)
+
+    def _matrixFromAttribute(self, value):
+        if not value:
+            return None
+        try:
+            values = [float(item) for item in str(value).split(",")]
+        except Exception:
+            return None
+        if len(values) != 16:
+            return None
+        matrix = vtk.vtkMatrix4x4()
+        index = 0
+        for row in range(4):
+            for col in range(4):
+                matrix.SetElement(row, col, values[index])
+                index += 1
+        return matrix
+
+    def GetMoveItAttachedTools(self):
+        """Return runtime tools added with ``AddMoveItAttachedTool``.
+
+        Returns a list of dictionaries with keys ``modelNode``, ``linkName``,
+        ``tipLinkName`` and ``tipPose``.
+        """
+        tools = []
+        scene = slicer.mrmlScene
+        if scene is None:
+            return tools
+        for index in range(scene.GetNumberOfNodesByClass("vtkMRMLModelNode")):
+            modelNode = scene.GetNthNodeByClass(index, "vtkMRMLModelNode")
+            if not modelNode or not modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_ATTRIBUTE):
+                continue
+            tools.append({
+                "modelNode": modelNode,
+                "linkName": modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE) or "",
+                "touchLinksCsv": modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TOUCH_LINKS_ATTRIBUTE) or "",
+                "tipLinkName": modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_ATTRIBUTE) or "",
+                "tipSubframeName": modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_SUBFRAME_ATTRIBUTE) or "",
+                "tipPose": self._matrixFromAttribute(
+                    modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_POSE_ATTRIBUTE)
+                ),
+            })
+        return tools
+
+    def _getAttachedToolTipSubframeName(self, modelNode):
+        subframeName = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_SUBFRAME_ATTRIBUTE) or ""
+        if subframeName:
+            return subframeName
+        tipLinkName = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_ATTRIBUTE) or ""
+        if "/" in tipLinkName:
+            return tipLinkName.split("/", 1)[1]
+        return ""
+
+    def _getAttachedToolGoalModel(self, modelNode):
+        if not modelNode:
+            return None
+        scene = slicer.mrmlScene
+        goalModelID = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ID_ATTRIBUTE)
+        if goalModelID:
+            goalModel = scene.GetNodeByID(goalModelID)
+            if goalModel:
+                return goalModel
+        try:
+            return slicer.util.getNode(f"{modelNode.GetName()}_goal")
+        except Exception:
+            return None
+
+    def _syncAttachedToolGoalModel(self, modelNode, robotNode=None):
+        if not modelNode:
+            return None
+        linkName = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE) or ""
+        if not linkName:
+            return None
+
+        try:
+            goalTransform = self.findRobotTransforms(linkName, goal=True)
+        except Exception:
+            return None
+        if goalTransform is None:
+            return None
+
+        scene = slicer.mrmlScene
+        goalModel = self._getAttachedToolGoalModel(modelNode)
+        if goalModel is None:
+            goalModel = scene.AddNewNodeByClass("vtkMRMLModelNode", f"{modelNode.GetName()}_goal")
+            goalModel.SetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ATTRIBUTE, "1")
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ID_ATTRIBUTE, goalModel.GetID())
+
+        mesh = modelNode.GetMesh() if hasattr(modelNode, "GetMesh") else None
+        if mesh is not None and hasattr(goalModel, "SetAndObserveMesh"):
+            goalModel.SetAndObserveMesh(mesh)
+        else:
+            polyData = modelNode.GetPolyData() if hasattr(modelNode, "GetPolyData") else None
+            if polyData is not None:
+                goalModel.SetAndObservePolyData(polyData)
+
+        displayNode = goalModel.GetDisplayNode()
+        if displayNode is None:
+            displayNode = scene.AddNewNodeByClass("vtkMRMLModelDisplayNode", f"{goalModel.GetName()}_Display")
+            goalModel.SetAndObserveDisplayNodeID(displayNode.GetID())
+
+        sourceDisplayNode = modelNode.GetDisplayNode()
+        if sourceDisplayNode:
+            displayNode.Copy(sourceDisplayNode)
+        goalColor = self.GetGoalRobotColor(robotNode) if robotNode is not None else None
+        if goalColor is None:
+            goalColor = (0.0, 1.0, 1.0)
+        displayNode.SetColor(*goalColor)
+        displayNode.SetOpacity(0.30)
+
+        goalModel.SetAndObserveTransformNodeID(goalTransform.GetID())
+        return goalModel
+
+    def _syncAllAttachedToolGoalModels(self, robotNode=None):
+        for tool in self.GetMoveItAttachedTools():
+            self._syncAttachedToolGoalModel(tool.get("modelNode"), robotNode)
+
+    def _removeAttachedToolGoalModel(self, modelNode):
+        goalModel = self._getAttachedToolGoalModel(modelNode)
+        if not goalModel:
+            return
+        displayNode = goalModel.GetDisplayNode()
+        slicer.mrmlScene.RemoveNode(goalModel)
+        if displayNode:
+            slicer.mrmlScene.RemoveNode(displayNode)
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ID_ATTRIBUTE, None)
+
+    def GetMoveItAttachedToolByTip(self, tipLinkName):
+        tipLinkName = (tipLinkName or "").strip()
+        if not tipLinkName:
+            return None
+        for tool in self.GetMoveItAttachedTools():
+            if tool.get("tipLinkName") == tipLinkName:
+                return tool
+        return None
+
+    def ResolveMoveItTipForIK(self, tipLinkName):
+        """Return ``(ikLinkName, tipPoseInIkLink)`` for a selected UI tip.
+
+        URDF links return themselves with ``None`` offset.  Attached-object
+        subframes return their parent robot link plus the saved subframe pose.
+        """
+        tool = self.GetMoveItAttachedToolByTip(tipLinkName)
+        if tool and tool.get("linkName"):
+            return tool["linkName"], tool.get("tipPose")
+        return tipLinkName, None
+
+    def GetMoveItTipWorldMatrix(self, tipLinkName, goal=False):
+        """Return the world pose for a URDF link or attached-object tip."""
+        ikLinkName, tipPose = self.ResolveMoveItTipForIK(tipLinkName)
+        if not ikLinkName:
+            return None
+
+        linkTransform = self.findRobotTransforms(ikLinkName, goal=goal)
+        linkWorld = vtk.vtkMatrix4x4()
+        linkTransform.GetMatrixTransformToWorld(linkWorld)
+
+        if tipPose is None:
+            return linkWorld
+
+        tipWorld = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Multiply4x4(linkWorld, tipPose, tipWorld)
+        return tipWorld
+
+    def ConvertTipTargetToIKTarget(self, targetTipPose, tipLinkName):
+        """Convert an attached tool-tip target into the parent robot-link target."""
+        ikLinkName, tipPose = self.ResolveMoveItTipForIK(tipLinkName)
+        if tipPose is None:
+            return ikLinkName, targetTipPose
+
+        inverseTipPose = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Invert(tipPose, inverseTipPose)
+
+        targetLinkPose = vtk.vtkMatrix4x4()
+        vtk.vtkMatrix4x4.Multiply4x4(targetTipPose, inverseTipPose, targetLinkPose)
+        return ikLinkName, targetLinkPose
 
     def SetupMoveItPlanningGroup(self, robotNode, groupName) -> bool:
         """Configure MoveIt IK for the given planning group on *robotNode*.
@@ -1721,6 +1972,37 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         for _modelID, modelNode, frameId in self.GetMoveItObstacles():
             self.PublishMoveItObstacle(modelNode, frameId, robotNode)
 
+    def PublishMoveItAttachedTool(self, modelNode, robotNode=None) -> bool:
+        """Re-publish one attached tool into MoveIt's planning scene."""
+        if not modelNode:
+            return False
+
+        pub = self._getPlanningSceneToolPublisher(robotNode, create=True)
+        if not pub:
+            print("PublishMoveItAttachedTool: no ROS 2 node found to host the planning-scene publisher")
+            return False
+
+        linkName = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE) or ""
+        if not linkName:
+            return False
+        touchLinksCsv = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TOUCH_LINKS_ATTRIBUTE) or linkName
+        tipSubframeName = self._getAttachedToolTipSubframeName(modelNode)
+        tipPose = self._matrixFromAttribute(modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_POSE_ATTRIBUTE))
+
+        pub.SetSourceNodeID(modelNode.GetID())
+        pub.PublishAttach(modelNode, linkName, touchLinksCsv, tipSubframeName, tipPose)
+        return True
+
+    def PublishAllMoveItAttachedTools(self, robotNode=None) -> None:
+        """Re-publish every runtime attached tool into MoveIt's planning scene."""
+        for tool in self.GetMoveItAttachedTools():
+            self.PublishMoveItAttachedTool(tool.get("modelNode"), robotNode)
+
+    def RefreshMoveItPlanningScene(self, robotNode=None) -> None:
+        """Refresh collision objects and attached tools before planning or IK."""
+        self.PublishAllMoveItObstacles(robotNode)
+        self.PublishAllMoveItAttachedTools(robotNode)
+
     def RemoveMoveItObstacle(self, modelNode, robotNode=None) -> bool:
         """Remove a collision obstacle from the MoveIt planning scene and clear its MRML attributes.
 
@@ -1741,6 +2023,127 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         modelNode.SetAttribute(self.MOVEIT_OBSTACLE_ATTRIBUTE, None)
         modelNode.SetAttribute(self.MOVEIT_OBSTACLE_FRAME_ATTRIBUTE, None)
+        return True
+
+    def AddMoveItAttachedTool(self, modelNode, linkName,
+                              touchLinks=None,
+                              tipSubframeName="tip",
+                              tipPose=None,
+                              robotNode=None) -> str:
+        """Attach *modelNode* to a robot link as a MoveIt collision tool.
+
+        This is an advanced/scripted counterpart to the obstacle helpers.  The
+        model's polydata is interpreted in the attached link frame.  If a tip
+        subframe is supplied, MoveIt can address it as ``"<tool_id>/<tip>"`` in
+        planning requests that support collision-object subframes.
+
+        Args:
+            modelNode:       vtkMRMLModelNode containing the tool collision mesh.
+            linkName:        Robot link to attach to, e.g. ``"tool0"``.
+            touchLinks:      Optional list of robot links allowed to touch the
+                             attached tool.  Defaults to ``[linkName]``.
+            tipSubframeName: Optional subframe name, usually ``"tip"``.
+            tipPose:         vtkMatrix4x4 pose of the tip in the tool object
+                             frame, in Slicer units (millimetres).  If omitted,
+                             no subframe is published.
+            robotNode:       Optional vtkMRMLROS2RobotNode used to locate the
+                             ROS 2 node for the planning-scene publisher.
+
+        Returns:
+            Full MoveIt subframe name, e.g. ``"SlicerNeedle/tip"``, or an empty
+            string on failure.
+        """
+        if not modelNode:
+            print("AddMoveItAttachedTool: model node is invalid")
+            return ""
+        linkName = (linkName or "").strip()
+        if not linkName:
+            print("AddMoveItAttachedTool: linkName is required")
+            return ""
+
+        pub = self._getPlanningSceneToolPublisher(robotNode, create=True)
+        if not pub:
+            print("AddMoveItAttachedTool: no ROS 2 node found to host the planning-scene publisher")
+            return ""
+
+        if touchLinks is None:
+            touchLinks = [linkName]
+        elif isinstance(touchLinks, str):
+            touchLinks = [item.strip() for item in touchLinks.split(",") if item.strip()]
+        else:
+            touchLinks = [str(item).strip() for item in touchLinks if str(item).strip()]
+        touchLinksCsv = ",".join(touchLinks)
+
+        tipSubframeName = (tipSubframeName or "").strip()
+        if tipSubframeName and tipPose is None:
+            print("AddMoveItAttachedTool: tipPose is required when tipSubframeName is set")
+            return ""
+
+        pub.SetSourceNodeID(modelNode.GetID())
+        sent = pub.PublishAttach(
+            modelNode,
+            linkName,
+            touchLinksCsv,
+            tipSubframeName,
+            tipPose,
+        )
+        if sent == 0:
+            print("AddMoveItAttachedTool: planning-scene diff was published with no current subscribers")
+
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_ATTRIBUTE, "1")
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE, linkName)
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TOUCH_LINKS_ATTRIBUTE, touchLinksCsv)
+        fullTipName = f"{modelNode.GetName()}/{tipSubframeName}" if tipSubframeName else ""
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_ATTRIBUTE, fullTipName)
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_SUBFRAME_ATTRIBUTE, tipSubframeName)
+        modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_POSE_ATTRIBUTE, self._matrixToAttribute(tipPose))
+
+        if robotNode is not None:
+            try:
+                toolTransform = self.findRobotTransforms(linkName, goal=False)
+                if toolTransform is not None:
+                    modelNode.SetAndObserveTransformNodeID(toolTransform.GetID())
+            except Exception as e:
+                print(f"AddMoveItAttachedTool: could not attach Slicer model to '{linkName}' transform: {e}")
+
+        self._syncAttachedToolGoalModel(modelNode, robotNode)
+
+        for delay_ms in (250, 1000):
+            qt.QTimer.singleShot(
+                delay_ms,
+                lambda node=modelNode, link=linkName, touches=touchLinksCsv,
+                       tip=tipSubframeName, pose=tipPose, publisher=pub:
+                    publisher.PublishAttach(node, link, touches, tip, pose)
+            )
+        return fullTipName
+
+    def RemoveMoveItAttachedTool(self, modelNodeOrName, linkName=None, robotNode=None) -> bool:
+        """Detach a runtime tool previously added with ``AddMoveItAttachedTool``."""
+        if not modelNodeOrName:
+            return False
+
+        modelNode = modelNodeOrName if hasattr(modelNodeOrName, "GetName") else None
+        objectId = modelNode.GetName() if modelNode else str(modelNodeOrName)
+        if modelNode and not linkName:
+            linkName = modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE)
+
+        pub = self._getPlanningSceneToolPublisher(robotNode, create=True)
+        if not pub:
+            print("RemoveMoveItAttachedTool: no ROS 2 node found to host the planning-scene publisher")
+            return False
+
+        pub.PublishDetach(objectId, linkName or "")
+        qt.QTimer.singleShot(250, lambda obj=objectId, link=linkName or "", publisher=pub: publisher.PublishDetach(obj, link))
+
+        if modelNode:
+            self._removeAttachedToolGoalModel(modelNode)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_ATTRIBUTE, None)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_LINK_ATTRIBUTE, None)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TOUCH_LINKS_ATTRIBUTE, None)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_ATTRIBUTE, None)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_SUBFRAME_ATTRIBUTE, None)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_TIP_POSE_ATTRIBUTE, None)
+            modelNode.SetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ID_ATTRIBUTE, None)
         return True
 
     def SetupObstacleTf2Broadcaster(self, obstacleNode, parentFrameId,
@@ -1968,6 +2371,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 print("Error: Failed to create goal state robot.")
                 return False
             print("Goal robot created successfully.")
+        self._syncAllAttachedToolGoalModels(robotNode)
 
         # Get joint names
         self.joint_names = robotNode.GetJoints()
@@ -2214,6 +2618,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             if rootAndTip and len(rootAndTip) >= 2:
                 linkName = rootAndTip[1]
 
+        fkLinkName, attachedTipPose = self.ResolveMoveItTipForIK(linkName)
+
         pathPoints = vtk.vtkPoints()
         for trajectoryPoint in pointsData:
             positions = list(trajectoryPoint.GetPositions())
@@ -2222,13 +2628,18 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
             fkMatrix = vtk.vtkMatrix4x4()
             try:
-                fkResult = robotNode.ComputeKDLFK(positions, fkMatrix, linkName or "")
+                fkResult = robotNode.ComputeKDLFK(positions, fkMatrix, fkLinkName or "")
             except Exception as e:
-                print(f"Create trajectory path: FK failed for link '{linkName}': {e}")
+                print(f"Create trajectory path: FK failed for link '{fkLinkName}': {e}")
                 return None
             if fkResult is None:
-                print(f"Create trajectory path: FK failed for link '{linkName}'")
+                print(f"Create trajectory path: FK failed for link '{fkLinkName}'")
                 return None
+
+            if attachedTipPose is not None:
+                tipMatrix = vtk.vtkMatrix4x4()
+                vtk.vtkMatrix4x4.Multiply4x4(fkMatrix, attachedTipPose, tipMatrix)
+                fkMatrix = tipMatrix
 
             pathPoints.InsertNextPoint(
                 fkMatrix.GetElement(0, 3),
@@ -2504,6 +2915,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         planningTimeSec=5.0,
         startJointNames=None,
         startJointValues=None,
+        linkName="",
     ):
         """Plan a MoveIt Cartesian trajectory through script-created pose markers.
 
@@ -2518,6 +2930,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             startJointNames:   Optional joint names for *startJointValues*.
             startJointValues:  Optional joint start state for MoveIt planning.
                                If omitted, MoveIt uses its current robot state.
+            linkName:          Optional MoveIt link or attached-object subframe
+                               for Cartesian planning, e.g. ``"Needle/tip"``.
 
         Returns:
             vtkMoveitMsgsRobotTrajectory, or None if no usable path was planned.
@@ -2533,7 +2947,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             return None
 
         if robotNode is not None:
-            self.PublishAllMoveItObstacles(robotNode)
+            self.RefreshMoveItPlanningScene(robotNode)
 
         poseCollection = self.BuildPoseMatrixCollection(poseMarkers, relativeToNode)
         if poseCollection.GetNumberOfItems() == 0:
@@ -2560,6 +2974,7 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             float(velocityScaling),
             float(accelerationScaling),
             float(planningTimeSec),
+            str(linkName or ""),
         )
         if trajectory is None:
             return None
@@ -2646,10 +3061,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         try:
             if goaltiplink:
-                tip_transform_node = self.findRobotTransforms(goaltiplink, goal=True)
-                if tip_transform_node:
-                    tip_matrix = vtk.vtkMatrix4x4()
-                    tip_transform_node.GetMatrixTransformToWorld(tip_matrix)
+                tip_matrix = self.GetMoveItTipWorldMatrix(goaltiplink, goal=True)
+                if tip_matrix:
                     fromtransform.SetMatrixTransformToParent(tip_matrix)
         except Exception as e:
             print(f"Warning: Could not snap sphere to goal tip. Error: {e}")
@@ -2988,11 +3401,12 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         now = time.time()
         if now - self._last_moveit_obstacle_publish_time > 1.0:
-            self.PublishAllMoveItObstacles(robotmodel)
+            self.RefreshMoveItPlanningScene(robotmodel)
             self._last_moveit_obstacle_publish_time = now
 
+        ikLink, ikTargetPose = self.ConvertTipTargetToIKTarget(targetPose, tipLink)
         seed = self.last_ik_solution
-        result_str = robotmodel.FindIKMoveIt(targetPose, tipLink, seed, 0.05)
+        result_str = robotmodel.FindIKMoveIt(ikTargetPose, ikLink, seed, 0.05)
 
         if result_str and result_str.strip():
             # Parse comma-separated string into list of floats
@@ -3200,10 +3614,22 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             except Exception:
                 pass
 
+        scene = slicer.mrmlScene
+        count = scene.GetNumberOfNodesByClass("vtkMRMLModelNode")
+        for i in range(count):
+            modelNode = scene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+            if modelNode is None:
+                continue
+            modelName = modelNode.GetName() or ""
+            if (
+                modelNode.GetAttribute(self.MOVEIT_ATTACHED_TOOL_GOAL_MODEL_ATTRIBUTE)
+                and modelName not in seen_names
+            ):
+                goal_nodes.append(modelNode)
+                seen_names.add(modelName)
+
         # Fallback: if still empty, scan scene for all goal models.
         if not goal_nodes:
-            scene = slicer.mrmlScene
-            count = scene.GetNumberOfNodesByClass("vtkMRMLModelNode")
             for i in range(count):
                 modelNode = scene.GetNthNodeByClass(i, "vtkMRMLModelNode")
                 if modelNode is None:
