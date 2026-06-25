@@ -18,14 +18,14 @@ Before you can start compiling the SlicerROS2 module, you will need:
 Versions
 --------
 
-SlicerROS2 v1.x: requires Ubuntu 24.04/ROS 2 Jazzy with 3D Slicer 5.10.  When you clone the Slicer repo, make sure to checkout the v5.10 branch/tag.
+SlicerROS2 v1.x: supports Ubuntu 24.04/ROS 2 Jazzy with 3D Slicer 5.10.0 and 5.12.0 (tested with Jazzy on Ubuntu 24.04).  When you clone the Slicer repo, make sure to checkout the v5.10.0 or v5.12.0 branch/tag.
 See :doc:`/pages/compatibility` for the supported release matrix.
 
 .. code-block:: bash
 
    git clone https://github.com/slicer/slicer
    cd Slicer
-   git checkout v5.10.0
+   git checkout v5.10.0   # or v5.12.0
 
 Compiling Slicer
 ----------------
@@ -42,13 +42,12 @@ you start compiling Slicer:
   to major issues when compiling against ROS 2.  So don't re-install
   Qt from the Qt site.  Use ``apt install``!
 
-* Make sure you use the system/native OpenSSL and bzip2 libraries
+* Make sure you use the system/native OpenSSL library
   otherwise you'll get some errors when compiling the SlicerROS2
   module (as opposed to the Slicer super build ones).  You will need
   to do the following after you ran CMake for the first time.  In the
-  Slicer build directory, set ``Slicer_USE_SYSTEM_OpenSSL`` and
-  ``Slicer_USE_SYSTEM_bzip2`` to ``ON`` using ``cmake
-  . -DSlicer_USE_SYSTEM_OpenSSL=ON -DSlicer_USE_SYSTEM_bzip2=ON
+  Slicer build directory, set ``Slicer_USE_SYSTEM_OpenSSL`` to ``ON`` using ``cmake
+  . -DSlicer_USE_SYSTEM_OpenSSL=ON
   -DCMAKE_BUILD_TYPE=Release`` or ``ccmake``.
 
 * Compiling Slicer from source takes time, plan a few hours
@@ -60,7 +59,7 @@ you start compiling Slicer:
 
 * To get a specific version of Slicer from GitHub, first clone: ``git
   clone https://github.com/slicer/slicer`` and then checkout the
-  version using ``git checkout v5.10.0``.
+  version using ``git checkout v5.10.0`` or ``git checkout v5.12.0``.
 
 If you are comfortable with Docker, you can also use the provided docker image used for continuous integration to build SlicerROS2 module in a containerized environment. The docker file is based on Ubuntu 24.04 and ROS 2 Jazzy.  It comes with Slicer pre-installed. It is available on GitHub as a package:
 

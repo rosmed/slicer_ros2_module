@@ -117,7 +117,7 @@ echo "--- Build complete ---"
 echo "  Image: ${VERSIONED_TAG}"
 echo ""
 
-# Print the image digest (useful for pinning the exact image in ci.yml)
+# Print the image digest (useful for pinning the exact image in the workflows)
 DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${VERSIONED_TAG}" 2>/dev/null || true)
 if [[ -n "${DIGEST}" ]]; then
   echo "  Digest: ${DIGEST}"
@@ -147,8 +147,8 @@ if ${DO_PUSH}; then
   echo "--- Pushing ${LATEST_TAG} ---"
   docker push "${LATEST_TAG}"
   echo ""
-  echo "Done!  Update .github/workflows/ci.yml with:"
-  echo "  image: ${VERSIONED_TAG}"
+  echo "Done!  Update the workflow files (e.g. ubuntu-24.04-jazzy-slicer-5.10.yml or ubuntu-24.04-jazzy-slicer-5.12.yml) with:"
+  echo "  image_tag: <new_tag>"
 else
   echo "Image built locally only (pass --push to upload to GHCR)."
 fi

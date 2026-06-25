@@ -1,0 +1,20 @@
+name: Ubuntu 24.04 Jazzy Slicer 5.12
+
+on:
+  push:
+    branches: [ main, devel ]
+  pull_request:
+    branches: [ main, devel ]
+  workflow_dispatch:
+
+concurrency:
+  group: ubuntu-24.04-jazzy-slicer-5.12-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-ci:
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      slicer_version: v5.12.0
+      display: "5.12"
+      image_tag: jazzy-slicer-v5.12.0

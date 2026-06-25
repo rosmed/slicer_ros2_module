@@ -58,5 +58,4 @@ To push a custom tag:
      --tag jazzy-slicer-v5.12.0 \
      --push
 
-After pushing a new tag, update ``.github/workflows/ci.yml`` so the
-``container`` image points to the new versioned image.
+After pushing a new tag, update the workflow files under ``.github/workflows/`` (e.g. ``ubuntu-24.04-jazzy-slicer-5.10.yml`` or ``ubuntu-24.04-jazzy-slicer-5.12.yml``) so the image tag points to the new versioned image.
