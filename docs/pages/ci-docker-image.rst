@@ -9,7 +9,7 @@ The workflow currently pulls the image from GitHub Container Registry:
 
 .. code-block:: text
 
-   ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+   ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.12.0
 
 Rebuild and push the image when the base operating system, ROS distribution,
 Slicer version, or required system dependencies change.
@@ -27,7 +27,7 @@ This builds the default tag locally:
 
 .. code-block:: text
 
-   ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+   ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.12.0
 
 To build a different Slicer tag and image tag:
 

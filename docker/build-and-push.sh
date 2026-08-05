@@ -26,8 +26,8 @@ set -euo pipefail
 REGISTRY="ghcr.io"
 ORG="rosmed"
 IMAGE="slicer_ros2_module/ci"
-DEFAULT_TAG="jazzy-slicer-v5.10.0"
-SLICER_BUILD_TAG="v5.10.0"   # git tag of Slicer to build inside the image
+DEFAULT_TAG="jazzy-slicer-v5.12.0"
+SLICER_BUILD_TAG="v5.12.0"   # git tag of Slicer to build inside the image
 
 # --------------------------------------------------------------------------
 # Parse arguments
