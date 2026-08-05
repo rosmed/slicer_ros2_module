@@ -1,0 +1,124 @@
+name: Build and Test
+
+on:
+  workflow_call:
+    inputs:
+      slicer_version:
+        required: true
+        type: string
+      display:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+jobs:
+  build-and-test:
+    name: Build & Test (ROS2 Jazzy / Slicer ${{ inputs.display }})
+    runs-on: ubuntu-latest
+
+    env:
+      CI_IMAGE: ghcr.io/rosmed/slicer_ros2_module/ci:${{ inputs.image_tag }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 0. Free disk space
+      #
+      # The CI image is large (~10 GB extracted). The ubuntu-latest runner
+      # ships with pre-installed tools (Android SDK, .NET, Haskell, CodeQL,
+      # …) that consume most of the available disk.  Remove them first so
+      # 'docker pull' has enough room to extract all image layers.
+      # -----------------------------------------------------------------------
+      - name: Free disk space
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h /
+          # Remove large pre-installed toolchains not needed for this job
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          docker image prune --all --force
+          echo "Disk usage after cleanup:"
+          df -h /
+
+      # -----------------------------------------------------------------------
+      # 1. Check out the module source into a colcon workspace layout
+      # -----------------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Place the source under ws/src/slicer_ros2_module so colcon
+          # finds it as a single package workspace.
+          path: ws/src/slicer_ros2_module
+
+      # -----------------------------------------------------------------------
+      # 2. Pull the CI image (public image, no login required)
+      # -----------------------------------------------------------------------
+      - name: Pull CI image
+        run: docker pull ${{ env.CI_IMAGE }}
+
+      # -----------------------------------------------------------------------
+      # 3. Build the module with colcon (inside the CI container)
+      # -----------------------------------------------------------------------
+      - name: Build
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/ws:/ws" \
+            ${{ env.CI_IMAGE }} \
+            bash -c "
+              set -e
+              source /opt/ros/\$ROS_DISTRO/setup.bash
+              cd /ws
+              colcon build \
+                --cmake-args \
+                  -DSlicer_DIR:PATH=\$Slicer_DIR \
+                  -DCMAKE_BUILD_TYPE=Release \
+                --event-handlers console_cohesion+
+            "
+
+      # -----------------------------------------------------------------------
+      # 4. Start virtual display
+      #    Needed by some ROS2 subprocess nodes; Slicer itself uses
+      #    --no-main-window (set in Testing CMakeLists) but its children may not.
+      # -----------------------------------------------------------------------
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      # -----------------------------------------------------------------------
+      # 5. Run tests using Slicer with the test module (inside the CI container)
+      #    The X11 socket directory is shared from the host (started in step 4)
+      #    into the container via -v /tmp/.X11-unix:/tmp/.X11-unix and DISPLAY.
+      # -----------------------------------------------------------------------
+      - name: Test
+        run: |
+          docker run --rm \
+            -e DISPLAY=:99 \
+            -v /tmp/.X11-unix:/tmp/.X11-unix \
+            -v "${{ github.workspace }}/ws:/ws" \
+            ${{ env.CI_IMAGE }} \
+            bash -c "
+              set -e
+              source /opt/ros/\$ROS_DISTRO/setup.bash
+              source /ws/install/setup.bash
+              ros2 run slicer_ros2_module test_ci
+            "
+
+      # -----------------------------------------------------------------------
+      # 6. Upload build/test logs as an artifact (visible even on failure)
+      # -----------------------------------------------------------------------
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-logs
+          path: ws/log/
+          retention-days: 14
