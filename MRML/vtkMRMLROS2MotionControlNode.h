@@ -48,11 +48,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2MotionControlNode: public vt
    *  goalJointValues must match the group's joint order.
    *  The result is also cached for ExecuteCachedMoveItTrajectory().
    *  Returns a (possibly empty) trajectory; caller owns the returned object. */
-  vtkMoveitMsgsRobotTrajectory* PlanMoveItTrajectory(const std::string & groupName,
+  /** vtkMoveitMsgsRobotTrajectory* PlanMoveItTrajectory(const std::string & groupName,
                                                       const std::vector<double> & goalJointValues,
                                                       double velocityScaling     = 0.5,
                                                       double accelerationScaling = 0.5,
-                                                      double planningTimeSec     = 5.0);
+                                                      double planningTimeSec     = 5.0); */
 
   /** Plan a Cartesian end-effector trajectory through *targetPoses* using
    *  MoveIt's /compute_cartesian_path ROS service.
@@ -86,11 +86,11 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2MotionControlNode: public vt
   bool ExecuteCachedMoveItTrajectory(const std::string & groupName);
 
   /** Plan and execute in one blocking call. */
-  bool PlanAndExecuteMoveItTrajectory(const std::string & groupName,
+  /** bool PlanAndExecuteMoveItTrajectory(const std::string & groupName,
                                       const std::vector<double> & goalJointValues,
                                       double velocityScaling     = 0.5,
                                       double accelerationScaling = 0.5,
-                                      double planningTimeSec     = 5.0);
+                                      double planningTimeSec     = 5.0); */
 
   /** Execute a trajectory asynchronously (non-blocking, detached thread). */
   bool ExecuteMoveItTrajectoryAsync(const std::string & groupName,
@@ -99,6 +99,32 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2MotionControlNode: public vt
   // Save / load
   void ReadXMLAttributes(const char** atts) override;
   void WriteXML(std::ostream & of, int indent) override;
+  
+  
+  
+  // MS - Testing: adding below lines for fixing micromate?
+    /** Plan a joint-space trajectory using MoveIt for *groupName*.
+   *  jointNames and goalJointValues must be the same length and are paired
+   *  by index (jointNames[i] receives goalJointValues[i]). This does NOT
+   *  need to match moveGroup.getJointNames()'s internal order -- pass
+   *  whatever order the caller's positions were built in.
+   *  The result is also cached for ExecuteCachedMoveItTrajectory().
+   *  Returns a (possibly empty) trajectory; caller owns the returned object. */
+  vtkMoveitMsgsRobotTrajectory* PlanMoveItTrajectory(const std::string & groupName,
+                                                      const std::vector<std::string> & jointNames,
+                                                      const std::vector<double> & goalJointValues,
+                                                      double velocityScaling     = 0.5,
+                                                      double accelerationScaling = 0.5,
+                                                      double planningTimeSec     = 5.0);
+   
+  // MS - Testing: adding below lines for fixing micromate?                                                   
+    /** Plan and execute in one blocking call. */
+  bool PlanAndExecuteMoveItTrajectory(const std::string & groupName,
+                                      const std::vector<std::string> & jointNames,
+                                      const std::vector<double> & goalJointValues,
+                                      double velocityScaling     = 0.5,
+                                      double accelerationScaling = 0.5,
+                                      double planningTimeSec     = 5.0);
 
  protected:
   vtkMRMLROS2MotionControlNode();
@@ -109,6 +135,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2MotionControlNode: public vt
   std::shared_ptr<rclcpp::Node> GetROSNodePointer();
 
   std::unique_ptr<vtkMRMLROS2MotionControlNodeInternals> mInternals;
+  
+                                                                                          
 };
 
 #endif // __vtkMRMLROS2MotionControlNode_h

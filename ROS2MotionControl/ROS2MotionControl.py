@@ -485,9 +485,15 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         self.refreshTrajectoryUi()
 
         # Build joint limit dict from C++ robot node
-        _lower_list = list(robotNode.GetJointLowerPositionLimits())
-        _upper_list = list(robotNode.GetJointUpperPositionLimits())
-        _type_list  = list(robotNode.GetJointTypes())
+        # _lower_list = list(robotNode.GetJointLowerPositionLimits())
+        # _upper_list = list(robotNode.GetJointUpperPositionLimits())
+        # _type_list  = list(robotNode.GetJointTypes())
+
+        # MS: TESTING -- fixing mimic joints
+        _lower_list = list(robotNode.GetAllControllableJointLowerLimits())
+        _upper_list = list(robotNode.GetAllControllableJointUpperLimits())
+        _type_list  = list(robotNode.GetAllControllableJointTypes())
+
         limits = {
             name: (_lower_list[i], _upper_list[i], _type_list[i])
             for i, name in enumerate(joint_names)
@@ -656,7 +662,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # Update goal robot transforms with new joint positions
         if self.logic is not None and self.robot is not None:
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, self.logic.joint_names, self.jointPositionsRad)
             # Keep last_ik_solution in sync so onPlanButton uses the slider-driven goal
             self.logic.last_ik_solution = self.jointPositionsRad.copy()
         if DEBUG:
@@ -714,7 +720,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # Update goal robot with zero positions
         if self.logic is not None and self.robot is not None:
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, self.jointPositionsRad)
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, self.logic.joint_names, self.jointPositionsRad)
             self.logic.last_ik_solution = self.jointPositionsRad.copy()
             self._syncProbeToCurrentTipPose()
 
@@ -732,12 +738,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         Retries every 200 ms for up to 5 seconds."""
         if not self.jointSliders or self.logic is None or self.robot is None:
             return  # sliders were torn down or module unloaded
-        joint_names = list(self.robot.GetJoints())
+        # joint_names = list(self.robot.GetJoints())
+        joint_names = list(self.robot.GetAllControllableJoints())
         live = self.logic.GetCurrentJointState(joint_names)
         if live:
             self.jointPositionsRad = live
             self.logic.last_ik_solution = live.copy()
-            self.logic.updategoalTransformsFromJointsKDL(self.robot, live)
+            self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_names, live)
             self._setJointUi_SIToSlicer(live)
             self._syncProbeToCurrentTipPose()
             print("Joint sliders initialized from live /joint_states.")
@@ -753,7 +760,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             print("Current state: robot is not initialized")
             return
 
-        joint_names = self.robot.GetJoints()
+        # joint_names = self.robot.GetJoints()
+        joint_names = self.robot.GetAllControllableJoints()
         if not joint_names:
             print("Current state: no joints found on robot")
             return
@@ -769,7 +777,7 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         self.jointPositionsRad = joint_values.copy()
         self.logic.last_ik_solution = joint_values.copy()
-        self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_values)
+        self.logic.updategoalTransformsFromJointsKDL(self.robot, joint_names, joint_values)
         self._setJointUi_SIToSlicer(joint_values)
         self._syncProbeToCurrentTipPose()
         if DEBUG:
@@ -1139,7 +1147,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if self.logic is None or self.robot is None:
             return
 
-        joint_names = self.robot.GetJoints()
+        # joint_names = self.robot.GetJoints()
+        joint_names = self.robot.GetAllControllableJoints()
         expected_count = len(joint_names) if joint_names else 0
         if expected_count == 0:
             return
@@ -1333,9 +1342,13 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
         if moveitLayout:
             moveitLayout.addWidget(self.trajectorySliderWidget)
 
+        # MS - TESTING: trying to fix micromate -- use the trajectory's OWN
+        # joint_names (MoveIt's group order) paired with its own positions,
+        # and preview the LAST point (the goal) instead of the first (the start).
         if self.robot and num_points > 0:
-            positions = list(trajectory.GetJointTrajectory().GetPoints()[0].GetPositions())
-            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+            traj_joint_names = list(trajectory.GetJointTrajectory().GetJointNames())
+            positions = list(trajectory.GetJointTrajectory().GetPoints()[-1].GetPositions())
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, traj_joint_names, positions)
 
         if showTrajectoryPath:
             self.addPlannedTrajectoryPolyline()
@@ -1356,7 +1369,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
             return
         generator = generators[idx]
 
-        joint_names = list(self.robot.GetJoints()) if self.robot else []
+        # joint_names = list(self.robot.GetJoints()) if self.robot else []
+        joint_names = list(self.robot.GetAllControllableJoints()) if self.robot else []
         # Always read the latest joint state from the subscriber so the trajectory
         # starts from the true current robot position, not a stale cached value.
         live_positions = self.logic.GetCurrentJointState(joint_names)
@@ -1471,7 +1485,8 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # Apply to goal robot
         if self.robot:
-            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+            traj_joint_names = list(self.trajectoryData.GetJointTrajectory().GetJointNames())
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, traj_joint_names, positions)
 
         self.trajectoryIndex = currentIndex + 1
 
@@ -1488,10 +1503,11 @@ class ROS2MotionControlWidget(ScriptedLoadableModuleWidget, VTKObservationMixin)
 
         # Get the trajectory point at this index
         if 0 <= value < len(self.trajectoryData.GetJointTrajectory().GetPoints()):
+            traj_joint_names = list(self.trajectoryData.GetJointTrajectory().GetJointNames())
             positions = list(self.trajectoryData.GetJointTrajectory().GetPoints()[value].GetPositions())
 
             # Apply to goal robot
-            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, positions)
+            self.logic.updategoalTransformsFromJointsKDLBatched(self.robot, traj_joint_names, positions)
 
             self._setTrajectoryScrubberValue(value)
 
@@ -2352,7 +2368,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         self._syncAllAttachedToolGoalModels(robotNode)
 
         # Get joint names
-        self.joint_names = robotNode.GetJoints()
+        self.joint_names = robotNode.GetAllControllableJoints()
+        # self.joint_names = robotNode.GetJoints()
 
         # Create or update MotionControl node
         motionControlNode = slicer.mrmlScene.GetNodeByID(parameterNode.motionControlNodeID)
@@ -2933,7 +2950,8 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             return None
 
         if startJointValues is not None and startJointNames is None and robotNode is not None:
-            startJointNames = list(robotNode.GetJoints())
+            startJointNames = list(robotNode.GetAllControllableJoints())
+            # startJointNames = list(robotNode.GetJoints())
         if startJointValues is not None and startJointNames is None:
             print(
                 "PlanMoveItCartesianTrajectoryFromPoseMarkers: "
@@ -3363,7 +3381,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if DEBUG:
             print(f"[IK] Joint Solution: {data}")
         self.last_ik_solution = data
-        self.updategoalTransformsFromJointsKDL(robotmodel, data)
+        # NOTE: `data` is in MoveIt's JointModelGroup variable order, which may
+        # not match GetAllControllableJoints(). Using GetAllControllableJoints()
+        # here is a best-effort default so this doesn't crash; it is not
+        # guaranteed correct. Flagged as a follow-up, not yet fixed.
+        self.updategoalTransformsFromJointsKDL(robotmodel, list(robotmodel.GetAllControllableJoints()), data)
         return data
 
 
@@ -3409,7 +3431,11 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
         if DEBUG:
             print(f"[IK] Solution found: {data}")
         self.last_ik_solution = data
-        self.updategoalTransformsFromJointsKDL(robotmodel, data)
+        # NOTE: `data` is in the auto-detected KDL chain's joint order, which may
+        # not match GetAllControllableJoints(). Using GetAllControllableJoints()
+        # here is a best-effort default so this doesn't crash; it is not
+        # guaranteed correct. Flagged as a follow-up, not yet fixed.
+        self.updategoalTransformsFromJointsKDL(robotmodel, list(robotmodel.GetAllControllableJoints()), data)
         return data
 
     def addObserverComputeIK(self, robotmodel=None, baseGoalColor=None):
@@ -3589,21 +3615,24 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
             else:
                 print("Error: Could not link IK transforms (Nodes missing)")
 
-    def updategoalTransformsFromJointsKDL(self, robotmodel, joint_values):
+    def updategoalTransformsFromJointsKDL(self, robotmodel, joint_names, joint_values):
         """
-        Update all goal robot link transforms using KDL FK computation.
-        For each link, calls ComputeKDLFK to get the transform and applies it to the goal link.
+        Update all goal robot link transforms using per-link URDF-tree FK.
+        For each link in the full URDF tree, computes its local transform from
+        its own parent joint (looked up by name in joint_names/joint_values,
+        with mimic-joint support) and applies it to the goal link.
 
         Args:
-            robotmodel: The robot model node with ComputeLocalTransform method
-            joint_values: List of joint angles in radians
+            robotmodel:   The robot model node with GetAllLinks()/ComputeLocalTransformByName methods
+            joint_names:  Ordered list of joint name strings matching joint_values
+            joint_values: List of joint angles/positions (radians/metres) matching joint_names
         """
-        if not robotmodel or not joint_values:
+        if not robotmodel or not joint_values or not joint_names:
             if DEBUG:
-                print("[updategoalTransformsFromJointsKDL] No robot model or joint values")
+                print("[updategoalTransformsFromJointsKDL] No robot model, joint names, or joint values")
             return False
 
-        seg = robotmodel.GetSegments()
+        seg = robotmodel.GetAllLinks()
 
         # For each link, compute FK and update goal transform
         for link_name in seg:
@@ -3611,9 +3640,9 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
                 # Create a matrix to hold the FK result
                 fk_matrix = vtk.vtkMatrix4x4()
 
-                # Call the C++ ComputeLocalTransform function
-                # It takes: joint_values (as list), output matrix, and link name
-                result = robotmodel.ComputeLocalTransform(joint_values, fk_matrix, link_name)
+                # Call the C++ ComputeLocalTransformByName function
+                # It takes: joint_names, joint_values (as lists), output matrix, and link name
+                result = robotmodel.ComputeLocalTransformByName(joint_names, joint_values, fk_matrix, link_name)
 
                 if result is None:
                     print(f"[FK] Failed to compute FK for link '{link_name}'")
@@ -3634,17 +3663,17 @@ class ROS2MotionControlLogic(ScriptedLoadableModuleLogic):
 
         return True
 
-    def updategoalTransformsFromJointsKDLBatched(self, robotmodel, joint_values):
+    def updategoalTransformsFromJointsKDLBatched(self, robotmodel, joint_names, joint_values):
         """Apply FK updates in a single MRML batch window for smoother playback/scrub."""
         if not robotmodel or not joint_values:
             return False
 
         scene = slicer.mrmlScene
         if scene is None:
-            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_values)
+            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_names, joint_values)
 
         scene.StartState(scene.BatchProcessState)
         try:
-            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_values)
+            return self.updategoalTransformsFromJointsKDL(robotmodel, joint_names, joint_values)
         finally:
             scene.EndState(scene.BatchProcessState)

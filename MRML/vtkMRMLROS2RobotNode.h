@@ -61,6 +61,13 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   bool ParseRobotDescription(void);
   void SetupRobotVisualization(void);
   
+  // MS - ADDING TO TEST. Prioritize controllable joints over mimic
+  std::vector<std::string> GetAllControllableJoints() const;
+  std::vector<std::string> GetAllControllableJointTypes() const;
+  std::vector<double> GetAllControllableJointLowerLimits() const;
+  std::vector<double> GetAllControllableJointUpperLimits() const;
+  std::vector<double> GetAllControllableJointVelocityLimits() const;
+  
   // Helper for loading model files with fallback.
   // Outputs one or more mesh parts and a color for each part.
   void LoadModelFile(const std::string& filename,
@@ -105,6 +112,13 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2RobotNode: public vtkMRMLNod
   void ReadXMLAttributes(const char** atts) override;
   void WriteXML(std::ostream& of, int indent) override;
   void UpdateScene(vtkMRMLScene *scene) override;
+  
+  // MS - ADDING TO TEST
+  std::vector<std::string> GetAllLinks() const;
+  vtkMatrix4x4* ComputeLocalTransformByName(const std::vector<std::string>& jointNames,
+                                             const std::vector<double>& jointValues,
+                                             vtkMatrix4x4* outTransform,
+                                             const std::string& linkName);
 
  protected:
   vtkMRMLROS2RobotNode();

@@ -6,6 +6,7 @@
 #include <vtkIntArray.h>
 #include <vtkMRMLROS2Utils.h>
 #include <iostream>
+#include <cstring>
 using vtkROS2ToSlicerLimits::kMaxPoints;
 
 void vtkROS2ToSlicer(const std_msgs::msg::Empty &, std::string &)

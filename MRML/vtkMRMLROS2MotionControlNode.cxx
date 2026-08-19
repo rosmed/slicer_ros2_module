@@ -12,7 +12,7 @@
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
 
-#include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_msgs/msg/robot_trajectory.hpp>
 #include <moveit_msgs/srv/get_cartesian_path.hpp>
 
@@ -83,7 +83,7 @@ std::shared_ptr<rclcpp::Node> vtkMRMLROS2MotionControlNode::GetROSNodePointer()
 
 // ── Planning / execution ─────────────────────────────────────────────────────
 
-vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItTrajectory(
+/*vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItTrajectory(
     const std::string & groupName,
     const std::vector<double> & goalJointValues,
     double velocityScaling,
@@ -127,8 +127,68 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItTrajectory
   auto result = moveGroup.plan(plan);
   if (result == moveit::core::MoveItErrorCode::SUCCESS) {
     // Cache the ROS trajectory for ExecuteCachedMoveItTrajectory
-    mInternals->CachedTrajectory = plan.trajectory;
-    vtkROS2ToSlicer(plan.trajectory, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
+    mInternals->CachedTrajectory = plan.trajectory_;
+    vtkROS2ToSlicer(plan.trajectory_, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
+  } else {
+    vtkErrorMacro(<< "PlanMoveItTrajectory: planning failed for group '" << groupName
+                  << "' with MoveItErrorCode=" << result.val);
+  }
+
+  return traj;
+} */
+
+// MS - TESTING: adding to try to fix micromate
+vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItTrajectory(
+    const std::string & groupName,
+    const std::vector<std::string> & jointNames,
+    const std::vector<double> & goalJointValues,
+    double velocityScaling,
+    double accelerationScaling,
+    double planningTimeSec)
+{
+  vtkMoveitMsgsRobotTrajectory* traj = vtkMoveitMsgsRobotTrajectory::New();
+
+  auto node = GetROSNodePointer();
+  if (!node) { return traj; }
+
+  if (groupName.empty()) {
+    vtkErrorMacro(<< "PlanMoveItTrajectory: groupName is empty");
+    return traj;
+  }
+
+  if (jointNames.size() != goalJointValues.size()) {
+    vtkErrorMacro(<< "PlanMoveItTrajectory: jointNames has " << jointNames.size()
+                  << " entries but goalJointValues has " << goalJointValues.size());
+    return traj;
+  }
+
+  moveit::planning_interface::MoveGroupInterface moveGroup(node, groupName);
+
+  const double velScale = std::clamp(velocityScaling,     0.0, 1.0);
+  const double accScale = std::clamp(accelerationScaling, 0.0, 1.0);
+  moveGroup.setMaxVelocityScalingFactor(velScale);
+  moveGroup.setMaxAccelerationScalingFactor(accScale);
+  moveGroup.setPlanningTime(planningTimeSec > 0.0 ? planningTimeSec : 5.0);
+  moveGroup.setStartStateToCurrentState();
+  
+  const auto groupJointNames = moveGroup.getJointNames();
+  std::map<std::string, double> targets;
+  for (size_t i = 0; i < jointNames.size(); ++i) {
+    if (std::find(groupJointNames.begin(), groupJointNames.end(), jointNames[i]) != groupJointNames.end()) {
+      targets[jointNames[i]] = goalJointValues[i];
+    }
+  }
+  if (targets.empty()) {
+    vtkErrorMacro(<< "PlanMoveItTrajectory: none of the provided joint names belong to group '" << groupName << "'");
+    return traj;
+  }
+  moveGroup.setJointValueTarget(targets);
+
+  moveit::planning_interface::MoveGroupInterface::Plan plan;
+  auto result = moveGroup.plan(plan);
+  if (result == moveit::core::MoveItErrorCode::SUCCESS) {
+    mInternals->CachedTrajectory = plan.trajectory_;
+    vtkROS2ToSlicer(plan.trajectory_, vtkSmartPointer<vtkMoveitMsgsRobotTrajectory>(traj));
   } else {
     vtkErrorMacro(<< "PlanMoveItTrajectory: planning failed for group '" << groupName
                   << "' with MoveItErrorCode=" << result.val);
@@ -198,8 +258,6 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItCartesianT
   request->max_step = eefStepMeters > 0.0 ? eefStepMeters : 0.01;
   request->jump_threshold = jumpThreshold > 0.0 ? jumpThreshold : 0.0;
   request->avoid_collisions = avoidCollisions;
-  request->max_velocity_scaling_factor = velScale > 0.0 ? velScale : 1.0;
-  request->max_acceleration_scaling_factor = accScale > 0.0 ? accScale : 1.0;
   if (!linkName.empty()) {
     request->link_name = linkName;
   }
@@ -306,7 +364,7 @@ bool vtkMRMLROS2MotionControlNode::ExecuteMoveItTrajectory(
 
     moveit::planning_interface::MoveGroupInterface moveGroup(node, groupName);
     moveit::planning_interface::MoveGroupInterface::Plan plan;
-    plan.trajectory = ros_traj;
+    plan.trajectory_ = ros_traj;
 
     auto result = moveGroup.execute(plan);
     if (result == moveit::core::MoveItErrorCode::SUCCESS) {
@@ -337,7 +395,7 @@ bool vtkMRMLROS2MotionControlNode::ExecuteCachedMoveItTrajectory(const std::stri
   return ExecuteMoveItTrajectoryAsync(groupName, vtk_traj.Get());
 }
 
-bool vtkMRMLROS2MotionControlNode::PlanAndExecuteMoveItTrajectory(
+/** bool vtkMRMLROS2MotionControlNode::PlanAndExecuteMoveItTrajectory(
     const std::string & groupName,
     const std::vector<double> & goalJointValues,
     double velocityScaling,
@@ -345,6 +403,35 @@ bool vtkMRMLROS2MotionControlNode::PlanAndExecuteMoveItTrajectory(
     double planningTimeSec)
 {
   auto * trajectory = PlanMoveItTrajectory(groupName, goalJointValues,
+                                            velocityScaling, accelerationScaling,
+                                            planningTimeSec);
+  auto node = GetROSNodePointer();
+  if (!node) { trajectory->Delete(); return false; }
+
+  moveit_msgs::msg::RobotTrajectory ros_traj;
+  vtkSlicerToROS2(trajectory, ros_traj, node);
+
+  if (ros_traj.joint_trajectory.points.empty()) {
+    vtkErrorMacro(<< "PlanAndExecuteMoveItTrajectory: planning failed, cannot execute");
+    trajectory->Delete();
+    return false;
+  }
+
+  bool result = ExecuteMoveItTrajectory(groupName, trajectory);
+  trajectory->Delete();
+  return result;
+} */
+
+// MS - TESTING: trying to fix micromate
+bool vtkMRMLROS2MotionControlNode::PlanAndExecuteMoveItTrajectory(
+    const std::string & groupName,
+    const std::vector<std::string> & jointNames,
+    const std::vector<double> & goalJointValues,
+    double velocityScaling,
+    double accelerationScaling,
+    double planningTimeSec)
+{
+  auto * trajectory = PlanMoveItTrajectory(groupName, jointNames, goalJointValues,
                                             velocityScaling, accelerationScaling,
                                             planningTimeSec);
   auto node = GetROSNodePointer();
@@ -388,7 +475,7 @@ bool vtkMRMLROS2MotionControlNode::ExecuteMoveItTrajectoryAsync(
     try {
       moveit::planning_interface::MoveGroupInterface moveGroup(node, groupName);
       moveit::planning_interface::MoveGroupInterface::Plan plan;
-      plan.trajectory = ros_traj;
+      plan.trajectory_ = ros_traj;
       moveGroup.execute(plan);
     }
     catch (const std::exception & e) {

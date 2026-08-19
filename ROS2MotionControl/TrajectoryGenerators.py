@@ -184,8 +184,12 @@ class MoveItTrajectoryGenerator(TrajectoryGeneratorBase):
         if not plan_group:
             print("MoveItTrajectoryGenerator: planning group name is empty")
 
-        traj = motion_control_node.PlanMoveItTrajectory(plan_group, goal_positions,
-                                                        vel_scaling, acc_scaling, planning_time)
+       # traj = motion_control_node.PlanMoveItTrajectory(plan_group, goal_positions,
+        #                                                vel_scaling, acc_scaling, planning_time)
+        # MS - TESTING: trying to fix micromate
+        traj = motion_control_node.PlanMoveItTrajectory(plan_group, joint_names, goal_positions,
+                                                vel_scaling, acc_scaling, planning_time)
+                                                
         if traj is None:
             return None
 
@@ -273,9 +277,14 @@ class SimpleTrajectoryGenerator(TrajectoryGeneratorBase):
         # Falls back to empty dicts if no robot node is provided.
         robot = kwargs.get("robot")
         if robot is not None:
-            lower_list = list(robot.GetJointLowerPositionLimits())
-            upper_list = list(robot.GetJointUpperPositionLimits())
-            vel_list   = list(robot.GetJointVelocityLimits())
+            # MS: TESTING
+            # lower_list = list(robot.GetJointLowerPositionLimits())
+            # upper_list = list(robot.GetJointUpperPositionLimits())
+            # vel_list   = list(robot.GetJointVelocityLimits())
+            lower_list = list(robot.GetAllControllableJointLowerLimits())
+            upper_list = list(robot.GetAllControllableJointUpperLimits())
+            vel_list   = list(robot.GetAllControllableJointVelocityLimits())
+            # END - MS: TESTING
             pos_limits = {name: (lower_list[i], upper_list[i]) for i, name in enumerate(joint_names)}
             vel_limits = {name: v for name, v in zip(joint_names, vel_list) if v > 0.0}
         else:

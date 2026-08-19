@@ -39,9 +39,9 @@
 #include <QTimer>
 
 // MoveIt kinematics and planning includes
-#include <moveit/robot_model_loader/robot_model_loader.hpp>
-#include <moveit/move_group_interface/move_group_interface.hpp>
-#include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 // ROS2 parameter client for reading remote node parameters
 #include <rclcpp/parameter_client.hpp>
 #include <chrono>
@@ -491,6 +491,259 @@ bool vtkMRMLROS2RobotNode::ParseRobotDescription(void)
   return true;
 }
 
+// MS: TESTING - adding to ignore mimic joints
+std::vector<std::string> vtkMRMLROS2RobotNode::GetAllControllableJoints() const
+{
+  std::vector<std::string> jointNames;
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) {
+    vtkWarningMacro(<< "GetAllControllableJoints: URDF root link is null");
+    return jointNames;
+  }
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(urdfRoot);
+
+  while (!bfsQueue.empty()) {
+    auto link = bfsQueue.front();
+    bfsQueue.pop();
+    if (!link) {
+      continue;
+    }
+    for (const auto& childLink : link->child_links) {
+      if (childLink && childLink->parent_joint &&
+          childLink->parent_joint->type != urdf::Joint::FIXED &&
+          !childLink->parent_joint->mimic) {
+        jointNames.push_back(childLink->parent_joint->name);
+      }
+      bfsQueue.push(childLink);
+    }
+  }
+
+  return jointNames;
+}
+
+std::vector<std::string> vtkMRMLROS2RobotNode::GetAllControllableJointTypes() const
+{
+  std::vector<std::string> jointTypes;
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) { return jointTypes; }
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(urdfRoot);
+  while (!bfsQueue.empty()) {
+    auto link = bfsQueue.front();
+    bfsQueue.pop();
+    if (!link) { continue; }
+    for (const auto& childLink : link->child_links) {
+      if (childLink && childLink->parent_joint &&
+          childLink->parent_joint->type != urdf::Joint::FIXED &&
+          !childLink->parent_joint->mimic) {
+        std::string typeStr = "revolute";
+        switch (childLink->parent_joint->type) {
+          case urdf::Joint::PRISMATIC:  typeStr = "prismatic";  break;
+          case urdf::Joint::CONTINUOUS: typeStr = "continuous"; break;
+          case urdf::Joint::REVOLUTE:   typeStr = "revolute";   break;
+          default:                      typeStr = "revolute";   break;
+        }
+        jointTypes.push_back(typeStr);
+      }
+      bfsQueue.push(childLink);
+    }
+  }
+  return jointTypes;
+}
+
+std::vector<double> vtkMRMLROS2RobotNode::GetAllControllableJointLowerLimits() const
+{
+  std::vector<double> lower;
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) { return lower; }
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(urdfRoot);
+  while (!bfsQueue.empty()) {
+    auto link = bfsQueue.front();
+    bfsQueue.pop();
+    if (!link) { continue; }
+    for (const auto& childLink : link->child_links) {
+      if (childLink && childLink->parent_joint &&
+          childLink->parent_joint->type != urdf::Joint::FIXED &&
+          !childLink->parent_joint->mimic) {
+        const auto& joint = childLink->parent_joint;
+        if (joint->type == urdf::Joint::CONTINUOUS) {
+          lower.push_back(-2 * M_PI);
+        } else if (joint->limits) {
+          lower.push_back(joint->limits->lower);
+        } else {
+          lower.push_back(-M_PI);
+        }
+      }
+      bfsQueue.push(childLink);
+    }
+  }
+  return lower;
+}
+
+std::vector<double> vtkMRMLROS2RobotNode::GetAllControllableJointUpperLimits() const
+{
+  std::vector<double> upper;
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) { return upper; }
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(urdfRoot);
+  while (!bfsQueue.empty()) {
+    auto link = bfsQueue.front();
+    bfsQueue.pop();
+    if (!link) { continue; }
+    for (const auto& childLink : link->child_links) {
+      if (childLink && childLink->parent_joint &&
+          childLink->parent_joint->type != urdf::Joint::FIXED &&
+          !childLink->parent_joint->mimic) {
+        const auto& joint = childLink->parent_joint;
+        if (joint->type == urdf::Joint::CONTINUOUS) {
+          upper.push_back(2 * M_PI);
+        } else if (joint->limits) {
+          upper.push_back(joint->limits->upper);
+        } else {
+          upper.push_back(M_PI);
+        }
+      }
+      bfsQueue.push(childLink);
+    }
+  }
+  return upper;
+}
+
+std::vector<double> vtkMRMLROS2RobotNode::GetAllControllableJointVelocityLimits() const
+{
+  std::vector<double> vel;
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) { return vel; }
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(urdfRoot);
+  while (!bfsQueue.empty()) {
+    auto link = bfsQueue.front();
+    bfsQueue.pop();
+    if (!link) { continue; }
+    for (const auto& childLink : link->child_links) {
+      if (childLink && childLink->parent_joint &&
+          childLink->parent_joint->type != urdf::Joint::FIXED &&
+          !childLink->parent_joint->mimic) {
+        const auto& joint = childLink->parent_joint;
+        vel.push_back(joint->limits ? joint->limits->velocity : 0.0);
+      }
+      bfsQueue.push(childLink);
+    }
+  }
+  return vel;
+}
+
+std::vector<std::string> vtkMRMLROS2RobotNode::GetAllLinks() const
+{
+  std::vector<std::string> linkNames;
+  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!urdfRoot) { return linkNames; }
+  linkNames.push_back(urdfRoot->name);
+
+  std::queue<std::shared_ptr<const urdf::Link>> bfsQueue;
+  bfsQueue.push(urdfRoot);
+  while (!bfsQueue.empty()) {
+    auto link = bfsQueue.front();
+    bfsQueue.pop();
+    if (!link) { continue; }
+    for (const auto& childLink : link->child_links) {
+      if (childLink) { linkNames.push_back(childLink->name); }
+      bfsQueue.push(childLink);
+    }
+  }
+  return linkNames;
+}
+
+vtkMatrix4x4* vtkMRMLROS2RobotNode::ComputeLocalTransformByName(
+    const std::vector<std::string>& jointNames,
+    const std::vector<double>& jointValues,
+    vtkMatrix4x4* outTransform,
+    const std::string& linkName)
+{
+  if (!outTransform) {
+    vtkErrorMacro(<< "ComputeLocalTransformByName: output transform is null");
+    return nullptr;
+  }
+  outTransform->Identity();
+
+  auto link = mInternals->mURDFModel.getLink(linkName);
+  if (!link) {
+    vtkErrorMacro(<< "ComputeLocalTransformByName: link '" << linkName << "' not found");
+    return nullptr;
+  }
+
+  auto joint = link->parent_joint;
+  if (!joint) {
+    // Root link -- no parent joint, local transform is identity.
+    return outTransform;
+  }
+
+  double q_val = 0.0;
+  if (joint->type != urdf::Joint::FIXED) {
+    std::string sourceJointName = joint->name;
+    double multiplier = 1.0;
+    double offset = 0.0;
+    if (joint->mimic) {
+      sourceJointName = joint->mimic->joint_name;
+      multiplier = joint->mimic->multiplier;
+      offset = joint->mimic->offset;
+    }
+    for (size_t i = 0; i < jointNames.size() && i < jointValues.size(); ++i) {
+      if (jointNames[i] == sourceJointName) {
+        q_val = jointValues[i] * multiplier + offset;
+        break;
+      }
+    }
+  }
+
+  KDL::Frame originFrame;
+  originFrame.p = KDL::Vector(joint->parent_to_joint_origin_transform.position.x,
+                               joint->parent_to_joint_origin_transform.position.y,
+                               joint->parent_to_joint_origin_transform.position.z);
+  double qx, qy, qz, qw;
+  joint->parent_to_joint_origin_transform.rotation.getQuaternion(qx, qy, qz, qw);
+  originFrame.M = KDL::Rotation::Quaternion(qx, qy, qz, qw);
+
+  KDL::Frame localFrame = originFrame;
+  if (joint->type != urdf::Joint::FIXED) {
+    KDL::Vector axis(joint->axis.x, joint->axis.y, joint->axis.z);
+    KDL::Joint::JointType kdlType = KDL::Joint::None;
+    switch (joint->type) {
+      case urdf::Joint::REVOLUTE:
+      case urdf::Joint::CONTINUOUS:
+        kdlType = KDL::Joint::RotAxis;
+        break;
+      case urdf::Joint::PRISMATIC:
+        kdlType = KDL::Joint::TransAxis;
+        break;
+      default:
+        kdlType = KDL::Joint::None;
+        break;
+    }
+    if (kdlType != KDL::Joint::None) {
+      KDL::Joint kdlJoint("joint", KDL::Vector(0, 0, 0), axis, kdlType);
+      localFrame = originFrame * kdlJoint.pose(q_val);
+    }
+  }
+
+  for (int r = 0; r < 3; r++) {
+    for (int c = 0; c < 3; c++) {
+      outTransform->SetElement(r, c, localFrame.M(r, c));
+    }
+    outTransform->SetElement(r, 3, localFrame.p(r));
+  }
+  vtkMRMLROS2::FromSI(outTransform);
+  return outTransform;
+}
+// end of MS: TESTING --- 
 
 void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
 {
