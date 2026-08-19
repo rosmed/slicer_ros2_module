@@ -42,4 +42,6 @@ If you use SlicerROS2 and find it helpful for your research, please use the 2024
 
 ## Other
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rosmed/slicer_ros2_module)  [![CI](https://github.com/rosmed/slicer_ros2_module/actions/workflows/ci.yml/badge.svg)](https://github.com/rosmed/slicer_ros2_module/actions/workflows/ci.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rosmed/slicer_ros2_module)
+[![Ubuntu 24.04 Jazzy Slicer 5.10](https://github.com/rosmed/slicer_ros2_module/actions/workflows/ubuntu-24.04-jazzy-slicer-5.10.yml/badge.svg)](https://github.com/rosmed/slicer_ros2_module/actions/workflows/ubuntu-24.04-jazzy-slicer-5.10.yml)
+[![Ubuntu 24.04 Jazzy Slicer 5.12](https://github.com/rosmed/slicer_ros2_module/actions/workflows/ubuntu-24.04-jazzy-slicer-5.12.yml/badge.svg)](https://github.com/rosmed/slicer_ros2_module/actions/workflows/ubuntu-24.04-jazzy-slicer-5.12.yml)

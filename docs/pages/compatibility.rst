@@ -15,8 +15,8 @@ distribution installed on the system. The currently supported release target is:
    * - 1.2
      - 24.04
      - Jazzy
-     - 5.10.0
-     - Current release target
+     - 5.10.0, 5.12.0
+     - Current release target (Tested)
    * - 1.1
      - 24.04
      - Jazzy
@@ -28,13 +28,13 @@ distribution installed on the system. The currently supported release target is:
      - Earlier Slicer versions
      - Historical release
 
-For SlicerROS2 1.2, use the Slicer ``v5.10.0`` tag:
+For SlicerROS2 1.2, use the Slicer ``v5.10.0`` or ``v5.12.0`` tag:
 
 .. code-block:: bash
 
    git clone https://github.com/slicer/slicer
    cd Slicer
-   git checkout v5.10.0
+   git checkout v5.10.0   # or v5.12.0
 
 Slicer should be built from source when building SlicerROS2, because SlicerROS2
 contains C++ loadable modules and MRML logic.

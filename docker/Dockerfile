@@ -113,7 +113,6 @@ RUN git clone --depth 1 --branch ${SLICER_TAG} \
 #
 # Key flags:
 #   -DSlicer_USE_SYSTEM_OpenSSL=ON  - use Ubuntu's OpenSSL (avoids version conflicts with ROS2)
-#   -DSlicer_USE_SYSTEM_bzip2=ON    - use Ubuntu's bzip2 (same reason)
 #   -DQt5_DIR                       - point to system Qt5 (Ubuntu 24.04 ships Qt 5.15.x)
 #   -DCMAKE_BUILD_TYPE=Release      - required for a usable colcon-linked build
 #
@@ -124,7 +123,6 @@ RUN mkdir -p /opt/slicer/Slicer-SuperBuild && \
   -G Ninja \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DSlicer_USE_SYSTEM_OpenSSL:BOOL=ON \
-  -DSlicer_USE_SYSTEM_bzip2:BOOL=ON \
   -DQt5_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/Qt5 \
   -S /opt/slicer/Slicer \
   -B /opt/slicer/Slicer-SuperBuild

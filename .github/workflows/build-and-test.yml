@@ -1,30 +1,26 @@
-name: CI
+name: Build and Test
 
 on:
-  push:
-    branches: [ main, devel ]
-  pull_request:
-    branches: [ main, devel ]
-  workflow_dispatch:  # allows manual trigger from the GitHub Actions UI
-
-# Cancel in-progress runs for the same branch/PR to save CI minutes
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      slicer_version:
+        required: true
+        type: string
+      display:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
 
 jobs:
   build-and-test:
-    name: Build & Test (ROS2 Jazzy / Slicer 5.10)
+    name: Build & Test (ROS2 Jazzy / Slicer ${{ inputs.display }})
     runs-on: ubuntu-latest
 
-    # The pre-built CI image (Ubuntu 24.04 + ROS2 Jazzy + Slicer 5.10 from source)
-    # is pulled explicitly after freeing disk space so it fits on the runner.
-    # Rebuild and push a new tag only when Ubuntu/ROS2/Slicer versions change.
-    # See docker/build-and-push.sh for instructions.
     env:
-      CI_IMAGE: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+      CI_IMAGE: ghcr.io/rosmed/slicer_ros2_module/ci:${{ inputs.image_tag }}
 
-    # GitHub Actions defaults to /bin/sh — force bash so 'source' works
     defaults:
       run:
         shell: bash
