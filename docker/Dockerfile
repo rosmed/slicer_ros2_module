@@ -1,15 +1,15 @@
 # =============================================================================
 # SlicerROS2 CI Image
 #
-# Ubuntu 24.04 + ROS2 Jazzy + 3D Slicer 5.10 (built from source)
+# Ubuntu 24.04 + ROS2 Jazzy + 3D Slicer 5.12 (built from source)
 #
 # Build this image locally and push to GHCR — it does NOT need to be rebuilt
 # on every CI run.  See docker/build-and-push.sh for instructions.
 #
-# Image path: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.10.0
+# Image path: ghcr.io/rosmed/slicer_ros2_module/ci:jazzy-slicer-v5.12.0
 # =============================================================================
 
-ARG SLICER_TAG=v5.10.0
+ARG SLICER_TAG=v5.12.0
 ARG ROS_DISTRO=jazzy
 
 # ---------------------------------------------------------------------------

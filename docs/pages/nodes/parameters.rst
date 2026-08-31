@@ -8,13 +8,13 @@ running along Slicer).
 
 The parameter MRML ROS node is slightly different from the other MRML
 ROS nodes implemented in SlicerROS2.  A ROS parameter is fully
-identified by the ROS node *n* that hold the parameter and the
+identified by the ROS node *n* that holds the parameter and the
 parameter name *p* so we could have an implementation that would
 require one MRML ROS node for each parameter.  In practice, this can
 lead to way too many MRML nodes.  For example, if you have two
 parameters *p1* and *p2* held by the same ROS node *n1*, we would have
 to create two MRML ROS nodes, *n1p1* and *n1p2*.  Since the ROS 2
-libraries provide a single message to retrieve all the parameters help
+libraries provide a single message to retrieve all the parameters held
 by a single node, we decided to require one MRML ROS node per ROS node
 observed.  This MRML ROS node can then observe all the parameters held
 by the ROS node.
@@ -120,7 +120,7 @@ human readable description of the parameter whatever the type is
          }
          std::string robotDescription = parameterNode->GetParameterAsString("robot_description");
 
-To remove the broadcaster node, use the method
+To remove the parameter node, use the method
 ``vtkMRMLROS2NodeNode::RemoveAndDeleteParameterNode``. This method
 takes one parameter:
 
