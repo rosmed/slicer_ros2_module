@@ -11,10 +11,6 @@ Caveats
 Missing features
 ----------------
 
-* ROS namespaces are not supported yet.  The current implementation
-  allows multiple nodes but doesn't provide a parameter to set the ROS
-  namespace.  Let us know if this is something you need.
-
 * The following ROS functionalities are missing:
 
   + Service server
@@ -38,9 +34,9 @@ Missing features
 When using SlicerROS2, you may want to use other Slicer extensions
 (e.g., SlicerIGT). Since you are running Slicer from a ROS 2
 environment, extensions should be managed using the
-``manage-extensions.py`` script provided with this module.
+``manage_extensions.py`` script provided with this module.
 
-The ``manage-extensions.py`` script allows you to search for,
+The ``manage_extensions.py`` script allows you to search for,
 download, and build extensions from the Slicer Extensions Index. It
 automatically handles dependencies and registers the built extensions
 so they are loaded when you use ``ros2 run slicer_ros2_module slicer``.
@@ -49,7 +45,7 @@ To use the extension manager:
 
 .. code-block:: bash
 
-   ros2 run slicer_ros2_module manage-extensions.py
+   ros2 run slicer_ros2_module manage_extensions.py
 
 This will open a graphical interface where you can manage your extensions.
 
@@ -59,7 +55,7 @@ Loading the module
 Always use the provided ROS 2 launcher to start Slicer. This ensures
 all environment variables (like ``LD_LIBRARY_PATH``) and Slicer module
 paths are correctly configured to include both ``slicer_ros2_module``
-and any extensions managed by ``manage-extensions.py``.
+and any extensions managed by ``manage_extensions.py``.
 
 .. code-block:: bash
 

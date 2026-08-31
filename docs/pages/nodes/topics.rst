@@ -29,7 +29,7 @@ subscribers to convert messages between ROS and Slicer.
      - Int
    * - double
      - std_msgs::msg::Float64
-     - Double;
+     - Double
    * - vtkIntArray
      - std_msgs::msg::Int64MultiArray
      - IntArray
@@ -61,7 +61,7 @@ subscribers to convert messages between ROS and Slicer.
 For example, if you need to create a publisher that will take a
 `vtkMatrix4x4` on the Slicer side and publish a
 `geometry_msgs::msg::PoseStamped` on the ROS side, the full SlicerROS2
-node name will be `vtkMRMLROSPublisherPoseStampedNode`.
+node name will be `vtkMRMLROS2PublisherPoseStampedNode`.
 
 To find the current list of supported publishers and subscribers, one can do:
 
@@ -108,7 +108,7 @@ Publishers are triggered by calling the ``Publish`` method.
          # run `ros2 topic echo /my_string` in a terminal to see the output
          pubString.Publish('my first string')
 
-         # example with short class name, Pose will be expended to vtkMRMLROS2PublisherPoseNode
+         # example with short class name, Pose will be expanded to vtkMRMLROS2PublisherPoseNode
          pubMatrix = rosNode.CreateAndAddPublisherNode('Pose', '/my_matrix')
          # run `ros2 topic echo /my_matrix` in a terminal to see the output
          mat = pubMatrix.GetBlankMessage() # returns a vtkMatrix4x4
@@ -124,7 +124,7 @@ Publishers are triggered by calling the ``Publish`` method.
          // run ros2 topic echo /my_string in a terminal to see the output
          pubString->Publish("my first string");
 
-         // example with short class name, String will be expended to vtkMRMLROS2PublisherStringNode
+         // example with short class name, String will be expanded to vtkMRMLROS2PublisherStringNode
          auto pubString2 = rosNode->CreateAndAddPublisherNode("String", "/my_second_string");
 
 
@@ -141,7 +141,7 @@ To create a new subscriber, one should use the MRML ROS 2 node method
 ``vtkMRMLROS2NodeNode::CreateAndAddSubscriberNode``.  This method
 takes two parameters:
 
-* the class (type) of subscriber to be used.  See ::ref:`publishers`.
+* the class (type) of subscriber to be used.  See :ref:`publishers`.
 * the topic name (``std::string``).
 
 Subscriber nodes get updated when the ROS 2 node is spun.  Users can
@@ -187,7 +187,7 @@ can be retrieved using ``GetLastMessage``.
          def updateTransforms(caller=None, event=None):
             pose = subPose.GetLastMessage()
             transform.SetMatrixTransformToParent(pose)
-            print("Last message received by subscriber: {}.".format(message))
+            print("Last message received by subscriber: {}.".format(pose))
          # add the observer with callback
          observerId = subPose.AddObserver('ModifiedEvent', updateTransforms)
 

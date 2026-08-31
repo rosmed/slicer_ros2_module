@@ -166,7 +166,7 @@ Full cisst/SAW stack
 ^^^^^^^^^^^^^^^^^^^^
 
 Installing the cisst/SAW Omni code base is not too difficult, but it
-will take a`few minutes to compile. It is useful if and only if you
+will take a few minutes to compile. It is useful if and only if you
 happen to have an actual device. You can find the build instructions
 for ROS 2 in the README for https://github.com/jhu-saw/vcs.
 
@@ -246,10 +246,7 @@ The state publisher can also be started manually using the following steps:
   python3 listen_real.py
 
 It is possible that you will need to change the port specified on line
-14 of ``listen_real.py`` depending on your device.  The ``.dae`` files
-in the robot description also need to be converted to STLs (an online
-converter will work) and the paths in the URDF file should be updated
-to reflect this change.
+14 of ``listen_real.py`` depending on your device.
 
 Once running - make sure your robot is in *Transponder Mode*. More
 instructions for basic operation of the myCobot can be found in the
@@ -286,10 +283,10 @@ node name. The PSM for example requires
 To remove the robot from the scene you can press the "Remove Robot"
 button.
 
-.. image:: ../images/RemoveRobot.png
+.. image:: /images/RemoveRobot.png
   :width: 300
   :align: center
-  :alt: Defining a robot with a namespace in Slicer
+  :alt: Removing a robot in Slicer
 
 To add more than one robot, you can press the "+" button and the
 widget will update with additional line edits for the second robot.
@@ -297,7 +294,7 @@ widget will update with additional line edits for the second robot.
 .. image:: /images/AddRobot.png
   :width: 300
   :align: center
-  :alt: Defining a robot with a namespace in Slicer
+  :alt: Adding multiple robots in Slicer
 
 Tips and tricks
 ~~~~~~~~~~~~~~~
@@ -306,7 +303,7 @@ Fixed frame
 ^^^^^^^^^^^
 
 All cartesian poses used to display the robot's links are defined with
-respect to a base frame, also know as "Fixed Frame" in RViz. The
+respect to a base frame, also known as "Fixed Frame" in RViz. The
 default in RViz is "map". This default is often ignored in URDFs. When
 the "fixed frame" is not correctly defined, you will get some warnings
 regarding lookups in TF2 not found. For example, the Phantom Omni URDF
@@ -322,11 +319,11 @@ visualization. The example below shows a rendering of the TurtleBot in
 .. image:: /images/turtlebot.gif
   :width: 800
   :align: center
-  :alt: Defining a robot with a namespace in Slicer
+  :alt: Visualizing TurtleBot with fixed frame in Slicer
 
 .. hint::
 
-   To help figuring out the frames currently declared, you can also
+   To help figure out the frames currently declared, you can also
    use ``ros2 run tf2_tools view_frames`` once the robot is launched
    (see `ROS documentation
    <https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Debugging-Tf2-Problems.html>`_).
@@ -336,10 +333,10 @@ ROS namespaces
 
 Namespaces are frequently used for ROS applications. They allow users
 to declare multiple robots with the same topic, service, tf... names
-without conflicts. For example, the joint state publisher use the
+without conflicts. For example, the joint state publisher uses the
 topic ``/joint_states`` by convention. If you have multiple robots,
 you can use a namespace to isolate the topic.  For example, the
-Phantom Omni package uses the the namespace ``/arm`` and the joint
+Phantom Omni package uses the namespace ``/arm`` and the joint
 state topics becomes ``/arm/joint_states``. If you are unsure which
 namespaces are used, you can list all the current ROS topics using
 ``ros2 topic list``.

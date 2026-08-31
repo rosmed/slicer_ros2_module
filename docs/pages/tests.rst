@@ -2,7 +2,7 @@ Tests
 =====
 
 We provide some unit tests for the Slicer ROS module.  The unit tests
-rely on the automatically generated Python wrapper to to test the C++
+rely on the automatically generated Python wrapper to test the C++
 MRML nodes.  These tests assume you've installed the default ROS 2
 desktop packages and use the turtlesim examples provided with ROS 2.
 

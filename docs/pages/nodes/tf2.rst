@@ -13,7 +13,7 @@ TF2 lookups use a TF2 buffer to store all the TF2 messages
 decided to add a TF2 buffer as a private data member of the
 ``vtkMRMLROS2NodeNode`` since most users will never need a direct
 access to the TF2 buffer.  The TF2 lookups are performed when the node
-node is spun.
+is spun.
 
 Broadcasts
 ----------
@@ -49,9 +49,9 @@ node is modified.
 
       .. code-block:: C++
 
-         auto broadcaster = rosNode.CreateAndAddTf2BroadcasterNode("Parent", "Child");
-         # Broadcast a 4x4 matrix
-         vtkSmartPointer<vtkMatrix4x4> broadcastedMat = vtkMatrix4x4::New();
+         auto broadcaster = rosNode->CreateAndAddTf2BroadcasterNode("Parent", "Child");
+         // Broadcast a 4x4 matrix
+         vtkNew<vtkMatrix4x4> broadcastedMat;
          broadcastedMat->SetElement(0, 3, 66.0);
          broadcaster->Broadcast(broadcastedMat);
 
@@ -78,7 +78,7 @@ in the MRML scene.
 
 Lookup nodes get updated when the ROS 2 node is spun.  Users can set
 their own callback to act on updated transformations using an observer
-on the MRML ROS subscriber node.  The last transformation received can
+on the MRML ROS lookup node.  The last transformation received can
 be retrieved using ``GetMatrixTransformToParent``.
 
 .. tabs::
@@ -94,18 +94,21 @@ be retrieved using ``GetMatrixTransformToParent``.
          # get the transform "manually"
          lookupMat = lookupNode.GetMatrixTransformToParent()
          # or use an observer
-         observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, observer.Callback)
+         def onTransformModified(caller=None, event=None):
+             matrix = lookupNode.GetMatrixTransformToParent()
+             print("Updated transform received")
+         observerId = lookupNode.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, onTransformModified)
 
    .. tab:: **C++**
 
       .. code-block:: C++
 
-         auto lookup = rosNode.CreateAndAddTf2LookupNode("Parent", "Child");
-         # Broadcast a 4x4 matrix
-         vtkSmartPointer<vtkMatrix4x4> lookupMat = vtkMatrix4x4::New();
-         lookupMat->GetMatrixTransformToParent(lookupMat);
+         auto lookup = rosNode->CreateAndAddTf2LookupNode("Parent", "Child");
+         // Lookup a 4x4 matrix
+         vtkNew<vtkMatrix4x4> lookupMat;
+         lookup->GetMatrixTransformToParent(lookupMat);
 
-To remove the lookup node, the method
+To remove the lookup node, use the method
 ``vtkMRMLROS2NodeNode::RemoveAndDeleteTf2LookupNode``. This method
 takes two parameters:
 

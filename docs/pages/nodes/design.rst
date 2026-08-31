@@ -24,7 +24,7 @@ All the SlicerROS2 classes follow the Slicer naming convention,
 i.e. ``vtkMRMLxxxxNode``.  We added the ``ROS2`` "prefix" for all the
 class names so we're using ``vtkMRMLROS2xxxxNode`` where ``xxxx``
 represents a ROS functionality.  This works fairly well but makes it a
-bit hard to read for the MRML node than encapsulates a ROS node,
+bit hard to read for the MRML node that encapsulates a ROS node,
 i.e. a ``vtkMRMLROS2NodeNode``. No - this is not a typo.
 
 C++ vs Python
@@ -33,14 +33,14 @@ C++ vs Python
 Since both Slicer and ROS provide a Python interface we first tried to
 use Python as the glue between Slicer and ROS.  The main issue on
 Ubuntu is that ROS relies on the system python (version 3.8 on Ubuntu
-20.04) while Slicer builds it's own Python interpreter (e.g. 3.9).
+20.04) while Slicer builds its own Python interpreter (e.g. 3.9).
 Since both libraries are not just native Python code, loading
 (``import``) both Slicer and ROS in the same interpreter is not
 possible as they rely on different versions of Python C++ libraries.
 We also considered using the same Python version for both Slicer and
 ROS, i.e. build everything using Python 3.8 or Python 3.9.
 Unfortunately, building Slicer against the Ubuntu provided Python
-interpreter (3.8) is no currently supported by the Slicer "super
+interpreter (3.8) is not currently supported by the Slicer "super
 build".  Alternatively, using the Slicer provided Python 3.9 to build
 the ROS Python bindings (``rclpy``) proved challenging unless one
 wanted to recompile ROS from scratch instead of using the existing
@@ -59,8 +59,8 @@ Execution Model
 
 One of the challenges of integrating ROS in Slicer is to figure out
 the execution model.  ROS relies heavily on callbacks triggered by
-external messages.  This requires to either use a separate thread to
-"spin" the ROS event loop or periodically call the ROS "spin" method
+external messages.  This requires either using a separate thread to
+"spin" the ROS event loop or periodically calling the ROS "spin" method
 from the application's main thread.  Since we are heavily relying on
 the MRML scene, using a separate thread is not trivial.  Therefore the
 SlicerROS2 module relies on the main Slicer thread to trigger a
@@ -97,7 +97,7 @@ Motivation
 
 It's not always easy to find a VTK object corresponding to a ROS
 message, i.e. a VTK object that replicates all the information
-contained in the ROS message (or service).  On option is to manually
+contained in the ROS message (or service).  One option is to manually
 create new VTK objects (derived from ``vtkObject``).
 
 This can be extremely tedious, so we added a code generator that can
@@ -166,13 +166,6 @@ The class and functions implementation are also automatically generated:
 
 .. code-block:: c++
 
-   #include "vtkGeometryMsgsWrenchStamped.h"
-   #include <vtkROS2ToSlicer.h>
-   #include <vtkSlicerToROS2.h>
-
-   // generate_class
-   vtkStandardNewMacro(vtkGeometryMsgsWrenchStamped);
-   vtkGeometryMsgsWrenchStamped::vtkGeometryMsgsWrenchStamped()
    #include "vtkGeometryMsgsWrenchStamped.h"
    #include <vtkROS2ToSlicer.h>
    #include <vtkSlicerToROS2.h>
@@ -273,5 +266,5 @@ The SlicerROS2 module will automatically convert between the default
 VTK objects in Slicer) follow the `RAS convention
 <https://www.slicer.org/wiki/Coordinate_systems>`_ and distances are
 provided in millimeters.  Meanwhile ROS uses the `RHS convention
-<https://https://en.wikipedia.org/wiki/Right-hand_rule>`_ and SI units
+<https://en.wikipedia.org/wiki/Right-hand_rule>`_ and SI units
 (meters).
