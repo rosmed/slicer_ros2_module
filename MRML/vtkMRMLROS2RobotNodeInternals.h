@@ -29,7 +29,7 @@ class vtkMRMLROS2RobotNodeInternals
  public:
 
   virtual ~vtkMRMLROS2RobotNodeInternals() = default;
-  urdf::Model mURDFModel;
+  std::shared_ptr<urdf::Model> mURDFModel;
   std::vector< std::shared_ptr< urdf::Visual > > mVisualVector;
   std::map< std::string, std::shared_ptr< urdf::Material > > mMaterialsMap;
   std::vector< std::string> mLinkMaterials;

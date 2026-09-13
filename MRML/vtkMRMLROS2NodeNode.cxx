@@ -4,6 +4,7 @@
 #include <vtkMRMLScene.h>
 
 #include <vtkROS2ToSlicer.h>
+#include <vtkMRMLROS2Utils.h>
 #include <vtkMRMLROS2NodeInternals.h>
 #include <vtkMRMLROS2SubscriberNode.h>
 #include <vtkMRMLROS2PublisherNode.h>
@@ -38,7 +39,13 @@ vtkMRMLROS2NodeNode::vtkMRMLROS2NodeNode()
 
 vtkMRMLROS2NodeNode::~vtkMRMLROS2NodeNode()
 {
-  this->Destroy();
+  if (mTemporaryMatrix) {
+    mTemporaryMatrix->Delete();
+    mTemporaryMatrix = nullptr;
+  }
+  if (mInternals) {
+    mInternals->mNodePointer.reset();
+  }
 }
 
 
@@ -51,6 +58,7 @@ void vtkMRMLROS2NodeNode::PrintSelf(ostream& os, vtkIndent indent)
 
 void vtkMRMLROS2NodeNode::Create(const std::string & nodeName)
 {
+  vtkMRMLROS2::ROSInit();
   // create the ROS node
   mROS2NodeName = nodeName;
   mMRMLNodeName = "ros2:node:" + nodeName;

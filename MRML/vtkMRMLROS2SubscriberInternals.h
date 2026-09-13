@@ -201,7 +201,7 @@ public:
   vtkMRMLROS2SubscriberVTKInternals(vtkMRMLROS2SubscriberNode * mrmlNode):
     BaseType(mrmlNode)
   {
-    mLastMessageSlicer = vtkNew<_slicer_type>();
+    mLastMessageSlicer = vtkSmartPointer<_slicer_type>::New();
   }
 
   vtkSmartPointer<_slicer_type> mLastMessageSlicer;

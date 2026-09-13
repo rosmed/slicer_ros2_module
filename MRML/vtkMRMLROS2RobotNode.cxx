@@ -33,15 +33,15 @@
 #include <queue>
 
 #include <vtkMoveitMsgsRobotTrajectory.h>
-#include <vtkROS2ToSlicer.h>
-#include <vtkSlicerToROS2.h>
-
-#include <QTimer>
-
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
+#endif
+#include <vtkROS2ToSlicer.h>
+#include <vtkSlicerToROS2.h>
+
+#include <QTimer>
 // ROS2 parameter client for reading remote node parameters
 #include <rclcpp/parameter_client.hpp>
 #include <chrono>
@@ -133,6 +133,7 @@ void vtkMRMLROS2RobotNode::RemoveRobotVisualization()
   }
 
   // Clear transient vectors in internals
+  mInternals->mURDFModel.reset();
   mInternals->mVisualVector.clear();
   mInternals->mMaterialsMap.clear();
   mInternals->mLinkMaterials.clear();
@@ -483,8 +484,18 @@ bool vtkMRMLROS2RobotNode::CreateGoalStateRobot(vtkMRMLROS2RobotNode * sourceRob
 
 bool vtkMRMLROS2RobotNode::ParseRobotDescription(void)
 {
+  if (!mInternals->mURDFModel) {
+    try {
+      mInternals->mURDFModel = std::make_shared<urdf::Model>();
+    } catch (const std::exception & e) {
+      vtkErrorMacro(<< "ParseRobotDescription: failed to create URDF model: " << e.what()
+                    << ". Please ensure AMENT_PREFIX_PATH is properly configured.");
+      return false;
+    }
+  }
+
   // Parser the urdf file into an urdf model - to get names of links and pos/ rpy
-  if (!mInternals->mURDFModel.initString(mInternals->mRobotDescription)) {
+  if (!mInternals->mURDFModel->initString(mInternals->mRobotDescription)) {
     vtkErrorMacro(<< "ParseRobotDescription: failed to parse robot description");
     return false;
   }
@@ -498,8 +509,13 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   // to avoid duplication and leaks.
   this->RemoveRobotVisualization();
 
+  if (!mInternals->mURDFModel) {
+    vtkErrorMacro(<< "SetupRobotVisualization: URDF model not initialized");
+    return;
+  }
+
   // 1. Initialize lookup list and visual vectors from URDF
-  auto root = mInternals->mURDFModel.getRoot();
+  auto root = mInternals->mURDFModel->getRoot();
   if (!root) {
     vtkErrorMacro(<< "SetupRobotVisualization: root link not found in URDF model");
     return;
@@ -509,14 +525,14 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   mInternals->mLinkNames.push_back(root_name);
   mInternals->mLinkParentNames.push_back(root_name);
   mInternals->mVisualVector.push_back(root->visual);
-  mInternals->mMaterialsMap = mInternals->mURDFModel.materials_;
+  mInternals->mMaterialsMap = mInternals->mURDFModel->materials_;
   mInternals->mLinkMaterials.push_back(root->visual != nullptr ? root->visual->material_name : "");
   mInternals->mLinkOrigins.push_back(root->visual != nullptr ? root->visual->origin : urdf::Pose());
 
   // BFS to explore links
   size_t lastExplored = 0;
   while (lastExplored < mInternals->mVisualVector.size()) {
-    auto parentLink = mInternals->mURDFModel.getLink(mInternals->mLinkNames[lastExplored]);
+    auto parentLink = mInternals->mURDFModel->getLink(mInternals->mLinkNames[lastExplored]);
     if (parentLink) {
       for (const auto& childLink : parentLink->child_links) {
         if (!childLink) continue;
@@ -752,10 +768,9 @@ void vtkMRMLROS2RobotNode::ReadXMLAttributes(const char** atts)
   this->EndModify(wasModifying);
 }
 
-// MoveIt IK implementation (commented out for faster build)
+// MoveIt IK implementation
 bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
 {
-
   if (!mMRMLROS2Node) {
     vtkErrorMacro(<< "setupIK: ROS2 node not available");
     return false;
@@ -971,7 +986,7 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
         std::string joint_name = joint.getName();
         // Print joint name for debugging
         vtkInfoMacro(<< "Processing joint: " << joint_name);
-        auto urdf_joint = mInternals->mURDFModel.getJoint(joint_name);
+        auto urdf_joint = mInternals->mURDFModel ? mInternals->mURDFModel->getJoint(joint_name) : nullptr;
           
           // Check if joint is continuous
           if (urdf_joint && urdf_joint->type == urdf::Joint::CONTINUOUS) {
@@ -1023,7 +1038,11 @@ bool vtkMRMLROS2RobotNode::SetupKDLIKWithLimits(void)
 
 std::vector<std::string> vtkMRMLROS2RobotNode::FindRootAndTipLinks() const
 {
-  auto urdfRoot = mInternals->mURDFModel.getRoot();
+  if (!mInternals->mURDFModel) {
+    vtkErrorMacro(<< "FindRootAndTipLinks: URDF model is null");
+    return {};
+  }
+  auto urdfRoot = mInternals->mURDFModel->getRoot();
   if (!urdfRoot) {
     vtkErrorMacro(<< "FindRootAndTipLinks: URDF root link is null");
     return {};
@@ -1243,7 +1262,7 @@ std::vector<double> vtkMRMLROS2RobotNode::GetJointVelocityLimits()
   for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
     const KDL::Joint& joint = mInternals->KDLChain->getSegment(i).getJoint();
     if (joint.getType() != KDL::Joint::None) {
-      auto urdf_joint = mInternals->mURDFModel.getJoint(joint.getName());
+      auto urdf_joint = mInternals->mURDFModel ? mInternals->mURDFModel->getJoint(joint.getName()) : nullptr;
       double v = 0.0;
       if (urdf_joint && urdf_joint->limits) {
         v = urdf_joint->limits->velocity;
@@ -1264,7 +1283,7 @@ std::vector<std::string> vtkMRMLROS2RobotNode::GetJointTypes()
   for (unsigned int i = 0; i < mInternals->KDLChain->getNrOfSegments(); i++) {
     const KDL::Joint& joint = mInternals->KDLChain->getSegment(i).getJoint();
     if (joint.getType() == KDL::Joint::None) continue;
-    auto urdf_joint = mInternals->mURDFModel.getJoint(joint.getName());
+    auto urdf_joint = mInternals->mURDFModel ? mInternals->mURDFModel->getJoint(joint.getName()) : nullptr;
     std::string type_str = "revolute";
     if (urdf_joint) {
       switch (urdf_joint->type) {

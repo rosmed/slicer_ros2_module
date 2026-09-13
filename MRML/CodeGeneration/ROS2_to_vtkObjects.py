@@ -94,7 +94,7 @@ ATTRIBUTE_DECLARATIONS = {
 
 ATTRIBUTE_INIT = {
     FieldCategory.STATIC: lambda attribute_name, underlying_type: f"{__}{attribute_name}_ = {static_cpp_type_default_value.get(underlying_type, '0')};\n",
-    FieldCategory.VTK_OBJECT: lambda attribute_name, underlying_type: f"{__}{attribute_name}_ = vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}::New();\n",
+    FieldCategory.VTK_OBJECT: lambda attribute_name, underlying_type: f"{__}{attribute_name}_ = vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}>::New();\n",
     FieldCategory.STATIC_SEQUENCE: lambda attribute_name, underlying_type: "",  # Empty vector by default.
     FieldCategory.VTK_SEQUENCE: lambda attribute_name, underlying_type: f"{__}{attribute_name}_ = std::vector<vtkSmartPointer<vtk{get_vtk_type(underlying_type, vtk_equivalent_types)[1]}>>();\n"
 }

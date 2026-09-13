@@ -203,10 +203,7 @@ public:
   vtkMRMLROS2PublisherVTKInternals(vtkMRMLROS2PublisherNode * mrmlNode):
     BaseType(mrmlNode)
   {
-    mLastMessageSlicer = vtkNew<_slicer_type>();
   }
-
-  vtkSmartPointer<_slicer_type> mLastMessageSlicer;
 
   size_t Publish(_slicer_type * message)
   {

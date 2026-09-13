@@ -77,6 +77,8 @@ vtkSlicerROS2Logic::vtkSlicerROS2Logic()
 //----------------------------------------------------------------------------
 vtkSlicerROS2Logic::~vtkSlicerROS2Logic()
 {
+  mROS2Nodes.clear();
+  mDefaultROS2Node = nullptr;
   vtkMRMLROS2::ROSShutdown();
 }
 
@@ -97,11 +99,11 @@ void vtkSlicerROS2Logic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
   events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
   this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
 
-  mDefaultROS2Node = vtkMRMLROS2NodeNode::New();
+  // create a default ROS node
+  mDefaultROS2Node = vtkSmartPointer<vtkMRMLROS2NodeNode>::New();
   this->GetMRMLScene()->AddNode(mDefaultROS2Node);
   mDefaultROS2Node->Create("slicer");
   mROS2Nodes.push_back(mDefaultROS2Node);
-  // prevent saving the default node in the scene as it is created automatically on startup
   mDefaultROS2Node->SaveWithSceneOff();
 }
 
@@ -113,6 +115,7 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
 
   // ROS2 node
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2NodeNode>::New());
+
   // Subscribers
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberEmptyNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2SubscriberStringNode>::New());
