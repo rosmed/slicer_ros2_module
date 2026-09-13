@@ -37,7 +37,6 @@
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
-#endif
 #include <vtkROS2ToSlicer.h>
 #include <vtkSlicerToROS2.h>
 
