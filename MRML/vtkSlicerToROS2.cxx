@@ -426,6 +426,7 @@ void vtkSlicerToROS2(vtkPolyData * input, shape_msgs::msg::Mesh & result,
 }
 
 
+#if SLICER_ROS2_USE_MOVEIT
 void vtkSlicerToROS2(vtkMRMLModelNode * input, moveit_msgs::msg::CollisionObject & result,
                      const std::shared_ptr<rclcpp::Node> & rosNode)
 {
@@ -449,3 +450,5 @@ void vtkSlicerToROS2(vtkMRMLModelNode * input, moveit_msgs::msg::CollisionObject
         result.mesh_poses.push_back(pose);
     }
 }
+#endif
+

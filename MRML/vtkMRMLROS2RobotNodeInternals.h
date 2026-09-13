@@ -4,10 +4,12 @@
 // urdf
 #include <urdf/model.h>
 
+#if SLICER_ROS2_USE_MOVEIT
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
+#endif
 
 // KDL includes
 #include <kdl/chain.hpp>
@@ -18,7 +20,9 @@
 #include <kdl/jntarray.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 
+#if SLICER_ROS2_USE_MOVEIT
 #include <moveit_msgs/msg/robot_trajectory.hpp>
+#endif
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkSmartPointer.h>
@@ -52,12 +56,14 @@ class vtkMRMLROS2RobotNodeInternals
   std::string mParameterNodeName;
   std::string mParameterName;
 
+#if SLICER_ROS2_USE_MOVEIT
   // Cached MoveIt objects for IK
   std::unique_ptr<robot_model_loader::RobotModelLoader> RobotModelLoaderPtr;
   std::shared_ptr<moveit::core::RobotModel> RobotModelPtr;
   const moveit::core::JointModelGroup* JointModelGroupPtr = nullptr;
   planning_scene_monitor::PlanningSceneMonitorPtr PlanningSceneMonitorPtr;
   std::string IKGroupName;
+#endif
 
   // KDL solvers
   std::unique_ptr<KDL::Chain> KDLChain;

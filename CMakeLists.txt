@@ -41,33 +41,77 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 endif()
 
+# Options for building with/without optional ROS 2 components
+option(SlicerROS2_ENABLE_MOVEIT "Enable MoveIt motion planning and collision checking" OFF)
+option(SlicerROS2_ENABLE_TURTLESIM "Enable turtlesim examples and tests" OFF)
+option(SlicerROS2_ENABLE_ROSBAG2 "Enable rosbag2 service interfaces" OFF)
+option(SlicerROS2_USE_AMENT "Use ament build system" OFF)
+
+set(ROS2_UNDERLAY_DIR "" CACHE PATH "Path to ROS 2 underlay install prefix (e.g., minimal_ros2/install)")
+
+# Auto-detect nearby minimal_ros2 install if not provided
+if(NOT ROS2_UNDERLAY_DIR)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../minimal_ros2/install")
+    set(ROS2_UNDERLAY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../minimal_ros2/install" CACHE PATH "Path to ROS 2 underlay install prefix" FORCE)
+    message(STATUS "Auto-detected minimal ROS 2 underlay: ${ROS2_UNDERLAY_DIR}")
+  endif()
+endif()
+
+if(ROS2_UNDERLAY_DIR AND EXISTS "${ROS2_UNDERLAY_DIR}")
+  list(INSERT CMAKE_PREFIX_PATH 0 "${ROS2_UNDERLAY_DIR}")
+  message(STATUS "Using ROS 2 underlay: ${ROS2_UNDERLAY_DIR}")
+endif()
+
+if(APPLE AND EXISTS "/opt/homebrew")
+  list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
+endif()
+
 # set list of required packages
 set (
   SlicerROS2_ROS_DEPENDENCIES
   # core
-  ament_cmake
   rclcpp
+  rcl_logging_spdlog
+  ament_index_cpp
   kdl_parser
   urdf
   tf2
   tf2_ros
-  turtlesim
   # messages and services
   std_msgs
   std_srvs
   geometry_msgs
   sensor_msgs
   shape_msgs
-  object_recognition_msgs
   trajectory_msgs
-  moveit_msgs
-  rosbag2_interfaces
-  moveit_ros_planning
-  moveit_core
-  moveit_ros_planning_interface
   # KDL solver
   orocos_kdl
 )
+
+if (SlicerROS2_USE_AMENT)
+  list(APPEND SlicerROS2_ROS_DEPENDENCIES ament_cmake)
+endif()
+
+if (SlicerROS2_ENABLE_TURTLESIM)
+  list(APPEND SlicerROS2_ROS_DEPENDENCIES turtlesim)
+endif()
+
+if (SlicerROS2_ENABLE_ROSBAG2)
+  list(APPEND SlicerROS2_ROS_DEPENDENCIES rosbag2_interfaces)
+endif()
+
+if (SlicerROS2_ENABLE_MOVEIT)
+  list(APPEND SlicerROS2_ROS_DEPENDENCIES
+    object_recognition_msgs
+    moveit_msgs
+    moveit_ros_planning
+    moveit_core
+    moveit_ros_planning_interface
+  )
+  add_compile_definitions(SLICER_ROS2_USE_MOVEIT=1)
+else()
+  add_compile_definitions(SLICER_ROS2_USE_MOVEIT=0)
+endif()
 
 set (SlicerROS2_ROS_LIBRARIES "")
 
@@ -186,7 +230,9 @@ if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
 
-add_subdirectory(ROS2MotionControl)
+if (SlicerROS2_ENABLE_MOVEIT)
+  add_subdirectory(ROS2MotionControl)
+endif()
 
 # Not sure how stable this code is.  Basically the CMake code for
 # Slicer sets a default Python interpreter so we need to revert to the
@@ -224,4 +270,6 @@ install(
   COMPONENT slicer_ros2_docs_code
 )
 
-ament_package()
+if (SlicerROS2_USE_AMENT)
+  ament_package()
+endif()

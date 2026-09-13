@@ -32,11 +32,13 @@
 #include <thread>
 #include <queue>
 
+#if SLICER_ROS2_USE_MOVEIT
 #include <vtkMoveitMsgsRobotTrajectory.h>
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
+#endif
 #include <vtkROS2ToSlicer.h>
 #include <vtkSlicerToROS2.h>
 
@@ -770,6 +772,7 @@ void vtkMRMLROS2RobotNode::ReadXMLAttributes(const char** atts)
 // MoveIt IK implementation
 bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
 {
+#if SLICER_ROS2_USE_MOVEIT
   if (!mMRMLROS2Node) {
     vtkErrorMacro(<< "setupIK: ROS2 node not available");
     return false;
@@ -845,10 +848,16 @@ bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
     vtkErrorMacro(<< "setupIK: exception - " << e.what());
     return false;
   }
+#else
+  (void)groupName;
+  vtkWarningMacro(<< "SetupIKMoveIt: SlicerROS2 was built without MoveIt support.");
+  return false;
+#endif
 }
 
 std::vector<double> vtkMRMLROS2RobotNode::ComputeMoveItIK(vtkMatrix4x4* targetPose, const std::string& tipLink, const std::vector<double>& seedJointValues, double timeout)
 {
+#if SLICER_ROS2_USE_MOVEIT
   if (!targetPose) {
     vtkErrorMacro(<< "ComputeMoveItIK: target pose is null");
     return {};
@@ -936,6 +945,14 @@ std::vector<double> vtkMRMLROS2RobotNode::ComputeMoveItIK(vtkMatrix4x4* targetPo
     vtkErrorMacro(<< "ComputeMoveItIK: exception - " << e.what());
     return {};
   }
+#else
+  (void)targetPose;
+  (void)tipLink;
+  (void)seedJointValues;
+  (void)timeout;
+  vtkWarningMacro(<< "ComputeMoveItIK: SlicerROS2 was built without MoveIt support.");
+  return {};
+#endif
 }
 
 

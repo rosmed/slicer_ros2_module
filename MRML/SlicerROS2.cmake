@@ -107,12 +107,40 @@ function(generate_ros2_object _object_tag _object _files_generated_prefix)
   set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
   set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/ROS2_to_vtkObjects.py")
 
+  # determine python executable
+  if (Python3_EXECUTABLE)
+    set(_py_exec ${Python3_EXECUTABLE})
+  elseif (ROS_Python3_EXECUTABLE)
+    set(_py_exec ${ROS_Python3_EXECUTABLE})
+  else()
+    set(_py_exec python3)
+  endif()
+
   # check if files exist
   if (NOT EXISTS ${_h_file} OR NOT EXISTS ${_cxx_file})
+    set(_env_args)
+    if(ROS2_UNDERLAY_DIR)
+      file(GLOB _underlay_site_packages "${ROS2_UNDERLAY_DIR}/lib/python*/site-packages")
+      file(GLOB _venv_site_packages "${ROS2_UNDERLAY_DIR}/../.venv/lib/python*/site-packages")
+      set(_combined_pythonpath "${_underlay_site_packages}")
+      if(_venv_site_packages)
+        set(_combined_pythonpath "${_combined_pythonpath}:${_venv_site_packages}")
+      endif()
+      if(DEFINED ENV{PYTHONPATH})
+        set(_combined_pythonpath "${_combined_pythonpath}:$ENV{PYTHONPATH}")
+      endif()
+      set(_env_args ${CMAKE_COMMAND} -E env "PYTHONPATH=${_combined_pythonpath}")
+    endif()
+
     execute_process(
-      COMMAND ${_generator} ${_object_tag} ${_object} -c ${_class_name} -d "${CMAKE_CURRENT_BINARY_DIR}"
+      COMMAND ${_env_args} ${_py_exec} ${_generator} ${_object_tag} ${_object} -c ${_class_name} -d "${CMAKE_CURRENT_BINARY_DIR}"
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      RESULT_VARIABLE _gen_res
+      ERROR_VARIABLE _gen_err
     )
+    if(_gen_res)
+      message(FATAL_ERROR "Code generation failed for ${_object}: ${_gen_err}")
+    endif()
   endif()
 
 
@@ -132,12 +160,41 @@ function(generate_ros2_message _msg _files_generated_prefix)
   set(_h_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.h")
   set(_cxx_file "${CMAKE_CURRENT_BINARY_DIR}/${_class_name}.cxx")
   set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/CodeGeneration/ROS2_to_vtkObjects.py")
+
+  # determine python executable
+  if (Python3_EXECUTABLE)
+    set(_py_exec ${Python3_EXECUTABLE})
+  elseif (ROS_Python3_EXECUTABLE)
+    set(_py_exec ${ROS_Python3_EXECUTABLE})
+  else()
+    set(_py_exec python3)
+  endif()
+
   # check if files exist
   if (NOT EXISTS ${_h_file} OR NOT EXISTS ${_cxx_file})
+    set(_env_args)
+    if(ROS2_UNDERLAY_DIR)
+      file(GLOB _underlay_site_packages "${ROS2_UNDERLAY_DIR}/lib/python*/site-packages")
+      file(GLOB _venv_site_packages "${ROS2_UNDERLAY_DIR}/../.venv/lib/python*/site-packages")
+      set(_combined_pythonpath "${_underlay_site_packages}")
+      if(_venv_site_packages)
+        set(_combined_pythonpath "${_combined_pythonpath}:${_venv_site_packages}")
+      endif()
+      if(DEFINED ENV{PYTHONPATH})
+        set(_combined_pythonpath "${_combined_pythonpath}:$ENV{PYTHONPATH}")
+      endif()
+      set(_env_args ${CMAKE_COMMAND} -E env "PYTHONPATH=${_combined_pythonpath}")
+    endif()
+
     execute_process(
-      COMMAND ${_generator} -m ${_msg} -c ${_class_name} -d "${CMAKE_CURRENT_BINARY_DIR}"
+      COMMAND ${_env_args} ${_py_exec} ${_generator} -m ${_msg} -c ${_class_name} -d "${CMAKE_CURRENT_BINARY_DIR}"
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      RESULT_VARIABLE _gen_res
+      ERROR_VARIABLE _gen_err
     )
+    if(_gen_res)
+      message(FATAL_ERROR "Code generation failed for ${_msg}: ${_gen_err}")
+    endif()
   endif()
   set(${_files_generated_prefix}_H ${_h_file} PARENT_SCOPE)
   set(${_files_generated_prefix}_CXX ${_cxx_file} PARENT_SCOPE)

@@ -24,6 +24,13 @@ bool vtkMRMLROS2::ROSInit(void)
     return true;
   }
 
+#ifdef ROS2_INSTALL_PREFIX
+  const char * amentPrefix = std::getenv("AMENT_PREFIX_PATH");
+  if (!amentPrefix || strlen(amentPrefix) == 0) {
+    setenv("AMENT_PREFIX_PATH", ROS2_INSTALL_PREFIX, 1);
+  }
+#endif
+
   try {
 #if defined(__APPLE__)
     // Pre-load the logging implementation via @rpath so that subsequent

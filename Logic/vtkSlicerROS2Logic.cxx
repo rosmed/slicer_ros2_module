@@ -55,9 +55,11 @@
 #include <vtkMRMLROS2Tf2BroadcasterNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkMRMLROS2RobotNode.h>
+#if SLICER_ROS2_USE_MOVEIT
 #include <vtkMRMLROS2MotionControlNode.h>
 #include <vtkMRMLROS2PublisherCollisionObjectNode.h>
 #include <vtkMRMLROS2PublisherPlanningSceneToolNode.h>
+#endif
 
 // Automatically generated nodes
 #include <vtkMRMLROS2GeneratedNodes.h>
@@ -145,8 +147,10 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleArrayNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherIntTableNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherDoubleTableNode>::New());
+#if SLICER_ROS2_USE_MOVEIT
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherCollisionObjectNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPlanningSceneToolNode>::New());
+#endif
 
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherPoseNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2PublisherWrenchNode>::New());
@@ -167,8 +171,10 @@ void vtkSlicerROS2Logic::RegisterNodes(void)
   // Robot
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2RobotNode>::New());
 
+#if SLICER_ROS2_USE_MOVEIT
   // Motion control
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2MotionControlNode>::New());
+#endif
 
   // Services
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLROS2ServiceClientSetBoolStringNode>::New());
