@@ -159,10 +159,15 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     """
 
     # determine ROS distribution using environment variable
-    ros_distro = os.environ['ROS_DISTRO']
+    # determine ROS distribution using environment variable
+    ros_distro = os.environ.get('ROS_DISTRO', 'rolling')
     ros_path = '/opt/ros/' + ros_distro
-    ros2_env = 'unset PYTHONHOME ; unset PYTHONPATH ; . ' + ros_path + '/setup.sh ; '
-    ros2_exec = ros2_env + '/usr/bin/python3 /opt/ros/' + ros_distro + '/bin/ros2 '
+    if os.path.exists(ros_path + '/setup.sh'):
+        ros2_env = 'unset PYTHONHOME ; unset PYTHONPATH ; . ' + ros_path + '/setup.sh ; '
+        ros2_exec = ros2_env + '/usr/bin/python3 /opt/ros/' + ros_distro + '/bin/ros2 '
+    else:
+        ros2_env = ''
+        ros2_exec = 'ros2 '
 
     def __init__(self):
         """
@@ -171,7 +176,17 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
         ScriptedLoadableModuleLogic.__init__(self)
 
     @classmethod
-    def spin_some(self):
+    def has_ros2_cli(cls):
+        if not hasattr(cls, "_has_ros2_cli_cache"):
+            try:
+                proc = cls.run_ros2_cli_command_blocking("--help")
+                cls._has_ros2_cli_cache = (proc.returncode == 0)
+            except Exception:
+                cls._has_ros2_cli_cache = False
+        return cls._has_ros2_cli_cache
+
+    @classmethod
+    def spin_some(cls):
         ros2Logic = slicer.util.getModuleLogic('ROS2')
         for i in range(10):
             slicer.app.processEvents()
@@ -300,11 +315,17 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
     # It creates a turtlesim node, checks if it's running, and then kills it
     class TestTurtlesimNode(unittest.TestCase):
         def setUp(self):
+            if hasattr(slicer.modules, 'ros2') and not slicer.modules.ros2.TurtlesimEnabled():
+                self.skipTest('Turtlesim is not enabled in this build')
+            if not ROS2TestsLogic.has_ros2_cli():
+                self.skipTest('ros2 CLI is not available')
             print("\nTesting run turtlesim node..")
             self.create_turtlesim_node_process = ROS2TestsLogic.run_ros2_cli_command_non_blocking("run turtlesim turtlesim_node")
             ROS2TestsLogic.spin_some()
 
         def test_turtlesim_node_create_and_destroy(self):
+            if hasattr(slicer.modules, 'ros2') and not slicer.modules.ros2.TurtlesimEnabled():
+                self.skipTest('Turtlesim is not enabled in this build')
             print("\nTesting creation and destruction of turtlesim node - Starting..")
             # Check if the turtlesim node is running by checking the rosnode list
             self.assertTrue(ROS2TestsLogic.check_ros2_node_running("/turtlesim", timeout=10.0), "Turtlesim node not running")
@@ -312,8 +333,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
         def tearDown(self):
             # Kill the turtlesim node
-            ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
-            self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node still running")
+            if hasattr(self, 'create_turtlesim_node_process'):
+                ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
+                self.assertFalse(ROS2TestsLogic.check_ros2_node_running('/turtlesim'), 'Turtlesim node still running')
 
     # It creates a ROS 2 node, adds a publisher and subscriber to it, and publishes a message
     class TestCreateAndAddPubSub(unittest.TestCase):
@@ -655,6 +677,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestParameterNode(unittest.TestCase):
         def setUp(self):
+            if hasattr(slicer.modules, "ros2") and not slicer.modules.ros2.TurtlesimEnabled():
+                self.skipTest("Turtlesim is not enabled in this build")
+            if not ROS2TestsLogic.has_ros2_cli():
+                self.skipTest("ros2 CLI is not available")
             print("\nCreating ROS 2 node for parameter tests...")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeParameter_" + uuid.uuid4().hex[:4])
@@ -708,6 +734,13 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(self.ros2Node.RemoveAndDeleteParameterNode("/turtlesim"))
             print("Testing creation and working of parameter node - Done")
 
+        def tearDown(self):
+            if hasattr(self, "create_turtlesim_node_process"):
+                ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
+            if hasattr(self, "ros2Node"):
+                self.ros2Node.Destroy()
+            ROS2TestsLogic.spin_some()
+
 # temporary hack to avoid creating two testing nodes with same name.  ros2Node.Destroy in tearDown doesn't work
 #        def test_parameter_deletion(self):
             print("\nTesting deletion of parameter node - Starting..")
@@ -726,8 +759,9 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             print("Testing deletion of parameter node - Done")
 
         def tearDown(self):
-            ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
-            ROS2TestsLogic.spin_some()
+            if hasattr(self, 'create_turtlesim_node_process'):
+                ROS2TestsLogic.kill_subprocess(self.create_turtlesim_node_process)
+                self.assertFalse(ROS2TestsLogic.check_ros2_node_running('/turtlesim'), 'Turtlesim node still running')
             self.assertFalse(ROS2TestsLogic.check_ros2_node_running("/turtlesim"), "Turtlesim node running")
             self.ros2Node.Destroy()
             ROS2TestsLogic.spin_some()
@@ -773,6 +807,10 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
 
     class TestServiceClient(unittest.TestCase):
         def setUp(self):
+            if hasattr(slicer.modules, 'ros2') and not slicer.modules.ros2.TurtlesimEnabled():
+                self.skipTest('Turtlesim is not enabled in this build')
+            if not ROS2TestsLogic.has_ros2_cli():
+                self.skipTest('ros2 CLI is not available')
             print("\nCreating ROS 2 node to test service clients...")
             self.ros2Node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLROS2NodeNode")
             self.ros2Node.Create("testNodeServiceClient_" + uuid.uuid4().hex[:4])
@@ -783,6 +821,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             self.assertTrue(ROS2TestsLogic.check_server_running("/spawn", timeout=10.0), "Spawn service not available")
 
         def test_service_client(self):
+            if hasattr(slicer.modules, 'ros2') and not slicer.modules.ros2.TurtlesimEnabled():
+                self.skipTest('Turtlesim is not enabled in this build')
             print("\nTesting service client - Starting..")
             spawn1 = self.ros2Node.CreateAndAddServiceClientNode('vtkMRMLROS2ServiceClientSpawnNode', '/spawn')
             self.assertTrue(
@@ -821,7 +861,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
                 pass
 
         def tearDown(self):
-            ROS2TestsLogic.kill_subprocess(self.service_server_process)
+            if hasattr(self, 'service_server_process'):
+                ROS2TestsLogic.kill_subprocess(self.service_server_process)
             ROS2TestsLogic.spin_some()
             self.assertTrue(self.ros2Node.RemoveAndDeleteServiceClientNode('/spawn'), "Failed to delete service client node")
             self.ros2Node.Destroy()
@@ -914,6 +955,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             print("Testing PointCloud2 bridge - Done")
 
         def test_collision_object_publisher(self):
+            if hasattr(slicer.modules, 'ros2') and not slicer.modules.ros2.MoveItEnabled():
+                self.skipTest('MoveIt is not enabled in this build')
             print("\nTesting CollisionObject publisher - Starting..")
             topic = "/test_collision_object"
             # Use shorthand name "CollisionObject"
@@ -1121,6 +1164,8 @@ class ROS2TestsLogic(ScriptedLoadableModuleLogic):
             print("Testing incompatible durability QoS communication - Done")
  
         def test_transient_local_durability(self):
+            if not ROS2TestsLogic.has_ros2_cli():
+                self.skipTest("ros2 CLI is not available to start background publisher")
             print("Testing transient local durability (late joiner) - Starting..")
             topic = "/slicer_test_transient_local_qos_" + uuid.uuid4().hex[:4]
             sentString = "TransientLocalLateJoiner"

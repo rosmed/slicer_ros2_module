@@ -23,54 +23,60 @@ if [ -z "$SLICER_DIR" ] || [ ! -f "$SLICER_DIR/SlicerConfig.cmake" ]; then
   exit 1
 fi
 
-# 2. Locate minimal ROS 2 directory
-if [ -z "$MINIMAL_ROS_DIR" ]; then
-  echo "ERROR: MINIMAL_ROS_DIR is not set."
-  echo "Please specify MINIMAL_ROS_DIR, e.g.:"
-  echo "  MINIMAL_ROS_DIR=/path/to/minimal_ros2/install ./build_standalone.sh"
-  exit 1
+# 2. Locate minimal ROS 2 directory (optional; if not provided, Superbuild will build it)
+
+if [ -n "$MINIMAL_ROS_DIR" ] && [ -f "$MINIMAL_ROS_DIR/setup.bash" ]; then
+  (cd "$MINIMAL_ROS_DIR" && source setup.bash) 2>/dev/null || true
 fi
 
-# Source minimal ROS setup to populate PYTHONPATH and AMENT_PREFIX_PATH
-if [ -f "$MINIMAL_ROS_DIR/setup.bash" ]; then
-  source "$MINIMAL_ROS_DIR/setup.bash"
-elif [ -f "$MINIMAL_ROS_DIR/setup.zsh" ]; then
-  source "$MINIMAL_ROS_DIR/setup.zsh"
-fi
-
-# 3. Locate Python executable (prefer minimal_ros2 .venv or Slicer python)
+# 3. Locate Python executable (prefer Slicer python or system python)
 if [ -z "$PYTHON_EXE" ]; then
-  if [ -f "$MINIMAL_ROS_DIR/../.venv/bin/python3" ]; then
-    PYTHON_EXE="$MINIMAL_ROS_DIR/../.venv/bin/python3"
-  elif [ -f "$SLICER_DIR/../python-install/bin/python3" ]; then
+  if [ -f "$SLICER_DIR/../python-install/bin/python3" ]; then
     PYTHON_EXE="$SLICER_DIR/../python-install/bin/python3"
+
   else
     PYTHON_EXE="$(which python3)"
   fi
 fi
 
 echo "==> Using Slicer build:   $SLICER_DIR"
-echo "==> Using minimal ROS:    $MINIMAL_ROS_DIR"
 echo "==> Using Python:         $PYTHON_EXE"
 echo "==> Build directory:      $BUILD_DIR"
 
 NPROC="$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
 
 # 4. Configure via CMake
-cmake -B "$BUILD_DIR" -S "$SCRIPT_DIR" \
-  -DSlicer_DIR="$SLICER_DIR" \
-  -DMINIMAL_ROS_DIR="$MINIMAL_ROS_DIR" \
-  -DPython3_EXECUTABLE="$PYTHON_EXE" \
-  -DSlicerROS2_ENABLE_TURTLESIM=OFF \
-  -DSlicerROS2_ENABLE_ROSBAG2=OFF \
-  -DCMAKE_BUILD_TYPE=Release \
-  "$@"
+CMAKE_ARGS=(
+  "-DSlicer_DIR=$SLICER_DIR"
+  "-DPython3_EXECUTABLE=$PYTHON_EXE"
+  "-DCMAKE_BUILD_TYPE=Release"
+)
 
-# 4. Compile
+if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
+  echo "==> Using pre-built minimal ROS: $MINIMAL_ROS_DIR"
+  CMAKE_ARGS+=("-DMINIMAL_ROS_DIR=$MINIMAL_ROS_DIR")
+else
+  echo "==> Building minimal ROS 2 via Superbuild..."
+  CMAKE_ARGS+=("-DSlicerROS2_USE_MINIMAL_ROS=ON")
+  if [ -n "$MINIMAL_ROS_SOURCE_DIR" ]; then
+    CMAKE_ARGS+=("-DMINIMAL_ROS_SOURCE_DIR=$MINIMAL_ROS_SOURCE_DIR")
+  fi
+fi
+
+cmake -B "$BUILD_DIR" -S "$SCRIPT_DIR" "${CMAKE_ARGS[@]}" "$@"
+
+# 5. Compile
 echo ""
-echo "==> Compiling slicer_ros2_module (jobs: $NPROC)..."
+echo "==> Compiling (jobs: $NPROC)..."
 cmake --build "$BUILD_DIR" -j "$NPROC"
 
 echo ""
 echo "==> Slicer ROS2 module built successfully!"
-echo "==> Module binaries located in: $BUILD_DIR/lib/Slicer-5.13/qt-loadable-modules"
+FOUND_LIB="$(find "$BUILD_DIR" -type f \( -name "libqSlicerROS2Module.dylib" -o -name "libqSlicerROS2Module.so" \) 2>/dev/null | head -n 1)"
+if [ -n "$FOUND_LIB" ]; then
+  MODULE_BIN_DIR="$(dirname "$FOUND_LIB")"
+else
+  MODULE_BIN_DIR="$BUILD_DIR/lib"
+fi
+echo "==> Module binaries located in: $MODULE_BIN_DIR"
+echo "==> Launch with: ./launch_slicer.sh or ./scripts/slicer"

@@ -347,3 +347,27 @@ void vtkSlicerROS2Logic::RemoveRobot(const std::string & robotName)
     mDefaultROS2Node->RemoveAndDeleteRobotNode(robotName);
   }
 }
+
+//-----------------------------------------------------------------------------
+bool vtkSlicerROS2Logic::MoveItEnabled()
+{
+  return SlicerROS2_ENABLE_MOVEIT != 0;
+}
+
+//-----------------------------------------------------------------------------
+bool vtkSlicerROS2Logic::TurtlesimEnabled()
+{
+  return SlicerROS2_ENABLE_TURTLESIM != 0;
+}
+
+//-----------------------------------------------------------------------------
+bool vtkSlicerROS2Logic::Rosbag2Enabled()
+{
+  return SlicerROS2_ENABLE_ROSBAG2 != 0;
+}
+
+//-----------------------------------------------------------------------------
+bool vtkSlicerROS2Logic::UseAment()
+{
+  return SlicerROS2_USE_AMENT != 0;
+}

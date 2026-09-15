@@ -16,6 +16,7 @@
 ==============================================================================*/
 
 // SlicerROS2 Logic includes
+#include <vtkSlicerROS2Config.h>
 #include <vtkSlicerROS2Logic.h>
 
 // SlicerROS2 includes
@@ -121,4 +122,28 @@ void qSlicerROS2Module::onTimerTimeOut()
 void qSlicerROS2Module::stopTimer(void) // Shouldn't be on quit - look here: https://doc.qt.io/qt-5/qapplication.html
 {
   mTimer->stop();
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerROS2Module::MoveItEnabled()
+{
+  return SlicerROS2_ENABLE_MOVEIT != 0;
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerROS2Module::TurtlesimEnabled()
+{
+  return SlicerROS2_ENABLE_TURTLESIM != 0;
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerROS2Module::Rosbag2Enabled()
+{
+  return SlicerROS2_ENABLE_ROSBAG2 != 0;
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerROS2Module::UseAment()
+{
+  return SlicerROS2_USE_AMENT != 0;
 }

@@ -41,7 +41,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 endif()
 
+option(SlicerROS2_USE_MINIMAL_ROS "Build minimal_ros2 as an external project" OFF)
 set(MINIMAL_ROS_DIR "" CACHE PATH "Path to minimal ROS 2 install prefix")
+
+if(SlicerROS2_USE_MINIMAL_ROS AND NOT SlicerROS2_SUPERBUILD_BUILDING_INNER AND NOT MINIMAL_ROS_DIR)
+  include(Superbuild.cmake)
+  return()
+endif()
 
 # set list of required packages
 set (
@@ -72,6 +78,26 @@ set (
 )
 
 if (MINIMAL_ROS_DIR)
+  if(DEFINED ENV{AMENT_PREFIX_PATH})
+    set(ENV{AMENT_PREFIX_PATH} "${MINIMAL_ROS_DIR}:$ENV{AMENT_PREFIX_PATH}")
+  else()
+    set(ENV{AMENT_PREFIX_PATH} "${MINIMAL_ROS_DIR}")
+  endif()
+  file(GLOB _minimal_ros_python_dirs
+    "${MINIMAL_ROS_DIR}/lib/python*/site-packages"
+    "${MINIMAL_ROS_VENV_DIR}/lib/python*/site-packages"
+    "${MINIMAL_ROS_SOURCE_DIR}/.venv/lib/python*/site-packages"
+    "${CMAKE_BINARY_DIR}/minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+    "${MINIMAL_ROS_DIR}/../minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+    "${MINIMAL_ROS_DIR}/../.venv/lib/python*/site-packages"
+  )
+  foreach(_dir ${_minimal_ros_python_dirs})
+    if(DEFINED ENV{PYTHONPATH})
+      set(ENV{PYTHONPATH} "${_dir}:$ENV{PYTHONPATH}")
+    else()
+      set(ENV{PYTHONPATH} "${_dir}")
+    endif()
+  endforeach()
   list(INSERT CMAKE_PREFIX_PATH 0 "${MINIMAL_ROS_DIR}")
   list(REMOVE_ITEM SlicerROS2_ROS_DEPENDENCIES
     ament_cmake

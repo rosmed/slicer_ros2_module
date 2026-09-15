@@ -48,6 +48,12 @@ public:
   QStringList categories() const override;
   QStringList dependencies() const override;
 
+  // Feature queries
+  Q_INVOKABLE static bool MoveItEnabled();
+  Q_INVOKABLE static bool TurtlesimEnabled();
+  Q_INVOKABLE static bool Rosbag2Enabled();
+  Q_INVOKABLE static bool UseAment();
+
 public slots:
   void stopTimer(void);
 

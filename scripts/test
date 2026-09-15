@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
+import os
+import sys
 import subprocess
 
 def main():
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    launch_script = os.path.join(script_dir, '..', 'launch_slicer.sh')
+    slicer_code = "tests = slicer.util.getModuleLogic('ROS2Tests'); tests.run()"
+
     cmd = [
-        "ros2", "launch", "slicer_ros2_module", "slicer.launch.py",
-        "slicer_args:=--python-code \"tests = slicer.util.getModuleLogic('ROS2Tests'); tests.run()\""
+        launch_script,
+        "--testing",
+        "--python-code", slicer_code,
     ]
+
     try:
-        subprocess.run(cmd)
+        res = subprocess.run(cmd)
+        sys.exit(res.returncode)
     except KeyboardInterrupt:
-        pass
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

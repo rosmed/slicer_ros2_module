@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+import os
 import sys
 import argparse
 import subprocess
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Launch 3D Slicer via the slicer_ros2_module ROS 2 launcher.',
+        description='Launch 3D Slicer with slicer_ros2_module.',
         add_help=True,
     )
     parser.add_argument(
@@ -14,25 +15,19 @@ def main():
         help='Python script to execute inside Slicer after startup '
              '(passed to Slicer as --python-script <FILE>).',
     )
-    # Collect any remaining args that should be forwarded to Slicer
-    parser.add_argument('slicer_args', nargs='*', help='Extra arguments forwarded to Slicer')
-
-    args = parser.parse_args()
-
-    # Build the extra Slicer arguments list
-    extra = list(args.slicer_args)
+    args, extra = parser.parse_known_args()
     if args.python_script:
         extra = ['--python-script', args.python_script] + extra
 
-    cmd = ['ros2', 'launch', 'slicer_ros2_module', 'slicer.launch.py']
-    if extra:
-        args_str = ' '.join(extra)
-        cmd.append(f'slicer_args:={args_str}')
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    launch_script = os.path.join(script_dir, '..', 'launch_slicer.sh')
 
+    cmd = [launch_script] + extra
     try:
-        subprocess.run(cmd)
+        res = subprocess.run(cmd)
+        sys.exit(res.returncode)
     except KeyboardInterrupt:
-        pass
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

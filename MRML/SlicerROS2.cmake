@@ -121,11 +121,17 @@ function(generate_ros2_object _object_tag _object _files_generated_prefix)
     set(_env_args)
     if(MINIMAL_ROS_DIR)
       file(GLOB _minimal_ros_site_packages "${MINIMAL_ROS_DIR}/lib/python*/site-packages")
-      file(GLOB _venv_site_packages "${MINIMAL_ROS_DIR}/../.venv/lib/python*/site-packages")
+      file(GLOB _venv_site_packages
+        "${MINIMAL_ROS_VENV_DIR}/lib/python*/site-packages"
+        "${MINIMAL_ROS_SOURCE_DIR}/.venv/lib/python*/site-packages"
+        "${CMAKE_BINARY_DIR}/minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+        "${MINIMAL_ROS_DIR}/../minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+        "${MINIMAL_ROS_DIR}/../.venv/lib/python*/site-packages"
+      )
       set(_combined_pythonpath "${_minimal_ros_site_packages}")
-      if(_venv_site_packages)
-        set(_combined_pythonpath "${_combined_pythonpath}:${_venv_site_packages}")
-      endif()
+      foreach(_vpath ${_venv_site_packages})
+        set(_combined_pythonpath "${_combined_pythonpath}:${_vpath}")
+      endforeach()
       if(DEFINED ENV{PYTHONPATH})
         set(_combined_pythonpath "${_combined_pythonpath}:$ENV{PYTHONPATH}")
       endif()
@@ -175,11 +181,17 @@ function(generate_ros2_message _msg _files_generated_prefix)
     set(_env_args)
     if(MINIMAL_ROS_DIR)
       file(GLOB _minimal_ros_site_packages "${MINIMAL_ROS_DIR}/lib/python*/site-packages")
-      file(GLOB _venv_site_packages "${MINIMAL_ROS_DIR}/../.venv/lib/python*/site-packages")
+      file(GLOB _venv_site_packages
+        "${MINIMAL_ROS_VENV_DIR}/lib/python*/site-packages"
+        "${MINIMAL_ROS_SOURCE_DIR}/.venv/lib/python*/site-packages"
+        "${CMAKE_BINARY_DIR}/minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+        "${MINIMAL_ROS_DIR}/../minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+        "${MINIMAL_ROS_DIR}/../.venv/lib/python*/site-packages"
+      )
       set(_combined_pythonpath "${_minimal_ros_site_packages}")
-      if(_venv_site_packages)
-        set(_combined_pythonpath "${_combined_pythonpath}:${_venv_site_packages}")
-      endif()
+      foreach(_vpath ${_venv_site_packages})
+        set(_combined_pythonpath "${_combined_pythonpath}:${_vpath}")
+      endforeach()
       if(DEFINED ENV{PYTHONPATH})
         set(_combined_pythonpath "${_combined_pythonpath}:$ENV{PYTHONPATH}")
       endif()
