@@ -585,23 +585,16 @@ slicer_revision {slicer_rev}
 
     print("Relocation and signing complete.")
 
-    # 8. Create Archive (.tar.gz and .tgz)
+    # 8. Create Archive (.tar.gz - official Slicer extension format)
     tar_gz_path = os.path.join(output_dir, f"{archive_basename}.tar.gz")
-    tgz_path = os.path.join(output_dir, f"{archive_basename}.tgz")
-    convenience_path = os.path.join(output_dir, f"{extension_name}-{slicer_os}-{slicer_arch}.tar.gz")
 
     print(f"Creating archive {tar_gz_path}...")
     with tarfile.open(tar_gz_path, "w:gz") as tar:
         tar.add(archive_top, arcname=archive_basename)
 
-    shutil.copy2(tar_gz_path, tgz_path)
-    shutil.copy2(tar_gz_path, convenience_path)
-
     tar_size_mb = os.path.getsize(tar_gz_path) / (1024 * 1024)
     print(f"\nSUCCESS: Extension archive created successfully!")
     print(f"  Archive: {tar_gz_path} ({tar_size_mb:.2f} MB)")
-    print(f"  TGZ:     {tgz_path}")
-    print(f"  Alias:   {convenience_path}")
 
 
 if __name__ == "__main__":
