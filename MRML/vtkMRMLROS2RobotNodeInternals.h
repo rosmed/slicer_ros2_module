@@ -1,10 +1,12 @@
 #ifndef __vtkMRMLROS2RobotNodeInternals_h
 #define __vtkMRMLROS2RobotNodeInternals_h
 
+#include <vtkSlicerROS2Config.h>
+
 // urdf
 #include <urdf/model.h>
 
-#if SLICER_ROS2_USE_MOVEIT
+#if SlicerROS2_ENABLE_MOVEIT
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>
@@ -20,7 +22,7 @@
 #include <kdl/jntarray.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 
-#if SLICER_ROS2_USE_MOVEIT
+#if SlicerROS2_ENABLE_MOVEIT
 #include <moveit_msgs/msg/robot_trajectory.hpp>
 #endif
 #include <vtkMRMLModelNode.h>
@@ -56,7 +58,7 @@ class vtkMRMLROS2RobotNodeInternals
   std::string mParameterNodeName;
   std::string mParameterName;
 
-#if SLICER_ROS2_USE_MOVEIT
+#if SlicerROS2_ENABLE_MOVEIT
   // Cached MoveIt objects for IK
   std::unique_ptr<robot_model_loader::RobotModelLoader> RobotModelLoaderPtr;
   std::shared_ptr<moveit::core::RobotModel> RobotModelPtr;

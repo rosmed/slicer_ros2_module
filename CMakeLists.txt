@@ -41,76 +41,73 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 endif()
 
-# Options for building with/without optional ROS 2 components
-option(SlicerROS2_ENABLE_MOVEIT "Enable MoveIt motion planning and collision checking" OFF)
-option(SlicerROS2_ENABLE_TURTLESIM "Enable turtlesim examples and tests" OFF)
-option(SlicerROS2_ENABLE_ROSBAG2 "Enable rosbag2 service interfaces" OFF)
-option(SlicerROS2_USE_AMENT "Use ament build system" OFF)
-
-set(ROS2_UNDERLAY_DIR "" CACHE PATH "Path to ROS 2 underlay install prefix (e.g., minimal_ros2/install)")
-
-# Auto-detect nearby minimal_ros2 install if not provided
-if(NOT ROS2_UNDERLAY_DIR)
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../minimal_ros2/install")
-    set(ROS2_UNDERLAY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../minimal_ros2/install" CACHE PATH "Path to ROS 2 underlay install prefix" FORCE)
-    message(STATUS "Auto-detected minimal ROS 2 underlay: ${ROS2_UNDERLAY_DIR}")
-  endif()
-endif()
-
-if(ROS2_UNDERLAY_DIR AND EXISTS "${ROS2_UNDERLAY_DIR}")
-  list(INSERT CMAKE_PREFIX_PATH 0 "${ROS2_UNDERLAY_DIR}")
-  message(STATUS "Using ROS 2 underlay: ${ROS2_UNDERLAY_DIR}")
-endif()
-
-if(APPLE AND EXISTS "/opt/homebrew")
-  list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
-endif()
+set(MINIMAL_ROS_DIR "" CACHE PATH "Path to minimal ROS 2 install prefix")
 
 # set list of required packages
 set (
   SlicerROS2_ROS_DEPENDENCIES
   # core
+  ament_cmake
   rclcpp
-  rcl_logging_spdlog
-  ament_index_cpp
   kdl_parser
   urdf
   tf2
   tf2_ros
+  turtlesim
   # messages and services
   std_msgs
   std_srvs
   geometry_msgs
   sensor_msgs
   shape_msgs
+  object_recognition_msgs
   trajectory_msgs
+  moveit_msgs
+  rosbag2_interfaces
+  moveit_ros_planning
+  moveit_core
+  moveit_ros_planning_interface
   # KDL solver
   orocos_kdl
 )
 
-if (SlicerROS2_USE_AMENT)
-  list(APPEND SlicerROS2_ROS_DEPENDENCIES ament_cmake)
-endif()
-
-if (SlicerROS2_ENABLE_TURTLESIM)
-  list(APPEND SlicerROS2_ROS_DEPENDENCIES turtlesim)
-endif()
-
-if (SlicerROS2_ENABLE_ROSBAG2)
-  list(APPEND SlicerROS2_ROS_DEPENDENCIES rosbag2_interfaces)
-endif()
-
-if (SlicerROS2_ENABLE_MOVEIT)
-  list(APPEND SlicerROS2_ROS_DEPENDENCIES
+if (MINIMAL_ROS_DIR)
+  list(INSERT CMAKE_PREFIX_PATH 0 "${MINIMAL_ROS_DIR}")
+  list(REMOVE_ITEM SlicerROS2_ROS_DEPENDENCIES
+    ament_cmake
+    turtlesim
     object_recognition_msgs
     moveit_msgs
+    rosbag2_interfaces
     moveit_ros_planning
     moveit_core
     moveit_ros_planning_interface
   )
-  add_compile_definitions(SLICER_ROS2_USE_MOVEIT=1)
+  list(APPEND SlicerROS2_ROS_DEPENDENCIES
+    rcl_logging_spdlog
+    ament_index_cpp
+  )
+  set(SlicerROS2_ENABLE_MOVEIT OFF)
+  set(SlicerROS2_ENABLE_TURTLESIM OFF)
+  set(SlicerROS2_ENABLE_ROSBAG2 OFF)
+  set(SlicerROS2_USE_AMENT OFF)
 else()
-  add_compile_definitions(SLICER_ROS2_USE_MOVEIT=0)
+  set(SlicerROS2_ENABLE_MOVEIT ON)
+  set(SlicerROS2_ENABLE_TURTLESIM ON)
+  set(SlicerROS2_ENABLE_ROSBAG2 ON)
+  set(SlicerROS2_USE_AMENT ON)
+endif()
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/vtkSlicerROS2Config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/vtkSlicerROS2Config.h
+)
+include_directories(
+  ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+if(APPLE AND EXISTS "/opt/homebrew")
+  list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
 endif()
 
 set (SlicerROS2_ROS_LIBRARIES "")

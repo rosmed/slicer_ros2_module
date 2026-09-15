@@ -1,3 +1,4 @@
+#include <vtkSlicerROS2Config.h>
 #include <vtkMRMLROS2RobotNode.h>
 #include <vtkMRMLROS2RobotNodeInternals.h>
 
@@ -32,7 +33,7 @@
 #include <thread>
 #include <queue>
 
-#if SLICER_ROS2_USE_MOVEIT
+#if SlicerROS2_ENABLE_MOVEIT
 #include <vtkMoveitMsgsRobotTrajectory.h>
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
@@ -772,7 +773,7 @@ void vtkMRMLROS2RobotNode::ReadXMLAttributes(const char** atts)
 // MoveIt IK implementation
 bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
 {
-#if SLICER_ROS2_USE_MOVEIT
+#if SlicerROS2_ENABLE_MOVEIT
   if (!mMRMLROS2Node) {
     vtkErrorMacro(<< "setupIK: ROS2 node not available");
     return false;
@@ -857,7 +858,7 @@ bool vtkMRMLROS2RobotNode::SetupIKMoveIt(const std::string & groupName)
 
 std::vector<double> vtkMRMLROS2RobotNode::ComputeMoveItIK(vtkMatrix4x4* targetPose, const std::string& tipLink, const std::vector<double>& seedJointValues, double timeout)
 {
-#if SLICER_ROS2_USE_MOVEIT
+#if SlicerROS2_ENABLE_MOVEIT
   if (!targetPose) {
     vtkErrorMacro(<< "ComputeMoveItIK: target pose is null");
     return {};

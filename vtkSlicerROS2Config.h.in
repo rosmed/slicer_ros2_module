@@ -1,0 +1,22 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-    */
+/* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
+
+/*
+  Author(s):  Anton Deguet
+  Created on: 2026-09-14
+
+  (C) Copyright 2026 Johns Hopkins University (JHU), All Rights Reserved.
+*/
+
+#ifndef __vtkSlicerROS2Config_h
+#define __vtkSlicerROS2Config_h
+
+#cmakedefine01 SlicerROS2_ENABLE_MOVEIT
+#cmakedefine01 SlicerROS2_ENABLE_TURTLESIM
+#cmakedefine01 SlicerROS2_ENABLE_ROSBAG2
+#cmakedefine01 SlicerROS2_USE_AMENT
+
+// Backwards compatibility alias
+#define SLICER_ROS2_USE_MOVEIT SlicerROS2_ENABLE_MOVEIT
+
+#endif // __vtkSlicerROS2Config_h
