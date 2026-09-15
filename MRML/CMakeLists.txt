@@ -1,5 +1,9 @@
 project(vtkSlicer${MODULE_NAME}ModuleMRML)
 
+if (ASSIMP_DIR)
+  list(INSERT CMAKE_PREFIX_PATH 0 "${ASSIMP_DIR}")
+endif()
+
 find_package(assimp REQUIRED)
 
 set(KIT ${PROJECT_NAME})

@@ -43,6 +43,7 @@ endif()
 
 option(SlicerROS2_USE_MINIMAL_ROS "Build minimal_ros2 as an external project" OFF)
 set(MINIMAL_ROS_DIR "" CACHE PATH "Path to minimal ROS 2 install prefix")
+set(ASSIMP_DIR "" CACHE PATH "Path to assimp install prefix (optional)")
 
 if(SlicerROS2_USE_MINIMAL_ROS AND NOT SlicerROS2_SUPERBUILD_BUILDING_INNER AND NOT MINIMAL_ROS_DIR)
   include(Superbuild.cmake)
@@ -113,6 +114,10 @@ else()
   set(_default_turtlesim ON)
   set(_default_moveit ON)
   set(SlicerROS2_USE_AMENT ON)
+endif()
+
+if (ASSIMP_DIR)
+  list(INSERT CMAKE_PREFIX_PATH 0 "${ASSIMP_DIR}")
 endif()
 
 option(SlicerROS2_ENABLE_TURTLESIM "Build TurtleSim demo support" ${_default_turtlesim})
