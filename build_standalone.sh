@@ -25,8 +25,12 @@ fi
 
 # 2. Locate minimal ROS 2 directory (optional; if not provided, Superbuild will build it)
 
-if [ -n "$MINIMAL_ROS_DIR" ] && [ -f "$MINIMAL_ROS_DIR/setup.bash" ]; then
-  (cd "$MINIMAL_ROS_DIR" && source setup.bash) 2>/dev/null || true
+if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
+  if [ -f "$MINIMAL_ROS_DIR/setup.sh" ]; then
+    . "$MINIMAL_ROS_DIR/setup.sh"
+  elif [ -f "$MINIMAL_ROS_DIR/setup.bash" ]; then
+    . "$MINIMAL_ROS_DIR/setup.bash"
+  fi
 fi
 
 # 3. Locate Python executable (prefer Slicer python or system python)

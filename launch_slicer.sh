@@ -37,8 +37,10 @@ if [ -z "$MINIMAL_ROS_DIR" ]; then
 fi
 
 if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
-  if [ -f "$MINIMAL_ROS_DIR/setup.bash" ]; then
-    (cd "$MINIMAL_ROS_DIR" && source setup.bash) 2>/dev/null || true
+  if [ -f "$MINIMAL_ROS_DIR/setup.sh" ]; then
+    . "$MINIMAL_ROS_DIR/setup.sh"
+  elif [ -f "$MINIMAL_ROS_DIR/setup.bash" ]; then
+    . "$MINIMAL_ROS_DIR/setup.bash"
   fi
   ROS_LIB_DIR="$MINIMAL_ROS_DIR/lib"
 fi
