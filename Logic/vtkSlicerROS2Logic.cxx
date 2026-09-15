@@ -361,12 +361,6 @@ bool vtkSlicerROS2Logic::TurtlesimEnabled()
 }
 
 //-----------------------------------------------------------------------------
-bool vtkSlicerROS2Logic::Rosbag2Enabled()
-{
-  return SlicerROS2_ENABLE_ROSBAG2 != 0;
-}
-
-//-----------------------------------------------------------------------------
 bool vtkSlicerROS2Logic::UseAment()
 {
   return SlicerROS2_USE_AMENT != 0;

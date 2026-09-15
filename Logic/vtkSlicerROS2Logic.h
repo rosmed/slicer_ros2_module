@@ -71,7 +71,6 @@ class VTK_SLICER_ROS2_MODULE_LOGIC_EXPORT vtkSlicerROS2Logic:
  public:
   static bool MoveItEnabled();
   static bool TurtlesimEnabled();
-  static bool Rosbag2Enabled();
   static bool UseAment();
 
   /*! Spin all the ROS nodes attached to the module's core logic.

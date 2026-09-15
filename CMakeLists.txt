@@ -101,27 +101,35 @@ if (MINIMAL_ROS_DIR)
   list(INSERT CMAKE_PREFIX_PATH 0 "${MINIMAL_ROS_DIR}")
   list(REMOVE_ITEM SlicerROS2_ROS_DEPENDENCIES
     ament_cmake
-    turtlesim
-    object_recognition_msgs
-    moveit_msgs
-    rosbag2_interfaces
-    moveit_ros_planning
-    moveit_core
-    moveit_ros_planning_interface
   )
   list(APPEND SlicerROS2_ROS_DEPENDENCIES
     rcl_logging_spdlog
     ament_index_cpp
   )
-  set(SlicerROS2_ENABLE_MOVEIT OFF)
-  set(SlicerROS2_ENABLE_TURTLESIM OFF)
-  set(SlicerROS2_ENABLE_ROSBAG2 OFF)
+  set(_default_turtlesim OFF)
+  set(_default_moveit OFF)
   set(SlicerROS2_USE_AMENT OFF)
 else()
-  set(SlicerROS2_ENABLE_MOVEIT ON)
-  set(SlicerROS2_ENABLE_TURTLESIM ON)
-  set(SlicerROS2_ENABLE_ROSBAG2 ON)
+  set(_default_turtlesim ON)
+  set(_default_moveit ON)
   set(SlicerROS2_USE_AMENT ON)
+endif()
+
+option(SlicerROS2_ENABLE_TURTLESIM "Build TurtleSim demo support" ${_default_turtlesim})
+option(SlicerROS2_ENABLE_MOVEIT "Build with full MoveIt C++ planning libraries (moveit_core, moveit_ros_planning)" ${_default_moveit})
+
+if (NOT SlicerROS2_ENABLE_TURTLESIM)
+  list(REMOVE_ITEM SlicerROS2_ROS_DEPENDENCIES
+    turtlesim
+  )
+endif()
+
+if (NOT SlicerROS2_ENABLE_MOVEIT)
+  list(REMOVE_ITEM SlicerROS2_ROS_DEPENDENCIES
+    moveit_ros_planning
+    moveit_core
+    moveit_ros_planning_interface
+  )
 endif()
 
 configure_file(

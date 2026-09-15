@@ -12,7 +12,11 @@
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
 
+#include <vtkSlicerROS2Config.h>
+
+#if SlicerROS2_ENABLE_MOVEIT
 #include <moveit/move_group_interface/move_group_interface.hpp>
+#endif
 #include <moveit_msgs/msg/robot_trajectory.hpp>
 #include <moveit_msgs/srv/get_cartesian_path.hpp>
 
@@ -92,6 +96,7 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItTrajectory
 {
   vtkMoveitMsgsRobotTrajectory* traj = vtkMoveitMsgsRobotTrajectory::New();
 
+#if SlicerROS2_ENABLE_MOVEIT
   auto node = GetROSNodePointer();
   if (!node) { return traj; }
 
@@ -135,6 +140,15 @@ vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItTrajectory
   }
 
   return traj;
+#else
+  (void)groupName;
+  (void)goalJointValues;
+  (void)velocityScaling;
+  (void)accelerationScaling;
+  (void)planningTimeSec;
+  vtkErrorMacro(<< "PlanMoveItTrajectory: SlicerROS2 was built without MoveIt C++ support (SlicerROS2_ENABLE_MOVEIT is OFF).");
+  return traj;
+#endif
 }
 
 vtkMoveitMsgsRobotTrajectory* vtkMRMLROS2MotionControlNode::PlanMoveItCartesianTrajectory(
@@ -286,6 +300,7 @@ bool vtkMRMLROS2MotionControlNode::ExecuteMoveItTrajectory(
   auto node = GetROSNodePointer();
   if (!node) { return false; }
 
+#if SlicerROS2_ENABLE_MOVEIT
   if (groupName.empty()) {
     vtkErrorMacro(<< "ExecuteMoveItTrajectory: groupName is empty");
     return false;
@@ -321,6 +336,12 @@ bool vtkMRMLROS2MotionControlNode::ExecuteMoveItTrajectory(
     vtkErrorMacro(<< "ExecuteMoveItTrajectory: exception - " << e.what());
     return false;
   }
+#else
+  (void)groupName;
+  (void)trajectory;
+  vtkErrorMacro(<< "ExecuteMoveItTrajectory: SlicerROS2 was built without MoveIt C++ support (SlicerROS2_ENABLE_MOVEIT is OFF).");
+  return false;
+#endif
 }
 
 bool vtkMRMLROS2MotionControlNode::ExecuteCachedMoveItTrajectory(const std::string & groupName)
@@ -384,6 +405,7 @@ bool vtkMRMLROS2MotionControlNode::ExecuteMoveItTrajectoryAsync(
     return false;
   }
 
+#if SlicerROS2_ENABLE_MOVEIT
   std::thread([node, groupName, ros_traj]() {
     try {
       moveit::planning_interface::MoveGroupInterface moveGroup(node, groupName);
@@ -398,4 +420,10 @@ bool vtkMRMLROS2MotionControlNode::ExecuteMoveItTrajectoryAsync(
   }).detach();
 
   return true;
+#else
+  (void)groupName;
+  (void)trajectory;
+  vtkErrorMacro(<< "ExecuteMoveItTrajectoryAsync: SlicerROS2 was built without MoveIt C++ support (SlicerROS2_ENABLE_MOVEIT is OFF).");
+  return false;
+#endif
 }

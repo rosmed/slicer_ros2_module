@@ -22,9 +22,7 @@
 #include <kdl/jntarray.hpp>
 #include <kdl_parser/kdl_parser.hpp>
 
-#if SlicerROS2_ENABLE_MOVEIT
 #include <moveit_msgs/msg/robot_trajectory.hpp>
-#endif
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLROS2Tf2LookupNode.h>
 #include <vtkSmartPointer.h>

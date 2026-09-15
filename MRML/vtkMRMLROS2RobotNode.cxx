@@ -33,8 +33,9 @@
 #include <thread>
 #include <queue>
 
-#if SlicerROS2_ENABLE_MOVEIT
 #include <vtkMoveitMsgsRobotTrajectory.h>
+
+#if SlicerROS2_ENABLE_MOVEIT
 // MoveIt kinematics and planning includes
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <moveit/move_group_interface/move_group_interface.hpp>

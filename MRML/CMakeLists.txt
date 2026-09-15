@@ -23,36 +23,28 @@ include(SlicerROS2.cmake)
 # Service clients list
 set(SLICER_ROS2_SERVICE_CLIENTS
   "rcl_interfaces/srv/GetParameters"
+  # Rosbag2 service clients
+  "rosbag2_interfaces/srv/Burst"
+  "rosbag2_interfaces/srv/GetRate"
+  "rosbag2_interfaces/srv/IsPaused"
+  "rosbag2_interfaces/srv/Pause"
+  "rosbag2_interfaces/srv/Play"
+  "rosbag2_interfaces/srv/PlayNext"
+  "rosbag2_interfaces/srv/Resume"
+  "rosbag2_interfaces/srv/Seek"
+  "rosbag2_interfaces/srv/SetRate"
+  "rosbag2_interfaces/srv/Snapshot"
+  "rosbag2_interfaces/srv/SplitBagfile"
+  "rosbag2_interfaces/srv/Stop"
+  "rosbag2_interfaces/srv/TogglePaused"
+  # MoveIt service clients
+  "moveit_msgs/srv/GetPositionFK"
+  "moveit_msgs/srv/GetPositionIK"
+  "moveit_msgs/srv/GetCartesianPath"
 )
 
 if (SlicerROS2_ENABLE_TURTLESIM)
   list(APPEND SLICER_ROS2_SERVICE_CLIENTS "turtlesim/srv/Spawn")
-endif()
-
-if (SlicerROS2_ENABLE_ROSBAG2)
-  list(APPEND SLICER_ROS2_SERVICE_CLIENTS
-    "rosbag2_interfaces/srv/Burst"
-    "rosbag2_interfaces/srv/GetRate"
-    "rosbag2_interfaces/srv/IsPaused"
-    "rosbag2_interfaces/srv/Pause"
-    "rosbag2_interfaces/srv/Play"
-    "rosbag2_interfaces/srv/PlayNext"
-    "rosbag2_interfaces/srv/Resume"
-    "rosbag2_interfaces/srv/Seek"
-    "rosbag2_interfaces/srv/SetRate"
-    "rosbag2_interfaces/srv/Snapshot"
-    "rosbag2_interfaces/srv/SplitBagfile"
-    "rosbag2_interfaces/srv/Stop"
-    "rosbag2_interfaces/srv/TogglePaused"
-  )
-endif()
-
-if (SlicerROS2_ENABLE_MOVEIT)
-  list(APPEND SLICER_ROS2_SERVICE_CLIENTS
-    "moveit_msgs/srv/GetPositionFK"
-    "moveit_msgs/srv/GetPositionIK"
-    "moveit_msgs/srv/GetCartesianPath"
-  )
 endif()
 
 # Dependencies list
@@ -76,25 +68,21 @@ set(SLICER_ROS2_DEPENDENCIES
   "trajectory_msgs/msg/MultiDOFJointTrajectoryPoint"
   "rcl_interfaces/msg/ParameterValue"
   "rcl_interfaces/msg/Parameter"
+  # MoveIt dependencies
+  "object_recognition_msgs/msg/ObjectType"
+  "moveit_msgs/msg/RobotTrajectory"
+  "moveit_msgs/msg/RobotState"
+  "moveit_msgs/msg/MoveItErrorCodes"
+  "moveit_msgs/msg/CollisionObject"
+  "moveit_msgs/msg/AttachedCollisionObject"
+  "moveit_msgs/msg/Constraints"
+  "moveit_msgs/msg/JointConstraint"
+  "moveit_msgs/msg/PositionConstraint"
+  "moveit_msgs/msg/PositionIKRequest"
+  "moveit_msgs/msg/BoundingVolume"
+  "moveit_msgs/msg/OrientationConstraint"
+  "moveit_msgs/msg/VisibilityConstraint"
 )
-
-if (SlicerROS2_ENABLE_MOVEIT)
-  list(APPEND SLICER_ROS2_DEPENDENCIES
-    "object_recognition_msgs/msg/ObjectType"
-    "moveit_msgs/msg/RobotTrajectory"
-    "moveit_msgs/msg/RobotState"
-    "moveit_msgs/msg/MoveItErrorCodes"
-    "moveit_msgs/msg/CollisionObject"
-    "moveit_msgs/msg/AttachedCollisionObject"
-    "moveit_msgs/msg/Constraints"
-    "moveit_msgs/msg/JointConstraint"
-    "moveit_msgs/msg/PositionConstraint"
-    "moveit_msgs/msg/PositionIKRequest"
-    "moveit_msgs/msg/BoundingVolume"
-    "moveit_msgs/msg/OrientationConstraint"
-    "moveit_msgs/msg/VisibilityConstraint"
-  )
-endif()
 
 generate_ros2_nodes(
   GENERATED_FILES_PREFIX
@@ -171,18 +159,13 @@ set(${KIT}_SRCS
   vtkSlicerToROS2.cxx
   vtkCustomTypes.h
   vtkCustomTypes.cxx
+  vtkMRMLROS2MotionControlNode.h
+  vtkMRMLROS2MotionControlNode.cxx
+  vtkMRMLROS2PublisherCollisionObjectNode.h
+  vtkMRMLROS2PublisherCollisionObjectNode.cxx
+  vtkMRMLROS2PublisherPlanningSceneToolNode.h
+  vtkMRMLROS2PublisherPlanningSceneToolNode.cxx
   )
-
-if (SlicerROS2_ENABLE_MOVEIT)
-  list(APPEND ${KIT}_SRCS
-    vtkMRMLROS2MotionControlNode.h
-    vtkMRMLROS2MotionControlNode.cxx
-    vtkMRMLROS2PublisherCollisionObjectNode.h
-    vtkMRMLROS2PublisherCollisionObjectNode.cxx
-    vtkMRMLROS2PublisherPlanningSceneToolNode.h
-    vtkMRMLROS2PublisherPlanningSceneToolNode.cxx
-  )
-endif()
 
 set (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 

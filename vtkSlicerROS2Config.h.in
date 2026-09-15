@@ -13,7 +13,6 @@
 
 #cmakedefine01 SlicerROS2_ENABLE_MOVEIT
 #cmakedefine01 SlicerROS2_ENABLE_TURTLESIM
-#cmakedefine01 SlicerROS2_ENABLE_ROSBAG2
 #cmakedefine01 SlicerROS2_USE_AMENT
 
 // Backwards compatibility alias

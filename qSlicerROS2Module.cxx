@@ -137,12 +137,6 @@ bool qSlicerROS2Module::TurtlesimEnabled()
 }
 
 //-----------------------------------------------------------------------------
-bool qSlicerROS2Module::Rosbag2Enabled()
-{
-  return SlicerROS2_ENABLE_ROSBAG2 != 0;
-}
-
-//-----------------------------------------------------------------------------
 bool qSlicerROS2Module::UseAment()
 {
   return SlicerROS2_USE_AMENT != 0;
