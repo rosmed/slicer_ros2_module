@@ -1,7 +1,18 @@
 project(vtkSlicer${MODULE_NAME}ModuleMRML)
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
 if (ASSIMP_DIR)
   list(INSERT CMAKE_PREFIX_PATH 0 "${ASSIMP_DIR}")
+  set(assimp_ROOT "${ASSIMP_DIR}")
+  if (EXISTS "${ASSIMP_DIR}/lib/cmake")
+    file(GLOB _assimp_cmake_dirs "${ASSIMP_DIR}/lib/cmake/assimp*")
+    if (_assimp_cmake_dirs)
+      list(GET _assimp_cmake_dirs 0 _assimp_cmake_dir)
+      set(assimp_DIR "${_assimp_cmake_dir}" CACHE PATH "Path to assimpConfig.cmake" FORCE)
+    endif()
+  endif()
 endif()
 
 find_package(assimp REQUIRED)
