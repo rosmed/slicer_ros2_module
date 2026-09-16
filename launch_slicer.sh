@@ -10,6 +10,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BUILD_DIR:-$SCRIPT_DIR/build}"
+BUILD_DIR="$(cd "$BUILD_DIR" 2>/dev/null && pwd || echo "$BUILD_DIR")"
 
 # 1. Locate Slicer executable
 if [ -n "$SLICER_EXECUTABLE" ] && [ -x "$SLICER_EXECUTABLE" ]; then
@@ -47,11 +48,16 @@ fi
 
 # 3. Locate built module directories
 MODULE_LIB_DIR=""
-FOUND_MODULE_LIB="$(find "$BUILD_DIR" -type f \( -name "libqSlicerROS2Module.dylib" -o -name "libqSlicerROS2Module.so" \) -exec ls -t {} + 2>/dev/null | head -n 1)"
-if [ -n "$FOUND_MODULE_LIB" ]; then
-  MODULE_LIB_DIR="$(dirname "$FOUND_MODULE_LIB")"
-elif [ -d "$BUILD_DIR/lib" ]; then
-  MODULE_LIB_DIR="$BUILD_DIR/lib"
+FOUND_LOADABLE_DIR="$(find "$BUILD_DIR" -type d -name "qt-loadable-modules" 2>/dev/null | head -n 1)"
+if [ -n "$FOUND_LOADABLE_DIR" ] && { [ -f "$FOUND_LOADABLE_DIR/libqSlicerROS2Module.dylib" ] || [ -f "$FOUND_LOADABLE_DIR/libqSlicerROS2Module.so" ]; }; then
+  MODULE_LIB_DIR="$FOUND_LOADABLE_DIR"
+else
+  FOUND_MODULE_LIB="$(find "$BUILD_DIR" -type f \( -name "libqSlicerROS2Module.dylib" -o -name "libqSlicerROS2Module.so" \) -exec ls -t {} + 2>/dev/null | head -n 1)"
+  if [ -n "$FOUND_MODULE_LIB" ]; then
+    MODULE_LIB_DIR="$(dirname "$FOUND_MODULE_LIB")"
+  elif [ -d "$BUILD_DIR/lib" ]; then
+    MODULE_LIB_DIR="$BUILD_DIR/lib"
+  fi
 fi
 
 if [ -z "$MODULE_LIB_DIR" ] || [ ! -d "$MODULE_LIB_DIR" ]; then
