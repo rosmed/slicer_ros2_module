@@ -184,6 +184,8 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ParameterNode : public vtkMR
     // vector to store all parameter names that are monitored by the node. This is used for saving and reloading state.
     std::vector<std::string> MonitoredParameterNamesCache = {};
     std::vector<std::string> GetMonitoredParameterNamesCache();  // serialization only
+    vtkMRMLROS2ParameterNode(const vtkMRMLROS2ParameterNode&) = delete;
+    void operator=(const vtkMRMLROS2ParameterNode&) = delete;
 
 };
 

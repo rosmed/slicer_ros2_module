@@ -30,9 +30,9 @@ namespace vtkMRMLROS2 {
     }
   }
 
-  bool ROSInit(void);
-  void ROSShutdown(void);
-  vtkMRMLROS2NodeNode * CheckROS2NodeExists(vtkMRMLNode * node, const char * nodeId, std::string & errorMessage);
+  VTK_SLICER_ROS2_MODULE_MRML_EXPORT bool ROSInit(void);
+  VTK_SLICER_ROS2_MODULE_MRML_EXPORT void ROSShutdown(void);
+  VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2NodeNode * CheckROS2NodeExists(vtkMRMLNode * node, const char * nodeId, std::string & errorMessage);
 }
 
 #endif // __vtkMRMLROS2Utils_h

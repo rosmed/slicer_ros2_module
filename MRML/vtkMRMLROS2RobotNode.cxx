@@ -26,7 +26,7 @@
 #include <regex>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <vtkMRMLROS2NodeInternals.h>
-#include <eigen3/Eigen/Geometry>
+#include <Eigen/Geometry>
 #include <unordered_map>
 #include <algorithm>
 #include <map>

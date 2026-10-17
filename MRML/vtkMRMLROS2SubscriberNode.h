@@ -103,6 +103,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2SubscriberNode: public vtkMR
   inline void SetTopic(const std::string & topic) {
     mTopic = topic;
   }
+
+ private:
+  vtkMRMLROS2SubscriberNode(const vtkMRMLROS2SubscriberNode&) = delete;
+  void operator=(const vtkMRMLROS2SubscriberNode&) = delete;
 };
 
 #endif // __vtkMRMLROS2SubscriberNode_h

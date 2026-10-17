@@ -27,7 +27,11 @@ bool vtkMRMLROS2::ROSInit(void)
 #ifdef ROS2_INSTALL_PREFIX
   const char * amentPrefix = std::getenv("AMENT_PREFIX_PATH");
   if (!amentPrefix || strlen(amentPrefix) == 0) {
+#ifdef _WIN32
+    _putenv_s("AMENT_PREFIX_PATH", ROS2_INSTALL_PREFIX);
+#else
     setenv("AMENT_PREFIX_PATH", ROS2_INSTALL_PREFIX, 1);
+#endif
   }
 #endif
 

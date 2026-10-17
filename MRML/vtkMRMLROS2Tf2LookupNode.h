@@ -61,6 +61,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2Tf2LookupNode: public vtkMRM
   unsigned int mLastSeconds = 0;
   unsigned int mLastNanoSeconds = 0;
   unsigned int mLookupAttempts = 0;
+
+ private:
+  vtkMRMLROS2Tf2LookupNode(const vtkMRMLROS2Tf2LookupNode&) = delete;
+  void operator=(const vtkMRMLROS2Tf2LookupNode&) = delete;
 };
 
 #endif // _vtkMRMLROS2Tf2LookupNode_h

@@ -16,13 +16,19 @@ set(${KIT}_SRCS
 set(${KIT}_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleMRML
   ${QT_LIBRARIES}
+  ${rclcpp_LIBRARIES}
+  ${sensor_msgs_LIBRARIES}
+  ${tf2_ros_LIBRARIES}
+  ${tf2_msgs_LIBRARIES}
+  ${tf2_LIBRARIES}
+  ${turtlesim_LIBRARIES}
+  ${std_srvs_LIBRARIES}
   )
-
 #-----------------------------------------------------------------------------
 SlicerMacroBuildModuleLogic(
   NAME ${KIT}
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
   SRCS ${${KIT}_SRCS}
-  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES} ${rclcpp_LIBRARIES} ${sensor_msgs_LIBRARIES}  ${tf2_ros_LIBRARIES} ${tf2_msgs_LIBRARIES} ${tf2_LIBRARIES} ${turtlesim_LIBRARIES} ${std_srvs_LIBRARIES} 
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES}
   )

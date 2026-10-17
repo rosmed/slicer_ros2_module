@@ -214,7 +214,7 @@ def identify_imports(ros_message_name, ros_namespace, ros_pkg, attribute_types_l
     """Returns (vtk_imports, ros_imports) so that ROS-specific includes
     can be placed behind an #ifndef __VTK_WRAP__ guard."""
     vtk_imports = "// VTK imports (visible to VTK wrapper)\n"
-    vtk_imports += "#include <vtkObject.h>\n#include <vtkNew.h>\n#include <string>\n#include <vector>\n#include <vtkSmartPointer.h>\n#include <vtkMRMLNode.h>\n\n"
+    vtk_imports += "#include <vtkObject.h>\n#include <vtkNew.h>\n#include <string>\n#include <vector>\n#include <vtkSmartPointer.h>\n#include <vtkMRMLNode.h>\n#include <vtkSlicerROS2ModuleMRMLExport.h>\n\n"
 
     for attr_type in attribute_types_list:
         _, underlying_type, is_vtk_flag, _, _ = process_attribute(attr_type)
@@ -256,7 +256,7 @@ def generate_class(generated_class_name, attributes, default_mapping = {}):
     
     # Generate .hpp header for the class
     class_code_hpp = "// generate_class\n"
-    class_code_hpp += f"class vtk{generated_class_name} : public vtkObject\n{{\npublic:\n"
+    class_code_hpp += f"class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtk{generated_class_name} : public vtkObject\n{{\npublic:\n"
     class_code_hpp += constant_decl
     class_code_hpp += f"{__}vtkTypeMacro(vtk{generated_class_name}, vtkObject);\n"
     class_code_hpp += f"{__}static vtk{generated_class_name}* New(void);\n\n"
@@ -281,6 +281,9 @@ def generate_class(generated_class_name, attributes, default_mapping = {}):
     
     class_code_hpp += f"\n{__}vtk{generated_class_name}();\n"
     class_code_hpp += f"{__}~vtk{generated_class_name}() override;\n"
+    class_code_hpp += "private:\n"
+    class_code_hpp += f"{__}vtk{generated_class_name}(const vtk{generated_class_name}&) = delete;\n"
+    class_code_hpp += f"{__}void operator=(const vtk{generated_class_name}&) = delete;\n"
     class_code_hpp += "};\n\n"
     
     return class_code_hpp, class_code_cpp

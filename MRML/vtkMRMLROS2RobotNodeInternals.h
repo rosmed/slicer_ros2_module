@@ -4,7 +4,7 @@
 #include <vtkSlicerROS2Config.h>
 
 // urdf
-#include <urdf/model.h>
+#include <urdf/model.hpp>
 
 #if SlicerROS2_ENABLE_MOVEIT
 // MoveIt kinematics and planning includes

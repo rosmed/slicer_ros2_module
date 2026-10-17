@@ -5,6 +5,7 @@
 #include <vector>
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
+#include <vtkSlicerROS2ModuleMRMLExport.h>
 
 struct vtkAssImpMeshPart
 {
@@ -12,7 +13,7 @@ struct vtkAssImpMeshPart
   std::vector<double> Color;
 };
 
-class vtkAssImpConversion
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkAssImpConversion
 {
 public:
   static std::vector<vtkAssImpMeshPart> vtkAssImpToPolyDataParts(const std::string& filename);
