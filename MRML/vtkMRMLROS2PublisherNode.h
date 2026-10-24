@@ -96,6 +96,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2PublisherNode: public vtkMRM
   inline void SetTopic(const std::string & topic) {
     mTopic = topic;
   }
+
+ private:
+  vtkMRMLROS2PublisherNode(const vtkMRMLROS2PublisherNode&) = delete;
+  void operator=(const vtkMRMLROS2PublisherNode&) = delete;
 };
 
 #endif // __vtkMRMLROS2PublisherNode_h

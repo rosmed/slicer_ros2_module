@@ -7,12 +7,13 @@
 #include <vtkSmartPointer.h>
 #include <vtkMRMLNode.h>
 #include <vtkMatrix4x4.h>
+#include <vtkSlicerROS2ModuleMRMLExport.h>
 
 
 class vtkBoolString;
 class vtkBool;
 
-class vtkBoolString : public vtkObject
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkBoolString : public vtkObject
 {
 public:
     vtkTypeMacro(vtkBoolString, vtkObject);
@@ -40,9 +41,13 @@ protected:
 
     vtkBoolString();
     ~vtkBoolString() override;
+
+private:
+    vtkBoolString(const vtkBoolString&) = delete;
+    void operator=(const vtkBoolString&) = delete;
 };
 
-class vtkBool : public vtkObject
+class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkBool : public vtkObject
 {
 public:
     vtkTypeMacro(vtkBool, vtkObject);
@@ -61,6 +66,10 @@ protected:
 
     vtkBool();
     ~vtkBool() override;
+
+private:
+    vtkBool(const vtkBool&) = delete;
+    void operator=(const vtkBool&) = delete;
 };
 
 #endif // vtkCustomTypes_h

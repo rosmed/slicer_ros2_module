@@ -7,6 +7,9 @@ if(NOT Python3_EXECUTABLE OR Python3_EXECUTABLE STREQUAL "/usr/bin/python3")
   if(Slicer_DIR AND EXISTS "${Slicer_DIR}/../python-install/bin/python3")
     get_filename_component(Python3_EXECUTABLE "${Slicer_DIR}/../python-install/bin/python3" ABSOLUTE)
     set(Python3_EXECUTABLE "${Python3_EXECUTABLE}" CACHE FILEPATH "Path to Python executable" FORCE)
+  elseif(Slicer_DIR AND EXISTS "${Slicer_DIR}/../python-install/bin/PythonSlicer.exe")
+    get_filename_component(Python3_EXECUTABLE "${Slicer_DIR}/../python-install/bin/PythonSlicer.exe" ABSOLUTE)
+    set(Python3_EXECUTABLE "${Python3_EXECUTABLE}" CACHE FILEPATH "Path to Python executable" FORCE)
   elseif(NOT Python3_EXECUTABLE)
     find_package(Python3 COMPONENTS Interpreter QUIET)
   endif()
@@ -36,18 +39,34 @@ if(NCORES EQUAL 0)
   set(NCORES 4)
 endif()
 
+get_property(_superbuild_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(_superbuild_multi_config)
+  # Resolve at build time so nested projects follow cmake --build --config.
+  set(_superbuild_config "$<CONFIG>")
+elseif(CMAKE_BUILD_TYPE)
+  set(_superbuild_config "${CMAKE_BUILD_TYPE}")
+else()
+  set(_superbuild_config "Release")
+endif()
+
+set(MINIMAL_ROS2_EXTRA_ARGS)
+if(CMAKE_TOOLCHAIN_FILE)
+  list(APPEND MINIMAL_ROS2_EXTRA_ARGS "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}")
+endif()
+
 ExternalProject_Add(minimal_ros2
   ${MINIMAL_ROS2_DOWNLOAD_ARGS}
   BINARY_DIR "${CMAKE_BINARY_DIR}/minimal_ros2-build"
   INSTALL_DIR "${MINIMAL_ROS2_INSTALL_DIR}"
-  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel ${NCORES}
+  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${_superbuild_config} --parallel ${NCORES}
   INSTALL_COMMAND ""
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX:PATH=${MINIMAL_ROS2_INSTALL_DIR}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_BUILD_TYPE:STRING=${_superbuild_config}
     -DPython3_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}
     -DFETCH_SOURCES:BOOL=ON
     -DBUILD_TESTING:BOOL=OFF
+    ${MINIMAL_ROS2_EXTRA_ARGS}
   BUILD_ALWAYS 0
 )
 
@@ -70,10 +89,11 @@ ExternalProject_Add(assimp
   ${ASSIMP_DOWNLOAD_ARGS}
   BINARY_DIR "${CMAKE_BINARY_DIR}/assimp-build"
   INSTALL_DIR "${ASSIMP_INSTALL_DIR}"
-  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel ${NCORES}
+  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${_superbuild_config} --parallel ${NCORES}
+  INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config ${_superbuild_config}
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX:PATH=${ASSIMP_INSTALL_DIR}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_BUILD_TYPE:STRING=${_superbuild_config}
     -DBUILD_SHARED_LIBS:BOOL=OFF
     -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
     -DASSIMP_BUILD_TESTS:BOOL=OFF
@@ -82,7 +102,7 @@ ExternalProject_Add(assimp
     -DASSIMP_INSTALL_PDB:BOOL=OFF
     -DASSIMP_INJECT_DEBUG_POSTFIX:BOOL=OFF
     -DASSIMP_NO_EXPORT:BOOL=ON
-    -DASSIMP_BUILD_ZLIB:BOOL=OFF
+    -DASSIMP_BUILD_ZLIB:BOOL=ON
     -DASSIMP_WARNINGS_AS_ERRORS:BOOL=OFF
   BUILD_ALWAYS 0
 )
@@ -109,7 +129,7 @@ ExternalProject_Add(${PROJECT_NAME}_inner
   BINARY_DIR "${INNER_BUILD_DIR}"
   INSTALL_DIR "${CMAKE_INSTALL_PREFIX}"
   DEPENDS minimal_ros2 assimp
-  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel ${NCORES}
+  BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${_superbuild_config} --parallel ${NCORES}
   INSTALL_COMMAND ""
   CMAKE_ARGS
     -DSlicerROS2_SUPERBUILD_BUILDING_INNER:BOOL=ON
@@ -119,7 +139,7 @@ ExternalProject_Add(${PROJECT_NAME}_inner
     -Dassimp_DIR:PATH=${ASSIMP_INSTALL_DIR}/lib/cmake/assimp-5.4
     -DSlicer_DIR:PATH=${Slicer_DIR}
     -DPython3_EXECUTABLE:FILEPATH=${Python3_EXECUTABLE}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_BUILD_TYPE:STRING=${_superbuild_config}
     -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
     ${INNER_EXTRA_ARGS}
 )

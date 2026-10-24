@@ -82,22 +82,33 @@ set (
 )
 
 if (MINIMAL_ROS_DIR)
+  if(WIN32)
+    set(_path_sep ";")
+  else()
+    set(_path_sep ":")
+  endif()
   if(DEFINED ENV{AMENT_PREFIX_PATH})
-    set(ENV{AMENT_PREFIX_PATH} "${MINIMAL_ROS_DIR}:$ENV{AMENT_PREFIX_PATH}")
+    set(ENV{AMENT_PREFIX_PATH} "${MINIMAL_ROS_DIR}${_path_sep}$ENV{AMENT_PREFIX_PATH}")
   else()
     set(ENV{AMENT_PREFIX_PATH} "${MINIMAL_ROS_DIR}")
   endif()
   file(GLOB _minimal_ros_python_dirs
     "${MINIMAL_ROS_DIR}/lib/python*/site-packages"
+    "${MINIMAL_ROS_DIR}/Lib/site-packages"
     "${MINIMAL_ROS_VENV_DIR}/lib/python*/site-packages"
+    "${MINIMAL_ROS_VENV_DIR}/Lib/site-packages"
     "${MINIMAL_ROS_SOURCE_DIR}/.venv/lib/python*/site-packages"
+    "${MINIMAL_ROS_SOURCE_DIR}/.venv/Lib/site-packages"
     "${CMAKE_BINARY_DIR}/minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+    "${CMAKE_BINARY_DIR}/minimal_ros2-prefix/src/minimal_ros2/.venv/Lib/site-packages"
     "${MINIMAL_ROS_DIR}/../minimal_ros2-prefix/src/minimal_ros2/.venv/lib/python*/site-packages"
+    "${MINIMAL_ROS_DIR}/../minimal_ros2-prefix/src/minimal_ros2/.venv/Lib/site-packages"
     "${MINIMAL_ROS_DIR}/../.venv/lib/python*/site-packages"
+    "${MINIMAL_ROS_DIR}/../.venv/Lib/site-packages"
   )
   foreach(_dir ${_minimal_ros_python_dirs})
     if(DEFINED ENV{PYTHONPATH})
-      set(ENV{PYTHONPATH} "${_dir}:$ENV{PYTHONPATH}")
+      set(ENV{PYTHONPATH} "${_dir}${_path_sep}$ENV{PYTHONPATH}")
     else()
       set(ENV{PYTHONPATH} "${_dir}")
     endif()
@@ -213,10 +224,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 set(Slicer_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(Slicer_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-set(Slicer_QTLOADABLEMODULES_BIN_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-set(Slicer_QTLOADABLEMODULES_LIB_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-set(Slicer_QTSCRIPTEDMODULES_BIN_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-set(Slicer_QTSCRIPTEDMODULES_LIB_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+set(Slicer_QTLOADABLEMODULES_BIN_DIR "bin")
+set(Slicer_QTLOADABLEMODULES_LIB_DIR "lib")
+set(Slicer_QTSCRIPTEDMODULES_BIN_DIR "bin")
+set(Slicer_QTSCRIPTEDMODULES_LIB_DIR "lib")
 set(Slicer_VTK_WRAP_HIERARCHY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # Set after including Slicer to avoid errors during CMake step.  This
@@ -260,8 +271,13 @@ set(MODULE_UI_SRCS
 
 set(MODULE_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleLogic
+  ${kdl_parser_LIBRARIES}
+  ${orocos_kdl_LIBRARIES}
+  ${urdf_LIBRARIES}
+  ${tf2_ros_LIBRARIES}
+  ${tf2_LIBRARIES}
+  ${rqt_gui_cpp_LIBRARIES}
   )
-
 set(MODULE_RESOURCES
   Resources/qSlicer${MODULE_NAME}Module.qrc
   )
@@ -275,7 +291,7 @@ slicerMacroBuildLoadableModule(
   SRCS ${MODULE_SRCS}
   MOC_SRCS ${MODULE_MOC_SRCS}
   UI_SRCS ${MODULE_UI_SRCS}
-  TARGET_LIBRARIES ${MODULE_TARGET_LIBRARIES}  ${kdl_parser_LIBRARIES} ${orocos_kdl_LIBRARIES} ${urdf_LIBRARIES} ${tf2_ros_LIBRARIES} ${tf2_LIBRARIES} ${rqt_gui_cpp_LIBRARIES}
+  TARGET_LIBRARIES ${MODULE_TARGET_LIBRARIES}
   RESOURCES ${MODULE_RESOURCES}
   )
 
@@ -304,9 +320,11 @@ configure_file(
   slicer_ros2_module_env_hook.sh
   @ONLY
 )
-ament_environment_hooks(
-  "${CMAKE_CURRENT_BINARY_DIR}/slicer_ros2_module_env_hook.sh"
-)
+if (SlicerROS2_USE_AMENT)
+  ament_environment_hooks(
+    "${CMAKE_CURRENT_BINARY_DIR}/slicer_ros2_module_env_hook.sh"
+  )
+endif()
 
 # Pre-create the third-party extension install prefix so it exists before any extension is installed.
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${SlicerROS2_EXTENSIONS_CONFIG_DIR}\")")

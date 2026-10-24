@@ -75,6 +75,10 @@ class VTK_SLICER_ROS2_MODULE_MRML_EXPORT vtkMRMLROS2ServiceClientNode: public vt
   inline void SetService(const std::string & service) {
     mService = service;
   }
+
+ private:
+  vtkMRMLROS2ServiceClientNode(const vtkMRMLROS2ServiceClientNode&) = delete;
+  void operator=(const vtkMRMLROS2ServiceClientNode&) = delete;
 };
 
 #endif // __vtkMRMLROS2ServiceClientNode_h
