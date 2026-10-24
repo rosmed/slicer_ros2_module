@@ -44,6 +44,22 @@ if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
     . "$MINIMAL_ROS_DIR/setup.bash"
   fi
   ROS_LIB_DIR="$MINIMAL_ROS_DIR/lib"
+
+  # Expose minimal_ros2 .venv site-packages for runtime Python dependencies (e.g. empy, lark)
+  VENV_CANDIDATES=(
+    "$BUILD_DIR/minimal_ros2-prefix/src/minimal_ros2/.venv"
+    "$MINIMAL_ROS_DIR/../.venv"
+    "$MINIMAL_ROS_DIR/../../minimal_ros2/.venv"
+    "$SCRIPT_DIR/../minimal_ros2/minimal_ros2/.venv"
+  )
+  for _venv in "${VENV_CANDIDATES[@]}"; do
+    for _sp in "$_venv"/lib/python*/site-packages "$_venv"/Lib/site-packages; do
+      if [ -d "$_sp" ]; then
+        export PYTHONPATH="${_sp}${PYTHONPATH:+:${PYTHONPATH}}"
+        break 2
+      fi
+    done
+  done
 fi
 
 # 3. Locate built module directories
