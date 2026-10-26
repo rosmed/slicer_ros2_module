@@ -47,4 +47,4 @@ docs/venv
 build/
 .venv/
 dist/
-
+*.tar.zst
