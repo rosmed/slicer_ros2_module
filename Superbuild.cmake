@@ -26,7 +26,7 @@ if(MINIMAL_ROS_SOURCE_DIR AND EXISTS "${MINIMAL_ROS_SOURCE_DIR}/CMakeLists.txt")
 else()
   message(STATUS "[Superbuild] Fetching minimal_ros2 from GitHub (main)...")
   set(MINIMAL_ROS2_DOWNLOAD_ARGS
-    GIT_REPOSITORY "https://github.com/adeguet1/minimal_ros2.git"
+    GIT_REPOSITORY "https://github.com/rosmed/minimal_ros2.git"
     GIT_TAG "main"
   )
 endif()
