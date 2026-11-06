@@ -43,9 +43,10 @@ finally:
     slicer_test_code = f"import base64; exec(base64.b64decode('{encoded_script}').decode('utf-8'))"
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    launch_script = os.path.join(script_dir, '..', 'launch_slicer.sh')
+    launch_script = os.path.join(script_dir, 'slicer')
 
     cmd = [
+        sys.executable,
         launch_script,
         "--testing",
         "--no-main-window",

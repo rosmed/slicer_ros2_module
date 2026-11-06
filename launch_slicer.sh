@@ -122,20 +122,4 @@ if [ ${#MODULE_PATHS[@]} -gt 0 ]; then
   LAUNCH_ARGS+=("--additional-module-paths" "${MODULE_PATHS[@]}")
 fi
 
-# If testing is requested and no modules-to-ignore was specified, ignore failing Slicer builtin test modules
-ARGS=("$@")
-HAS_TESTING=false
-HAS_IGNORE=false
-for arg in "${ARGS[@]}"; do
-  if [ "$arg" = "--testing" ]; then
-    HAS_TESTING=true
-  elif [ "$arg" = "--modules-to-ignore" ]; then
-    HAS_IGNORE=true
-  fi
-done
-
-if [ "$HAS_TESTING" = true ] && [ "$HAS_IGNORE" = false ]; then
-  LAUNCH_ARGS+=("--modules-to-ignore" "RSNAVisTutorialTest,SubjectHierarchyGenericSelfTest,JRC2013VisTest,MultiVolumeImporterPlugin")
-fi
-
 exec "$SLICER_BIN" "${LAUNCH_ARGS[@]}" "$@"

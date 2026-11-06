@@ -5,10 +5,11 @@ import subprocess
 
 def main():
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    launch_script = os.path.join(script_dir, '..', 'launch_slicer.sh')
+    launch_script = os.path.join(script_dir, 'slicer')
     slicer_code = "tests = slicer.util.getModuleLogic('ROS2Tests'); tests.run()"
 
     cmd = [
+        sys.executable,
         launch_script,
         "--testing",
         "--python-code", slicer_code,

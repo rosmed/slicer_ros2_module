@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import subprocess
+import shlex
 
 def main():
     parser = argparse.ArgumentParser(
@@ -22,7 +23,16 @@ def main():
     script_dir = os.path.dirname(os.path.realpath(__file__))
     launch_script = os.path.join(script_dir, '..', 'launch_slicer.sh')
 
-    cmd = [launch_script] + extra
+    if os.path.isfile(launch_script):
+        # Standalone builds run directly from the source tree.
+        cmd = [launch_script] + extra
+    else:
+        # Colcon installs the ROS launch file, not the standalone shell script.
+        # Quote each argument so the launch file's shlex.split preserves Python
+        # code, filenames with spaces, and other compound arguments.
+        cmd = ['ros2', 'launch', 'slicer_ros2_module', 'slicer.launch.py']
+        if extra:
+            cmd.append('slicer_args:=' + shlex.join(extra))
     try:
         res = subprocess.run(cmd)
         sys.exit(res.returncode)
