@@ -47,10 +47,13 @@ endif()
 set(MINIMAL_ROS_DIR "" CACHE PATH "Path to minimal ROS 2 install prefix")
 set(ASSIMP_DIR "" CACHE PATH "Path to assimp install prefix (optional)")
 
-# Prefer the sourced native ROS 2 installation. Probe only when choosing the
-# initial default; explicit options and pre-built minimal ROS prefixes win.
+# Linux uses native ROS 2 by default, even when its environment is not sourced.
+# Other platforms prefer native ROS 2 when available. Explicit options and
+# pre-built minimal ROS prefixes still take precedence.
 set(_default_minimal_ros ON)
-if(NOT DEFINED SlicerROS2_USE_MINIMAL_ROS AND NOT MINIMAL_ROS_DIR)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(_default_minimal_ros OFF)
+elseif(NOT DEFINED SlicerROS2_USE_MINIMAL_ROS AND NOT MINIMAL_ROS_DIR)
   find_package(ament_cmake QUIET)
   if(ament_cmake_FOUND)
     set(_default_minimal_ros OFF)

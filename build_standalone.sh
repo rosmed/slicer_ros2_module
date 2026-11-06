@@ -59,7 +59,7 @@ if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
   echo "==> Using pre-built minimal ROS: $MINIMAL_ROS_DIR"
   CMAKE_ARGS+=("-DMINIMAL_ROS_DIR=$MINIMAL_ROS_DIR")
 else
-  echo "==> CMake will use native ROS 2 if available, otherwise build minimal ROS 2."
+  echo "==> CMake will select ROS 2 using the platform default or explicit options."
   if [ -n "$MINIMAL_ROS_SOURCE_DIR" ]; then
     CMAKE_ARGS+=("-DMINIMAL_ROS_SOURCE_DIR=$MINIMAL_ROS_SOURCE_DIR")
   fi

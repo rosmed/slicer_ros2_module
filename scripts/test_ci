@@ -42,7 +42,7 @@ finally:
     encoded_script = base64.b64encode(slicer_test_script.encode('utf-8')).decode('ascii')
     slicer_test_code = f"import base64; exec(base64.b64decode('{encoded_script}').decode('utf-8'))"
 
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     launch_script = os.path.join(script_dir, 'slicer')
 
     cmd = [

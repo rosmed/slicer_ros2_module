@@ -20,7 +20,8 @@ def main():
     if args.python_script:
         extra = ['--python-script', args.python_script] + extra
 
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    # Preserve the installed path when colcon uses --symlink-install.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     launch_script = os.path.join(script_dir, '..', 'launch_slicer.sh')
 
     if os.path.isfile(launch_script):

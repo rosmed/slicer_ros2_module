@@ -4,7 +4,7 @@ import sys
 import subprocess
 
 def main():
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     launch_script = os.path.join(script_dir, 'slicer')
     slicer_code = "tests = slicer.util.getModuleLogic('ROS2Tests'); tests.run()"
 
