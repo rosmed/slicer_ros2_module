@@ -44,11 +44,22 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 endif()
 
-option(SlicerROS2_USE_MINIMAL_ROS "Build minimal_ros2 as an external project" OFF)
 set(MINIMAL_ROS_DIR "" CACHE PATH "Path to minimal ROS 2 install prefix")
 set(ASSIMP_DIR "" CACHE PATH "Path to assimp install prefix (optional)")
 
+# Prefer the sourced native ROS 2 installation. Probe only when choosing the
+# initial default; explicit options and pre-built minimal ROS prefixes win.
+set(_default_minimal_ros ON)
+if(NOT DEFINED SlicerROS2_USE_MINIMAL_ROS AND NOT MINIMAL_ROS_DIR)
+  find_package(ament_cmake QUIET)
+  if(ament_cmake_FOUND)
+    set(_default_minimal_ros OFF)
+  endif()
+endif()
+option(SlicerROS2_USE_MINIMAL_ROS "Build minimal_ros2 as an external project" ${_default_minimal_ros})
+
 if(SlicerROS2_USE_MINIMAL_ROS AND NOT SlicerROS2_SUPERBUILD_BUILDING_INNER AND NOT MINIMAL_ROS_DIR)
+  message(STATUS "SlicerROS2: building minimal ROS 2 via Superbuild")
   include(Superbuild.cmake)
   return()
 endif()
@@ -58,6 +69,7 @@ set (
   SlicerROS2_ROS_DEPENDENCIES
   # core
   ament_cmake
+  ament_index_cpp
   rclcpp
   kdl_parser
   urdf
@@ -125,15 +137,16 @@ if (MINIMAL_ROS_DIR)
   )
   list(APPEND SlicerROS2_ROS_DEPENDENCIES
     rcl_logging_spdlog
-    ament_index_cpp
   )
   set(_default_turtlesim OFF)
   set(_default_moveit OFF)
   set(SlicerROS2_USE_AMENT OFF)
+  message(STATUS "SlicerROS2: using minimal ROS 2 from ${MINIMAL_ROS_DIR}")
 else()
   set(_default_turtlesim ON)
   set(_default_moveit ON)
   set(SlicerROS2_USE_AMENT ON)
+  message(STATUS "SlicerROS2: using native ROS 2 (minimal ROS 2 build skipped)")
 endif()
 
 if (ASSIMP_DIR)

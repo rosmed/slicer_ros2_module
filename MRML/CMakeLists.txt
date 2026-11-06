@@ -194,8 +194,11 @@ set(${KIT}_TARGET_LIBRARIES
   ${kdl_parser_LIBRARIES}
   kdl_parser::kdl_parser
   ament_index_cpp::ament_index_cpp
-  rcl_logging_spdlog::rcl_logging_spdlog
   )
+
+if (MINIMAL_ROS_DIR)
+  list(APPEND ${KIT}_TARGET_LIBRARIES rcl_logging_spdlog::rcl_logging_spdlog)
+endif()
 
 if (SlicerROS2_ENABLE_MOVEIT)
   list(APPEND ${KIT}_TARGET_LIBRARIES

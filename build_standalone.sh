@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # build_standalone.sh
-# Build slicer_ros2_module as a native Slicer loadable module against minimal_ros2
+# Build slicer_ros2_module as a native Slicer loadable module against ROS 2
 # using pure CMake (no colcon required).
 #
 set -e
@@ -23,7 +23,7 @@ if [ -z "$SLICER_DIR" ] || [ ! -f "$SLICER_DIR/SlicerConfig.cmake" ]; then
   exit 1
 fi
 
-# 2. Locate minimal ROS 2 directory (optional; if not provided, Superbuild will build it)
+# 2. Locate minimal ROS 2 directory (optional; otherwise CMake selects ROS 2)
 
 if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
   if [ -f "$MINIMAL_ROS_DIR/setup.sh" ]; then
@@ -33,18 +33,14 @@ if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
   fi
 fi
 
-# 3. Locate Python executable (prefer Slicer python or system python)
-if [ -z "$PYTHON_EXE" ]; then
-  if [ -f "$SLICER_DIR/../python-install/bin/python3" ]; then
-    PYTHON_EXE="$SLICER_DIR/../python-install/bin/python3"
-
-  else
-    PYTHON_EXE="$(which python3)"
-  fi
+# 3. Let CMake choose the native ROS Python or the Superbuild's Slicer Python.
+# For a pre-built minimal ROS installation, keep preferring Slicer's Python.
+if [ -z "$PYTHON_EXE" ] && [ -n "$MINIMAL_ROS_DIR" ] && [ -f "$SLICER_DIR/../python-install/bin/python3" ]; then
+  PYTHON_EXE="$SLICER_DIR/../python-install/bin/python3"
 fi
 
 echo "==> Using Slicer build:   $SLICER_DIR"
-echo "==> Using Python:         $PYTHON_EXE"
+echo "==> Using Python:         ${PYTHON_EXE:-automatic}"
 echo "==> Build directory:      $BUILD_DIR"
 
 NPROC="$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
@@ -52,16 +48,18 @@ NPROC="$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
 # 4. Configure via CMake
 CMAKE_ARGS=(
   "-DSlicer_DIR=$SLICER_DIR"
-  "-DPython3_EXECUTABLE=$PYTHON_EXE"
   "-DCMAKE_BUILD_TYPE=Release"
 )
+
+if [ -n "$PYTHON_EXE" ]; then
+  CMAKE_ARGS+=("-DPython3_EXECUTABLE=$PYTHON_EXE")
+fi
 
 if [ -n "$MINIMAL_ROS_DIR" ] && [ -d "$MINIMAL_ROS_DIR" ]; then
   echo "==> Using pre-built minimal ROS: $MINIMAL_ROS_DIR"
   CMAKE_ARGS+=("-DMINIMAL_ROS_DIR=$MINIMAL_ROS_DIR")
 else
-  echo "==> Building minimal ROS 2 via Superbuild..."
-  CMAKE_ARGS+=("-DSlicerROS2_USE_MINIMAL_ROS=ON")
+  echo "==> CMake will use native ROS 2 if available, otherwise build minimal ROS 2."
   if [ -n "$MINIMAL_ROS_SOURCE_DIR" ]; then
     CMAKE_ARGS+=("-DMINIMAL_ROS_SOURCE_DIR=$MINIMAL_ROS_SOURCE_DIR")
   fi
