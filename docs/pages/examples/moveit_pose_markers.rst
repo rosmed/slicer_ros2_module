@@ -28,33 +28,42 @@ Then run the example script:
 
 .. code-block:: bash
 
-   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_pose_markers.py
+   ros2 run slicer_ros2_module slicer --python-script "$(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/examples/moveit_pose_markers.py"
 
 Script Setup
 ------------
 
-The complete script starts by importing Slicer/VTK modules, defining the robot
-and MoveIt configuration, creating the robot node, and initializing the Motion
-Control logic.  If you are copying sections into Slicer's Python console, run
-this setup block first:
+Import and run the example in the Python interactor:
 
-.. literalinclude:: ../../code/moveit_pose_markers.py
+.. code-block:: python
+
+   from slicerros2.examples import moveit_pose_markers
+   demo = moveit_pose_markers.run()
+
+The result exposes ``demo.poseMarkers``, ``demo.motionLogic``,
+``demo.motionControlNode`` and ``demo.rootTransform``. Configuration constants
+are available on the example module. Robot and motion-control setup is shared
+with the other MoveIt examples:
+
+.. literalinclude:: ../../../python/slicerros2/examples/_moveit.py
    :language: python
-   :end-before: # Build a Python list
+   :pyobject: setup_robot
 
 Planning Through Markers
 ------------------------
 
 After setup, the script builds the pose marker list and plans through it:
 
-.. literalinclude:: ../../code/moveit_pose_markers.py
+.. literalinclude:: ../../../python/slicerros2/examples/moveit_pose_markers.py
    :language: python
-   :start-at: # Build a Python list
+   :start-at:     # Build a Python list
+   :dedent: 4
+   :end-before:     _state =
 
 The script first waits for a valid live ``/joint_states`` message.  The marker
 list then starts with a lead-in segment for feasibility: ``PathPose_0`` is
 anchored to the current tip pose, and ``PathPose_1`` is the same pose lowered
-by 100 mm.  The remaining markers build the XY path at that lowered height.
+by 200 mm.  The remaining markers build the XY path at that lowered height.
 Planning uses MoveIt's current state, without forcing an explicit start state.
 The script also creates small sphere visuals attached to each marker transform,
 so marker positions stay easy to see while editor widgets are hidden. To edit one marker
@@ -65,7 +74,7 @@ interactively, enable its editor widget:
    marker = slicer.util.getNode("PathPose_1")
    marker.GetDisplayNode().SetEditorVisibility(True)
 
-After moving a marker, rerun the planning block from the Python console.  The
+After moving a marker, use the returned demo objects to replan from the Python console.  The
 marker list can also be built entirely by another Python algorithm:
 
 .. code-block:: python
@@ -76,15 +85,15 @@ marker list can also be built entirely by another Python algorithm:
        slicer.util.getNode("PathPose_2"),
    ]
 
-   trajectory = motionLogic.PlanMoveItCartesianTrajectoryFromPoseMarkers(
-       motionControlNode,
-       PLANNING_GROUP,
+   trajectory = demo.motionLogic.PlanMoveItCartesianTrajectoryFromPoseMarkers(
+       demo.motionControlNode,
+       moveit_pose_markers.PLANNING_GROUP,
        poseMarkers,
-       relativeToNode=rootTransform,
-       robotNode=robotNode,
+       relativeToNode=demo.rootTransform,
+       robotNode=demo.robotNode,
    )
 
-   fraction = motionControlNode.GetLastCartesianPathFraction()
+   fraction = demo.motionControlNode.GetLastCartesianPathFraction()
 
 ``fraction`` is the fraction returned by MoveIt's Cartesian path planner.  A
 value less than ``1.0`` means MoveIt returned only a partial path.

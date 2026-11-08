@@ -38,18 +38,10 @@ class vtkMRMLROS2RobotNodeInternals
 
   virtual ~vtkMRMLROS2RobotNodeInternals() = default;
   std::shared_ptr<urdf::Model> mURDFModel;
-  std::vector< std::shared_ptr< urdf::Visual > > mVisualVector;
-  std::map< std::string, std::shared_ptr< urdf::Material > > mMaterialsMap;
-  std::vector< std::string> mLinkMaterials;
-  std::vector< std::shared_ptr< urdf::Material > > mMaterialVector;
-  std::shared_ptr<const urdf::Link> mParentLinkPointer;
-  std::vector< std::shared_ptr< urdf::Link > > mChildLinkPointer;
-  std::vector<urdf::Pose> mLinkOrigins;
 
   // Transient setup data
   std::vector<std::string> mLinkNames;
   std::vector<std::string> mLinkParentNames;
-  std::vector<std::string> mLinkModelFiles;
   std::vector< std::vector< vtkSmartPointer< vtkMRMLModelNode > > > mLinkModels;
   std::vector< vtkSmartPointer< vtkMRMLROS2Tf2LookupNode > > mLookupNodes;
 

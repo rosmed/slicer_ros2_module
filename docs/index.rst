@@ -35,6 +35,7 @@ details about MRML ROS nodes or testing.
    :caption: User and Developer Guide
 
    pages/nodes
+   pages/utilities
    pages/ci-docker-image
 
 .. toctree::

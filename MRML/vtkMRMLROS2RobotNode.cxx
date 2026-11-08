@@ -8,6 +8,8 @@
 #include <vtkSTLReader.h>
 #include <vtkOBJReader.h>
 #include <vtkSphereSource.h>
+#include <vtkCylinderSource.h>
+#include <vtkCubeSource.h>
 #include <vtkTransformFilter.h>
 #include <vtksys/SystemTools.hxx>
 #include "vtkAssImpConversion.h"
@@ -139,18 +141,9 @@ void vtkMRMLROS2RobotNode::RemoveRobotVisualization()
     this->RemoveNthNodeReferenceID("lookup", i);
   }
 
-  // Clear transient vectors in internals
-  mInternals->mURDFModel.reset();
-  mInternals->mVisualVector.clear();
-  mInternals->mMaterialsMap.clear();
-  mInternals->mLinkMaterials.clear();
-  mInternals->mMaterialVector.clear();
-  mInternals->mParentLinkPointer.reset();
-  mInternals->mChildLinkPointer.clear();
-  mInternals->mLinkOrigins.clear();
+  // Clear transient visualization data, keeping the parsed URDF for rebuilding.
   mInternals->mLinkNames.clear();
   mInternals->mLinkParentNames.clear();
-  mInternals->mLinkModelFiles.clear();
   mInternals->mLinkModels.clear();
   mInternals->mLookupNodes.clear();
 
@@ -531,52 +524,23 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   std::string root_name = root->name;
   mInternals->mLinkNames.push_back(root_name);
   mInternals->mLinkParentNames.push_back(root_name);
-  mInternals->mVisualVector.push_back(root->visual);
-  mInternals->mMaterialsMap = mInternals->mURDFModel->materials_;
-  mInternals->mLinkMaterials.push_back(root->visual != nullptr ? root->visual->material_name : "");
-  mInternals->mLinkOrigins.push_back(root->visual != nullptr ? root->visual->origin : urdf::Pose());
 
   // BFS to explore links
   size_t lastExplored = 0;
-  while (lastExplored < mInternals->mVisualVector.size()) {
+  while (lastExplored < mInternals->mLinkNames.size()) {
     auto parentLink = mInternals->mURDFModel->getLink(mInternals->mLinkNames[lastExplored]);
     if (parentLink) {
       for (const auto& childLink : parentLink->child_links) {
         if (!childLink) continue;
         mInternals->mLinkNames.push_back(childLink->name);
         mInternals->mLinkParentNames.push_back(parentLink->name);
-        mInternals->mVisualVector.push_back(childLink->visual);
-        mInternals->mLinkMaterials.push_back(childLink->visual != nullptr ? childLink->visual->material_name : "");
-        mInternals->mLinkOrigins.push_back(childLink->visual != nullptr ? childLink->visual->origin : urdf::Pose());
       }
     }
     lastExplored++;
   }
   mNumberOfLinks = mInternals->mLinkNames.size();
 
-  // 2. Resolve mesh filenames
-  mInternals->mLinkModelFiles.resize(mNumberOfLinks);
-  for (size_t index = 0; index < mNumberOfLinks; ++index) {
-    auto visual = mInternals->mVisualVector[index];
-    if (visual && visual->geometry) {
-      auto mesh = std::dynamic_pointer_cast<urdf::Mesh>(visual->geometry);
-      if (mesh) {
-        std::string filename = mesh->filename;
-        std::regex pkg_regex("^package:\\/\\/([a-zA-Z0-9_-]+)\\/(.*)");
-        std::smatch match;
-        if (std::regex_search(filename, match, pkg_regex)) {
-          try {
-            filename = ament_index_cpp::get_package_share_directory(match[1]) + "/" + std::string(match[2]);
-          } catch (...) {
-            vtkErrorMacro(<< "Failed to resolve package " << std::string(match[1]));
-          }
-        }
-        mInternals->mLinkModelFiles[index] = filename;
-      }
-    }
-  }
-
-  // 3. Create MRML nodes (Lookups and Models)
+  // 2. Create MRML nodes (Lookups and Models)
   for (size_t i = 0; i < mNumberOfLinks; i++) {
     // Create Lookup
     vtkSmartPointer<vtkMRMLROS2Tf2LookupNode> lookup;
@@ -592,82 +556,125 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
     mInternals->mLookupNodes.push_back(lookup);
     this->SetNthNodeReferenceID("lookup", i, lookup ? lookup->GetID() : nullptr);
 
-    // Create Model Nodes (one or more parts) and apply local offset
-    auto visual = mInternals->mVisualVector[i];
-    std::vector< vtkSmartPointer<vtkPointSet> > meshParts;
-    std::vector< std::vector<double> > meshColors;
-    if (visual) {
-      LoadModelFile(mInternals->mLinkModelFiles[i], meshParts, meshColors);
-      
-      // Apply URDF scale and unit conversion
-      double sx = 1.0, sy = 1.0, sz = 1.0;
-      auto meshGeom = std::dynamic_pointer_cast<urdf::Mesh>(visual->geometry);
-      if (meshGeom) { sx = meshGeom->scale.x; sy = meshGeom->scale.y; sz = meshGeom->scale.z; }
-      
-      vtkNew<vtkTransform> scaleTransform;
-      scaleTransform->Scale(sx * 1000.0, sy * 1000.0, sz * 1000.0);
+    // A link can have several visuals, each with its own geometry and origin.
+    std::vector< vtkSmartPointer<vtkMRMLModelNode> > linkModels;
+    auto link = mInternals->mURDFModel->getLink(childName);
+    auto visuals = link->visual_array;
+    if (visuals.empty() && link->visual) {
+      visuals.push_back(link->visual);
+    }
+    for (const auto& visual : visuals) {
+      if (!visual || !visual->geometry) {
+        continue;
+      }
+      std::vector< vtkSmartPointer<vtkPointSet> > meshParts;
+      std::vector< std::vector<double> > meshColors;
+      vtkNew<vtkTransform> geometryTf;
+      // URDF geometry is in meters; Slicer geometry is in millimeters.
+      geometryTf->Scale(1000.0, 1000.0, 1000.0);
+      switch (visual->geometry->type) {
+        case urdf::Geometry::MESH: {
+          auto mesh = std::dynamic_pointer_cast<urdf::Mesh>(visual->geometry);
+          std::string filename = mesh->filename;
+          const std::string prefix = "package://";
+          if (filename.compare(0, prefix.size(), prefix) == 0) {
+            auto slash = filename.find('/', prefix.size());
+            if (slash != std::string::npos) {
+              auto package = filename.substr(prefix.size(), slash - prefix.size());
+              try {
+                filename = ament_index_cpp::get_package_share_directory(package) + filename.substr(slash);
+              } catch (...) {
+                vtkErrorMacro(<< "Failed to resolve package " << package);
+              }
+            }
+          }
+          LoadModelFile(filename, meshParts, meshColors);
+          geometryTf->Scale(mesh->scale.x, mesh->scale.y, mesh->scale.z);
+          break;
+        }
+        case urdf::Geometry::CYLINDER: {
+          auto cylinder = std::dynamic_pointer_cast<urdf::Cylinder>(visual->geometry);
+          vtkNew<vtkCylinderSource> source;
+          source->SetRadius(cylinder->radius);
+          source->SetHeight(cylinder->length);
+          source->SetResolution(48);
+          source->Update();
+          meshParts.push_back(source->GetOutput());
+          // VTK cylinders are along Y; URDF cylinders are along Z.
+          geometryTf->RotateX(90.0);
+          break;
+        }
+        case urdf::Geometry::BOX: {
+          auto box = std::dynamic_pointer_cast<urdf::Box>(visual->geometry);
+          vtkNew<vtkCubeSource> source;
+          source->SetXLength(box->dim.x);
+          source->SetYLength(box->dim.y);
+          source->SetZLength(box->dim.z);
+          source->Update();
+          meshParts.push_back(source->GetOutput());
+          break;
+        }
+        case urdf::Geometry::SPHERE: {
+          auto sphere = std::dynamic_pointer_cast<urdf::Sphere>(visual->geometry);
+          vtkNew<vtkSphereSource> source;
+          source->SetRadius(sphere->radius);
+          source->SetThetaResolution(48);
+          source->SetPhiResolution(25);
+          source->Update();
+          meshParts.push_back(source->GetOutput());
+          break;
+        }
+        default:
+          vtkWarningMacro(<< "Unsupported visual geometry on link " << childName);
+          continue;
+      }
+
+      auto material = visual->material;
+      if (!material && !visual->material_name.empty()) {
+        material = mInternals->mURDFModel->getMaterial(visual->material_name);
+      }
+      vtkNew<vtkTransform> offsetTf;
+      const auto& origin = visual->origin;
+      offsetTf->Translate(origin.position.x * 1000.0, origin.position.y * 1000.0, origin.position.z * 1000.0);
+      double r, p, y;
+      origin.rotation.getRPY(r, p, y);
+      offsetTf->RotateZ(y * (180.0/M_PI));
+      offsetTf->RotateY(p * (180.0/M_PI));
+      offsetTf->RotateX(r * (180.0/M_PI));
+
       for (size_t partIndex = 0; partIndex < meshParts.size(); ++partIndex) {
         vtkNew<vtkTransformFilter> tf;
         tf->SetInputData(meshParts[partIndex]);
-        tf->SetTransform(scaleTransform);
+        tf->SetTransform(geometryTf);
         tf->Update();
-        meshParts[partIndex] = tf->GetOutput();
+        vtkNew<vtkMRMLModelNode> modelNode;
+        this->GetScene()->AddNode(modelNode);
+        modelNode->SetName((childName + "_model_" + std::to_string(linkModels.size())).c_str());
+        modelNode->SetAndObserveMesh(tf->GetOutput());
+        modelNode->ApplyTransform(offsetTf);
+
+        vtkNew<vtkMRMLModelDisplayNode> displayNode;
+        this->GetScene()->AddNode(displayNode);
+        modelNode->SetAndObserveDisplayNodeID(displayNode->GetID());
+        displayNode->SetAmbient(0.2);
+        displayNode->SetDiffuse(0.8);
+        if (material) {
+          displayNode->SetColor(material->color.r, material->color.g, material->color.b);
+          displayNode->SetOpacity(material->color.a);
+        } else if (partIndex < meshColors.size() && meshColors[partIndex].size() >= 3) {
+          displayNode->SetColor(meshColors[partIndex][0], meshColors[partIndex][1], meshColors[partIndex][2]);
+        } else {
+          displayNode->SetColor(0.5, 0.5, 0.5);
+        }
+        this->AddNodeReferenceID("model", modelNode->GetID());
+        linkModels.push_back(modelNode);
       }
-    }
-
-    std::vector< vtkSmartPointer<vtkMRMLModelNode> > linkModels;
-    linkModels.reserve(meshParts.size());
-
-    bool colorSetFromUrdf = false;
-    std::vector<double> urdfColor = {0.5, 0.5, 0.5};
-    if (!mInternals->mMaterialsMap.empty() && !mInternals->mLinkMaterials[i].empty()) {
-      auto materialIt = mInternals->mMaterialsMap.find(mInternals->mLinkMaterials[i]);
-      if (materialIt != mInternals->mMaterialsMap.end() && materialIt->second) {
-        auto mat = materialIt->second;
-        urdfColor = {mat->color.r, mat->color.g, mat->color.b};
-        colorSetFromUrdf = true;
-      }
-    }
-
-    // Local offset transform
-    vtkNew<vtkTransform> offsetTf;
-    auto origin = mInternals->mLinkOrigins[i];
-    offsetTf->Translate(origin.position.x * 1000.0, origin.position.y * 1000.0, origin.position.z * 1000.0);
-    double r, p, y;
-    origin.rotation.getRPY(r, p, y);
-    offsetTf->RotateZ(y * (180.0/M_PI));
-    offsetTf->RotateY(p * (180.0/M_PI));
-    offsetTf->RotateX(r * (180.0/M_PI));
-
-    for (size_t partIndex = 0; partIndex < meshParts.size(); ++partIndex) {
-      vtkNew<vtkMRMLModelNode> modelNode;
-      this->GetScene()->AddNode(modelNode);
-      modelNode->SetName((mInternals->mLinkNames[i] + "_model_" + std::to_string(partIndex)).c_str());
-      modelNode->SetAndObserveMesh(meshParts[partIndex]);
-      modelNode->ApplyTransform(offsetTf);
-
-      vtkNew<vtkMRMLModelDisplayNode> displayNode;
-      this->GetScene()->AddNode(displayNode);
-      modelNode->SetAndObserveDisplayNodeID(displayNode->GetID());
-      displayNode->SetAmbient(0.2);
-      displayNode->SetDiffuse(0.8);
-
-      if (colorSetFromUrdf) {
-        displayNode->SetColor(urdfColor[0], urdfColor[1], urdfColor[2]);
-      } else if (partIndex < meshColors.size() && meshColors[partIndex].size() >= 3) {
-        displayNode->SetColor(meshColors[partIndex][0], meshColors[partIndex][1], meshColors[partIndex][2]);
-      } else {
-        displayNode->SetColor(0.5, 0.5, 0.5);
-      }
-
-      this->AddNodeReferenceID("model", modelNode->GetID());
-      linkModels.push_back(modelNode);
     }
 
     mInternals->mLinkModels.push_back(linkModels);
   }
 
-  // 4. Finalize Transform Tree
+  // 3. Finalize Transform Tree
   for (size_t i = 0; i < mInternals->mLookupNodes.size(); i++) {
     auto lookup = mInternals->mLookupNodes[i];
     if (!lookup) continue;
@@ -697,7 +704,6 @@ void vtkMRMLROS2RobotNode::SetupRobotVisualization(void)
   mInternals->mLookupNodes.clear();
   mInternals->mLinkNames.clear();
   mInternals->mLinkParentNames.clear();
-  mInternals->mLinkModelFiles.clear();
 }
 
 void vtkMRMLROS2RobotNode::LoadModelFile(const std::string& filename,

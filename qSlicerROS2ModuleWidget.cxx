@@ -36,6 +36,8 @@
 #include <QMenu>
 #include <QAction>
 #include <cmath>
+#include <memory>
+#include <set>
 
 // Slicer includes
 #include "qSlicerROS2ModuleWidget.h"
@@ -137,8 +139,8 @@ void qSlicerROS2ModuleWidget::setup(void)
     qWarning() << Q_FUNC_INFO << " failed: Invalid SlicerROS2 logic";
     return;
   }
-  this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(updateWidget()));
-  this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceRemovedEvent,this, SLOT(updateWidget()));
+  this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceAddedEvent,this, SLOT(scheduleWidgetUpdate()));
+  this->qvtkConnect(logic->mDefaultROS2Node, vtkMRMLNode::ReferenceRemovedEvent,this, SLOT(scheduleWidgetUpdate()));
   updateWidget(); // if the scene is loaded before the widget is activated
 
   QTimer* timer = new QTimer(this);
@@ -146,6 +148,12 @@ void qSlicerROS2ModuleWidget::setup(void)
   timer->start(1000);
 }
 
+
+void qSlicerROS2ModuleWidget::scheduleWidgetUpdate()
+{
+  // Reference events may arrive before robot setup or removal has finished.
+  QTimer::singleShot(0, this, SLOT(updateWidget()));
+}
 
 void qSlicerROS2ModuleWidget::updateWidget()
 {
@@ -159,29 +167,36 @@ void qSlicerROS2ModuleWidget::updateWidget()
   refreshParameterTable();
   refreshTf2Tables();
 
-  // update the robot widgets based on the default node robot connections
-  int numRobots = logic->mDefaultROS2Node->GetNumberOfNodeReferences("robot");
-  auto robotsAddedToTheNode = logic->mDefaultROS2Node->mRobotNames;
-  if (robotsAddedToTheNode.size() != robotsAddedToTheWidget.size()) {
-    for (int i = 0; i < numRobots; i++) {
-      vtkMRMLROS2RobotNode * robot = vtkMRMLROS2RobotNode::SafeDownCast(logic->mDefaultROS2Node->GetNthNodeReference("robot", i));
-      if (std::find(robotsAddedToTheWidget.begin(), robotsAddedToTheWidget.end(), robot->GetRobotName())
-          != robotsAddedToTheWidget.end()) {
-        continue;
-      } else {
-        onAddNewRobotClicked(robot->GetRobotName(), true);
-        robotsAddedToTheWidget.push_back(robot->GetRobotName());
-        return;
-      }
+  // The MRML references are authoritative; mRobotNames can contain removed robots.
+  std::set<std::string> robotNames;
+  const int numRobots = logic->mDefaultROS2Node->GetNumberOfNodeReferences("robot");
+  for (int i = 0; i < numRobots; ++i) {
+    auto robot = vtkMRMLROS2RobotNode::SafeDownCast(
+      logic->mDefaultROS2Node->GetNthNodeReference("robot", i));
+    if (!robot) {
+      continue;
+    }
+    const auto name = robot->GetRobotName();
+    robotNames.insert(name);
+    if (robotsAddedToTheWidget.find(name) == robotsAddedToTheWidget.end()) {
+      onAddNewRobotClicked(name, true);
+    }
+  }
+  for (auto it = robotsAddedToTheWidget.begin(); it != robotsAddedToTheWidget.end();) {
+    if (robotNames.count(it->first) == 0) {
+      d->robotTabLayout->removeWidget(it->second);
+      it->second->hide();
+      it->second->deleteLater();
+      it = robotsAddedToTheWidget.erase(it);
+    } else {
+      ++it;
     }
   }
 }
 
 void qSlicerROS2ModuleWidget::onUpdateTimer()
 {
-  refreshTopicsPanel();
-  refreshParameterTable();
-  refreshTf2Tables();
+  updateWidget();
 }
 
 // ── Observer helpers ────────────────────────────────────────────────────────
@@ -619,10 +634,10 @@ void qSlicerROS2ModuleWidget::setTf2DisplayMode(int mode)
 void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName, bool active)
 {
   Q_D(qSlicerROS2ModuleWidget);
-  this->Superclass::setup();
   // Instantiate a robot widget
   QWidget * robotWidget = new QWidget();
-  Ui_qSlicerROS2RobotWidget * robotWidgetUi = new Ui_qSlicerROS2RobotWidget();
+  // The generated UI wrapper does not own the child widgets.
+  auto robotWidgetUi = std::make_shared<Ui_qSlicerROS2RobotWidget>();
   robotWidgetUi->setupUi(robotWidget);
   d->robotTabLayout->addWidget(robotWidget);
   auto loadRobotButton = robotWidgetUi->loadRobotButton;
@@ -652,7 +667,11 @@ void qSlicerROS2ModuleWidget::onAddNewRobotClicked(const std::string & robotName
     robotWidgetUi->robotNameLineEdit->setEnabled(false);
     robotWidgetUi->parameterNodeNameLineEdit->setEnabled(false);
     robotWidgetUi->parameterLineEdit->setEnabled(false);
+    robotWidgetUi->fixedFrameLineEdit->setEnabled(false);
+    robotWidgetUi->tfPrefixLineEdit->setEnabled(false);
+    loadRobotButton->setEnabled(false);
     removeRobotButton->setEnabled(true);
+    robotsAddedToTheWidget[robotName] = robotWidget;
     QString name = QString::fromStdString(robotName);
     QLineEdit * robotNameLineEdit = robotWidgetUi->robotNameLineEdit;
     robotNameLineEdit->setText(name);
@@ -673,7 +692,13 @@ void qSlicerROS2ModuleWidget::onLoadRobotClicked(QLineEdit * robotNameLineEdit,
     return;
   }
 
-  robotsAddedToTheWidget.push_back(robotNameLineEdit->text().toStdString());
+  const auto name = robotNameLineEdit->text().toStdString();
+  if (!logic->mDefaultROS2Node || logic->mDefaultROS2Node->GetRobotNodeByName(name)) {
+    qWarning() << "A robot with this name already exists, or no ROS2 node is available";
+    return;
+  }
+  // Register the row before AddRobot emits reference events.
+  robotsAddedToTheWidget[name] = robotNameLineEdit->parentWidget();
   logic->AddRobot(robotNameLineEdit->text().toStdString(),
                   parameterNodeNameLineEdit->text().toStdString(),
                   parameterNameLineEdit->text().toStdString(),
@@ -705,6 +730,7 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
     return;
   }
   std::string robot = robotNameLineEdit->text().toStdString();
+  robotsAddedToTheWidget.erase(robot);
   logic->RemoveRobot(robot);
   loadRobotButton->setEnabled(true);
   robotNameLineEdit->setEnabled(true);
@@ -714,11 +740,6 @@ void qSlicerROS2ModuleWidget::onRemoveRobotClicked(QLineEdit * robotNameLineEdit
   tfPrefixLineEdit->setEnabled(true);
   removeRobotButton->setEnabled(false);
   d->robotTabLayout->removeWidget(robotWidget);
-  delete robotWidget;
-
-  for (size_t robotName = 0; robotName < robotsAddedToTheWidget.size(); robotName++) {
-    if (robotsAddedToTheWidget[robotName] == robot) {
-      robotsAddedToTheWidget.erase(robotsAddedToTheWidget.begin() + robotName);
-    }
-  }
+  robotWidget->hide();
+  robotWidget->deleteLater();
 }

@@ -56,6 +56,13 @@ Python scripts can be run at startup:
 
    ros2 run slicer_ros2_module slicer --python-script my_script.py
 
+Running Installed Examples
+--------------------------
+
+See :doc:`/pages/examples` for installed startup stubs, direct Python commands,
+and running examples in Slicer's Python Interactor. The existing launch-file
+interface forwards Slicer options through ``slicer_args`` as described above.
+
 Extension Paths
 ---------------
 

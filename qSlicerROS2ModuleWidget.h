@@ -24,6 +24,8 @@
 
 // Qt includes
 #include <QFileDialog>
+#include <map>
+#include <string>
 
 class qSlicerROS2ModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -71,6 +73,7 @@ protected:
 
 protected slots:
   // ── Existing / Robots ─────────────────────────────────────────────────────
+  void scheduleWidgetUpdate(void);
   void updateWidget(void);
   void onUpdateTimer(void);
   void onAddNewRobotClicked(const std::string & robotName = "robot", bool active = false);
@@ -113,7 +116,7 @@ protected slots:
   void onInnerTabChanged(int index);
 
 private:
-  std::vector<std::string> robotsAddedToTheWidget;
+  std::map<std::string, QWidget*> robotsAddedToTheWidget;
 
   // Currently observed MRML nodes (one per detail panel)
   vtkMRMLROS2SubscriberNode * mObservedSubscriber = nullptr;

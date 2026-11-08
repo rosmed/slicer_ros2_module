@@ -39,19 +39,26 @@ message in Terminal 1 before proceeding.
    native unit). The SlicerROS2 module automatically converts them to metres when
    publishing to ROS 2.
 
-You can copy/paste each section of the code below into the Slicer Python
-interpreter, or run the complete script from the terminal using the
-``--python-script`` argument of the ``slicer`` launcher — the full command
+Run the example in the Python interactor using:
+
+.. code-block:: python
+
+   from slicerros2.examples import moveit_obstacle
+   demo = moveit_obstacle.run()
+
+The returned object exposes ``demo.obstacleNode`` and
+``demo.obstacleTransform``. The source excerpts below explain its implementation.
+You can also run the complete example from the terminal using the
+``--python-code`` argument of the ``slicer`` launcher — the full command
 is provided at the end of this example.
 
 Configuration
 -------------
 
-All parameters are gathered in a single block at the top of the script.
-Edit these values to match your robot and MoveIt setup before running
-any of the sections below:
+Configuration constants live in the example module. Set them before calling
+``run()`` to match your robot and MoveIt setup:
 
-.. literalinclude:: ../../code/moveit_obstacle.py
+.. literalinclude:: ../../../python/slicerros2/examples/moveit_obstacle.py
    :language: python
    :start-after: [doc: config]
    :end-before: [end: config]
@@ -68,8 +75,9 @@ to switch between code and manual interaction:
 * Wait asynchronously for the URDF to be parsed.
 * Delegate the motion-control initialization to the module's logic class.
 
-.. literalinclude:: ../../code/moveit_obstacle.py
+.. literalinclude:: ../../../python/slicerros2/examples/_moveit.py
    :language: python
+   :dedent: 4
    :start-after: [doc: setup]
    :end-before: [end: setup]
 
@@ -83,8 +91,9 @@ The following code creates a 200 mm × 200 mm × 200 mm box **centred at the
 origin**.  The position is intentionally not baked into the mesh — it will
 be controlled entirely by the transform node in the next step:
 
-.. literalinclude:: ../../code/moveit_obstacle.py
+.. literalinclude:: ../../../python/slicerros2/examples/_moveit.py
    :language: python
+   :dedent: 4
    :start-after: [doc: geometry]
    :end-before: [end: geometry]
 
@@ -105,8 +114,9 @@ Instead of baking a position into the mesh, we create a
 obstacle under it.  This is equivalent to registering a piece of anatomy to the
 robot coordinate system:
 
-.. literalinclude:: ../../code/moveit_obstacle.py
+.. literalinclude:: ../../../python/slicerros2/examples/_moveit.py
    :language: python
+   :dedent: 4
    :start-after: [doc: transform]
    :end-before: [end: transform]
 
@@ -129,8 +139,9 @@ to integrate the obstacle with MoveIt:
    registration algorithm writes to the transform) the new pose is broadcast
    over ``/tf`` automatically — no re-publish needed.
 
-.. literalinclude:: ../../code/moveit_obstacle.py
+.. literalinclude:: ../../../python/slicerros2/examples/_moveit.py
    :language: python
+   :dedent: 4
    :start-after: [doc: publish]
    :end-before: [end: publish]
 
@@ -159,7 +170,7 @@ the robot, creates and publishes the obstacle, then stays open):
 
 .. code-block:: bash
 
-   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_obstacle.py
+   ros2 run slicer_ros2_module slicer --python-script "$(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/examples/moveit_obstacle.py"
 
 Verifying the Obstacle in MoveIt
 ----------------------------------

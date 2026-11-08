@@ -25,7 +25,7 @@ Then run the example script:
 
 .. code-block:: bash
 
-   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/moveit_custom_tool.py
+   ros2 run slicer_ros2_module slicer --python-script "$(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/examples/moveit_custom_tool.py"
 
 Needle Tool
 -----------
@@ -34,10 +34,11 @@ The obstacle setup is intentionally not repeated here; see
 :doc:`/pages/examples/moveit_obstacle` for that pattern.  The new part is the
 runtime tool attachment:
 
-.. literalinclude:: ../../code/moveit_custom_tool.py
+.. literalinclude:: ../../../python/slicerros2/examples/moveit_custom_tool.py
    :language: python
    :start-after: [doc: needle]
    :end-before: [end: needle]
+   :dedent: 4
 
 After this block runs, MoveIt collision checking treats the needle as part of
 the robot.  Planning requests that support attached-object subframes can use

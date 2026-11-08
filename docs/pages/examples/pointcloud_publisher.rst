@@ -1,7 +1,7 @@
 PointCloud Publisher
 ====================
 
-This example demonstrates how to create a static point cloud using 3D Slicer's
+This example demonstrates how to create an animated point cloud using 3D Slicer's
 built-in features and publish it over a ROS 2 topic to be visualized in RViz.
 
 Creating and Publishing the Point Cloud in 3D Slicer
@@ -9,19 +9,28 @@ Creating and Publishing the Point Cloud in 3D Slicer
 
 You can run the publisher script in one of two ways:
 
-**Option A – run the script directly from a terminal** using the ``slicer`` launcher's
-``--python-script`` argument (the script executes automatically after Slicer starts):
+**Option A – run the installed example at startup** using the ``slicer`` launcher's
+``--python-script`` argument (the stub starts the installed example after Slicer loads):
 
 .. code-block:: bash
 
-   ros2 run slicer_ros2_module slicer --python-script $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/point_cloud_publisher.py
+   ros2 run slicer_ros2_module slicer --python-script "$(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/examples/point_cloud_publisher.py"
 
-**Option B – paste the code** into Slicer's Python Interactor (**Ctrl + 3** or through
-the **Developer Tools** menu):
+**Option B – use the Python Interactor** (Ctrl + 3):
 
-.. literalinclude:: ../../code/point_cloud_publisher.py
+.. code-block:: python
+
+   from slicerros2.examples import point_cloud_publisher
+   demo = point_cloud_publisher.run()
+
+Stop the example and release its timer/subscription and scene nodes with
+``point_cloud_publisher.cleanup()``.
+
+The implementation below is included directly from the installed package's source:
+
+.. literalinclude:: ../../../python/slicerros2/examples/point_cloud_publisher.py
    :language: python
-   :end-before: [end: code]
+   :pyobject: run
 
 Once executed, Slicer will create a local model displaying the sphere, and publish
 the points to the ROS 2 topic ``/slicer_point_cloud`` with the ``frame_id`` set to

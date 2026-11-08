@@ -23,7 +23,7 @@ Running the unit tests
 Using the test wrapper script
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The easiest way to run all Python unit tests is to use the provided wrapper script. This script launches Slicer, automatically triggers the test suite, and leaves Slicer open afterwards so you can inspect the Python Console or GUI state:
+The easiest way to run the MRML Python unit tests is to use the provided wrapper script. This script launches Slicer, automatically triggers the test suite, and leaves Slicer open afterwards so you can inspect the Python Console or GUI state:
 
 .. code-block:: bash
 
@@ -41,3 +41,18 @@ You can run the tests interactively inside Slicer by opening the Python Console 
    tests.run()
 
 The tests intentionally attempt to perform commands that should fail, so you will see some warning and error messages displayed in the Slicer Python Console.
+
+Python helper regressions
+-------------------------
+
+CI also runs ``Testing/Python/test_python_package.py`` and
+``Testing/Python/test_launchers.py`` with system Python. These check package
+imports, dVRK helper behavior, documentation links, and launcher arguments.
+
+The scripts under ``Testing/Python/Unit`` run in separate Slicer processes:
+``test_virtual_camera.py`` checks rendering and cleanup,
+``test_examples.py`` checks example objects, ``test_robot_visuals.py`` checks
+URDF geometry and starts its own ROS parameter server, and
+``test_robot_gui.py`` checks robot-list synchronization. They use the installed
+module paths and run without an external robot or MoveIt server. CI invokes
+Slicer directly for these scripts so a nonzero test exit fails the job.

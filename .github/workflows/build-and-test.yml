@@ -105,12 +105,23 @@ jobs:
             -v /tmp/.X11-unix:/tmp/.X11-unix \
             -v "${{ github.workspace }}/ws:/ws" \
             ${{ env.CI_IMAGE }} \
-            bash -c "
+            bash -c '
               set -e
-              source /opt/ros/\$ROS_DISTRO/setup.bash
+              source /opt/ros/$ROS_DISTRO/setup.bash
               source /ws/install/setup.bash
+              python3 /ws/src/slicer_ros2_module/Testing/Python/test_python_package.py
+              python3 /ws/src/slicer_ros2_module/Testing/Python/test_launchers.py
               ros2 run slicer_ros2_module test_ci
-            "
+              # Invoke Slicer directly so a failing script exits this CI step
+              # with its actual status, independently of ros2 launch.
+              source "$(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/local_setup.bash"
+              IFS=: read -r -a module_paths <<< "$SLICER_ROS2_MODULE_PATHS"
+              for regression in test_virtual_camera test_examples test_robot_visuals test_robot_gui; do
+                "$Slicer_DIR/Slicer" --testing --no-splash --no-main-window \
+                  --additional-module-paths "${module_paths[@]}" \
+                  --python-script "/ws/src/slicer_ros2_module/Testing/Python/Unit/${regression}.py"
+              done
+            '
 
       # -----------------------------------------------------------------------
       # 6. Upload build/test logs as an artifact (visible even on failure)

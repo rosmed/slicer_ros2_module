@@ -256,6 +256,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_subdirectory(MRML)
 add_subdirectory(Logic)
+add_subdirectory(python)
 
 #-----------------------------------------------------------------------------
 set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")
@@ -349,13 +350,11 @@ add_subdirectory(launch)
 add_subdirectory(scripts)
 
 
-# Install documentation code snippets so they are reachable via the installed package
-# (e.g. $(ros2 pkg prefix slicer_ros2_module)/share/slicer_ros2_module/docs/code/...)
-install(
-  DIRECTORY docs/code/
-  DESTINATION share/${PROJECT_NAME}/docs/code
-  COMPONENT slicer_ros2_docs_code
-)
+# Small startup stubs delegate to the importable package; no demo logic is copied.
+install(DIRECTORY examples/
+  DESTINATION share/${PROJECT_NAME}/examples
+  COMPONENT slicer_ros2_examples
+  FILES_MATCHING PATTERN "*.py")
 
 if (SlicerROS2_USE_AMENT)
   ament_package()

@@ -30,6 +30,10 @@ after loading the robot.
    VTK natively imports ``.stl`` and ``.obj`` meshes. We use the Assimp library
    to support other CAD formats like ``.dae``.
 
+   Versions after 1.2 also support URDF visual primitives: ``box``, ``cylinder``
+   and ``sphere``. All visual elements on a link are rendered, including links
+   that combine primitives and meshes.
+
 ROS Robot
 ---------
 
@@ -39,8 +43,8 @@ to try SlicerROS2.
 
 They cover serial robots (Phantom Omni and Cobot) as well as a robot
 with parallel linkages (dVRK PSM).  The SlicerROS2 module should work
-with any other robots as long as the links CAD files are supported
-by VTK or Assimp (e.g. ``.stl``, ``.obj``, ``.dae``).
+with other robots using supported mesh formats (e.g. ``.stl``, ``.obj``,
+``.dae``) or URDF visual primitives.
 
 Universal Robot
 ~~~~~~~~~~~~~~~
@@ -205,14 +209,18 @@ Then, to start the robot's dance, use another terminal:
   ros2 run sensable_phantom_model pretend_omni_joint_state_publisher
 
 
-dVRK PSM
-~~~~~~~~
+dVRK
+~~~~
 
 The dVRK PSM (`da Vinci Research
 Kit <https://dvrk.readthedocs.io/>`_
 Patient Side Manipulator) is based on the first generation da Vinci
 RAMIS system (Robotically Assisted Minimally Invasive Surgery) sold by
 ISI (`Intuitive Surgical systems <https://www.intuitive.com/>`_).
+
+For launch instructions and a short walkthrough that loads the patient cart
+and starts a virtual ECM camera, see :doc:`/pages/examples/dvrk`.
+The class and method reference is in :doc:`/pages/utilities/dvrk`.
 
 .. image:: /images/dVRK-PSM.png
   :width: 400
